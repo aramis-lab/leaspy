@@ -21,4 +21,5 @@ done
 
 
 # run tox: execute tests on multiple python versions
-tox -p auto -q
+#tox -p auto -q
+tox
