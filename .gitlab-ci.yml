@@ -8,7 +8,6 @@ test:mac:
     - macos
   script:
     - pwd
-    - source ~/.bashrc
     - source activate leaspy
     - script/run_multi_python_interpreter_tests.sh
     - source deactivate
@@ -19,7 +18,6 @@ test:linux:
     - linux
   script:
     - pwd
-    - source ~/.bashrc
     - source activate leaspy
     - script/run_multi_python_interpreter_tests.sh
     - source deactivate
