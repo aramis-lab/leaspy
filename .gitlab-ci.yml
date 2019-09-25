@@ -8,9 +8,9 @@ test:mac:
     - macos
   script:
     - pwd
-    - source activate leaspy
+    - conda activate leaspy
     - script/run_multi_python_interpreter_tests.sh
-    - source deactivate
+    - conda deactivate
 
 test:linux:
   stage: test
@@ -18,6 +18,6 @@ test:linux:
     - linux
   script:
     - pwd
-    - source activate leaspy
+    - conda activate leaspy
     - script/run_multi_python_interpreter_tests.sh
-    - source deactivate
+    - conda deactivate
