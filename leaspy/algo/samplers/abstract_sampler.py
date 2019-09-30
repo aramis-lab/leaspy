@@ -25,7 +25,7 @@ class AbstractSampler:
 
     def _group_metropolis_step(self, alpha):
         accepted = (1. * (torch.rand(alpha.size(0)) < alpha)).float()
-        return accepted.detach().clone()
+        return accepted
 
     def _metropolis_step(self, alpha):
         """
@@ -58,10 +58,10 @@ class AbstractSampler:
         # Ad the new acceptation result
         if self.type == "pop":
             self.acceptation_temp = torch.cat(
-                [self.acceptation_temp, torch.tensor(accepted, dtype=torch.float32).reshape(self.shape).unsqueeze(0)])
+                [self.acceptation_temp, accepted.reshape(self.shape).unsqueeze(0)])
         elif self.type == "ind":
             self.acceptation_temp = torch.cat(
-                [self.acceptation_temp, torch.tensor(accepted, dtype=torch.float32).unsqueeze(0)])
+                [self.acceptation_temp, accepted.unsqueeze(0)])
         else:
             raise ValueError("Nor pop or ind")
 

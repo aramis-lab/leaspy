@@ -1,5 +1,7 @@
 __version__ = '0.1.0rc1'
 
+dtype = 'float32'
+
 # API
 from .api import Leaspy
 

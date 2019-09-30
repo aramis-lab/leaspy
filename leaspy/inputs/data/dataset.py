@@ -84,8 +84,8 @@ class Dataset:
         df = pd.DataFrame()
 
         for i, idx in enumerate(self.indices):
-            times = self.get_times_patient(i).numpy()
-            x = self.get_values_patient(i).numpy()
+            times = self.get_times_patient(i).cpu().numpy()
+            x = self.get_values_patient(i).cpu().numpy()
             df_patient = pd.DataFrame(data=x, index=times.reshape(-1), columns=self.headers)
             df_patient.index.name = 'TIME'
             df_patient['ID'] = idx

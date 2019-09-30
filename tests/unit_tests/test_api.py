@@ -7,8 +7,8 @@ from torch import tensor
 from leaspy.api import Leaspy
 from leaspy.models.model_factory import ModelFactory
 
-from .models.test_model_factory import ModelFactoryTest
 from tests import test_data_dir
+from tests.unit_tests.models.test_model_factory import ModelFactoryTest
 
 
 class LeaspyTest(unittest.TestCase):

@@ -61,7 +61,7 @@ class Attributes_Logistic:
     def _compute_betas(self, values):
         if self.source_dimension == 0:
             return
-        self.betas = torch.tensor(values['betas'], dtype=torch.float32).clone()
+        self.betas = values['betas'].clone()
 
     def _compute_orthonormal_basis(self):
         if self.source_dimension == 0:
@@ -89,5 +89,4 @@ class Attributes_Logistic:
     def _compute_mixing_matrix(self, values):
         if self.source_dimension == 0:
             return
-        self.mixing_matrix = torch.tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis),
-                                          dtype=torch.float32)
+        self.mixing_matrix = self._mixing_matrix_utils(self.betas, self.orthonormal_basis)
