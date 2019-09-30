@@ -1,5 +1,5 @@
-torch
-matplotlib
-pandas
-scipy
-scikit-learn
+torch>=1.1.0
+matplotlib>=3.0.0
+pandas==0.24.2
+scipy>=1.2.1
+scikit-learn>=0.21.3
