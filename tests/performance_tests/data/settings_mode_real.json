@@ -1,0 +1,19 @@
+{
+  "name": "mode_real",
+  "seed": 0,
+  "initialization_method": null,
+  "parameters": {
+    "n_iter": 1000,
+    "n_burn_in_iter":500,
+    "eps": 0.005,
+    "L": 10,
+    "sampler_ind": "Gibbs",
+    "sampler_pop": "Gibbs",
+    "annealing": {
+      "do_annealing": false,
+      "initial_temperature": 10,
+      "n_plateau": 10,
+      "n_iter": null
+    }
+  }
+}

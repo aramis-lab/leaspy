@@ -1,8 +1,10 @@
 import torch
 from leaspy.utils.realizations.collection_realization import CollectionRealization
-import numpy as np
+import math
 
 from leaspy.utils.realizations.realization import Realization
+
+TWO_PI = 2 * math.pi
 
 
 class AbstractModel():
@@ -10,6 +12,7 @@ class AbstractModel():
         self.is_initialized = False
         self.name = name
         self.parameters = None
+        self.distribution = torch.distributions.normal.Normal(loc=0., scale=0.)
 
     def load_parameters(self, parameters):
         self.parameters = {}
@@ -49,11 +52,16 @@ class AbstractModel():
 
     def compute_individual_attachment_tensorized(self, data, param_ind, attribute_type):
         res = self.compute_individual_tensorized(data.timepoints, param_ind, attribute_type)
-        res *= data.mask
-        squared_sum = torch.sum((res * data.mask - data.values) ** 2, dim=(1, 2))
-        noise_var = self.parameters['noise_std'] ** 2
+        # res *= data.mask
+
+        r1 = res * data.mask - data.values
+        squared_sum = torch.sum(r1 * r1, dim=(1, 2))
+
+        # noise_var = self.parameters['noise_std'] ** 2
+        noise_var = self.parameters['noise_std'] * self.parameters['noise_std']
         attachment = 0.5 * (1 / noise_var) * squared_sum
-        attachment += np.log(np.sqrt(2 * np.pi * noise_var))
+
+        attachment += torch.log(torch.sqrt(TWO_PI * noise_var))
         return attachment
 
     def update_model_parameters(self, data, suff_stats, burn_in_phase=True):
@@ -100,8 +108,11 @@ class AbstractModel():
     def compute_regularity_variable(self, value, mean, std):
         # TODO change to static ???
         # Instanciate torch distribution
-        distribution = torch.distributions.normal.Normal(loc=mean, scale=std)
-        return -distribution.log_prob(value)
+        # distribution = torch.distributions.normal.Normal(loc=mean, scale=std)
+
+        self.distribution.loc = mean
+        self.distribution.scale = std
+        return -self.distribution.log_prob(value)
 
     def get_realization_object(self, n_individuals):
         ### TODO : CollectionRealizations should probably get self.get_info_var rather than all self
