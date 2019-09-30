@@ -8,8 +8,6 @@ class GradientMCMCSAEM(AbstractFitMCMC):
         super().__init__(settings)
         self.name = "MCMC_SAEM (tensor)"
 
-
-
     def iteration(self, data, model, realizations):
 
         # Sample step
@@ -30,12 +28,9 @@ class GradientMCMCSAEM(AbstractFitMCMC):
             for key in realizations.keys():
                 realizations[key].to_torch_Tensor()
 
-
         # Maximization step
         self._maximization_step(data, model, realizations)
         model.update_MCMC_toolbox(['all'], realizations)
-
-
 
     def _gradient_population_update(self, data, model, realizations):
 

@@ -7,6 +7,8 @@
     "bandwidth_method": 0.2,
     "noise": true,
     "mean_number_of_visits": 6,
-    "std_number_of_visits": 3
+    "std_number_of_visits": 3,
+    "cofactor": null,
+    "cofactor_state": null
   }
 }

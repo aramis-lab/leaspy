@@ -36,7 +36,8 @@ class CSVDataReader:
         try:
             return [float(_) for _ in observation]
         except ValueError:
-            print('The observations of individual '+str(idx)+' at time '+str(timepoint)+' cannot be converted to float')
+            print('The observations of individual ' + str(idx) + ' at time ' + str(
+                timepoint) + ' cannot be converted to float')
 
     def _check_observation(self, observation):
         if self.dimension is None:

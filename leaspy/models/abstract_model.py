@@ -5,7 +5,6 @@ import numpy as np
 from leaspy.utils.realizations.realization import Realization
 
 
-
 class AbstractModel():
     def __init__(self, name):
         self.is_initialized = False
@@ -66,7 +65,6 @@ class AbstractModel():
             self.update_model_parameters_normal(data, suff_stats)
         self.attributes.update(['all'], self.parameters)
 
-
     def update_model_parameters_burn_in(self, data, realizations):
         raise NotImplementedError
 
@@ -79,13 +77,11 @@ class AbstractModel():
     def __str__(self):
         output = "=== MODEL ===\n"
         for key in self.parameters.keys():
-
-            #if type(self.parameters[key]) == float:
+            # if type(self.parameters[key]) == float:
             #    output += "{} : {:.5f}\n".format(key, self.parameters[key])
-            #else:
+            # else:
             output += "{} : {}\n".format(key, self.parameters[key])
         return output
-
 
     def compute_regularity_realization(self, realization):
         # Instanciate torch distribution
@@ -99,11 +95,12 @@ class AbstractModel():
         else:
             raise ValueError("Variable type not known")
 
-        return self.compute_regularity_variable(realization.tensor_realizations,mean,std)
+        return self.compute_regularity_variable(realization.tensor_realizations, mean, std)
 
     def compute_regularity_variable(self, value, mean, std):
+        # TODO change to static ???
         # Instanciate torch distribution
-        distribution = torch.distributions.normal.Normal(loc=mean,scale=std)
+        distribution = torch.distributions.normal.Normal(loc=mean, scale=std)
         return -distribution.log_prob(value)
 
     def get_realization_object(self, n_individuals):

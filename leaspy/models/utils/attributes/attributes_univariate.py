@@ -18,7 +18,6 @@ class Attributes_Univariate:
         compute_g = False
         compute_v0 = False
 
-
         for name in names_of_changed_values:
             if name == 'g':
                 compute_g = True
@@ -28,10 +27,10 @@ class Attributes_Univariate:
                 compute_g = True
                 compute_v0 = True
 
-
-        if compute_g: self._compute_g(values)
-        if compute_v0: self._compute_v0(values)
-
+        if compute_g:
+            self._compute_g(values)
+        if compute_v0:
+            self._compute_v0(values)
 
     def _check_names(self, names_of_changed_values):
         for name in names_of_changed_values:
@@ -42,5 +41,4 @@ class Attributes_Univariate:
         self.g = torch.exp(values['g'])
 
     def _compute_v0(self, values):
-        self.v0 = torch.exp(torch.Tensor([values['xi_mean']]))
-
+        self.v0 = torch.exp(torch.tensor([values['xi_mean']], dtype=torch.float32))

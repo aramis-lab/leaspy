@@ -6,6 +6,8 @@ class GradientDescent(AbstractFitAlgo):
 
     def __init__(self, settings):
 
+        super().__init__()
+
         self.name = "Gradient Descent"
         self.realizations = None
         self.task = None
@@ -49,20 +51,16 @@ class GradientDescent(AbstractFitAlgo):
         # Update pop
         with torch.no_grad():
             for key in realizations.reals_pop_variable_names:
-                eps =self.algo_parameters['learning_rate']/data.n_individuals
-                realizations[key].tensor_realizations -= eps*realizations[key].tensor_realizations.grad
+                eps = self.algo_parameters['learning_rate'] / data.n_individuals
+                realizations[key].tensor_realizations -= eps * realizations[key].tensor_realizations.grad
                 realizations[key].tensor_realizations.grad.zero_()
 
         # Update ind
         with torch.no_grad():
             for key in realizations.reals_ind_variable_names:
-                eps =self.algo_parameters['learning_rate']/data.n_individuals
-                realizations[key].tensor_realizations -= eps*realizations[key].tensor_realizations.grad
+                eps = self.algo_parameters['learning_rate'] / data.n_individuals
+                realizations[key].tensor_realizations -= eps * realizations[key].tensor_realizations.grad
                 realizations[key].tensor_realizations.grad.zero_()
-
-
-
-
 
         # Update the sufficient statistics
         self._maximization_step(data, model, realizations)

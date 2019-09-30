@@ -1,6 +1,5 @@
 import os
 
-
 from .abstract_model import AbstractModel
 import torch
 import numpy as np
@@ -14,14 +13,14 @@ class UnivariateModel(AbstractModel):
     ###########################
     ## Initialization
     ###########################
-    def __init__(self,name):
+    def __init__(self, name):
         super(UnivariateModel, self).__init__(name)
-        self.dimension=1
-        self.source_dimension=0 # TODO, None ???
+        self.dimension = 1
+        self.source_dimension = 0  # TODO, None ???
         self.parameters = {
             "g": None,
             "tau_mean": None, "tau_std": None,
-            "xi_mean": None,  "xi_std": None,
+            "xi_mean": None, "xi_std": None,
             "noise_std": None
         }
         self.bayesian_priors = None
@@ -31,7 +30,7 @@ class UnivariateModel(AbstractModel):
         self.MCMC_toolbox = {
             'attributes': None,
             'priors': {
-                'g_std': None, # tq p0 = 1 / (1+exp(g)) i.e. g = 1/p0 - 1
+                'g_std': None,  # tq p0 = 1 / (1+exp(g)) i.e. g = 1/p0 - 1
             }
         }
 
@@ -47,10 +46,8 @@ class UnivariateModel(AbstractModel):
         with open(path, 'w') as fp:
             json.dump(model_settings, fp)
 
-
     def load_hyperparameters(self, hyperparameters):
         return
-
 
     def initialize(self, data):
 
@@ -58,7 +55,7 @@ class UnivariateModel(AbstractModel):
         # TODO !
         self.parameters = {
             'g': torch.tensor([1.]), 'tau_mean': 70.0, 'tau_std': 2.0, 'xi_mean': -3., 'xi_std': 0.1,
-            'noise_std': 0.1,}
+            'noise_std': 0.1, }
         self.attributes = Attributes_Univariate()
         self.is_initialized = True
 
@@ -67,7 +64,7 @@ class UnivariateModel(AbstractModel):
         for k in parameters.keys():
             self.parameters[k] = torch.tensor(parameters[k])
         self.attributes = Attributes_Univariate()
-        self.attributes.update(['all'],self.parameters)
+        self.attributes.update(['all'], self.parameters)
 
     def initialize_MCMC_toolbox(self):
         self.MCMC_toolbox = {
@@ -98,42 +95,40 @@ class UnivariateModel(AbstractModel):
             g = self.attributes.g
         return g
 
-    #def compute_sum_squared_tensorized(self, data, param_ind, attribute_type):
+    # def compute_sum_squared_tensorized(self, data, param_ind, attribute_type):
     #    res = self.compute_individual_tensorized(data.timepoints, param_ind, attribute_type)
     #    res *= data.mask
     #    return torch.sum((res * data.mask - data.values) ** 2, dim=(1, 2))
 
-
     # TODO generalize in abstract
-    def compute_mean_traj(self,timepoints):
+    def compute_mean_traj(self, timepoints):
         individual_parameters = {
-            'xi': torch.Tensor([self.parameters['xi_mean']]),
-            'tau': torch.Tensor([self.parameters['tau_mean']]),
+            'xi': torch.tensor([self.parameters['xi_mean']], dtype=torch.float32),
+            'tau': torch.tensor([self.parameters['tau_mean']], dtype=torch.float32),
         }
 
         return self.compute_individual_tensorized(timepoints, individual_parameters)
 
-    def plot_param_ind(self,path,param_ind):
+    def plot_param_ind(self, path, param_ind):
         pdf = matplotlib.backends.backend_pdf.PdfPages(path)
         fig, ax = plt.subplots(1, 1)
-        xi,tau = param_ind
-        ax.plot(xi.squeeze(1).detach().numpy(),tau.squeeze(1).detach().numpy(),'x')
+        xi, tau = param_ind
+        ax.plot(xi.squeeze(1).detach().numpy(), tau.squeeze(1).detach().numpy(), 'x')
         plt.xlabel('xi')
         plt.ylabel('tau')
         pdf.savefig(fig)
         plt.close()
         pdf.close()
 
-
     def compute_individual_tensorized(self, timepoints, ind_parameters, MCMC=False):
         # Population parameters
         g = self._get_attributes(MCMC)
         # Individual parameters
         xi, tau = ind_parameters['xi'], ind_parameters['tau']
-        reparametrized_time = self.time_reparametrization(timepoints,xi,tau)
+        reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         LL = -reparametrized_time.unsqueeze(-1)
-        model = 1. / (1. + g*torch.exp(LL))
+        model = 1. / (1. + g * torch.exp(LL))
 
         return model
 
@@ -145,9 +140,9 @@ class UnivariateModel(AbstractModel):
         sufficient_statistics['xi'] = realizations['xi'].tensor_realizations
         sufficient_statistics['xi_sqrd'] = torch.pow(realizations['xi'].tensor_realizations, 2)
 
-        #TODO : Optimize to compute the matrix multiplication only once for the reconstruction
+        # TODO : Optimize to compute the matrix multiplication only once for the reconstruction
         ind_parameters = self.get_param_from_real(realizations)
-        data_reconstruction = self.compute_individual_tensorized(data.timepoints, ind_parameters,MCMC=True)
+        data_reconstruction = self.compute_individual_tensorized(data.timepoints, ind_parameters, MCMC=True)
         data_reconstruction *= data.mask
         norm_0 = data.values * data.values * data.mask
         norm_1 = data.values * data_reconstruction * data.mask
@@ -194,7 +189,7 @@ class UnivariateModel(AbstractModel):
 
         self.parameters['noise_std'] = torch.sqrt((S1 - 2. * S2 + S3) / (data.dimension * data.n_visits))
 
-    #def get_param_from_real(self,realizations):
+    # def get_param_from_real(self,realizations):
     #    xi = realizations['xi'].tensor_realizations
     #    tau = realizations['tau'].tensor_realizations
     #    return (xi,tau)
@@ -208,9 +203,9 @@ class UnivariateModel(AbstractModel):
         tau = torch.tensor(tau).unsqueeze(1)
         return (xi, tau)
 
-    def get_xi_tau(self,param_ind):
-        xi,tau = param_ind
-        return xi,tau
+    def get_xi_tau(self, param_ind):
+        xi, tau = param_ind
+        return xi, tau
 
     def random_variable_informations(self):
 
@@ -221,7 +216,6 @@ class UnivariateModel(AbstractModel):
             "type": "population",
             "rv_type": "multigaussian"
         }
-
 
         ## Individual variables
         tau_infos = {
@@ -237,7 +231,6 @@ class UnivariateModel(AbstractModel):
             "type": "individual",
             "rv_type": "gaussian"
         }
-
 
         variables_infos = {
             "g": g_infos,

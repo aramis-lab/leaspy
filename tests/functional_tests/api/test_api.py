@@ -1,16 +1,19 @@
+import numpy as np
 import os
 import unittest
 
+import matplotlib.pyplot as plt
 import torch
+from pandas import DataFrame
+
 from tests import test_data_dir
 from leaspy import Leaspy, Data, AlgorithmSettings, Plotter
 from tests import example_data_path
+from leaspy.inputs.data.result import Result
 from leaspy.models.univariate_model import UnivariateModel
-import matplotlib.pyplot as plt
 
 
 class LeaspyTest(unittest.TestCase):
-
 
     def test_usecase(self):
         """
@@ -42,7 +45,6 @@ class LeaspyTest(unittest.TestCase):
         self.assertAlmostEqual(torch.sum(diff_g ** 2), 0.0, delta=0.01)
         self.assertAlmostEqual(torch.sum(diff_v ** 2), 0.0, delta=0.01)
 
-
         # Save parameters and reload
         path_to_saved_model = os.path.join(test_data_dir,
                                            "model_parameters",
@@ -64,21 +66,39 @@ class LeaspyTest(unittest.TestCase):
         # Personalize
         algo_personalize_settings = AlgorithmSettings('mode_real', seed=0)
         result = leaspy.personalize(data, settings=algo_personalize_settings)
-
         self.assertAlmostEqual(result.noise_std, 0.0923, delta=0.01)
 
-        # Plot
-        path_output = os.path.join(os.path.dirname(__file__), '../../_data',
-                                           "_outputs")
+        # Get error distribution
+        error_distribution = result.get_error_distribution(leaspy.model)
+        self.assertTrue(list(error_distribution.keys()), list(data.individuals.keys()))
+        self.assertTrue(np.array(error_distribution['116']).shape,
+                        np.array(data.individuals['116'].observations).shape)
+        error_distribution = result.get_error_distribution(leaspy.model, aggregate_subscores=True)
+        self.assertTrue(len(error_distribution['116']),
+                        np.array(data.individuals['116'].observations).shape[0])
+        error_distribution = result.get_error_distribution(leaspy.model, aggregate_visits=True)
+        self.assertTrue(len(error_distribution['116']),
+                        np.array(data.individuals['116'].observations).shape[1])
+        error_distribution = result.get_error_distribution(leaspy.model, aggregate_visits=True, aggregate_subscores=True)
+        self.assertTrue(type(error_distribution['116']) == float)
+
+        # Plot TODO
+        path_output = os.path.join(os.path.dirname(__file__), '../../_data', "_outputs")
         plotter = Plotter(path_output)
-        #plotter.plot_mean_trajectory(leaspy.model,
-        #                             save_as="mean_trajectory_plot")
+        # plotter.plot_mean_trajectory(leaspy.model, save_as="mean_trajectory_plot")
         plt.close()
 
-
-        # Simulate TODO
-        #simulation_settings = AlgorithmSettings('simulation')
-        #easpy.simulate(result, simulation_settings)
+        # Simulate
+        simulation_settings = AlgorithmSettings('simulation')
+        simulation_results = leaspy.simulate(result, simulation_settings)
+        self.assertTrue(type(simulation_results) == Result)
+        self.assertTrue(type(simulation_results.data.to_dataframe()) == DataFrame)
+        self.assertTrue(simulation_results.data.headers == data.headers)
+        n = simulation_settings.parameters['number_of_subjects']
+        self.assertEqual(simulation_results.data.n_individuals, n)
+        self.assertEqual(len(simulation_results.get_parameter_distribution('xi')), n)
+        self.assertEqual(len(simulation_results.get_parameter_distribution('tau')), n)
+        self.assertEqual(len(simulation_results.get_parameter_distribution('sources')['sources0']), n)
 
 
 

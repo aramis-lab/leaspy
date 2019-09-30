@@ -2,11 +2,12 @@ import os
 import warnings
 import shutil
 
+
 class OutputsSettings:
-    #TODO mettre les variables par défaut à None
-    #TODO: Réfléchir aux cas d'usages : est-ce qu'on veut tout ou rien,
-    #TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
-    #TODO: Aussi, bien définir la création du path
+    # TODO mettre les variables par défaut à None
+    # TODO: Réfléchir aux cas d'usages : est-ce qu'on veut tout ou rien,
+    # TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
+    # TODO: Aussi, bien définir la création du path
     def __init__(self, settings):
 
         self.console_print_periodicity = None
@@ -52,7 +53,8 @@ class OutputsSettings:
 
         # Check if the parent directory exists
         if not os.path.exists(parent_directory):
-            raise ValueError("Parent directory : \n {0} \n of the output path you provided does not exist".format(parent_directory))
+            raise ValueError(
+                "Parent directory : \n {0} \n of the output path you provided does not exist".format(parent_directory))
 
         # Check if the folder does not exist : if not, create
         existence_cdt = os.path.exists(settings['path'])
@@ -93,4 +95,3 @@ class OutputsSettings:
             return False
         else:
             self._ask_user_if_erase(path)
-

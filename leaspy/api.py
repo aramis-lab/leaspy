@@ -11,6 +11,8 @@ from leaspy.models.model_factory import ModelFactory
 from leaspy.inputs.settings.model_settings import ModelSettings
 from leaspy.inputs.data.result import Result
 
+from leaspy.algo import compatibility_algorithms
+
 
 class Leaspy:
     def __init__(self, model_name):
@@ -19,6 +21,11 @@ class Leaspy:
 
     @classmethod
     def load(cls, path_to_model_settings):
+        """
+        Instanciate a Leaspy object from json model parameter file.
+        :param path_to_model_settings:
+        :return:
+        """
         reader = ModelSettings(path_to_model_settings)
         leaspy = cls(reader.name)
         leaspy.model.load_hyperparameters(reader.hyperparameters)
@@ -28,9 +35,27 @@ class Leaspy:
         return leaspy
 
     def save(self, path):
+        """
+        Save Leaspy object as json model parameter file.
+        :param path:
+        :return:
+        """
+
+        self.check_if_initialized()
+
         self.model.save(path)
 
     def fit(self, data, algorithm_settings):
+        """
+        Estimate model parameters for a given dataset.
+        These model parameters correspond to the fixed-effects of the mixed effect model
+        :param data:
+        :param algorithm_settings:
+        :return:
+        """
+
+        # Check algorithm compatibility
+        Leaspy.check_if_algo_is_compatible(algorithm_settings, "fit")
 
         algorithm = AlgoFactory.algo(algorithm_settings)
         dataset = Dataset(data, algo=algorithm, model=self.model)
@@ -39,6 +64,19 @@ class Leaspy:
         algorithm.run(dataset, self.model)
 
     def personalize(self, data, settings):
+        """
+        From a model, estimate individual parameters for each ID of a given dataset.
+        These individual parameters correspond to the random-effects of the mixed effect model.
+        :param data:
+        :param settings:
+        :return: result object, aggregating individual parameters and input data
+        """
+
+        # Check algorithm compatibility
+        Leaspy.check_if_algo_is_compatible(settings, "personalize")
+
+        # Check if model has been initialized
+        self.check_if_initialized()
 
         algorithm = AlgoFactory.algo(settings)
         dataset = Dataset(data, algo=algorithm, model=self.model)
@@ -48,6 +86,18 @@ class Leaspy:
         return result
 
     def simulate(self, results, settings):
+        """
+        Generate synthetic patients data from a model.
+        :param results:
+        :param settings:
+        :return: simulated_data: Data object generated via the population parameters.
+        """
+
+        # Check algorithm compatibility
+        Leaspy.check_if_algo_is_compatible(settings, "simulate")
+
+        # Check if model has been initialized
+        self.check_if_initialized()
 
         algorithm = AlgoFactory.algo(settings)
         simulated_data = algorithm.run(self.model, results)
@@ -68,7 +118,8 @@ class Leaspy:
         # Test path's folder existence (if path contain a folder)
         if os.path.dirname(path) != '':
             if not os.path.isdir(os.path.dirname(path)):
-                raise FileNotFoundError('Cannot save individual parameter at path %s - The folder does not exist!' % path)
+                raise FileNotFoundError(
+                    'Cannot save individual parameter at path %s - The folder does not exist!' % path)
                 # Question : add 'make_dir = True' parameter to create the folder if it does not exist?
 
         dump = copy.deepcopy(individual_parameters)
@@ -96,7 +147,6 @@ class Leaspy:
     def load_individual_parameters(path, verbose=True):
         """
         Load individual parameters from a json file or a torch file as a dictionary of torch.tensor
-
         :param path: string - file's path
         :param verbose: boolean = True by default
             Precise if the loaded file can be read as a torch file or need conversion
@@ -118,3 +168,25 @@ class Leaspy:
                     if individual_parameters[key].dim() == 1:
                         individual_parameters[key] = individual_parameters[key].view(-1, 1)
         return individual_parameters
+
+    def check_if_initialized(self):
+        """
+        Check if model is initialized.
+        :return:
+        """
+        if not self.model.is_initialized:
+            raise ValueError("Model has not been initialized")
+
+    @staticmethod
+    def check_if_algo_is_compatible(settings, name):
+        """
+        Check compatibility of algorithms and API methods.
+        :param settings:
+        :param name:
+        :return:
+        """
+        if settings.name not in compatibility_algorithms[name]:
+            raise ValueError("Chosen algorithm is not compatible with method : {0} \n"
+                             "please choose one in the following method list : {1}".format(name,
+                                                                                           compatibility_algorithms[
+                                                                                               name]))

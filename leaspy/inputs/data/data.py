@@ -7,8 +7,7 @@ from leaspy.inputs.data.individual_data import IndividualData
 from leaspy.inputs.data.dataset import Dataset
 
 
-
-#TODO : object data as output ??? or a result object ? Because there could be ambiguetes here
+# TODO : object data as output ??? or a result object ? Because there could be ambiguetes here
 # TODO or find a good way to say thet there are individual parameters here ???
 
 class Data:
@@ -38,8 +37,7 @@ class Data:
             raise StopIteration
         else:
             self.iter += 1
-            return self.__getitem__(self.iter-1)
-
+            return self.__getitem__(self.iter - 1)
 
     def load_cofactors(self, df, cofactors):
 
@@ -86,11 +84,9 @@ class Data:
 
         arr = np.concatenate((timepoints, arr), axis=1)
 
-        df = pd.DataFrame(data=arr, index=indices, columns=['TIME']+self.headers)
+        df = pd.DataFrame(data=arr, index=indices, columns=['TIME'] + self.headers)
         df.index.name = 'ID'
         return df.reset_index()
-
-
 
     @staticmethod
     def from_dataframe(df):
@@ -125,7 +121,6 @@ class Data:
         data.headers = headers
 
         for i, idx in enumerate(indices):
-
             # Create individual
             data.individuals[idx] = IndividualData(idx)
             data.iter_to_idx[data.n_individuals] = idx
@@ -136,6 +131,6 @@ class Data:
 
             # Update Data metrics
             data.n_visits += len(timepoints[i])
-            data.n_observations += len(timepoints)*data.dimension
+            data.n_observations += len(timepoints) * data.dimension
 
         return data

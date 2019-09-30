@@ -1,5 +1,6 @@
 import torch
 
+
 class Attributes_Linear():
     def __init__(self, dimension, source_dimension):
         self.dimension = dimension
@@ -35,7 +36,7 @@ class Attributes_Linear():
         if compute_velocities: self._compute_velocities(values)
         if compute_betas: self._compute_betas(values)
 
-        #TODO : Check if the condition is enough
+        # TODO : Check if the condition is enough
         if compute_velocities:
             self._compute_orthonormal_basis()
         if compute_velocities or compute_betas:
@@ -44,18 +45,18 @@ class Attributes_Linear():
     def _check_names(self, names_of_changed_values):
         def raise_err(name):
             raise ValueError("The name {} is not in the attributes that are used to be updated".format(name))
+
         possibilities = ['all', 'g', 'v0', 'betas']
         [raise_err(n) for n in names_of_changed_values if n not in possibilities]
 
-
     def _compute_positions(self, values):
-        self.positions = torch.Tensor(values['g']).clone()
+        self.positions = torch.tensor(values['g'], dtype=torch.float32).clone()
 
     def _compute_velocities(self, values):
-        self.velocities = torch.Tensor(values['v0']).clone()
+        self.velocities = torch.tensor(values['v0'], dtype=torch.float32).clone()
 
     def _compute_betas(self, values):
-        self.betas = torch.Tensor(values['betas']).clone()
+        self.betas = torch.tensor(values['betas'], dtype=torch.float32).clone()
 
     def _compute_orthonormal_basis(self):
         dgamma_t0 = self.velocities
@@ -77,5 +78,5 @@ class Attributes_Linear():
     def _compute_mixing_matrix(self, values):
         if self.source_dimension == 0:
             return
-        self.mixing_matrix = torch.Tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis))
-
+        self.mixing_matrix = torch.tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis),
+                                          dtype=torch.float32)

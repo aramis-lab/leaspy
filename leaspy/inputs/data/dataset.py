@@ -36,7 +36,7 @@ class Dataset:
         values = np.zeros((batch_size, max(x_len), channels))
         mask = np.zeros((batch_size, max(x_len), channels))
 
-        #TODO missing values in mask ?
+        # TODO missing values in mask ?
 
         for i, d in enumerate(x_len):
             indiv_values = data[i].observations
@@ -47,25 +47,24 @@ class Dataset:
         self.max_observations = max(x_len)
         self.nb_observations_per_individuals = x_len
         self.dimension = channels
-        self.values = torch.Tensor(values)
-        self.mask = torch.Tensor(mask)
+        self.values = torch.tensor(values, dtype=torch.float32)
+        self.mask = torch.tensor(mask, dtype=torch.float32)
         self.n_visits = data.n_visits
-
 
     def _construct_timepoints(self, data):
         self.timepoints = torch.zeros([self.n_individuals, self.max_observations])
         x_len = [len(_.timepoints) for _ in data]
         for i, d in enumerate(x_len):
-            self.timepoints[i, 0:d] = torch.Tensor(data[i].timepoints)
+            self.timepoints[i, 0:d] = torch.tensor(data[i].timepoints, dtype=torch.float32)
 
     def _compute_L2_norm(self):
         self.L2_norm = torch.sum(torch.sum(self.values * self.values * self.mask, dim=2))
 
     def get_times_patient(self, i):
-        return self.timepoints[i,:self.nb_observations_per_individuals[i]]
+        return self.timepoints[i, :self.nb_observations_per_individuals[i]]
 
     def get_values_patient(self, i):
-        return self.values[i,:self.nb_observations_per_individuals[i],:]
+        return self.values[i, :self.nb_observations_per_individuals[i], :]
 
     @staticmethod
     def _check_model_compatibility(data, model):
@@ -78,11 +77,10 @@ class Dataset:
     def _check_algo_compatibility(data, algo):
         return
 
-
     def to_pandas(self):
-    #TODO : @Raphael : On est obligé de garder une dépendance pandas ? Je crois que c'est utilisé juste pour l'initialisation
-    #TODO : Si fait comme ça, il faut préallouer la mémoire du dataframe à l'avance!
-    # du modèle multivarié. On peut peut-être s'en passer?
+        # TODO : @Raphael : On est obligé de garder une dépendance pandas ? Je crois que c'est utilisé juste pour l'initialisation
+        # TODO : Si fait comme ça, il faut préallouer la mémoire du dataframe à l'avance!
+        # du modèle multivarié. On peut peut-être s'en passer?
         df = pd.DataFrame()
 
         for i, idx in enumerate(self.indices):
@@ -93,7 +91,7 @@ class Dataset:
             df_patient['ID'] = idx
             df = pd.concat([df, df_patient])
 
-        #df.columns = ['ID', 'TIME'] + self.headers
+        # df.columns = ['ID', 'TIME'] + self.headers
         df.reset_index(inplace=True)
 
         return df

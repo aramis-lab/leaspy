@@ -5,6 +5,7 @@ import warnings
 from leaspy.inputs.settings.outputs_settings import OutputsSettings
 from leaspy.inputs.settings import default_data_dir
 
+
 class AlgorithmSettings:
     """
     Read a algo_parameters json file and create the corresponding algo
@@ -17,12 +18,12 @@ class AlgorithmSettings:
         self.initialization_method = None
         self.logs = None
 
-        if name in ['mcmc_saem', 'scipy_minimize', 'simulation', 'mean_real', 'gradient_descent_personalize', 'mode_real']:
+        if name in ['mcmc_saem', 'scipy_minimize', 'simulation', 'mean_real', 'gradient_descent_personalize',
+                    'mode_real']:
             self._load_default_values(os.path.join(default_data_dir, 'default_' + name + '.json'))
         else:
             raise ValueError('The algorithm name >>>{0}<<< you provided does not exist'.format(name))
         self._manage_kwargs(kwargs)
-
 
     @classmethod
     def load(cls, path_to_algorithm_settings):
@@ -107,7 +108,8 @@ class AlgorithmSettings:
         if 'parameters' not in settings.keys():
             raise ValueError('The \'parameters\' key is missing in the algorithm settings (JSON file) you are loading')
         if 'initialization_method' not in settings.keys():
-            raise ValueError('The \'initialization_method\' key is missing in the algorithm settings (JSON file) you are loading')
+            raise ValueError(
+                'The \'initialization_method\' key is missing in the algorithm settings (JSON file) you are loading')
 
     @staticmethod
     def _get_name(settings):
@@ -132,6 +134,3 @@ class AlgorithmSettings:
             return None
         # TODO : There should be a list of possible initialization method. It can also be discussed depending on the algorithms name
         return settings['initialization_method']
-
-
-

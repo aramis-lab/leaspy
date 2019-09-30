@@ -8,6 +8,7 @@ from leaspy.algo.personalize.mode_realisations import ModeReal
 from leaspy.algo.fit.hmc_saem import HMC_SAEM
 from leaspy.algo.simulate.simulate import SimulationAlgorithm
 
+
 class AlgoFactory:
 
     @staticmethod
@@ -15,12 +16,12 @@ class AlgoFactory:
         name = settings.name
 
         # Fit Algorithm
-        if name == 'gradient_descent':
-            algorithm = GradientDescent(settings)
-        elif name == 'mcmc_saem':
+        if name == 'mcmc_saem':
             algorithm = TensorMCMCSAEM(settings)
-        elif name == 'mcmc_gradient_descent':
-            algorithm = GradientMCMCSAEM(settings)
+        # elif name == 'mcmc_gradient_descent':
+        #    algorithm = GradientMCMCSAEM(settings)
+        # elif name == 'gradient_descent':
+        #    algorithm = GradientDescent(settings)
 
         # Personalize Algorithm
         elif name == 'gradient_descent_personalize':
@@ -31,7 +32,7 @@ class AlgoFactory:
             algorithm = MeanReal(settings)
         elif name == 'mode_real':
             algorithm = ModeReal(settings)
-        #elif name == 'hmc_saem':
+        # elif name == 'hmc_saem':
         #    algorithm = HMC_SAEM(settings)
 
         # Simulation agorithm

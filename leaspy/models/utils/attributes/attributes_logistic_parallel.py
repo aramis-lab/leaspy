@@ -41,10 +41,14 @@ class Attributes_LogisticParallel:
                 compute_v0 = True
                 compute_betas = True
 
-        if compute_g: self._compute_g(values)
-        if compute_deltas: self._compute_deltas(values)
-        if compute_v0: self._compute_xi_men(values)
-        if compute_betas: self._compute_betas(values)
+        if compute_g:
+            self._compute_g(values)
+        if compute_deltas:
+            self._compute_deltas(values)
+        if compute_v0:
+            self._compute_xi_men(values)
+        if compute_betas:
+            self._compute_betas(values)
 
         if compute_g or compute_deltas or compute_v0:
             self._compute_orthonormal_basis()
@@ -57,18 +61,18 @@ class Attributes_LogisticParallel:
                 raise ValueError("The name {} is not in the attributes that are used to be updated".format(name))
 
     def _compute_xi_men(self, values):
-        self.xi_mean = torch.exp(torch.Tensor([values['xi_mean']]))
+        self.xi_mean = torch.exp(torch.tensor([values['xi_mean']], dtype=torch.float32))
 
     def _compute_g(self, values):
         self.g = torch.exp(values['g'])
 
     def _compute_deltas(self, values):
-        self.deltas = torch.cat((torch.Tensor([0]), values['deltas']))
+        self.deltas = torch.cat((torch.tensor([0], dtype=torch.float32), values['deltas']))
 
     def _compute_betas(self, values):
         if self.source_dimension == 0:
             return
-        self.betas = torch.Tensor(values['betas']).clone()
+        self.betas = torch.tensor(values['betas'], dtype=torch.float32).clone()
 
     def _compute_dgamma_t0(self):
         # Computes the derivative of gamma_0 at time t0
@@ -110,4 +114,5 @@ class Attributes_LogisticParallel:
         if self.source_dimension == 0:
             return
 
-        self.mixing_matrix = torch.Tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis))
+        self.mixing_matrix = torch.tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis),
+                                          dtype=torch.float32)

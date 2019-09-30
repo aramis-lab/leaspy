@@ -4,8 +4,8 @@ from scipy import stats
 from ..attributes.attributes_logistic import Attributes_Logistic
 from ..attributes.attributes_logistic_parallel import Attributes_LogisticParallel
 
-def initialize_parameters(model, dataset, method="default"):
 
+def initialize_parameters(model, dataset, method="default"):
     name = model.name
     if name == 'logistic':
         parameters = initialize_logistic(model, dataset, method)
@@ -19,6 +19,7 @@ def initialize_parameters(model, dataset, method="default"):
         raise ValueError("There is no initialization method for the parameter of the model {}".format(name))
 
     return parameters
+
 
 def initialize_logistic(model, dataset, method):
     # Get the slopes / values / times mu and sigma
@@ -44,13 +45,13 @@ def initialize_logistic(model, dataset, method):
     values[values > 1] = 0.99
 
     # Do transformations
-    t0 = torch.Tensor(time)
-    slopes = np.mean(slopes)*np.ones_like(slopes)
-    v0_array = torch.Tensor(np.log((np.array(slopes))))
-    g_array = torch.Tensor(np.exp(1 / (1 + values)))
+    t0 = torch.tensor(time, dtype=torch.float32)
+    slopes = np.mean(slopes) * np.ones_like(slopes)
+    v0_array = torch.tensor(np.log((np.array(slopes))), dtype=torch.float32)
+    g_array = torch.tensor(np.exp(1 / (1 + values)), dtype=torch.float32)
     betas = torch.zeros((model.dimension - 1, model.source_dimension))
     normal = torch.distributions.normal.Normal(loc=0, scale=0.1)
-    #betas = normal.sample(sample_shape=(model.dimension - 1, model.source_dimension))
+    # betas = normal.sample(sample_shape=(model.dimension - 1, model.source_dimension))
 
     # Create smart initialization dictionnary
     parameters = {
@@ -70,14 +71,14 @@ def initialize_logistic_parallel(model, dataset, method):
     if method == "default":
 
         normal = torch.distributions.normal.Normal(loc=0, scale=0.1)
-        #betas =normal.sample(sample_shape=(model.dimension - 1, model.source_dimension))
-        betas =  torch.zeros((model.dimension - 1, model.source_dimension))
-
+        # betas =normal.sample(sample_shape=(model.dimension - 1, model.source_dimension))
+        betas = torch.zeros((model.dimension - 1, model.source_dimension))
 
         parameters = {
-            'g': torch.tensor([1.]), 'tau_mean': 70.0, 'tau_std': 2.0, 'xi_mean': -3., 'xi_std': 0.1,
+            'g': torch.tensor([1.], dtype=torch.float32), 'tau_mean': 70.0, 'tau_std': 2.0, 'xi_mean': -3.,
+            'xi_std': 0.1,
             'sources_mean': 0.0, 'sources_std': 1.0,
-            'noise_std': 0.1, 'deltas': torch.tensor([0.0] * (model.dimension - 1)),
+            'noise_std': 0.1, 'deltas': torch.tensor([0.0] * (model.dimension - 1), dtype=torch.float32),
             'betas': betas
         }
     elif method == "random":
@@ -98,17 +99,17 @@ def initialize_logistic_parallel(model, dataset, method):
         values[values > 1] = 0.99
 
         # Do transformations
-        t0 = torch.Tensor(time)
-        v0_array = torch.Tensor(np.log((np.array(slopes))))
-        g_array = torch.Tensor(np.exp(1 / (1 + values)))
+        t0 = torch.tensor(time, dtype=torch.float32)
+        v0_array = torch.tensor(np.log((np.array(slopes))), dtype=torch.float32)
+        g_array = torch.tensor(np.exp(1 / (1 + values)), dtype=torch.float32)
         betas = torch.distributions.normal.Normal.sample(sample_shape=(model.dimension - 1, model.source_dimension))
 
         parameters = {
-            'g': torch.tensor([torch.mean(g_array)]),
-            'tau_mean': t0, 'tau_std': torch.tensor(2.0),
-            'xi_mean': torch.mean(v0_array).detach().item(), 'xi_std': torch.tensor(0.1),
+            'g': torch.tensor([torch.mean(g_array)], dtype=torch.float32),
+            'tau_mean': t0, 'tau_std': torch.tensor(2.0, dtype=torch.float32),
+            'xi_mean': torch.mean(v0_array).detach().item(), 'xi_std': torch.tensor(0.1, dtype=torch.float32),
             'sources_mean': 0.0, 'sources_std': 1.0,
-            'noise_std': 0.1, 'deltas': torch.tensor([0.0] * (model.dimension - 1)),
+            'noise_std': 0.1, 'deltas': torch.tensor([0.0] * (model.dimension - 1), dtype=torch.float32),
             'betas': betas
         }
 
@@ -117,10 +118,11 @@ def initialize_logistic_parallel(model, dataset, method):
 
     return parameters
 
+
 def initialize_linear(model, dataset, method):
     sum_ages = torch.sum(dataset.timepoints).item()
     nb_nonzeros = (dataset.timepoints != 0).sum()
-    t0 = float(sum_ages)/float(nb_nonzeros)
+    t0 = float(sum_ages) / float(nb_nonzeros)
 
     df = dataset.to_pandas()
     df.set_index(["ID", "TIME"], inplace=True)
@@ -145,10 +147,8 @@ def initialize_linear(model, dataset, method):
         velocities.append(slopes)
         positions.append(values)
 
-    positions = torch.Tensor(np.mean(positions, 0))
-    velocities = torch.Tensor(np.mean(velocities, 0))
-
-
+    positions = torch.tensor(np.mean(positions, 0), dtype=torch.float32)
+    velocities = torch.tensor(np.mean(velocities, 0), dtype=torch.float32)
 
     parameters = {
         'g': positions,
@@ -165,6 +165,7 @@ def initialize_linear(model, dataset, method):
 
 def initialize_univariate(dataset, method):
     return 0
+
 
 def compute_patient_slopes_distribution(data):
     """
@@ -218,6 +219,7 @@ def compute_patient_values_distribution(data):
     df = data.to_pandas()
     df.set_index(["ID", "TIME"], inplace=True)
     return df.mean().values, df.std().values
+
 
 def compute_patient_time_distribution(data):
     """

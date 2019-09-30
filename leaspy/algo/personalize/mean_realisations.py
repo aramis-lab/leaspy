@@ -5,6 +5,7 @@ from ..samplers.gibbs_sampler import GibbsSampler
 import torch
 import time
 
+
 class MeanReal(AbstractPersonalizeAlgo):
 
     def __init__(self, settings):
@@ -12,14 +13,13 @@ class MeanReal(AbstractPersonalizeAlgo):
         # Algorithm parameters
         super().__init__(settings)
 
-
     def _initialize_annealing(self):
         if self.algo_parameters['annealing']['do_annealing']:
             if self.algo_parameters['annealing']['n_iter'] is None:
-                self.algo_parameters['annealing']['n_iter'] = int(self.algo_parameters['n_iter']/2)
+                self.algo_parameters['annealing']['n_iter'] = int(self.algo_parameters['n_iter'] / 2)
 
         self.temperature = self.algo_parameters['annealing']['initial_temperature']
-        self.temperature_inv = 1/self.temperature
+        self.temperature_inv = 1 / self.temperature
 
     # TODO cloned --> factorize in a utils ???
     def _initialize_samplers(self, model, data):
@@ -58,7 +58,7 @@ class MeanReal(AbstractPersonalizeAlgo):
                 self.samplers[key].sample(data, model, realizations, self.temperature_inv)
 
             # Append current realizations if burn in is finished
-            if i>self.algo_parameters['n_burn_in_iter']:
+            if i > self.algo_parameters['n_burn_in_iter']:
                 realizations_history.append(realizations.copy())
 
         # Compute mean of n_iter realizations for each individual variable
@@ -79,7 +79,3 @@ class MeanReal(AbstractPersonalizeAlgo):
         param_ind = model.get_param_from_real(realizations)
 
         return param_ind
-
-
-
-

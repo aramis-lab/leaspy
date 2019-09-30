@@ -9,7 +9,6 @@ class GradientDescentPersonalize(AbstractPersonalizeAlgo):
         # Algorithm parameters
         super().__init__(settings)
 
-
     def _initialize_torchvariables(self, realizations):
         for name, realization in realizations.realizations.items():
             realization.to_torch_Variable()

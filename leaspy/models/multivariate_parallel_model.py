@@ -18,8 +18,7 @@ class MultivariateParallelModel(AbstractMultivariateModel):
                 continue
             self.parameters[k] = torch.tensor(parameters[k])
         self.attributes = Attributes_LogisticParallel(self.dimension, self.source_dimension)
-        self.attributes.update(['all'],self.parameters)
-
+        self.attributes.update(['all'], self.parameters)
 
     def compute_individual_tensorized(self, timepoints, ind_parameters, attribute_type=None):
         # Population parameters
@@ -36,7 +35,7 @@ class MultivariateParallelModel(AbstractMultivariateModel):
             wi = torch.nn.functional.linear(sources, a_matrix, bias=None)
             LL += wi * (g * deltas_exp + 1) ** 2 / (g * deltas_exp)
         LL = -reparametrized_time.unsqueeze(-1) - LL.unsqueeze(-2)
-        model = 1. / (1. + g*torch.exp(LL))
+        model = 1. / (1. + g * torch.exp(LL))
 
         return model
 
@@ -46,7 +45,7 @@ class MultivariateParallelModel(AbstractMultivariateModel):
 
     def initialize_MCMC_toolbox(self):
         self.MCMC_toolbox = {
-            'priors': {'g_std': 1., 'deltas_std': 0.1, 'betas_std': 0.1 },
+            'priors': {'g_std': 1., 'deltas_std': 0.1, 'betas_std': 0.1},
             'attributes': Attributes_LogisticParallel(self.dimension, self.source_dimension)
         }
 
@@ -78,7 +77,9 @@ class MultivariateParallelModel(AbstractMultivariateModel):
         sufficient_statistics['xi'] = realizations['xi'].tensor_realizations
         sufficient_statistics['xi_sqrd'] = torch.pow(realizations['xi'].tensor_realizations, 2)
 
-        data_reconstruction = self.compute_individual_tensorized(data.timepoints, self.get_param_from_real(realizations), attribute_type='MCMC')
+        data_reconstruction = self.compute_individual_tensorized(data.timepoints,
+                                                                 self.get_param_from_real(realizations),
+                                                                 attribute_type='MCMC')
         data_reconstruction *= data.mask
         norm_1 = data.values * data_reconstruction * data.mask
         norm_2 = data_reconstruction * data_reconstruction * data.mask
@@ -101,7 +102,7 @@ class MultivariateParallelModel(AbstractMultivariateModel):
         self.parameters['tau_std'] = torch.std(tau)
 
         param_ind = self.get_param_from_real(realizations)
-        data_fit = self.compute_individual_tensorized(data.timepoints, param_ind,  attribute_type='MCMC')
+        data_fit = self.compute_individual_tensorized(data.timepoints, param_ind, attribute_type='MCMC')
         data_fit *= data.mask
         squared_diff = ((data_fit - data.values) ** 2).sum()
         squared_diff = squared_diff.detach()  # Remove the gradients
@@ -144,7 +145,7 @@ class MultivariateParallelModel(AbstractMultivariateModel):
         }
         deltas_infos = {
             "name": "deltas",
-            "shape": torch.Size([self.dimension-1]),
+            "shape": torch.Size([self.dimension - 1]),
             "type": "population",
             "rv_type": "multigaussian"
         }

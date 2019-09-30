@@ -1,5 +1,6 @@
 import torch
 
+
 class Realization:
     def __init__(self, name, shape, variable_type):
         self.name = name
@@ -25,7 +26,7 @@ class Realization:
         return realization
 
     def initialize(self, n_individuals, model, scale_individual=1.0):
-        #print("Initialize realizations of {0}".format(self.name))
+        # print("Initialize realizations of {0}".format(self.name))
         if self.variable_type == "population":
             self._tensor_realizations = model.parameters[self.name]
 
@@ -34,7 +35,8 @@ class Realization:
         elif self.variable_type == 'individual':
 
             distribution = torch.distributions.normal.Normal(loc=model.parameters["{0}_mean".format(self.name)],
-                                                             scale=scale_individual * model.parameters["{0}_std".format(self.name)]) # TODO change later, to have low variance when initialized
+                                                             scale=scale_individual * model.parameters["{0}_std".format(
+                                                                 self.name)])  # TODO change later, to have low variance when initialized
             self._tensor_realizations = distribution.sample(sample_shape=(n_individuals, *self.shape))
 
             self.is_autograd = False
@@ -53,7 +55,6 @@ class Realization:
     def set_tensor_realizations_element(self, element, dim):
         # TODO, check that it is a torch tensor (not variable for example) when assigning
         self._tensor_realizations[dim] = element
-
 
     def __str__(self):
         str = "Realization of {0} \n".format(self.name)

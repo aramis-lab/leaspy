@@ -5,6 +5,7 @@ from leaspy.utils.realizations.realization import Realization
 import torch
 import time
 
+
 class ModeReal(AbstractPersonalizeAlgo):
 
     def __init__(self, settings):
@@ -31,11 +32,10 @@ class ModeReal(AbstractPersonalizeAlgo):
     def _initialize_annealing(self):
         if self.algo_parameters['annealing']['do_annealing']:
             if self.algo_parameters['annealing']['n_iter'] is None:
-                self.algo_parameters['annealing']['n_iter'] = int(self.algo_parameters['n_iter']/2)
+                self.algo_parameters['annealing']['n_iter'] = int(self.algo_parameters['n_iter'] / 2)
 
         self.temperature = self.algo_parameters['annealing']['initial_temperature']
-        self.temperature_inv = 1/self.temperature
-
+        self.temperature_inv = 1 / self.temperature
 
     def _get_individual_parameters(self, model, data):
 
@@ -62,7 +62,9 @@ class ModeReal(AbstractPersonalizeAlgo):
                 realizations_history.append(realizations.copy())
 
         # Get for each patient the realization that best fit
-        attachments = torch.stack([model.compute_individual_attachment_tensorized(data, model.get_param_from_real(realizations), "MCMC") for realizations in realizations_history])
+        attachments = torch.stack(
+            [model.compute_individual_attachment_tensorized(data, model.get_param_from_real(realizations), "MCMC") for
+             realizations in realizations_history])
 
         # Indices min
         indices_min = torch.min(attachments, dim=0)
@@ -78,35 +80,11 @@ class ModeReal(AbstractPersonalizeAlgo):
                 ind_var_name,
                 infos[ind_var_name]["shape"],
                 "individual",
-                torch.stack([realizations_history[indices_min[1][i]][ind_var_name].tensor_realizations[i].clone() for i, idx in enumerate(data.indices)]))
+                torch.stack(
+                    [realizations_history[indices_min[1][i]][ind_var_name].tensor_realizations[i].clone() for i, idx in
+                     enumerate(data.indices)]))
 
-
-        ind_parameters = model.get_param_from_real(mode_output) # TODO ordering between the ind variables, should not be the case
+        ind_parameters = model.get_param_from_real(
+            mode_output)  # TODO ordering between the ind variables, should not be the case
 
         return ind_parameters
-
-
-
-        """
-
-
-        for name_variable, info_variable in model.random_variable_informations().items():
-            if info_variable['type'] == 'individual':
-                mean_variable = torch.stack(
-                    [realizations[name_variable].tensor_realizations for realizations in realizations_history]).mean(
-                    dim=0).clone().detach()
-                mean_output[name_variable] = mean_variable
-
-        # Compute the attachment
-        realizations = model.get_realization_object(data.n_individuals)
-        for key, value in mean_output.items():
-            realizations[key].tensor_realizations = value
-
-        # Get individual realizations from realizations object
-        param_ind = model.get_param_from_real(realizations)
-
-        return param_ind
-"""
-
-
-

@@ -35,9 +35,12 @@ class Attributes_Logistic:
                 compute_v0 = True
                 compute_betas = True
 
-        if compute_g: self._compute_g(values)
-        if compute_v0: self._compute_v0(values)
-        if compute_betas: self._compute_betas(values)
+        if compute_g:
+            self._compute_g(values)
+        if compute_v0:
+            self._compute_v0(values)
+        if compute_betas:
+            self._compute_betas(values)
 
         if compute_g or compute_v0:
             self._compute_orthonormal_basis()
@@ -58,15 +61,14 @@ class Attributes_Logistic:
     def _compute_betas(self, values):
         if self.source_dimension == 0:
             return
-        self.betas = torch.Tensor(values['betas']).clone()
-
+        self.betas = torch.tensor(values['betas'], dtype=torch.float32).clone()
 
     def _compute_orthonormal_basis(self):
         if self.source_dimension == 0:
             return
 
         # Compute regularizer to work in the euclidean space
-        metric_normalization = self.g.pow(2) / (1+self.g).pow(2)
+        metric_normalization = self.g.pow(2) / (1 + self.g).pow(2)
         dgamma_t0 = self.v0 * metric_normalization
 
         # Compute Q
@@ -80,7 +82,6 @@ class Attributes_Logistic:
         q_matrix = torch.eye(self.dimension) - 2 * v_vector.permute(1, 0) * v_vector
         self.orthonormal_basis = q_matrix[:, 1:]
 
-
     @staticmethod
     def _mixing_matrix_utils(linear_combination_values, matrix):
         return torch.mm(matrix, linear_combination_values)
@@ -88,4 +89,5 @@ class Attributes_Logistic:
     def _compute_mixing_matrix(self, values):
         if self.source_dimension == 0:
             return
-        self.mixing_matrix = torch.Tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis))
+        self.mixing_matrix = torch.tensor(self._mixing_matrix_utils(self.betas, self.orthonormal_basis),
+                                          dtype=torch.float32)

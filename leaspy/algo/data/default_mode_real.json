@@ -4,7 +4,7 @@
   "initialization_method": null,
   "parameters": {
     "n_iter": 1000,
-    "n_burn_in_iter":500,
+    "n_burn_in_iter": 500,
     "eps": 0.005,
     "L": 10,
     "sampler_ind": "Gibbs",

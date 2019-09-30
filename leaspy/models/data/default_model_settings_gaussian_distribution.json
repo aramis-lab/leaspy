@@ -1,10 +1,10 @@
 {
   "name": "gaussian_distribution",
-  "dimension":null,
-  "source_dimension":null,
+  "dimension": null,
+  "source_dimension": null,
   "parameters": {
     "intercept_mean": null,
     "intercept_var": null,
-    "noise_var":null
+    "noise_var": null
   }
 }

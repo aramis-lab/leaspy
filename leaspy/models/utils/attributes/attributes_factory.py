@@ -1,5 +1,6 @@
 from . import Attributes_LogisticParallel, Attributes_Logistic, Attributes_Linear, Attributes_Univariate
 
+
 class AttributesFactory():
 
     @staticmethod
@@ -8,7 +9,7 @@ class AttributesFactory():
             name = name.lower()
         else:
             raise AttributeError("The `name` argument must be a string!")
-            
+
         if name == 'univariate':
             return Attributes_Univariate()
         elif name == 'logistic':
@@ -18,4 +19,5 @@ class AttributesFactory():
         elif name == 'linear':
             return Attributes_Linear(dimension, source_dimension)
         else:
-            raise ValueError("The name {} you provided for the attributes is not related to an attribute class".format(name))
+            raise ValueError(
+                "The name {} you provided for the attributes is not related to an attribute class".format(name))

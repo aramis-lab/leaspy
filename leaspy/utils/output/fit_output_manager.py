@@ -6,7 +6,6 @@ import torch
 from leaspy.utils.output.visualization.plotter import Plotter
 
 
-
 class FitOutputManager():
 
     # TODO: add a loading bar for a run
@@ -45,16 +44,15 @@ class FitOutputManager():
         if self.save_periodicity is not None:
             if iteration % self.save_periodicity == 0:
                 self.save_model_parameters_convergence(iteration, model)
-                #self.save_model(model)
+                # self.save_model(model)
 
         if self.plot_periodicity is not None:
             if iteration % self.plot_periodicity == 0:
                 self.plot_patient_reconstructions(iteration, data, model, realizations)
                 self.plot_convergence_model_parameters(model)
 
-        if (algo.algo_parameters['n_iter']-iteration)<100:
-            self.save_realizations(iteration,realizations)
-
+        if (algo.algo_parameters['n_iter'] - iteration) < 100:
+            self.save_realizations(iteration, realizations)
 
     ########
     ## Printing methods
@@ -62,7 +60,7 @@ class FitOutputManager():
 
     def print_time(self):
         current_time = time.time()
-        print("Duration since last print : {0}s".format(np.round(current_time-self.time), decimals=4))
+        print("Duration since last print : {0}s".format(np.round(current_time - self.time), decimals=4))
         self.time = current_time
 
     def print_model_statistics(self, model):
@@ -75,14 +73,13 @@ class FitOutputManager():
     ## Saving methods
     ########
 
-
     def save_model_parameters_convergence(self, iteration, model):
         model_parameters = model.parameters
 
         # TODO maybe better way ???
         model_parameters_save = model_parameters.copy()
 
-        #TODO I Stopped here, 2d array saves should be fixed.
+        # TODO I Stopped here, 2d array saves should be fixed.
 
         # Transform the types
         for key, value in model_parameters.items():
@@ -99,7 +96,7 @@ class FitOutputManager():
             elif type(value) in [np.ndarray]:
                 # Beta
                 # TODO do something intelligent here
-                #if value.shape[0] > 1:
+                # if value.shape[0] > 1:
                 if key == "betas":
                     model_parameters_save.pop(key)
                     for column in range(value.shape[1]):
@@ -110,14 +107,14 @@ class FitOutputManager():
 
         # Save the dictionnary
         for key, value in model_parameters_save.items():
-            path = os.path.join(self.path_save_model_parameters_convergence, key+".csv")
+            path = os.path.join(self.path_save_model_parameters_convergence, key + ".csv")
             with open(path, 'a', newline='') as filename:
                 writer = csv.writer(filename)
-                #writer.writerow([iteration]+list(model_parameters.values()))
-                writer.writerow([iteration]+list(value))
+                # writer.writerow([iteration]+list(model_parameters.values()))
+                writer.writerow([iteration] + list(value))
 
-    def save_realizations(self, iteration,realizations):
-        for name in ['xi','tau']:
+    def save_realizations(self, iteration, realizations):
+        for name in ['xi', 'tau']:
             value = realizations[name].tensor_realizations.squeeze(1).detach().numpy()
             path = os.path.join(self.path_save_model_parameters_convergence, name + ".csv")
             with open(path, 'a', newline='') as filename:
@@ -126,14 +123,12 @@ class FitOutputManager():
                 writer.writerow([iteration] + list(value))
         if "sources" in realizations.reals_ind_variable_names:
             for i in range(realizations['sources'].tensor_realizations.shape[1]):
-                value = realizations['sources'].tensor_realizations[:,i].detach().numpy()
-                path = os.path.join(self.path_save_model_parameters_convergence, 'sources'+str(i) + ".csv")
+                value = realizations['sources'].tensor_realizations[:, i].detach().numpy()
+                path = os.path.join(self.path_save_model_parameters_convergence, 'sources' + str(i) + ".csv")
                 with open(path, 'a', newline='') as filename:
                     writer = csv.writer(filename)
                     # writer.writerow([iteration]+list(model_parameters.values()))
                     writer.writerow([iteration] + list(value))
-
-
 
     ########
     ## Plotting methods
@@ -145,16 +140,14 @@ class FitOutputManager():
                                                        self.path_plot_convergence_model_parameters_2,
                                                        model)
 
-
     def plot_model_average_trajectory(self, model):
         raise NotImplementedError
 
     def plot_patient_reconstructions(self, iteration, data, model, realizations):
-        path_iteration = os.path.join(self.path_plot_patients,'plot_patients_{0}.pdf'.format(iteration))
+        path_iteration = os.path.join(self.path_plot_patients, 'plot_patients_{0}.pdf'.format(iteration))
         param_ind = model.get_param_from_real(realizations)
-        self.plotter.plot_patient_reconstructions(path_iteration, data, model, param_ind, self.plot_options['maximum_patient_number'])
-
-
+        self.plotter.plot_patient_reconstructions(path_iteration, data, model, param_ind,
+                                                  self.plot_options['maximum_patient_number'])
 
         """
         colors = cm.rainbow(np.linspace(0, 1, self.plot_options['maximum_patient_number']+2))
@@ -179,4 +172,3 @@ class FitOutputManager():
 
         plt.savefig(os.path.join(self.path_plot_patients,'plot_patients_{0}.pdf'.format(iteration)))
         plt.close()"""
-

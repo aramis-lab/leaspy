@@ -26,7 +26,7 @@ class DataframeDataReader:
         assert len(observation) == self.dimension
 
     def _read(self, df):
-        df = df.copy(deep=True) # No modification on the input dataframe !
+        df = df.copy(deep=True)  # No modification on the input dataframe !
         columns = df.columns.values
         self._check_headers(columns)
         df.set_index(['ID', 'TIME'], inplace=True)

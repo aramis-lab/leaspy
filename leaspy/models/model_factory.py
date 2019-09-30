@@ -15,7 +15,7 @@ class ModelFactory():
             name = name.lower()
         else:
             raise AttributeError("The `name` argument must be a string!")
-            
+
         if name == 'univariate':
             return UnivariateModel(name)
         elif name == 'logistic' or name == 'linear':
