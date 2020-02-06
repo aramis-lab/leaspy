@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
@@ -12,13 +13,11 @@ from matplotlib.lines import Line2D
 
 class Plotting():
 
-    def __init__(self, model):
+    def __init__(self, model, output_path = '.', palette = 'Set2', max_colors = 8):
         self.update_model(model)
 
         # Default plot parameters
-        self.max_color = 8
-        self.color_palette = cm.get_cmap('Set2', self.max_color)
-        self.colors = self.color_palette(range(self.max_color))
+        self.set_palette(palette, max_colors)
         self.standard_size = (11, 6)
 
         self.linestyle = {'average_model' : '-',
@@ -30,9 +29,48 @@ class Plotting():
         self.alpha = {'average_model' : 0.5,
                           'individual_model' : 1, 'individual_data': 1}
 
+        # Add path for save_as
+        self.output_path = output_path
+
     def update_model(self, model):
         self.model = model
 
+    def set_palette(self, palette, max_colors=None):
+        """
+        Set palette of plots
+
+        Parameters
+        ----------
+        palette : string (palette name) or matplotlib.colors.Colormap (ListedColormap or LinearSegmentedColormap)
+
+        max_colors : positive int or None (default, corresponding to model nb of features)
+            Only used if palette is a string
+        """
+
+        if isinstance(palette, mpl.colors.Colormap):
+            self.color_palette = palette
+        else:
+            if max_colors is None:
+                max_colors = self.model.dimension
+            self.color_palette = cm.get_cmap(palette, max_colors)
+
+    def colors(self, at=None):
+        """
+        Wrapper over color_palette iterator to get colors
+
+        Parameters
+        ----------
+        at : any legit color_palette arg (int, float or iterable of any of these) or None (default)
+            if None returns all colors of palette upto model dimension
+
+        Returns
+        -------
+        colors : single color tuple (RGBA) or np.array of RGBA colors (number of colors x 4)
+        """
+        if at is None:
+            at = [i % self.color_palette.N for i in range(self.model.dimension)]
+
+        return self.color_palette(at)
 
     def handle_kwargs_begin(self, kwargs):
 
@@ -42,17 +80,17 @@ class Plotting():
             raise ValueError("Please initialize the model before plotting")
 
         # Colors
-        colors = kwargs['color'] if 'color' in kwargs.keys() else self.colors
+        colors = kwargs.get('color', self.colors())
 
         # linestyle / linewidth / alpha
-        linestyle = kwargs['linestyle'] if 'linestyle' in kwargs.keys() else self.linestyle
-        linewidth = kwargs['linewidth'] if 'linewidth' in kwargs.keys() else self.linewidth
-        alpha = kwargs['alpha'] if 'alpha' in kwargs.keys() else self.alpha
+        linestyle = kwargs.get('linestyle', self.linestyle)
+        linewidth = kwargs.get('linewidth', self.linewidth)
+        alpha = kwargs.get('alpha', self.alpha)
 
         # Ax
-        ax = kwargs['ax'] if 'ax' in kwargs.keys() else None
+        ax = kwargs.get('ax', None)
         if ax is None:
-            fig, ax = plt.subplots(1, 1, figsize=self.standard_size)
+            fig, ax = plt.subplots(1, 1, figsize=kwargs.get('figsize', self.standard_size))
 
         # Handle ylim
         if self.model.name in ['logistic', 'logistic_parallel']:
@@ -60,17 +98,17 @@ class Plotting():
 
         return colors, ax, linestyle, linewidth, alpha
 
-    def handle_kwargs_end(self, ax, kwargs):
+    def handle_kwargs_end(self, ax, kwargs, colors):
 
         # Labels
-        labels = kwargs['labels'] if 'labels' in kwargs.keys() else self.model.features
+        labels = kwargs.get('labels', self.model.features)
+
         # Legend
-        custom_lines = [Line2D([0], [0], color=self.colors[i%self.max_color], lw=4) for i in range((self.model.dimension))]
-        print(custom_lines)
-        ax.legend(custom_lines, labels, loc='upper right')
+        custom_lines = [Line2D([0], [0], color=colors[i], lw=4) for i in range(self.model.dimension)]
+        ax.legend(custom_lines, labels, loc=kwargs.get('legend_loc', 'upper right'))
 
         # Title
-        title = kwargs['title'] if 'title' in kwargs.keys() else None
+        title = kwargs.get('title', None)
         if title is not None:
             ax.set_title(title)
 
@@ -102,7 +140,7 @@ class Plotting():
                     alpha=alpha['average_model'],
                     c=colors[i])  # , c=colors[i])
 
-        ax = self.handle_kwargs_end(ax, kwargs)
+        ax = self.handle_kwargs_end(ax, kwargs, colors)
 
 
     def patient_observations(self, result, patient_IDs, **kwargs):
@@ -125,7 +163,7 @@ class Plotting():
                         linestyle=linestyle['individual_data'],
                         alpha=alpha['individual_data'],)
 
-        ax = self.handle_kwargs_end(ax, kwargs)
+        ax = self.handle_kwargs_end(ax, kwargs, colors)
 
 
     def patient_trajectories(self, result, patient_IDs, **kwargs):
@@ -148,14 +186,5 @@ class Plotting():
                         alpha=alpha['individual_model'],
                         )
 
-        ax = self.handle_kwargs_end(ax, kwargs)
-
-
-
-
-
-
-
-
-
+        ax = self.handle_kwargs_end(ax, kwargs, colors)
 
