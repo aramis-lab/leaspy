@@ -44,8 +44,8 @@ setup(name="leaspy",
           'Documentation': 'https://leaspy.readthedocs.io',
       },
 
-      author='Igor Koval, Raphael Couronne, Arnaud Valladier, Etienne Maheux, Benoit Martin, Pierre-Emmanuel Poulet, Samuel Gruffaz, Cecile Di Folco, Juliette Ortholand, Mkrtich Vatinyan, Benoit Sauty De Chalon, Stanley Durrleman',  # TODO
-      #author_email='igor.koval@inria.fr',
+      author='Igor Koval, Raphael Couronne, Etienne Maheux, Arnaud Valladier, Benoit Martin, Pierre-Emmanuel Poulet, Samuel Gruffaz, Cecile Di Folco, Juliette Ortholand, Mkrtich Vatinyan, Benoit Sauty De Chalon, Nemo Fournier, Quentin Madura, Stanley Durrleman',  # TODO
+      author_email='igor.koval@inria.fr',
       maintainer='Igor Koval',
       maintainer_email='igor.koval@inria.fr',
 
@@ -99,4 +99,4 @@ setup(name="leaspy",
           "Operating System :: OS Independent",
       ],
       extras_require=EXTRAS_REQUIRE
-      )
+    )

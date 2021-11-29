@@ -19,6 +19,7 @@ stages:
   parallel:
     matrix:
       - PYTHON_VERSION: ['3.7', '3.8', '3.9'] # 3.10
+      # TODO? also test on a virtual env with minimal version of requirements (>=X.Y.Z --> ==X.Y.Z)
   except:
     - tags
 
@@ -27,13 +28,9 @@ stages:
   extends: .loop_on_python_versions
   script:
     - conda --version
-    - conda create --yes python=$PYTHON_VERSION --name leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH} || true  # use 'create --yes' to force re-creation of env if already exists
+    # use 'create --yes' to force re-creation of env if it already exists (instead of '|| true' that just continues if env already exists)
+    - conda create --yes python=$PYTHON_VERSION --name leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH} || true
     - conda activate leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH}
-    # the following snippet is needed for MacOS CI machine to compile Python 3.9
-    - >
-      if [ "$PYTHON_VERSION" == "3.9" ]; then
-        export AR=/usr/bin/ar
-      fi
     - pip install -U -r requirements.txt
     - pip install -U -r requirements_dev.txt
     - conda deactivate
@@ -72,6 +69,43 @@ stages:
       junit: tests_${PYTHON_VERSION}.xml
     expire_in: 30 days
 
+# Deploy coverage pages
+pages:
+  stage: deploy
+  except:
+    - tags
+  #only:
+  #  - master
+  tags:
+    - linux  # arbitrary choice...
+  dependencies:
+    - tests_linux
+  script:
+    - mkdir -p public/coverage/
+    # Only publish the Python 3.9 HTML code coverage report
+    - mv htmlcov_3.9 public/coverage/$CI_COMMIT_BRANCH
+  artifacts:
+    paths:
+      - public/
+    expire_in: 30 days
+
+# Publish package in Gitlab Package Registry & TestPyPI (for tags only)
+publish_pkg:
+  stage: deploy
+  only:
+    - tags
+  retry: 0
+  script:
+    - conda activate leaspy_deploy
+    - conda upgrade --all --yes
+    - python setup.py sdist bdist_wheel
+    - envsubst < .pypirc.in > .pypirc  # substitute environment variables in template
+    - python -m twine upload --verbose --config-file .pypirc --repository gitlab dist/*
+    - python -m twine upload --verbose --config-file .pypirc --repository testpypi dist/*
+    - conda deactivate
+  tags:
+    - linux  # arbitrary choice...
+
 # Assign scripts to different CI machines
 update_conda_linux:
   extends: .update_conda
@@ -82,6 +116,8 @@ update_conda_macos:
   extends: .update_conda
   tags:
     - macos
+  except:
+    - tags  # not needed for publish_pkg job (executed on linux only)
 
 create_conda_envs_macos:
   extends: .create_conda_envs
@@ -112,23 +148,3 @@ tests_linux:
   extends: .tests
   tags:
    - linux
-
-# deploy coverage pages
-pages:
-  stage: deploy
-  tags:
-    - linux  # arbitrary choice...
-  except:
-    - tags
-  #only:
-  #  - master
-  dependencies:
-    - tests_linux
-  script:
-    - mkdir -p public/coverage/
-    # Only publish the Python 3.9 HTML code coverage report
-    - mv htmlcov_3.9 public/coverage/$CI_COMMIT_BRANCH
-  artifacts:
-    paths:
-      - public/
-    expire_in: 30 days
