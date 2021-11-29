@@ -1,6 +1,5 @@
 # Package-related outputs in the examples
-example/start/_outputs/*
-example/estimation_stability/_outputs/*
+# example/start/outputs/*
 
 # Ignore all temporary files in tests (but the Markdown ones)
 tests/_data/_tmp/*
@@ -13,6 +12,7 @@ __pycache__/
 
 # Mac folders
 .DS_Store
+._*
 
 # C extensions
 *.so
@@ -52,15 +52,15 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-htmlcov/
-coverage/*
+tests*.xml
+htmlcov*/
 .tox/
 .nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
-coverage.xml
+coverage*.xml
 *.cover
 .hypothesis/
 .pytest_cache/
@@ -141,6 +141,3 @@ dmypy.json
 
 # Files
 reflexion
-
-# Folders
-leaspype

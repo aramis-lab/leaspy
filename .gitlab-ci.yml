@@ -1,83 +1,134 @@
+default:
+  timeout: 1 hour
+  retry: 1
+  interruptible: false
+
 stages:
   - build
   - test
+  - deploy
 
-.create_conda_envs:
+.update_conda:
+  stage: .pre
+  script:
+    - conda init bash
+    - eval "$(conda shell.bash hook)"
+    - conda update --yes conda
+
+.loop_on_python_versions:
   parallel:
     matrix:
       - PYTHON_VERSION: ['3.7', '3.8', '3.9'] # 3.10
+  except:
+    - tags
+
+.create_conda_envs:
+  stage: build
+  extends: .loop_on_python_versions
   script:
     - conda --version
     - conda create --yes python=$PYTHON_VERSION --name leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH} || true  # use 'create --yes' to force re-creation of env if already exists
     - conda activate leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH}
+    # the following snippet is needed for MacOS CI machine to compile Python 3.9
     - >
       if [ "$PYTHON_VERSION" == "3.9" ]; then
         export AR=/usr/bin/ar
       fi
     - pip install -U -r requirements.txt
+    - pip install -U -r requirements_dev.txt
     - conda deactivate
 
-.update_conda:
+# only delete the created conda environment for branch when in a MR
+# TODO? always delete them? (in a `after_script` section)
+.remove_conda_envs:
+  stage: .post
+  extends: .loop_on_python_versions
+  only:
+    - merge_requests
   script:
-    - conda init bash
-    - eval "$(conda shell.bash hook)"
-    - conda update --name base --channel defaults --yes conda
+    - conda env remove --yes --name leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH}
 
 .tests:
-  parallel:
-    matrix:
-      - PYTHON_VERSION: ['3.7', '3.8', '3.9'] # 3.10
+  stage: test
+  extends: .loop_on_python_versions
+  retry: 0  # no retry if failed
+  interruptible: true  # job should be canceled when a newer pipeline starts before the job completes
   script:
     - conda activate leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH}
     - python --version
     - pip freeze
-    - pytest --cov-config=.coveragerc --cov-report html:htmlcov --cov-report xml:build/coverage.xml --cov-report term --cov=leaspy/ --junitxml=build/tests_results/tests_${PYTHON_VERSION}.xml tests/
+    # Customize the title of code coverage HTML report
+    - "sed -i.bak -E 's/^title = Leaspy - (.+)$/title = Leaspy :: ${CI_COMMIT_BRANCH} - \\1 (Python ${PYTHON_VERSION})/' .coveragerc"
+    - pytest --cov --cov-context=test --cov-report=html:htmlcov_${PYTHON_VERSION} --cov-report=xml:coverage_${PYTHON_VERSION}.xml --cov-report=term --junitxml=tests_${PYTHON_VERSION}.xml tests/
     - conda deactivate
   coverage: '/^TOTAL(?:\s+.*){2}\s+(\d+(?:\.\d+)?\%)$/'
   artifacts:
     paths:
-      - htmlcov/  # for people to browse if they want (in addition to Gitlab tool)
+      # for people to browse if they want (in addition to Gitlab tool)
+      - htmlcov_${PYTHON_VERSION}/
     reports:
-      cobertura: build/coverage.xml  # will be directly integrated to Gitlab coverage tool (MR)
-      junit: build/tests_results/tests_*.xml  # will be directly integrated to Gitlab tests tool
+      # these reports will be directly integrated to Gitlab (MR)
+      cobertura: coverage_${PYTHON_VERSION}.xml
+      junit: tests_${PYTHON_VERSION}.xml
     expire_in: 30 days
 
+# Assign scripts to different CI machines
 update_conda_linux:
   extends: .update_conda
-  stage: build
   tags:
     - linux
 
 update_conda_macos:
   extends: .update_conda
-  stage: build
   tags:
     - macos
 
 create_conda_envs_macos:
   extends: .create_conda_envs
-  stage: build
   tags:
     - macos
 
 create_conda_envs_linux:
   extends: .create_conda_envs
-  stage: build
+  tags:
+    - linux
+
+remove_conda_envs_macos:
+  extends: .remove_conda_envs
+  tags:
+    - macos
+
+remove_conda_envs_linux:
+  extends: .remove_conda_envs
   tags:
     - linux
 
 tests_macos:
   extends: .tests
-  stage: test
-  retry: 0  # no retry if failed
-  interruptible: true  # job should be canceled when a newer pipeline starts before the job completes
   tags:
     - macos
 
 tests_linux:
   extends: .tests
-  stage: test
-  retry: 0  # no retry if failed
-  interruptible: true  # job should be canceled when a newer pipeline starts before the job completes
   tags:
    - linux
+
+# deploy coverage pages
+pages:
+  stage: deploy
+  tags:
+    - linux  # arbitrary choice...
+  except:
+    - tags
+  #only:
+  #  - master
+  dependencies:
+    - tests_linux
+  script:
+    - mkdir -p public/coverage/
+    # Only publish the Python 3.9 HTML code coverage report
+    - mv htmlcov_3.9 public/coverage/$CI_COMMIT_BRANCH
+  artifacts:
+    paths:
+      - public/
+    expire_in: 30 days
