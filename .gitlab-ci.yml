@@ -1,19 +1,41 @@
 default:
   timeout: 1 hour
-  retry: 1
-  interruptible: false
+  retry: 0  # job is not retried if failed
+  interruptible: true  # by default jobs should be canceled when a newer pipeline starts before jobs complete
 
 stages:
   - build
   - test
   - deploy
+  - release
+
+variables:
+  VERSION_PYTHON_FILE: leaspy/__init__.py
+  VARIABLES_FILE: ./variables.sh
 
 .update_conda:
   stage: .pre
+  retry: 1
+  interruptible: false
   script:
     - conda init bash
     - eval "$(conda shell.bash hook)"
     - conda update --yes conda
+
+# Dynamically get the leaspy version as registered in the dedicated Python file
+get_pkg_version:
+  stage: .pre
+  tags:
+    - linux
+    - shell
+  script:
+    - "PKG_VERSION=$(sed -n -E 's/^__version__\\s*=\\s*[\\x27\"](.+)[\\x27\"].*$/\\1/p' $VERSION_PYTHON_FILE)"
+    - echo "export PKG_VERSION='$PKG_VERSION'" > $VARIABLES_FILE
+    - cat $VARIABLES_FILE
+    # TODO? check that LEASPY_VERSION contains alpha, beta, rc or .dev when not a tag ready for publication? and conversely
+  artifacts:
+    paths:
+      - $VARIABLES_FILE
 
 .loop_on_python_versions:
   parallel:
@@ -26,6 +48,8 @@ stages:
 .create_conda_envs:
   stage: build
   extends: .loop_on_python_versions
+  retry: 1
+  interruptible: false
   script:
     - conda --version
     # use 'create --yes' to force re-creation of env if it already exists (instead of '|| true' that just continues if env already exists)
@@ -40,6 +64,8 @@ stages:
 .remove_conda_envs:
   stage: .post
   extends: .loop_on_python_versions
+  retry: 1
+  interruptible: false
   only:
     - merge_requests
   script:
@@ -48,8 +74,6 @@ stages:
 .tests:
   stage: test
   extends: .loop_on_python_versions
-  retry: 0  # no retry if failed
-  interruptible: true  # job should be canceled when a newer pipeline starts before the job completes
   script:
     - conda activate leaspy_env_${PYTHON_VERSION}_${CI_COMMIT_BRANCH}
     - python --version
@@ -78,73 +102,121 @@ pages:
   #  - master
   tags:
     - linux  # arbitrary choice...
+    - shell
   dependencies:
     - tests_linux
   script:
-    - mkdir -p public/coverage/
-    # Only publish the Python 3.9 HTML code coverage report
-    - mv htmlcov_3.9 public/coverage/$CI_COMMIT_BRANCH
+    - mkdir -p public #/coverage/
+    # Only publish the Python 3.9 HTML code coverage report (upload in `coverage` top folder since it would always be overwritten anyway)
+    - mv htmlcov_3.9 public/coverage #/$CI_COMMIT_BRANCH
   artifacts:
     paths:
       - public/
     expire_in: 30 days
 
-# Publish package in Gitlab Package Registry & TestPyPI (for tags only)
-publish_pkg:
+# Publish package in PyPI index (base script)
+.publish_pkg:
   stage: deploy
+  variables:
+  dependencies:
+    - get_pkg_version
   only:
     - tags
-  retry: 0
+  before_script:
+    # recover the variables dynamically loaded and check consistency between version registered in code & in tag
+    - source $VARIABLES_FILE
+    - '[[ "$CI_COMMIT_TAG" == "v$PKG_VERSION" ]]'
   script:
     - conda activate leaspy_deploy
     - conda upgrade --all --yes
     - python setup.py sdist bdist_wheel
     - envsubst < .pypirc.in > .pypirc  # substitute environment variables in template
-    - python -m twine upload --verbose --config-file .pypirc --repository gitlab dist/*
-    - python -m twine upload --verbose --config-file .pypirc --repository testpypi dist/*
+    - for pypi_repo in $PYPI_REPOSITORIES; do python -m twine upload --verbose --config-file .pypirc --repository $pypi_repo dist/*; done
     - conda deactivate
   tags:
     - linux  # arbitrary choice...
+    - shell
+
+# When tagged: automatically publish package in Gitlab Package Registry & TestPyPI (for dev pkg & test before official)
+publish_pkg_auto:
+  extends: .publish_pkg
+  variables:
+    PYPI_REPOSITORIES: 'testpypi gitlab'
+
+# Manually publish on official PyPI index
+publish_pkg_official:
+  extends: .publish_pkg
+  when: manual
+  allow_failure: false  # to wait for this manual job before release_job
+  variables:
+    PYPI_REPOSITORIES: 'pypi'
+
+release_job:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  tags:
+    - docker
+  only:
+    - tags
+  script:
+    - echo "Releasing $CI_COMMIT_TAG"
+  release:
+    name: $CI_COMMIT_TAG
+    tag_name: $CI_COMMIT_TAG
+    description: ./CHANGELOG.md
+    assets:
+      links:
+        - name: 'PyPI package'
+          url: 'https://pypi.org/project/leaspy/${CI_COMMIT_TAG#v}/'  # remove prefix "v" from commit tag
+          link_type: 'package'
 
 # Assign scripts to different CI machines
 update_conda_linux:
   extends: .update_conda
   tags:
     - linux
+    - shell
 
 update_conda_macos:
   extends: .update_conda
-  tags:
-    - macos
   except:
     - tags  # not needed for publish_pkg job (executed on linux only)
+  tags:
+    - macos
+    - shell
 
 create_conda_envs_macos:
   extends: .create_conda_envs
   tags:
     - macos
+    - shell
 
 create_conda_envs_linux:
   extends: .create_conda_envs
   tags:
     - linux
+    - shell
 
 remove_conda_envs_macos:
   extends: .remove_conda_envs
   tags:
     - macos
+    - shell
 
 remove_conda_envs_linux:
   extends: .remove_conda_envs
   tags:
     - linux
+    - shell
 
 tests_macos:
   extends: .tests
   tags:
     - macos
+    - shell
 
 tests_linux:
   extends: .tests
   tags:
-   - linux
+    - linux
+    - shell
