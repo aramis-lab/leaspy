@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from leaspy.exceptions import LeaspyIndividualParamsInputError
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyTypeError
 from leaspy.utils.typing import IDType, ParamType, DictParams, DictParamsTorch, Iterable, List, Callable, Dict, Tuple
 
 
@@ -137,6 +137,13 @@ class IndividualParameters:
         if item not in self._individual_parameters:
             raise LeaspyIndividualParamsInputError(f'The index {item} is unknown')
         return self._individual_parameters[item]
+
+    def __contains__(self, key: IDType) -> bool:
+        if isinstance(key, IDType):
+            return (key in self._indices)
+        else:
+            raise LeaspyTypeError("Cannot test IndividualParameters membership"
+                                  " for an element of this type")
 
     def items(self):
         """
