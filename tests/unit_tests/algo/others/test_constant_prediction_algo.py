@@ -88,7 +88,7 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
 
             ip, noise = algo.run(model, self.dataset, return_noise=True)
             self.assertEqual(noise, None)
-            self.assertListEqual(ip._indices, ['1'])
+            self.assertListEqual(list(ip._indices), ['1'])
             self.assertDictEqual(ip._parameters_shape, {'A': (), 'B': ()})
             self.assertEqual(ip._default_saving_type, 'csv')
 

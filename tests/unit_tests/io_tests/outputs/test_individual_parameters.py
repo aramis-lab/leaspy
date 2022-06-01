@@ -18,7 +18,7 @@ class IndividualParametersTest(LeaspyTestCase):
         # for tmp handling
         super().setUpClass()
 
-        cls.indices = ['idx1', 'idx2', 'idx3']
+        cls.indices = dict.fromkeys(['idx1', 'idx2', 'idx3']).keys()
         cls.p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
         cls.p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
         cls.p3 = {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]}
@@ -47,7 +47,7 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_constructor(self):
 
         ip = IndividualParameters()
-        self.assertEqual(ip._indices, [])
+        self.assertEqual(ip._indices, {}.keys())
         self.assertEqual(ip._individual_parameters, {})
         self.assertEqual(ip._parameters_shape, None) # changed
         self.assertEqual(ip._default_saving_type, "csv")
@@ -76,8 +76,7 @@ class IndividualParametersTest(LeaspyTestCase):
         with self.assertRaises(ValueError):
             ip.add_individual_parameters('no_xi', {'tau': 0.2, 'sources': [0,0]})
 
-        self.assertEqual(ip._indices, ["idx1", "idx2", "idx3"])
-        self.assertEqual(ip._indices, list(ip._individual_parameters.keys())) # TODO: delete indices? as they should be dict keys
+        self.assertEqual(ip._indices, ip._individual_parameters.keys())
         self.assertEqual(ip._individual_parameters, {"idx1": p1, "idx2": p2, "idx3": p3})
         self.assertEqual(ip._parameters_shape, {"xi": (), "tau": (), "sources": (2,)})
         self.assertEqual(ip._parameters_size, {"xi": 1, "tau": 1, "sources": 2})
@@ -110,7 +109,6 @@ class IndividualParametersTest(LeaspyTestCase):
         # Test List[IDType] (ex-subset) slicing
         ip2 = self.ip[["idx1", "idx3"]]
 
-        self.assertEqual(ip2._indices, ["idx1", "idx3"])
         self.assertEqual(ip2._individual_parameters, {"idx1": self.p1, "idx3": self.p3})
         self.assertEqual(ip2._parameters_shape, self.parameters_shape)
 
@@ -180,7 +178,7 @@ class IndividualParametersTest(LeaspyTestCase):
 
         indices, ip_pytorch = ip.to_pytorch()
 
-        self.assertEqual(indices, self.indices)
+        self.assertEqual(indices, list(self.indices))
 
         self.assertEqual(ip_pytorch.keys(), self.ip_pytorch.keys())
         for k in self.ip_pytorch.keys():

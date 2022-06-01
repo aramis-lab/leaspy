@@ -10,7 +10,7 @@ import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyKeyError, LeaspyTypeError
-from leaspy.utils.typing import IDType, ParamType, DictParams, DictParamsTorch, Iterable, List, Callable, Dict, Tuple
+from leaspy.utils.typing import IDType, ParamType, DictParams, DictParamsTorch, Iterable, List, Callable, Dict, Tuple, KeysView
 
 
 class IndividualParameters:
@@ -23,8 +23,8 @@ class IndividualParameters:
 
     Attributes
     ----------
-    _indices : list
-        List of the patient indices
+    _indices : KeysView[IDType]
+        Dictionary-keys object of the patient indices
     _individual_parameters : dict
         Individual indices (key) with their corresponding individual parameters {parameter name: parameter value}
     _parameters_shape : dict
@@ -36,10 +36,19 @@ class IndividualParameters:
     VALID_IO_EXTENSIONS = ['csv', 'json']
 
     def __init__(self):
-        self._indices: List[IDType] = []
         self._individual_parameters: Dict[IDType, DictParams] = {}
         self._parameters_shape = None # {p_name: p_shape as tuple}
         self._default_saving_type = 'csv'
+
+    @property
+    def _indices(self) -> KeysView[IDType]:
+        """
+        List of included IDs
+        """
+        # Using directly the dict_keys object without converting it to a list
+        # yields a lighter complexity for construction and lookup while enabling
+        # all internal use cases
+        return self._individual_parameters.keys()
 
     @property
     def _parameters_size(self) -> Dict[ParamType, int]:
@@ -119,8 +128,6 @@ class IndividualParameters:
                     f'Invalid parameter shapes provided: {pshapes}. Expected: {self._parameters_shape}. '
                     'Some parameters may be missing/unknown or have a wrong shape.')
 
-        # Finally: add to internal dict object + indices array
-        self._indices.append(index)
         self._individual_parameters[index] = individual_parameters
 
 
@@ -432,7 +439,7 @@ class IndividualParameters:
 
             ips_pytorch[p_name] = p_val
 
-        return self._indices, ips_pytorch
+        return list(self._indices), ips_pytorch
 
     def save(self, path: str, **kwargs):
         r"""
@@ -526,7 +533,7 @@ class IndividualParameters:
 
     def _save_json(self, path: str, **kwargs):
         json_data = {
-            'indices': self._indices,
+            'indices': list(self._indices),
             'individual_parameters': self._individual_parameters,
             'parameters_shape': self._parameters_shape
         }
@@ -551,7 +558,6 @@ class IndividualParameters:
             json_data = json.load(f)
 
         ip = cls()
-        ip._indices = json_data['indices']
         ip._individual_parameters = json_data['individual_parameters']
         ip._parameters_shape = json_data['parameters_shape']
 
