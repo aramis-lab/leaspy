@@ -219,7 +219,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : str
+        parameter : ParamType
             Name of the parameter
         function : callable
             A function operating on iterables and supporting axis keyword,
@@ -233,8 +233,9 @@ class IndividualParameters:
         Raises
         ------
         :exc:`.LeaspyIndividualParamsInputError`
-            * If individual parameters are empty,
-            * or if the parameter is not in the IndividualParameters.
+            If individual parameters are empty
+        :exc:`.LeaspyKeyError`
+            If the parameter is not in the IndividualParameters
 
         Examples
         --------
@@ -242,9 +243,9 @@ class IndividualParameters:
         >>> tau_median = ip.get_aggregate("tau", np.median)
         """
         if self._parameters_shape is None:
-            raise LeaspyIndividualParamsInputError(f"Individual parameters are empty: no information on '{parameter}'.")
+            raise LeaspyIndividualParamsInputError("Individual parameters are empty")
         if parameter not in self._parameters_shape.keys():
-            raise LeaspyIndividualParamsInputError(f"Parameter '{parameter}' does not exist in the individual parameters")
+            raise LeaspyKeyError(f"Parameter '{parameter}' is unknown")
 
         p = [v[parameter] for v in self._individual_parameters.values()]
         p_agg = function(p, axis=0).tolist()
@@ -257,7 +258,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : str
+        parameter : ParamType
             Name of the parameter
 
         Returns
@@ -268,8 +269,9 @@ class IndividualParameters:
         Raises
         ------
         :exc:`.LeaspyIndividualParamsInputError`
-            * If individual parameters are empty,
-            * or if the parameter is not in the IndividualParameters.
+            If individual parameters are empty
+        :exc:`.LeaspyKeyError`
+            If the parameter is not in the IndividualParameters
 
         Examples
         --------
@@ -284,7 +286,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : str
+        parameter : ParamType
             Name of the parameter
 
         Returns
@@ -295,8 +297,9 @@ class IndividualParameters:
         Raises
         ------
         :exc:`.LeaspyIndividualParamsInputError`
-            * If individual parameters are empty,
-            * or if the parameter is not in the IndividualParameters.
+            If individual parameters are empty
+        :exc:`.LeaspyKeyError`
+            If the parameter is not in the IndividualParameters
 
         Examples
         --------
