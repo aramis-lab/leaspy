@@ -104,21 +104,11 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertTrue(all(map(pd.api.types.is_numeric_dtype, ip1.to_dataframe().dtypes)))
 
     def test_get_item(self):
-        ip = IndividualParameters()
+        self.assertDictEqual(self.ip['idx1'], self.p1)
+        self.assertDictEqual(self.ip['idx2'], self.p2)
 
-        p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
-        p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
-
-        ip.add_individual_parameters("idx1", p1)
-        ip.add_individual_parameters("idx2", p2)
-
-        self.assertDictEqual(ip['idx1'], p1)
-        self.assertDictEqual(ip['idx2'], p2)
-
-
-    def test_subset(self):
-
-        ip2 = self.ip.subset(["idx1", "idx3"])
+        # Test List[IDType] (ex-subset) slicing
+        ip2 = self.ip[["idx1", "idx3"]]
 
         self.assertEqual(ip2._indices, ["idx1", "idx3"])
         self.assertEqual(ip2._individual_parameters, {"idx1": self.p1, "idx3": self.p3})

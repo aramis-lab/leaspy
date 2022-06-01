@@ -1,3 +1,4 @@
+from __future__ import annotations
 import functools
 import json
 import operator
@@ -8,7 +9,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyTypeError
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyKeyError, LeaspyTypeError
 from leaspy.utils.typing import IDType, ParamType, DictParams, DictParamsTorch, Iterable, List, Callable, Dict, Tuple
 
 
@@ -123,20 +124,51 @@ class IndividualParameters:
         self._individual_parameters[index] = individual_parameters
 
 
-    def __getitem__(self, item: IDType) -> DictParams:
+    def __getitem__(self, key: IDType | Iterable[IDType]) -> DictParams | IndividualParameters:
         """
-        Get the individual parameters for individual `item`.
+        Return either the individual parameters of ID `key`if a single
+        ID is passed, or an IndividualParameters object with a subset
+        of the initial individuals if `key`is a list of IDs.
 
+        This method intendedly does NOT (deep)copy the items returned,
+        leaving the choice to the end user.
+        
         Raises
         ------
-        :exc:`.LeaspyIndividualParamsInputError`
-            if bad item asked
+        :exc:`.LeaspyTypeError`
+            Unsupported `key` type
+        :exc:`.LeaspyKeyError`
+            Unknown ID found in `key`
+
+        Examples
+        --------
+        >>> ip = IndividualParameters()
+        >>> ip.add_individual_parameters('index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]})
+        >>> ip.add_individual_parameters('index-2', {"xi": 0.2, "tau": 73, "sources": [-0.4, -0.1]})
+        >>> ip.add_individual_parameters('index-3', {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]})
+        >>> ip_sub = ip[['index-1', 'index-3']]
+        >>> ip_one = ip['index-1']
         """
-        if not isinstance(item, IDType):
-            raise LeaspyIndividualParamsInputError(f'The index should be a string ({type(item)} provided instead)')
-        if item not in self._individual_parameters:
-            raise LeaspyIndividualParamsInputError(f'The index {item} is unknown')
-        return self._individual_parameters[item]
+        if isinstance(key, IDType):
+            if key not in self._indices:
+                raise LeaspyKeyError(f"Cannot access IndividualParameters with"
+                                     f" unknown index: {key}")
+            return self._individual_parameters[key]
+
+        elif (isinstance(key, Iterable)
+              and all(isinstance(k, IDType) for k in key)):
+            unknown_indices = [k for k in key if k not in self._indices]
+            if len(unknown_indices):
+                raise LeaspyKeyError(f"Cannot access IndividualParameters with"
+                                     f" unknown indices: {unknown_indices}")
+            ip = IndividualParameters()
+            for k in key:
+                ip.add_individual_parameters(k, self[k])
+            return ip
+
+        else:
+            raise LeaspyTypeError("Cannot access an IndividualParameters object"
+                                  " this way")
 
     def __contains__(self, key: IDType) -> bool:
         if isinstance(key, IDType):
@@ -150,49 +182,6 @@ class IndividualParameters:
         Get items of dict :attr:`_individual_parameters`.
         """
         return self._individual_parameters.items()
-
-    def subset(self, indices: Iterable[IDType], *, copy: bool = True):
-        r"""
-        Returns IndividualParameters object with a subset of the initial individuals
-
-        Parameters
-        ----------
-        indices : list[ID]
-            List of strings that corresponds to the indices of the individuals to return
-        copy : bool, optional (default True)
-            Should we copy underlying parameters or not?
-
-        Returns
-        -------
-        `IndividualParameters`
-            An instance of the IndividualParameters object with the selected list of individuals
-
-        Raises
-        ------
-        :exc:`.LeaspyIndividualParamsInputError`
-            Raise an error if one of the index is not in the IndividualParameters
-
-        Examples
-        --------
-        >>> ip = IndividualParameters()
-        >>> ip.add_individual_parameters('index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]})
-        >>> ip.add_individual_parameters('index-2', {"xi": 0.2, "tau": 73, "sources": [-0.4, -0.1]})
-        >>> ip.add_individual_parameters('index-3', {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]})
-        >>> ip_sub = ip.subset(['index-1', 'index-3'])
-        """
-        ip = IndividualParameters()
-
-        unknown_ix = [ix for ix in indices if ix not in self._indices]
-        if len(unknown_ix) > 0:
-            raise LeaspyIndividualParamsInputError(f'The index {unknown_ix} are not in the indices.')
-
-        for idx in indices:
-            p = self[idx]
-            if copy:
-                p = p.copy()  # deepcopy here?
-            ip.add_individual_parameters(idx, p)
-
-        return ip
 
     def get_aggregate(self, parameter: ParamType, function: Callable) -> List:
         r"""
