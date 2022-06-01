@@ -37,7 +37,6 @@ class IndividualParameters:
 
     def __init__(self):
         self._individual_parameters: Dict[IDType, DictParams] = {}
-        self._parameters_shape = None # {p_name: p_shape as tuple}
         self._default_saving_type = 'csv'
 
     @property
@@ -51,11 +50,36 @@ class IndividualParameters:
         return self._individual_parameters.keys()
 
     @property
-    def _parameters_size(self) -> Dict[ParamType, int]:
-        # convert parameter shape to parameter size
-        # e.g. () -> 1, (1,) -> 1, (2,3) -> 6
-        shape_to_size = lambda shape: functools.reduce(operator.mul, shape, 1)
+    def _parameters_shape(self) -> Dict[ParamType, Tuple] | None:
+        """
+        Dictionary of shapes of each individual parameter
+        """
+        if not len(self._individual_parameters):
+            return None
+        # Controls are in place to make sure that all individuals share the same
+        # parameters shape, so the information can be retrieved from any one
+        p_shapes = {}
+        _, example_individual_parameters = list(self.items())[0]
+        for p, v in example_individual_parameters.items():
+            if hasattr(v, "shape"):
+                p_shapes[p] = v.shape
+            elif isinstance(v, list):
+                p_shapes[p] = (len(v), )
+            else:
+                p_shapes[p] = ()
+        return p_shapes
 
+    @property
+    def _parameters_size(self) -> Dict[ParamType, int]:
+        """
+        Dictionary of total size for each individual parameter
+
+        Converts parameter shape -> parameter size, for example:
+        * `()` -> `1`
+        * `(1, )` -> `1`
+        * `(2, 3)` -> `6`
+        """
+        shape_to_size = lambda shape: functools.reduce(operator.mul, shape, 1)
         return {p: shape_to_size(s)
                 for p,s in self._parameters_shape.items()}
 
@@ -117,16 +141,15 @@ class IndividualParameters:
 
         # Fix/check parameters nomenclature and shapes
         # (scalar or 1D arrays only...)
-        pshapes = {p: (len(v),) if isinstance(v, list) else ()
-                   for p,v in individual_parameters.items()}
+        p_shapes = {p: (len(v),) if isinstance(v, list) else ()
+                    for p,v in individual_parameters.items()}
 
-        if self._parameters_shape is None:
-            # Keep track of the parameter shape
-            self._parameters_shape = pshapes
-        elif self._parameters_shape != pshapes:
+        expected_p_shapes = self._parameters_shape
+        if expected_p_shapes is not None and expected_p_shapes != p_shapes:
             raise LeaspyIndividualParamsInputError(
-                    f'Invalid parameter shapes provided: {pshapes}. Expected: {self._parameters_shape}. '
-                    'Some parameters may be missing/unknown or have a wrong shape.')
+                f"Invalid shape for provided parameters: {p_shapes}."
+                f" Expected: {expected_p_shapes}."
+            )
 
         self._individual_parameters[index] = individual_parameters
 
@@ -559,9 +582,5 @@ class IndividualParameters:
 
         ip = cls()
         ip._individual_parameters = json_data['individual_parameters']
-        ip._parameters_shape = json_data['parameters_shape']
-
-        # convert json lists to tuple for shapes
-        ip._parameters_shape = {p: tuple(s) for p,s in ip._parameters_shape.items()}
 
         return ip
