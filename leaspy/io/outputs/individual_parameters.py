@@ -34,6 +34,7 @@ class IndividualParameters:
     """
 
     VALID_IO_EXTENSIONS = ['csv', 'json']
+    VALID_SCALAR_TYPES = [int, np.int32, np.int64, float, np.float32, np.float64]
 
     def __init__(self):
         self._individual_parameters: Dict[IDType, DictParams] = {}
@@ -58,16 +59,8 @@ class IndividualParameters:
             return None
         # Controls are in place to make sure that all individuals share the same
         # parameters shape, so the information can be retrieved from any one
-        p_shapes = {}
         _, example_individual_parameters = list(self.items())[0]
-        for p, v in example_individual_parameters.items():
-            if hasattr(v, "shape"):
-                p_shapes[p] = v.shape
-            elif isinstance(v, list):
-                p_shapes[p] = (len(v), )
-            else:
-                p_shapes[p] = ()
-        return p_shapes
+        return self._compute_parameters_shape(example_individual_parameters)
 
     @property
     def _parameters_size(self) -> Dict[ParamType, int]:
@@ -83,75 +76,86 @@ class IndividualParameters:
         return {p: shape_to_size(s)
                 for p,s in self._parameters_shape.items()}
 
-    def add_individual_parameters(self, index: IDType, individual_parameters: DictParams):
+    @staticmethod
+    def _compute_parameters_shape(parameters: DictParams) -> Dict[ParamType, Tuple]:
+        p_shapes = {}
+        for p, v in parameters.items():
+            if hasattr(v, "shape"):
+                p_shapes[p] = v.shape
+            elif isinstance(v, list):
+                p_shapes[p] = (len(v), )
+            else:
+                p_shapes[p] = ()
+        return p_shapes
+
+
+    def add_individual_parameters(self, index: IDType, parameters: DictParams):
         r"""
-        Add the individual parameter of an individual to the IndividualParameters object
+        Include the parameters of a new individual
 
         Parameters
         ----------
-        index : str
+        index : IDType
             Index of the individual
-        individual_parameters : dict
-            Individual parameters of the individual {name: value:}
+        parameters : DictParams
+            Parameters of the individual as a dictionary {name: value}
 
         Raises
         ------
+        :exc:`.LeaspyTypeError`
+            In case of an invalid argument type
         :exc:`.LeaspyIndividualParamsInputError`
-            * If the index is not a string or has already been added
-            * Or if the individual parameters is not a dict.
-            * Or if individual parameters are not self-consistent.
+            * If the index is already present
+            * If the input parameters shape is inconsistent with the
+              already present parameters shape
 
         Examples
         --------
-        Add two individual with tau, xi and sources parameters
+        Include the "tau", "xi" and "sources" parameters of two new
+        individuals
 
         >>> ip = IndividualParameters()
         >>> ip.add_individual_parameters('index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]})
         >>> ip.add_individual_parameters('index-2', {"xi": 0.2, "tau": 73, "sources": [-0.4, -0.1]})
         """
-        # Check indices
-        if not isinstance(index, str):
-            raise LeaspyIndividualParamsInputError(f'The index should be a string ({type(index)} provided instead)')
+        if not isinstance(index, IDType):
+            raise LeaspyTypeError(f"Invalid `index` type: {type(index)}")
 
         if index in self._indices:
-            raise LeaspyIndividualParamsInputError(f'The index {index} has already been added before')
+            raise LeaspyIndividualParamsInputError(f"The input index {index} is"
+                                                   f" already present")
 
-        # Check the dictionary format
-        if not isinstance(individual_parameters, dict):
-            raise LeaspyIndividualParamsInputError('The `individual_parameters` argument should be a dictionary')
+        if not (isinstance(parameters, dict)
+                and all(isinstance(k, ParamType) for k in parameters.keys())):
+            raise LeaspyTypeError("Invalid `individual_parameters` type")
 
-        # Conversion of numpy arrays to lists
-        individual_parameters = {k: v.tolist() if isinstance(v, np.ndarray) else v
-                                 for k, v in individual_parameters.items()}
+        # N-dimensional arrays are currently not supported for parameter values.
+        # 1D arrays are converted to lists to temporarily circumvent the problem
+        parameters = {k: v.tolist() if isinstance(v, np.ndarray) else v
+                      for k, v in parameters.items()}
 
-        # Check types of params
-        for k, v in individual_parameters.items():
-
-            valid_scalar_types = [int, np.int32, np.int64, float, np.float32, np.float64]
-
-            scalar_type = type(v)
+        for k, v in parameters.items():
+            value_scalar_type = type(v)
             if isinstance(v, list):
-                scalar_type = None if len(v) == 0 else type(v[0])
-            #elif isinstance(v, np.ndarray):
-            #    scalar_type = v.dtype
+                value_scalar_type = None if len(v) == 0 else type(v[0])
 
-            if scalar_type not in valid_scalar_types:
-                raise LeaspyIndividualParamsInputError(
-                            f'Incorrect dictionary value. Error for key: {k} -> scalar type {scalar_type}')
+            if value_scalar_type not in self.VALID_SCALAR_TYPES:
+                raise LeaspyTypeError(
+                    f"Invalid parameter value scalar type."
+                    f" Received key: {k} -> scalar type {value_scalar_type}\n"
+                    f" Valid scalar types are: {self.VALID_SCALAR_TYPES}"
+                )
 
-        # Fix/check parameters nomenclature and shapes
-        # (scalar or 1D arrays only...)
-        p_shapes = {p: (len(v),) if isinstance(v, list) else ()
-                    for p,v in individual_parameters.items()}
-
+        p_shapes = self._compute_parameters_shape(parameters)
         expected_p_shapes = self._parameters_shape
+
         if expected_p_shapes is not None and expected_p_shapes != p_shapes:
             raise LeaspyIndividualParamsInputError(
-                f"Invalid shape for provided parameters: {p_shapes}."
-                f" Expected: {expected_p_shapes}."
+                f"Invalid shape for provided parameters: {p_shapes}.\n"
+                f"Expected: {expected_p_shapes}."
             )
 
-        self._individual_parameters[index] = individual_parameters
+        self._individual_parameters[index] = parameters
 
 
     def __getitem__(self, key: IDType | Iterable[IDType]) -> DictParams | IndividualParameters:
@@ -482,7 +486,6 @@ class IndividualParameters:
             Additional keyword arguments to pass to either:
             * :meth:`pandas.DataFrame.to_csv`
             * :func:`json.dump`
-            depending on saving format requested
 
         Raises
         ------

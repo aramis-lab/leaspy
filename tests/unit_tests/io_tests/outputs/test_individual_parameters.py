@@ -7,6 +7,7 @@ import pandas as pd
 import torch
 
 from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyTypeError
 
 from tests import LeaspyTestCase
 
@@ -64,16 +65,19 @@ class IndividualParametersTest(LeaspyTestCase):
         ip.add_individual_parameters("idx3", p3)
 
         ## test fail index exist
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyIndividualParamsInputError):
             ip.add_individual_parameters('idx1', p3)
         ## test fail index numeric
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyTypeError):
             ip.add_individual_parameters(1, p1)
+        ## test fail parameters not dict
+        with self.assertRaises(LeaspyTypeError):
+            ip.add_individual_parameters('int_dict', {1: 0.5})
         ## test fail expect scalar
-        with self.assertRaises(ValueError):
-            ip.add_individual_parameters('tau_list', {'tau': [0.2], 'xi': .1, 'sources': [0,0]})
+        with self.assertRaises(LeaspyTypeError):
+            ip.add_individual_parameters('tau_list', {'tau': [[0.2]], 'xi': .1, 'sources': [0,0]})
         ## test fail missing key
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyIndividualParamsInputError):
             ip.add_individual_parameters('no_xi', {'tau': 0.2, 'sources': [0,0]})
 
         self.assertEqual(ip._indices, ip._individual_parameters.keys())
@@ -93,7 +97,7 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertEqual(ip1._parameters_size, {"xi": 1, "tau": 1, "sources": 1})
 
         ## test fail compat nb sources 1 != 2
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyIndividualParamsInputError):
             ip1.add_individual_parameters('id_fail', p1)
 
         ## test columns of dataframe
