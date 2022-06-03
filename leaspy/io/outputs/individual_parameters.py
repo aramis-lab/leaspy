@@ -122,8 +122,8 @@ class IndividualParameters:
             raise LeaspyTypeError(f"Invalid `index` type: {type(index)}")
 
         if index in self._indices:
-            raise LeaspyIndividualParamsInputError(f"The input index {index} is"
-                                                   f" already present")
+            raise LeaspyIndividualParamsInputError(f"The input index {index} "
+                                                   f"is already present")
 
         if not (isinstance(parameters, dict)
                 and all(isinstance(k, ParamType) for k in parameters.keys())):
@@ -141,9 +141,9 @@ class IndividualParameters:
 
             if value_scalar_type not in self.VALID_SCALAR_TYPES:
                 raise LeaspyTypeError(
-                    f"Invalid parameter value scalar type."
-                    f" Received key: {k} -> scalar type {value_scalar_type}\n"
-                    f" Valid scalar types are: {self.VALID_SCALAR_TYPES}"
+                    f"Invalid parameter value scalar type. "
+                    f"Received key: {k} -> scalar type {value_scalar_type}\n"
+                    f"Valid scalar types are: {self.VALID_SCALAR_TYPES}"
                 )
 
         p_shapes = self._compute_parameters_shape(parameters)
@@ -185,31 +185,31 @@ class IndividualParameters:
         """
         if isinstance(key, IDType):
             if key not in self._indices:
-                raise LeaspyKeyError(f"Cannot access IndividualParameters with"
-                                     f" unknown index: {key}")
+                raise LeaspyKeyError(f"Cannot access IndividualParameters "
+                                     f"with unknown index: {key}")
             return self._individual_parameters[key]
 
         elif (isinstance(key, Iterable)
               and all(isinstance(k, IDType) for k in key)):
             unknown_indices = [k for k in key if k not in self._indices]
             if len(unknown_indices):
-                raise LeaspyKeyError(f"Cannot access IndividualParameters with"
-                                     f" unknown indices: {unknown_indices}")
+                raise LeaspyKeyError(f"Cannot access IndividualParameters "
+                                     f"with unknown indices: {unknown_indices}")
             ip = IndividualParameters()
             for k in key:
                 ip.add_individual_parameters(k, self[k])
             return ip
 
         else:
-            raise LeaspyTypeError("Cannot access an IndividualParameters object"
-                                  " this way")
+            raise LeaspyTypeError("Cannot access an IndividualParameters "
+                                  "object this way")
 
     def __contains__(self, key: IDType) -> bool:
         if isinstance(key, IDType):
             return (key in self._indices)
         else:
-            raise LeaspyTypeError("Cannot test IndividualParameters membership"
-                                  " for an element of this type")
+            raise LeaspyTypeError("Cannot test IndividualParameters membership "
+                                  "for an element of this type")
 
     def items(self):
         """
@@ -398,7 +398,7 @@ class IndividualParameters:
         #       df.loc[idx, "sources_2"] == [3, 4]
         #   Second iteration
         #       df.loc[idx, "sources"] == [[1, 2], [3, 4]]
-        # 
+
         # For this purpose, we build at each iteration a nesting plan, of the
         # form {new_nested_column: list_length}, to tell us how to create (new
         # and deeper-nested) parent columns from (existing) children columns.
