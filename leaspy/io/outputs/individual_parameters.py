@@ -166,7 +166,7 @@ class IndividualParameters:
 
         This method intendedly does NOT (deep)copy the items returned,
         leaving the choice to the end user.
-        
+
         Raises
         ------
         :exc:`.LeaspyTypeError`
@@ -330,29 +330,40 @@ class IndividualParameters:
         >>> ip = IndividualParameters.load("path/to/individual_parameters")
         >>> ip_df = ip.to_dataframe()
         """
-        # Get the data, idx per idx
-        arr = []
-        for idx in self._indices:
-            indiv_arr = [idx]
-            indiv_p = self._individual_parameters[idx]
+        df = pd.DataFrame.from_dict(self._individual_parameters, orient="index")
+        df.index.name = "ID"
 
-            for p_name, p_shape in self._parameters_shape.items():
-                if p_shape == ():
-                    indiv_arr.append(indiv_p[p_name])
-                else:
-                    indiv_arr += indiv_p[p_name] # 1D array only...
-            arr.append(indiv_arr)
+        # To handle list parameters, which can be nested to arbitrary depth,
+        # we "explode" the corresponding columns recursively into new columns
+        # until a scalar value is reached.
+        # See https://stackoverflow.com/q/35491274
+        #
+        # Example:
+        #   Initial state
+        #       df.loc[idx, "sources"] == [[1, 2], [3, 4]]
+        #   First iteration
+        #       df.loc[idx, "sources_1"] == [1, 2]
+        #       df.loc[idx, "sources_2"] == [3, 4]
+        #   Second iteration
+        #       df.loc[idx, "sources_1_1"] == 1
+        #       df.loc[idx, "sources_1_2"] == 2
+        #       df.loc[idx, "sources_2_1"] == 3
+        #       df.loc[idx, "sources_2_2"] == 4
 
-        # Get the column names
-        final_names = ['ID']
         for p_name, p_shape in self._parameters_shape.items():
-            if p_shape == ():
-                final_names.append(p_name)
-            else:
-                final_names += [p_name+'_'+str(i) for i in range(p_shape[0])] # 1D array only...
+            candidate_columns = [p_name]
+            for nested_level in range(len(p_shape)):
+                columns_to_explode = candidate_columns
+                candidate_columns = []
+                for col in columns_to_explode:
+                    new_columns = [col + "_" + str(i)
+                                   for i in range(p_shape[nested_level])]
+                    df[new_columns] = pd.DataFrame(data=df[col].to_list(),
+                                                   index=df.index)
+                    df.drop(columns=[col], inplace=True)
+                    candidate_columns += new_columns
 
-        df = pd.DataFrame(arr, columns=final_names)
-        return df.set_index('ID')
+        return df
 
 
     @staticmethod
@@ -370,26 +381,51 @@ class IndividualParameters:
         -------
         `IndividualParameters`
         """
-        # Check the names to keep
-        df_names: List[ParamType] = list(df.columns.values)
+        nested_df = df.copy(deep=True)
 
-        final_names = {}
-        for name in df_names:
-            split = name.split('_')[0]
-            if split == name: # e.g tau, xi, ...
-                final_names[name] = name
-            else: # e.g sources_0 --> sources
-                if split not in final_names:
-                    final_names[split] = []
-                final_names[split].append(name)
+        # To build list parameters, which can be nested to arbitrary depth,
+        # from scalar-valued columns, we "nest" the corresponding columns
+        # recursively into new columns until a fully nested list is reached.
+        #
+        # Example:
+        #   Initial state
+        #       df.loc[idx, "sources_1_1"] == 1
+        #       df.loc[idx, "sources_1_2"] == 2
+        #       df.loc[idx, "sources_2_1"] == 3
+        #       df.loc[idx, "sources_2_2"] == 4
+        #   First iteration
+        #       df.loc[idx, "sources_1"] == [1, 2]
+        #       df.loc[idx, "sources_2"] == [3, 4]
+        #   Second iteration
+        #       df.loc[idx, "sources"] == [[1, 2], [3, 4]]
+        # 
+        # For this purpose, we build at each iteration a nesting plan, of the
+        # form {new_nested_column: list_length}, to tell us how to create (new
+        # and deeper-nested) parent columns from (existing) children columns.
+        nesting_plan: Dict[ParamType, int] = {}
+        cols_to_test: List[ParamType] = nested_df.columns.values
+        while len(cols_to_test) > 0:
+            for c in cols_to_test:          # e.g. "sources_1"
+                split = c.split("_")        # e.g. ["sources", "1"]
+                if len(split) > 1:
+                    parent = "_".join(split[:-1])       # e.g. "sources"
+                    nesting_plan[parent] = max(
+                        nesting_plan.get(parent, -1),   # Current list_length
+                        int(split[-1]) + 1              # Candidate list_length
+                    )
 
-        # Create the individual parameters
+            for c in nesting_plan.keys():
+                children = [c + "_" + str(i) for i in range(nesting_plan[c])]
+                nested_df[c] = nested_df[children].values.tolist()
+                nested_df.drop(columns=children, inplace=True)
+
+            # Only newly created columns are candidates for nesting
+            cols_to_test = list(nesting_plan.keys())
+            nesting_plan = {}
+
         ip = IndividualParameters()
-
-        for idx, row in df.iterrows():
-            i_d = {param: row[col].tolist() if isinstance(col, list) else row[col]
-                   for param, col in final_names.items()}
-            ip.add_individual_parameters(idx, i_d)
+        for idx, params in nested_df.to_dict("index").items():
+            ip.add_individual_parameters(idx, params)
 
         return ip
 
