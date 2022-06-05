@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import functools
 import json
 import operator
@@ -8,27 +9,33 @@ import warnings
 import numpy as np
 import pandas as pd
 import torch
-
-from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyKeyError, LeaspyTypeError
-from leaspy.utils.typing import IDType, ParamType, DictParams, DictParamsTorch, Iterable, List, Callable, Dict, Tuple, KeysView
+from leaspy.exceptions import (LeaspyIndividualParamsInputError,
+                               LeaspyKeyError, LeaspyTypeError)
+from leaspy.utils.typing import (Callable, Dict, DictParams, DictParamsTorch,
+                                 IDType, Iterable, KeysView, List, ParamType,
+                                 Tuple)
 
 
 class IndividualParameters:
     r"""
-    Data container for individual parameters, contains IDs, timepoints and observations values.
-    Output of the :meth:`.Leaspy.personalize` method, contains the *random effects*.
+    Container for the individuals' parameters
 
-    There are used as output of the `personalization algorithms` and as input/output of the `simulation algorithm`,
-    to provide an initial distribution of individual parameters.
+    This is used as output of the personalization algorithms to store
+    the *random effects*, and as input/output of the simulation
+    algorithms, to provide an initial distribution of individual
+    parameters.
 
     Attributes
     ----------
+    _individual_parameters : Dict[IDType, DictParams]
+        Individual indices (key) with their corresponding individual
+        parameters {parameter name: parameter value}
     _indices : KeysView[IDType]
         Dictionary-keys object of the patient indices
-    _individual_parameters : dict
-        Individual indices (key) with their corresponding individual parameters {parameter name: parameter value}
-    _parameters_shape : dict
+    _parameters_shape : Dict[ParamType, Tuple] | None
         Shape of each individual parameter
+    _parameters_size : Dict[ParamType, int]
+        Dictionary of total size for each individual parameter
     _default_saving_type : str
         Default extension for saving when none is provided
     """
@@ -43,7 +50,7 @@ class IndividualParameters:
     @property
     def _indices(self) -> KeysView[IDType]:
         """
-        List of included IDs
+        Dictionary-keys object of the patient indices
         """
         # Using directly the dict_keys object without converting it to a list
         # yields a lighter complexity for construction and lookup while enabling
