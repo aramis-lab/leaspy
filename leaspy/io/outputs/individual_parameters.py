@@ -368,17 +368,25 @@ class IndividualParameters:
     @staticmethod
     def from_dataframe(df: pd.DataFrame):
         r"""
-        Static method that returns an IndividualParameters object from the dataframe
+        Construct an IndividualParameters object from a dataframe
 
         Parameters
         ----------
         df : :class:`pandas.DataFrame`
-            Dataframe of the individual parameters. Each row must correspond to one individual. The index corresponds
-            to the individual index. The columns are the names of the parameters.
+            Each row corresponds to one individual.
+            The index corresponds to the individual index ('ID').
+            The columns are the names of the parameters.
 
         Returns
         -------
-        `IndividualParameters`
+        :class:`.IndividualParameters`
+
+        Raises
+        ------
+        :exc:`.LeaspyTypeError`
+            Invalid dataframe index type
+        :exc:`.LeaspyIndividualParamsInputError`
+            Dataframe index contains NaN or duplicates
         """
         if not all(isinstance(idx, IDType) for idx in df.index):
             raise LeaspyTypeError("Invalid dataframe index type")

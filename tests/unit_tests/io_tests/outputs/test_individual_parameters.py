@@ -33,7 +33,9 @@ class IndividualParametersTest(LeaspyTestCase):
 
         cls.ip = ip
 
-        cls.ip_df = pd.DataFrame(data=[[0.1, 70, 0.1, -0.3], [0.2, 73, -0.4, 0.1], [0.3, 58, -0.6, 0.2]],
+        cls.ip_df = pd.DataFrame(data=[[0.1, 70, 0.1, -0.3],
+                                       [0.2, 73, -0.4, 0.1],
+                                       [0.3, 58, -0.6, 0.2]],
                                   index=["idx1", "idx2", "idx3"],
                                   columns=["xi", "tau", "sources_0", "sources_1"])
 
