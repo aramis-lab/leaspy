@@ -365,7 +365,6 @@ class IndividualParameters:
 
         return df
 
-
     @staticmethod
     def from_dataframe(df: pd.DataFrame):
         r"""
@@ -381,7 +380,14 @@ class IndividualParameters:
         -------
         `IndividualParameters`
         """
-        nested_df = df.copy(deep=True)
+        if not all(isinstance(idx, IDType) for idx in df.index):
+            raise LeaspyTypeError("Invalid dataframe index type")
+
+        if not df.index.notnull().all() and df.index.is_unique:
+            raise LeaspyIndividualParamsInputError(
+                "The dataframe's index should not contain any NaN "
+                "nor any duplicate"
+            )
 
         # To build list parameters, which can be nested to arbitrary depth,
         # from scalar-valued columns, we "nest" the corresponding columns
@@ -402,8 +408,10 @@ class IndividualParameters:
         # For this purpose, we build at each iteration a nesting plan, of the
         # form {new_nested_column: list_length}, to tell us how to create (new
         # and deeper-nested) parent columns from (existing) children columns.
+        nested_df = df.copy(deep=True)
         nesting_plan: Dict[ParamType, int] = {}
         cols_to_test: List[ParamType] = nested_df.columns.values
+
         while len(cols_to_test) > 0:
             for c in cols_to_test:          # e.g. "sources_1"
                 split = c.split("_")        # e.g. ["sources", "1"]
