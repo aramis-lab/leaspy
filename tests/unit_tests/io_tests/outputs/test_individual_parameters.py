@@ -4,10 +4,11 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyTypeError
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyKeyError, LeaspyTypeError
 
 from tests import LeaspyTestCase
 
@@ -118,6 +119,20 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertEqual(ip2._individual_parameters, {"idx1": self.p1, "idx3": self.p3})
         self.assertEqual(ip2._parameters_shape, self.parameters_shape)
 
+        with pytest.raises(LeaspyKeyError):
+            _ = self.ip["wrong_idx"]
+
+        with pytest.raises(LeaspyKeyError):
+            _ = self.ip[["wrong_idx1", "wrong_idx2"]]
+
+        with pytest.raises(LeaspyTypeError):
+            _ = self.ip[3]
+
+    def test_contains(self):
+        assert "idx1" in self.ip
+
+        with pytest.raises(LeaspyTypeError):
+            assert 1 in self.ip
 
     def test_get_mean(self):
 
@@ -130,6 +145,12 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertEqual(type(ss), list)
         self.assertAlmostEqual(ss[0], -0.3, delta=10e-10)
         self.assertAlmostEqual(ss[1], 0.0, delta=10e-10)
+
+        with pytest.raises(LeaspyIndividualParamsInputError):
+            _ = IndividualParameters().get_mean("xi")
+
+        with pytest.raises(LeaspyKeyError):
+            _ = self.ip.get_mean("wrong_parameter")
 
     def test_get_std(self):
 
@@ -160,6 +181,10 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertEqual(ip._indices, self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
         self.assertEqual(ip._parameters_shape, self.parameters_shape)
+
+        wrong_df = self.ip_df.copy()
+        with pytest.raises(LeaspyTypeError):
+            _ = IndividualParameters.from_dataframe(wrong_df.reset_index())
 
     def test_to_from_dataframe(self):
 
