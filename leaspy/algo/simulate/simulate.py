@@ -863,7 +863,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         simulated_data = Data.from_individual_values(indices=indices,
                                                      timepoints=simulated_subjects.timepoints,
-                                                     values=[ind_obs.tolist() for ind_obs in simulated_subjects.values],
+                                                     observations=[ind_obs.tolist() for ind_obs in simulated_subjects.values],
                                                      headers=data.headers)
 
         # Output of simulation algorithm

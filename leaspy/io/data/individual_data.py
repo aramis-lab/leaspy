@@ -1,96 +1,46 @@
-from bisect import bisect
+from dataclasses import dataclass, field
 
 import numpy as np
 
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
-from leaspy.utils.typing import Any, Dict, FeatureType, IDType, List
+from leaspy.utils.typing import Any, Dict, FeatureType
 
 
+@dataclass
 class IndividualData:
-    """
-    Container for an individual's data
+    timepoints : np.ndarray
+    observations : np.ndarray
+    cofactors : Dict[FeatureType, Any] = field(default_factory=dict)
 
-    Parameters
-    ----------
-    idx : IDType
-        Unique ID
+    def __post_init__(self):
+        if not isinstance(self.timepoints, np.ndarray):
+            raise LeaspyTypeError("Invalid `timepoints` type")
+
+        if not len(self.timepoints.shape) == 1:
+            raise LeaspyDataInputError(f"Expected 1D `timepoints`, input "
+                                       f"shape was {self.timepoints.shape}")
+
+        if not isinstance(self.observations, np.ndarray):
+            raise LeaspyTypeError("Invalid `observations` type")
+
+        if not len(self.observations.shape) == 2:
+            raise LeaspyDataInputError(f"Expected 2D `observations`, input "
+                                       f"shape was {self.observations.shape}")
+
+        unique_t, occurrences = np.unique(self.timepoints, return_counts=True)
+        duplicate_t = unique_t[occurrences > 1]
+        if len(duplicate_t):
+            raise LeaspyDataInputError(f"Duplicates found in individual "
+                                       f"timepoints: {duplicate_t}")
         
-    Attributes
-    ----------
-    idx : IDType
-        Unique ID
-    timepoints : np.ndarray[float, 1D]
-        Timepoints associated with the observations
-    observations : np.ndarray[float, 2D]
-        Observed data points.
-        Shape is ``(n_timepoints, n_features)``
-    cofactors : Dict[FeatureType, Any]
-        Cofactors in the form {cofactor_name: cofactor_value}
-    """
-
-    def __init__(self, idx: IDType):
-        self.idx: IDType = idx
-        self.timepoints: np.ndarray = None
-        self.observations: np.ndarray = None
-        self.cofactors: Dict[FeatureType, Any] = {}
-
-    def add_observations(self, timepoints: List[float], observations: List[List[float]]) -> None:
-        """
-        Include new observations and associated timepoints
-
-        Parameters
-        ----------
-        timepoints : array-like[float, 1D]
-            Timepoints associated with the observations to include
-        observations : array-like[float, 2D]
-            Observations to include
-
-        Raises
-        ------
-        :exc:`.LeaspyDataInputError`
-        """
-        for t, obs in zip(timepoints, observations):
-            if self.timepoints is None:
-                self.timepoints = np.array([t])
-                self.observations = np.array([obs])
-            elif t in self.timepoints:
-                raise LeaspyDataInputError(f"Trying to overwrite timepoint {t} "
-                                           f"of individual {self.idx}")
-            else:
-                index = bisect(self.timepoints, t)
-                self.timepoints = np.concatenate([
-                    self.timepoints[:index],
-                    [t],
-                    self.timepoints[index:]
-                ])
-                self.observations = np.concatenate([
-                    self.observations[:index],
-                    [obs],
-                    self.observations[index:]
-                ])
-
-    def add_cofactors(self, d: Dict[FeatureType, Any]) -> None:
-        """
-        Include new cofactors
-
-        Parameters
-        ----------
-        d : Dict[FeatureType, Any]
-            Cofactors to include, in the form `{name: value}`
-
-        Raises
-        ------
-        :exc:`.LeaspyDataInputError`
-        :exc:`.LeaspyTypeError`
-        """
         if not (
-            isinstance(d, dict)
-            and all(isinstance(k, str) for k in d.keys())
+            isinstance(self.cofactors, dict)
+            and all(isinstance(k, FeatureType) for k in self.cofactors.keys())
         ):
-            raise LeaspyTypeError("Invalid argument type for `d`")
+            raise LeaspyTypeError("Invalid `cofactors` type")
 
-        for k, v in d.items():
-            if k in self.cofactors.keys() and v != self.cofactors[k]:
-                raise LeaspyDataInputError(f"Cofactor {k} is already present "
-                                           f"for patient {self.idx}")
-            self.cofactors[k] = v
+        # For convenience and to avoid doing so later on, timepoints and 
+        # observations are jointly sorted.
+        sorted_indices = np.argsort(self.timepoints)
+        self.timepoints = self.timepoints[sorted_indices]
+        self.observations = self.observations[sorted_indices, :]

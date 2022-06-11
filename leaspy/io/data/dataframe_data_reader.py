@@ -189,10 +189,9 @@ class DataframeDataReader:
         df = self._check_features(df, warn_empty_column=warn_empty_column)
 
         for idx_subj, df_subj in df.groupby(level="ID", sort=False):
-            self.individuals[idx_subj] = IndividualData(idx_subj)
-            self.individuals[idx_subj].add_observations(
-                timepoints = df_subj.index.get_level_values('TIME').to_list(),
-                observations = df_subj.values.tolist()
+            self.individuals[idx_subj] = IndividualData(
+                np.array(df_subj.index.get_level_values('TIME').to_list()),
+                np.array(df_subj.values.tolist())
             )
             self.iter_to_idx[self.n_individuals] = idx_subj
             self.n_individuals += 1
