@@ -401,14 +401,18 @@ class IndividualParameters:
         :exc:`.LeaspyIndividualParamsInputError`
             Dataframe index contains NaN or duplicates
         """
+        if not df.index.notnull().all():
+            raise LeaspyIndividualParamsInputError(
+                "The dataframe's index contains NA values"
+            )
+
         if not all(isinstance(idx, IDType) for idx in df.index):
             raise LeaspyTypeError(f"Invalid dataframe index type"
                                   f"Expected element type: {IDType}")
 
-        if not df.index.notnull().all() and df.index.is_unique:
+        if not df.index.is_unique:
             raise LeaspyIndividualParamsInputError(
-                "The dataframe's index should not contain any NaN "
-                "nor any duplicate"
+                "The dataframe's index should not contain any duplicate"
             )
 
         # To build list parameters, which can be nested to arbitrary depth,
@@ -654,5 +658,15 @@ class IndividualParameters:
 
         ip = cls()
         ip._individual_parameters = json_data['individual_parameters']
+
+        # Integrity check
+        loaded_parameters_shape = {
+            p: tuple(s) for p,s in json_data["parameters_shape"].items()
+        }
+        if loaded_parameters_shape != ip._parameters_shape:
+            raise LeaspyIndividualParamsInputError(
+                f"Loaded parameters shape {loaded_parameters_shape} "
+                f"do not match computed shapes {ip._parameters_shape}"
+            )
 
         return ip
