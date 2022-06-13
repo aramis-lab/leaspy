@@ -126,7 +126,8 @@ class IndividualParameters:
         >>> ip.add_individual_parameters('index-2', {"xi": 0.2, "tau": 73, "sources": [-0.4, -0.1]})
         """
         if not isinstance(index, IDType):
-            raise LeaspyTypeError(f"Invalid `index` type: {type(index)}")
+            raise LeaspyTypeError(f"Invalid `index` type: {type(index)}\n"
+                                  f"Expected type: {IDType}")
 
         if index in self._indices:
             raise LeaspyIndividualParamsInputError(f"The input index {index} "
@@ -134,7 +135,10 @@ class IndividualParameters:
 
         if not (isinstance(parameters, dict)
                 and all(isinstance(k, ParamType) for k in parameters.keys())):
-            raise LeaspyTypeError("Invalid `individual_parameters` type")
+            raise LeaspyTypeError(
+                f"Invalid `parameters` type\n"
+                f"Expected type: {dict} with keys of type {ParamType}"
+            )
 
         # N-dimensional arrays are currently not supported for parameter values.
         # 1D arrays are converted to lists to temporarily circumvent the problem
@@ -167,9 +171,9 @@ class IndividualParameters:
 
     def __getitem__(self, key: IDType | Iterable[IDType]) -> DictParams | IndividualParameters:
         """
-        Return either the individual parameters of ID `key`if a single
-        ID is passed, or an IndividualParameters object with a subset
-        of the initial individuals if `key`is a list of IDs.
+        Return either the individual parameters of ID `key` if a single
+        ID is passed, or an `IndividualParameters` object with a subset
+        of the initial individuals if `key` is a list of IDs.
 
         This method intendedly does NOT (deep)copy the items returned,
         leaving the choice to the end user.
@@ -215,8 +219,10 @@ class IndividualParameters:
         if isinstance(key, IDType):
             return (key in self._indices)
         else:
-            raise LeaspyTypeError("Cannot test IndividualParameters membership "
-                                  "for an element of this type")
+            raise LeaspyTypeError(
+                f"Invalid type for IndividualParameters membership test.\n"
+                f"Expected type: {IDType}"
+            )
 
     def items(self):
         """
@@ -396,7 +402,8 @@ class IndividualParameters:
             Dataframe index contains NaN or duplicates
         """
         if not all(isinstance(idx, IDType) for idx in df.index):
-            raise LeaspyTypeError("Invalid dataframe index type")
+            raise LeaspyTypeError(f"Invalid dataframe index type"
+                                  f"Expected element type: {IDType}")
 
         if not df.index.notnull().all() and df.index.is_unique:
             raise LeaspyIndividualParamsInputError(
