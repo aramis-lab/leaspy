@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Mapping
 
 import functools
 import json
@@ -16,9 +17,9 @@ from leaspy.utils.typing import (Callable, Dict, DictParams, DictParamsTorch,
                                  Tuple)
 
 
-class IndividualParameters:
+class IndividualParameters(Mapping):
     r"""
-    Container for the individuals' parameters
+    Mapping individual ID -> individual parameters
 
     This is used as output of the personalization algorithms to store
     the *random effects*, and as input/output of the simulation
@@ -95,6 +96,75 @@ class IndividualParameters:
                 p_shapes[p] = ()
         return p_shapes
 
+    def __getitem__(self, key: IDType | Iterable[IDType]) -> DictParams | IndividualParameters:
+        """
+        Return either the individual parameters of ID `key` if a single
+        ID is passed, or an `IndividualParameters` object with a subset
+        of the initial individuals if `key` is a list of IDs.
+
+        This method intendedly does NOT (deep)copy the items returned,
+        leaving the choice to the end user.
+
+        Raises
+        ------
+        :exc:`.LeaspyTypeError`
+            Unsupported `key` type
+        :exc:`.LeaspyKeyError`
+            Unknown ID found in `key`
+
+        Examples
+        --------
+        >>> ip = IndividualParameters()
+        >>> ip.add_individual_parameters('index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]})
+        >>> ip.add_individual_parameters('index-2', {"xi": 0.2, "tau": 73, "sources": [-0.4, -0.1]})
+        >>> ip.add_individual_parameters('index-3', {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]})
+        >>> ip_sub = ip[['index-1', 'index-3']]
+        >>> ip_one = ip['index-1']
+        """
+        if isinstance(key, IDType):
+            if key not in self._indices:
+                raise LeaspyKeyError(f"Cannot access IndividualParameters "
+                                     f"with unknown index: {key}")
+            return self._individual_parameters[key]
+
+        elif (isinstance(key, Iterable)
+              and all(isinstance(k, IDType) for k in key)):
+            unknown_indices = [k for k in key if k not in self._indices]
+            if len(unknown_indices):
+                raise LeaspyKeyError(f"Cannot access IndividualParameters "
+                                     f"with unknown indices: {unknown_indices}")
+            ip = IndividualParameters()
+            for k in key:
+                ip.add_individual_parameters(k, self[k])
+            return ip
+
+        else:
+            raise LeaspyTypeError("Cannot access an IndividualParameters "
+                                  "object this way")
+
+    def __len__(self):
+        return len(self._individual_parameters)
+
+    def __iter__(self):
+        return self._individual_parameters.__iter__()
+
+    def __contains__(self, key: IDType) -> bool:
+        if isinstance(key, IDType):
+            return (key in self._individual_parameters)
+        else:
+            raise LeaspyTypeError(
+                f"Invalid type for IndividualParameters membership test.\n"
+                f"Expected type: {IDType}"
+            )
+
+    def __getattr__(self, attr: str):
+        # delegate the missing attributes / methods to _individual_parameters
+        # <!> do not catch magic methods (especially __getstate__ & __setstate__ methods) --> we can relax this to only exclude those two if we really needed
+        # because they are used internally by pickle to serialize object!
+        if attr.startswith('__') and attr.endswith('__'):
+            raise AttributeError(attr)
+
+        return getattr(self._individual_parameters, attr)
 
     def add_individual_parameters(self, index: IDType, parameters: DictParams):
         r"""
@@ -167,68 +237,6 @@ class IndividualParameters:
             )
 
         self._individual_parameters[index] = parameters
-
-
-    def __getitem__(self, key: IDType | Iterable[IDType]) -> DictParams | IndividualParameters:
-        """
-        Return either the individual parameters of ID `key` if a single
-        ID is passed, or an `IndividualParameters` object with a subset
-        of the initial individuals if `key` is a list of IDs.
-
-        This method intendedly does NOT (deep)copy the items returned,
-        leaving the choice to the end user.
-
-        Raises
-        ------
-        :exc:`.LeaspyTypeError`
-            Unsupported `key` type
-        :exc:`.LeaspyKeyError`
-            Unknown ID found in `key`
-
-        Examples
-        --------
-        >>> ip = IndividualParameters()
-        >>> ip.add_individual_parameters('index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]})
-        >>> ip.add_individual_parameters('index-2', {"xi": 0.2, "tau": 73, "sources": [-0.4, -0.1]})
-        >>> ip.add_individual_parameters('index-3', {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]})
-        >>> ip_sub = ip[['index-1', 'index-3']]
-        >>> ip_one = ip['index-1']
-        """
-        if isinstance(key, IDType):
-            if key not in self._indices:
-                raise LeaspyKeyError(f"Cannot access IndividualParameters "
-                                     f"with unknown index: {key}")
-            return self._individual_parameters[key]
-
-        elif (isinstance(key, Iterable)
-              and all(isinstance(k, IDType) for k in key)):
-            unknown_indices = [k for k in key if k not in self._indices]
-            if len(unknown_indices):
-                raise LeaspyKeyError(f"Cannot access IndividualParameters "
-                                     f"with unknown indices: {unknown_indices}")
-            ip = IndividualParameters()
-            for k in key:
-                ip.add_individual_parameters(k, self[k])
-            return ip
-
-        else:
-            raise LeaspyTypeError("Cannot access an IndividualParameters "
-                                  "object this way")
-
-    def __contains__(self, key: IDType) -> bool:
-        if isinstance(key, IDType):
-            return (key in self._indices)
-        else:
-            raise LeaspyTypeError(
-                f"Invalid type for IndividualParameters membership test.\n"
-                f"Expected type: {IDType}"
-            )
-
-    def items(self):
-        """
-        Get items of dict :attr:`_individual_parameters`.
-        """
-        return self._individual_parameters.items()
 
     def get_aggregate(self, parameter: ParamType, function: Callable) -> List:
         r"""
