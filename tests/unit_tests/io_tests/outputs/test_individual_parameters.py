@@ -51,7 +51,7 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_constructor(self):
 
         ip = IndividualParameters()
-        self.assertEqual(ip._indices, {}.keys())
+        self.assertEqual(ip.keys(), {}.keys())
         self.assertEqual(ip._individual_parameters, {})
         self.assertEqual(ip._parameters_shape, None) # changed
         self.assertEqual(ip._default_saving_type, "csv")
@@ -83,7 +83,7 @@ class IndividualParametersTest(LeaspyTestCase):
         with self.assertRaises(LeaspyIndividualParamsInputError):
             ip.add_individual_parameters('no_xi', {'tau': 0.2, 'sources': [0,0]})
 
-        self.assertEqual(ip._indices, ip._individual_parameters.keys())
+        self.assertEqual(ip.keys(), ip._individual_parameters.keys())
         self.assertEqual(ip._individual_parameters, {"idx1": p1, "idx2": p2, "idx3": p3})
         self.assertEqual(ip._parameters_shape, {"xi": (), "tau": (), "sources": (2,)})
         self.assertEqual(ip._parameters_size, {"xi": 1, "tau": 1, "sources": 2})
@@ -178,7 +178,7 @@ class IndividualParametersTest(LeaspyTestCase):
 
         ip = IndividualParameters.from_dataframe(self.ip_df)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
         self.assertEqual(ip._parameters_shape, self.parameters_shape)
 
@@ -193,7 +193,7 @@ class IndividualParametersTest(LeaspyTestCase):
         ip2 = IndividualParameters.from_dataframe(df2)
 
         # Test between individual parameters
-        self.assertEqual(ip1._indices, ip2._indices)
+        self.assertEqual(ip1.keys(), ip2.keys())
         self.assertDictEqual(ip1._individual_parameters, ip2._individual_parameters)
         self.assertDictEqual(ip1._parameters_shape, ip2._parameters_shape)
 
@@ -220,7 +220,7 @@ class IndividualParametersTest(LeaspyTestCase):
 
         ip = IndividualParameters.from_pytorch(self.indices, self.ip_pytorch)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters.keys(), self.individual_parameters.keys())
         self.assertDictEqual(ip._parameters_shape, self.parameters_shape)
         for k, v in self.individual_parameters.items():
@@ -240,7 +240,7 @@ class IndividualParametersTest(LeaspyTestCase):
         ip2 = IndividualParameters.from_pytorch(ip_indices, ip_pytorch2)
 
         # Test Individual parameters
-        self.assertEqual(ip._indices, ip2._indices)
+        self.assertEqual(ip.keys(), ip2.keys())
         self.assertDictEqual(ip._individual_parameters, ip2._individual_parameters)
         self.assertDictEqual(ip._parameters_shape, ip2._parameters_shape)
 
@@ -300,14 +300,14 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_load_csv(self):
         ip = IndividualParameters._load_csv(self.path_csv)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
         self.assertEqual(ip._parameters_shape, self.parameters_shape)
 
     def test_load_json(self):
         ip = IndividualParameters._load_json(self.path_json)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
         self.assertEqual(ip._parameters_shape, self.parameters_shape)
 
@@ -316,14 +316,14 @@ class IndividualParametersTest(LeaspyTestCase):
         # Test json
         ip_json = IndividualParameters.load(self.path_json)
 
-        self.assertEqual(ip_json._indices, self.indices)
+        self.assertEqual(ip_json.keys(), self.indices)
         self.assertEqual(ip_json._individual_parameters, self.individual_parameters)
         self.assertEqual(ip_json._parameters_shape, self.parameters_shape)
 
         # Test csv
         ip_csv = IndividualParameters.load(self.path_csv)
 
-        self.assertEqual(ip_csv._indices, self.indices)
+        self.assertEqual(ip_csv.keys(), self.indices)
         self.assertEqual(ip_csv._individual_parameters, self.individual_parameters)
         self.assertEqual(ip_csv._parameters_shape, self.parameters_shape)
 

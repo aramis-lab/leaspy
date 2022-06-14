@@ -1,11 +1,11 @@
 from __future__ import annotations
-from collections.abc import Mapping
 
 import functools
 import json
 import operator
 import os
 import warnings
+from collections.abc import Mapping
 
 import numpy as np
 import pandas as pd
@@ -13,8 +13,7 @@ import torch
 from leaspy.exceptions import (LeaspyIndividualParamsInputError,
                                LeaspyKeyError, LeaspyTypeError)
 from leaspy.utils.typing import (Callable, Dict, DictParams, DictParamsTorch,
-                                 IDType, Iterable, KeysView, List, ParamType,
-                                 Tuple)
+                                 IDType, Iterable, List, ParamType, Tuple)
 
 
 class IndividualParameters(Mapping):
@@ -31,8 +30,6 @@ class IndividualParameters(Mapping):
     _individual_parameters : Dict[IDType, DictParams]
         Individual indices (key) with their corresponding individual
         parameters {parameter name: parameter value}
-    _indices : KeysView[IDType]
-        Dictionary-keys object of the patient indices
     _parameters_shape : Dict[ParamType, Tuple] | None
         Shape of each individual parameter
     _parameters_size : Dict[ParamType, int]
@@ -47,16 +44,6 @@ class IndividualParameters(Mapping):
     def __init__(self):
         self._individual_parameters: Dict[IDType, DictParams] = {}
         self._default_saving_type = 'csv'
-
-    @property
-    def _indices(self) -> KeysView[IDType]:
-        """
-        Dictionary-keys object of the patient indices
-        """
-        # Using directly the dict_keys object without converting it to a list
-        # yields a lighter complexity for construction and lookup while enabling
-        # all internal use cases
-        return self._individual_parameters.keys()
 
     @property
     def _parameters_shape(self) -> Dict[ParamType, Tuple] | None:
@@ -122,14 +109,14 @@ class IndividualParameters(Mapping):
         >>> ip_one = ip['index-1']
         """
         if isinstance(key, IDType):
-            if key not in self._indices:
+            if key not in self:
                 raise LeaspyKeyError(f"Cannot access IndividualParameters "
                                      f"with unknown index: {key}")
             return self._individual_parameters[key]
 
         elif (isinstance(key, Iterable)
               and all(isinstance(k, IDType) for k in key)):
-            unknown_indices = [k for k in key if k not in self._indices]
+            unknown_indices = [k for k in key if k not in self]
             if len(unknown_indices):
                 raise LeaspyKeyError(f"Cannot access IndividualParameters "
                                      f"with unknown indices: {unknown_indices}")
@@ -199,7 +186,7 @@ class IndividualParameters(Mapping):
             raise LeaspyTypeError(f"Invalid `index` type: {type(index)}\n"
                                   f"Expected type: {IDType}")
 
-        if index in self._indices:
+        if index in self:
             raise LeaspyIndividualParamsInputError(f"The input index {index} "
                                                    f"is already present")
 
@@ -541,13 +528,13 @@ class IndividualParameters(Mapping):
 
         for p_name, p_size in self._parameters_size.items():
 
-            p_val = [self._individual_parameters[idx][p_name] for idx in self._indices]
+            p_val = [self._individual_parameters[idx][p_name] for idx in self]
             p_val = torch.tensor(p_val, dtype=torch.float32)
-            p_val = p_val.reshape(shape=(len(self._indices), p_size)) # always 2D
+            p_val = p_val.reshape(shape=(len(self), p_size)) # always 2D
 
             ips_pytorch[p_name] = p_val
 
-        return list(self._indices), ips_pytorch
+        return list(self.keys()), ips_pytorch
 
     def save(self, path: str, **kwargs):
         r"""
@@ -640,7 +627,7 @@ class IndividualParameters(Mapping):
 
     def _save_json(self, path: str, **kwargs):
         json_data = {
-            'indices': list(self._indices),
+            'indices': list(self.keys()),
             'individual_parameters': self._individual_parameters,
             'parameters_shape': self._parameters_shape
         }
