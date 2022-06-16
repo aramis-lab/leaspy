@@ -10,6 +10,7 @@ from collections.abc import Mapping
 import numpy as np
 import pandas as pd
 import torch
+from leaspy.utils.helpers import nest_parameters
 from leaspy.exceptions import (LeaspyIndividualParamsInputError,
                                LeaspyKeyError, LeaspyTypeError)
 from leaspy.utils.typing import (Callable, Dict, DictParams, DictParamsTorch,
@@ -430,28 +431,7 @@ class IndividualParameters(Mapping):
         # For this purpose, we build at each iteration a nesting plan, of the
         # form {new_nested_column: list_length}, to tell us how to create (new
         # and deeper-nested) parent columns from (existing) children columns.
-        nested_df = df.copy(deep=True)
-        nesting_plan: Dict[ParamType, int] = {}
-        cols_to_test: List[ParamType] = nested_df.columns.values
-
-        while len(cols_to_test) > 0:
-            for c in cols_to_test:          # e.g. "sources_1"
-                split = c.split("_")        # e.g. ["sources", "1"]
-                if len(split) > 1:
-                    parent = "_".join(split[:-1])       # e.g. "sources"
-                    nesting_plan[parent] = max(
-                        nesting_plan.get(parent, -1),   # Current list_length
-                        int(split[-1]) + 1              # Candidate list_length
-                    )
-
-            for c in nesting_plan.keys():
-                children = [c + "_" + str(i) for i in range(nesting_plan[c])]
-                nested_df[c] = nested_df[children].values.tolist()
-                nested_df.drop(columns=children, inplace=True)
-
-            # Only newly created columns are candidates for nesting
-            cols_to_test = list(nesting_plan.keys())
-            nesting_plan = {}
+        nested_df = nest_parameters(df)
 
         ip = IndividualParameters()
         for idx, params in nested_df.to_dict("index").items():
