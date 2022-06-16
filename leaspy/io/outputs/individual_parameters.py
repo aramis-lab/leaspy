@@ -13,7 +13,8 @@ import torch
 from leaspy.exceptions import (LeaspyIndividualParamsInputError,
                                LeaspyKeyError, LeaspyTypeError)
 from leaspy.utils.typing import (Callable, Dict, DictParams, DictParamsTorch,
-                                 IDType, Iterable, List, ParamType, Tuple)
+                                 IDType, Iterable, List, Optional, ParamType,
+                                 Tuple, Union)
 
 
 class IndividualParameters(Mapping):
@@ -30,9 +31,9 @@ class IndividualParameters(Mapping):
     _individual_parameters : Dict[IDType, DictParams]
         Individual indices (key) with their corresponding individual
         parameters {parameter name: parameter value}
-    _parameters_shape : Dict[ParamType, Tuple] | None
+    parameters_shape : Dict[ParamType, Tuple] | None
         Shape of each individual parameter
-    _parameters_size : Dict[ParamType, int]
+    parameters_size : Dict[ParamType, int]
         Dictionary of total size for each individual parameter
     _default_saving_type : str
         Default extension for saving when none is provided
@@ -46,7 +47,7 @@ class IndividualParameters(Mapping):
         self._default_saving_type = 'csv'
 
     @property
-    def _parameters_shape(self) -> Dict[ParamType, Tuple] | None:
+    def parameters_shape(self) -> Optional[Dict[ParamType, Tuple]]:
         """
         Dictionary of shapes of each individual parameter
         """
@@ -58,7 +59,7 @@ class IndividualParameters(Mapping):
         return self._compute_parameters_shape(example_individual_parameters)
 
     @property
-    def _parameters_size(self) -> Dict[ParamType, int]:
+    def parameters_size(self) -> Dict[ParamType, int]:
         """
         Dictionary of total size for each individual parameter
 
@@ -69,7 +70,7 @@ class IndividualParameters(Mapping):
         """
         shape_to_size = lambda shape: functools.reduce(operator.mul, shape, 1)
         return {p: shape_to_size(s)
-                for p,s in self._parameters_shape.items()}
+                for p,s in self.parameters_shape.items()}
 
     @staticmethod
     def _compute_parameters_shape(parameters: DictParams) -> Dict[ParamType, Tuple]:
@@ -83,7 +84,7 @@ class IndividualParameters(Mapping):
                 p_shapes[p] = ()
         return p_shapes
 
-    def __getitem__(self, key: IDType | Iterable[IDType]) -> DictParams | IndividualParameters:
+    def __getitem__(self, key: Union[IDType, Iterable[IDType]]) -> Union[DictParams, IndividualParameters]:
         """
         Return either the individual parameters of ID `key` if a single
         ID is passed, or an `IndividualParameters` object with a subset
@@ -215,7 +216,7 @@ class IndividualParameters(Mapping):
                 )
 
         p_shapes = self._compute_parameters_shape(parameters)
-        expected_p_shapes = self._parameters_shape
+        expected_p_shapes = self.parameters_shape
 
         if expected_p_shapes is not None and expected_p_shapes != p_shapes:
             raise LeaspyIndividualParamsInputError(
@@ -254,9 +255,9 @@ class IndividualParameters(Mapping):
         >>> ip = IndividualParameters.load("path/to/individual_parameters")
         >>> tau_median = ip.get_aggregate("tau", np.median)
         """
-        if self._parameters_shape is None:
+        if self.parameters_shape is None:
             raise LeaspyIndividualParamsInputError("Individual parameters are empty")
-        if parameter not in self._parameters_shape.keys():
+        if parameter not in self.parameters_shape.keys():
             raise LeaspyKeyError(f"Parameter '{parameter}' is unknown")
 
         p = [v[parameter] for v in self._individual_parameters.values()]
@@ -358,7 +359,7 @@ class IndividualParameters(Mapping):
         #       df.loc[idx, "sources_2_1"] == 3
         #       df.loc[idx, "sources_2_2"] == 4
 
-        for p_name, p_shape in self._parameters_shape.items():
+        for p_name, p_shape in self.parameters_shape.items():
             candidate_columns = [p_name]
             for nested_level in range(len(p_shape)):
                 columns_to_explode = candidate_columns
@@ -526,7 +527,7 @@ class IndividualParameters(Mapping):
         """
         ips_pytorch = {}
 
-        for p_name, p_size in self._parameters_size.items():
+        for p_name, p_size in self.parameters_size.items():
 
             p_val = [self._individual_parameters[idx][p_name] for idx in self]
             p_val = torch.tensor(p_val, dtype=torch.float32)
@@ -558,7 +559,7 @@ class IndividualParameters(Mapping):
             * If extension not supported for saving
             * If individual parameters are empty
         """
-        if self._parameters_shape is None:
+        if self.parameters_shape is None:
             raise LeaspyIndividualParamsInputError('Individual parameters are empty: unable to save them.')
 
         extension = self._check_and_get_extension(path)
@@ -629,7 +630,7 @@ class IndividualParameters(Mapping):
         json_data = {
             'indices': list(self.keys()),
             'individual_parameters': self._individual_parameters,
-            'parameters_shape': self._parameters_shape
+            'parameters_shape': self.parameters_shape
         }
 
         # Default json.dump kwargs:
@@ -658,10 +659,10 @@ class IndividualParameters(Mapping):
         loaded_parameters_shape = {
             p: tuple(s) for p,s in json_data["parameters_shape"].items()
         }
-        if loaded_parameters_shape != ip._parameters_shape:
+        if loaded_parameters_shape != ip.parameters_shape:
             raise LeaspyIndividualParamsInputError(
                 f"Loaded parameters shape {loaded_parameters_shape} "
-                f"do not match computed shapes {ip._parameters_shape}"
+                f"do not match computed shapes {ip.parameters_shape}"
             )
 
         return ip
