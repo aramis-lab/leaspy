@@ -10,7 +10,7 @@ from leaspy.io.data.dataframe_data_reader import DataframeDataReader
 from leaspy.io.data.individual_data import IndividualData
 
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
-from leaspy.utils.typing import FeatureType, IDType, Dict, List, Optional, Union
+from leaspy.utils.typing import FeatureType, IDType, Dict, List, Optional, Union, Any
 
 
 class Data(Iterable):
@@ -162,7 +162,7 @@ class Data(Iterable):
 
         # Loop per individual
         for idx_subj, d_cofactors_subj in d_cofactors.items():
-            self.individuals[idx_subj].add_cofactors(d_cofactors_subj)
+            self.individuals[idx_subj].cofactors = d_cofactors_subj
 
     @staticmethod
     def from_csv_file(path: str, **kws) -> Data:
@@ -226,19 +226,19 @@ class Data(Iterable):
                                        f'your Data: {unknown_cofactors}')
 
         # Build the dataframe, one individual at a time
-        def get_individual_block(individual: IndividualData):
-            individual_product = [[individual.idx], individual.timepoints]
+        def get_individual_block(idx: IDType, individual: IndividualData):
+            individual_product = [[idx], individual.timepoints]
             individual_index = pd.MultiIndex.from_product(individual_product)
             individual_values = individual.observations
             return individual_index, individual_values
 
         index = None
         values = None
-        for i in self.individuals.values():
+        for idx, i in self.individuals.items():
             if index is None:
-                index, values = get_individual_block(i)
+                index, values = get_individual_block(idx, i)
             else:
-                index_i, values_i = get_individual_block(i)
+                index_i, values_i = get_individual_block(idx, i)
                 index = index.union(index_i, sort=False)
                 values = np.concatenate([values, values_i], axis=0)
 
@@ -272,7 +272,7 @@ class Data(Iterable):
         return Data._from_reader(reader)
 
     @staticmethod
-    def _from_reader(reader):
+    def _from_reader(reader: Union[CSVDataReader, DataframeDataReader]):
         data = Data()
         data.individuals = reader.individuals
         data.iter_to_idx = reader.iter_to_idx
@@ -282,9 +282,10 @@ class Data(Iterable):
     @staticmethod
     def from_individual_values(
         indices: List[IDType],
-        timepoints: List[List[float]],
-        values: List[List[List[float]]],
-        headers: List[FeatureType]
+        timepoints: Iterable[np.ndarray],
+        observations: Iterable[np.ndarray],
+        headers: List[FeatureType],
+        cofactors: Iterable[Dict[FeatureType, Any]]
     ) -> Data:
         """
         Construct `Data` from a collection of individual data points
@@ -309,16 +310,19 @@ class Data(Iterable):
         -------
         :class:`.Data`
         """
+        # TODO Update docstring
         individuals = []
-        for i, idx in enumerate(indices):
-            indiv = IndividualData(idx)
-            indiv.add_observations(timepoints[i], values[i])
-            individuals.append(indiv)
+        for t, obs, cf in zip(timepoints, observations, cofactors):
+            individuals.append(IndividualData(
+                timepoints=t,
+                observations=obs,
+                cofactors=cf
+            ))
 
-        return Data.from_individuals(individuals, headers)
+        return Data.from_individuals(indices, individuals, headers)
 
     @staticmethod
-    def from_individuals(individuals: List[IndividualData], headers: List[FeatureType]) -> Data:
+    def from_individuals(indices, individuals: List[IndividualData], headers: List[FeatureType]) -> Data:
         """
         Construct `Data` from a list of individuals
 
@@ -333,11 +337,11 @@ class Data(Iterable):
         -------
         :class:`.Data`
         """
+        # TODO Update docstring
         data = Data()
         data.headers = headers
         n_features = len(headers)
-        for indiv in individuals:
-            idx = indiv.idx
+        for idx, indiv in zip(indices, individuals):
             _, n_features_i = indiv.observations.shape
             if n_features_i != n_features:
                 raise LeaspyDataInputError(
