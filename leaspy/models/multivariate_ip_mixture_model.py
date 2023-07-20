@@ -413,7 +413,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         *,
         include_constant: bool = True,
         with_gradient: bool = False,
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    ):
         """
         Compute regularity term (Gaussian distribution) and optionally its gradient wrt value.
 
@@ -568,7 +568,6 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         self,
         data: Dataset,
         realizations: CollectionRealization,
-        clusters: torch.Tensor,
     ) -> DictParamsTorch:
         """
         Compute the model's sufficient statistics.
@@ -579,8 +578,6 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             The input dataset.
         realizations : CollectionRealization
             The realizations from which to compute the model's sufficient statistics.
-        cluster : :class:`torch.Tensor`
-            The probabilities for each individual to belong to each cluster
 
         Returns
         -------
@@ -589,6 +586,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         """
         # modify realizations in-place
         self._center_xi_realizations(realizations)
+
+        clusters = realizations["proba_clusters"].tensor
 
         # unlink all sufficient statistics from updates in realizations!
         realizations = realizations.clone()
@@ -603,7 +602,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
         return sufficient_statistics
 
-    def update_model_parameters_burn_in(self, data: Dataset, sufficient_statistics: DictParamsTorch, clusters=None) -> None:
+    def update_model_parameters_burn_in(self, data: Dataset, sufficient_statistics: DictParamsTorch) -> None:
         """
         Update the model's parameters during the burn in phase.
 
@@ -619,8 +618,6 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             The input dataset.
         sufficient_statistics : DictParamsTorch
             The sufficient statistics to use for parameter update.
-        clusters : :class:`torch.Tensor`
-            The probabilities for each individual to belong to each cluster
         """
         # Memoryless part of the algorithm
         self.parameters['g'] = sufficient_statistics['g']
@@ -640,6 +637,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             self.parameters['betas'] = sufficient_statistics['betas']
 
         tau_xi = sufficient_statistics['tau_xi']
+        clusters = sufficient_statistics["proba_clusters"]
         for k in range(self.nb_clusters):
             cluster = clusters[k]
             if cluster.sum() != 0.:
@@ -780,6 +778,19 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             variables_info['sources'] = sources_info
 
         return variables_info
+
+    def get_deterministic_variable_information(self) -> DictParams:
+
+        probas_info = {
+            "name": "proba_clusters",
+            "shape": torch.Size([self.nb_clusters]),
+            "init_function": self.initialize_cluster_probabilities,
+            "update_function": self.compute_cluster_probabilities,
+        }
+
+        variable_info = {"proba_clusters":probas_info}
+
+        return variable_info
 
 
 # document some methods (we cannot decorate them at method creation since they are

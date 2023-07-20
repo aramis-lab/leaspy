@@ -986,6 +986,17 @@ class AbstractModel(BaseModel):
             The information on the individual random variables.
         """
 
+    def get_deterministic_variable_information(self) -> DictParams:
+        """
+        Return the information on individual random variables relative to the model.
+
+        Returns
+        -------
+        DictParams :
+            The information on the individual random variables.
+        """
+        return {}
+
     def _get_population_realizations(self, **init_kws) -> CollectionRealization:
         population_collection = CollectionRealization()
         population_collection.initialize_population(self, **init_kws)
