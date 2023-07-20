@@ -2,6 +2,7 @@ from .realization import (
     AbstractRealization,
     IndividualRealization,
     PopulationRealization,
+    DeterministicRealization,
 )
 from typing import Union
 from enum import Enum, auto
@@ -14,6 +15,7 @@ class VariableType(Enum):
     """
     INDIVIDUAL = auto()
     POPULATION = auto()
+    DETERMINISTIC = auto()
 
     @classmethod
     def from_string(cls, variable_type: str):
@@ -22,6 +24,8 @@ class VariableType(Enum):
             return cls.POPULATION
         if variable_type in {"individual", "ind"}:
             return cls.INDIVIDUAL
+        if variable_type in {"deterministic", "det"}:
+            return cls.DETERMINISTIC
         raise LeaspyInputError(
             f"Invalid variable type {variable_type}"
             f"Possible values are {list(VariableType)}"
@@ -67,3 +71,5 @@ def _realization_as_variable_type_factory(variable_type: VariableType, **kws) ->
         return PopulationRealization(**kws)
     if variable_type == VariableType.INDIVIDUAL:
         return IndividualRealization(**kws)
+    if variable_type == VariableType.DETERMINISTIC:
+        return DeterministicRealization(**kws)

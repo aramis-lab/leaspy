@@ -548,6 +548,22 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         realizations["v0"].tensor = realizations["v0"].tensor + mean_xi
         self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
+    def compute_cluster_probabilities(self, data, realizations):
+        individual_attachments = torch.zeros((self.nb_clusters, data.n_individuals))
+        for i in range(self.nb_clusters):
+            individual_attachments[i] -= self.compute_regularity_realization(realizations['tau_xi'], cluster=i).sum(
+                dim=1).reshape(data.n_individuals)
+        proba_clusters = torch.nn.Softmax(dim=0)(torch.clamp(individual_attachments, -100.))
+        return proba_clusters
+
+    @staticmethod
+    def initialize_cluster_probabilities(n_individuals, model, **kwargs):
+        initial_clusters = kwargs.get("initial_clusters", None)
+        if initial_clusters is None:
+            # Initialize random clusters
+            initial_clusters = torch.exp(torch.normal(size=(n_individuals, model.nb_clusters))).T
+            initial_clusters = initial_clusters / initial_clusters.sum(axis=0, keepdims=True)
+
     def compute_model_sufficient_statistics(
         self,
         data: Dataset,

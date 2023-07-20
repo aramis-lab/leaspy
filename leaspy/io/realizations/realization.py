@@ -313,3 +313,64 @@ class PopulationRealization(AbstractRealization):
         s = super().__str__()
         s += f"Variable type : population"
         return s
+
+class DeterministicRealization(AbstractRealization):
+    """
+        Class for realizations of deterministic variables.
+
+        Parameters
+        ----------
+        name : ParamType
+            The name of the variable associated with the realization.
+        shape : Tuple[int, ...]
+            The shape of the tensor realization.
+        n_individuals : int
+            The number of individuals related to this realization.
+        **kwargs : dict
+            Additional parameters (including `tensor` and `tensor_copy`).
+        """
+
+    def __init__(
+            self,
+            name: ParamType,
+            shape: Tuple[int, ...],
+            *,
+            n_individuals: int,
+            **kwargs
+    ):
+        super().__init__(name, shape, **kwargs)
+        self.n_individuals = n_individuals
+        self.init_function = kwargs["init_function"]
+        self.update_function = kwargs["update_function"]
+
+    def to_dict(self):
+        """Return a serialized dictionary of realization attributes."""
+        return dict(super().to_dict(), n_individuals=self.n_individuals)
+
+    def initialize(
+            self,
+            model: AbstractModel,
+            **kwargs: KwargsType,
+    ):
+        """
+        Initialize the realization from a model instance.
+
+        Parameters
+        ----------
+        model : AbstractModel
+            The model from which to initialize the realization.
+        init_at_mean : bool, optional
+            If True, the realization is initialized at the corresponding
+            variable mean value, otherwise it the initial value is sampled
+            around its mean value with a normal distribution.
+        **kwargs : KwargsType
+            Additional parameters for initialization.
+        """
+
+        self.tensor = self.init_function(self.n_individuals, model, **kwargs)
+
+    def __str__(self):
+        s = super().__str__()
+        s += f"Variable type : individual deterministic"
+        return s
+
