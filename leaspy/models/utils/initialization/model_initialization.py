@@ -76,6 +76,8 @@ def initialize_parameters(model, dataset, method="default") -> tuple:
         parameters = initialize_logistic_parallel(model, df, method)
     elif name in ['linear', 'univariate_linear']:
         parameters = initialize_linear(model, df, method)
+    elif 'mixture' in name:
+        parameters = initialize_mixture(model, df, method)
     elif name == 'mixed_linear-logistic':
         raise NotImplementedError("legacy")
     else:
@@ -524,6 +526,37 @@ def initialize_linear(model, df: pd.DataFrame, method):
     }
 
     return parameters
+
+def initialize_mixture(model, dataset, method):
+
+    if model.name == "mixture_logistic":
+        parameters = initialize_logistic(model, dataset, method)
+    elif model.name == "mixture_linear":
+        parameters = initialize_linear(model, dataset, method)
+
+    parameters["tau_xi_mean"] = torch.tensor([parameters['tau_mean'], parameters['xi_mean']])
+    parameters["tau_xi_std"] = 0.05
+
+    for k in range(model.nb_clusters):
+        parameters[f'tau_xi_{k}_mean'] = torch.tensor([torch.normal(parameters['tau_mean'], parameters['tau_std']),
+                                                    torch.normal(parameters['xi_mean'], parameters['xi_std'])])
+        parameters[f'tau_xi_{k}_std'] = torch.tensor([[1., 0.],
+                                                   [0., 0.05]],
+                                                  )
+        model._auxiliary[f'tau_xi_{k}_std_inv'] = torch.tensor([[1., 0.],
+                                                       [0., 20.]],
+                                                      )
+
+    # Remove useless params for the model
+    del parameters["tau_mean"]
+    del parameters["tau_std"]
+    del parameters["xi_mean"]
+    del parameters["xi_std"]
+
+    parameters["pi"] = 1./model.nb_clusters * torch.ones(model.nb_clusters)
+
+    return parameters
+
 
 
 def compute_linregress_subjects(df: pd.DataFrame, *, max_inds: int = None) -> Dict[str, pd.DataFrame]:
