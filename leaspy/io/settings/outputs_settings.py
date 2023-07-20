@@ -51,6 +51,7 @@ class OutputsSettings:
         self.parameter_convergence_path = None
         self.plot_path = None
         self.patients_plot_path = None
+        self.output_function = None
 
         self._set_console_print_periodicity(settings)
         self._set_save_periodicity(settings)

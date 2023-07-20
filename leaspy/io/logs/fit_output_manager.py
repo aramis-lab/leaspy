@@ -65,6 +65,9 @@ class FitOutputManager:
             self.path_plot_convergence_model_parameters_1 = os.path.join(outputs.plot_path, "convergence_1.pdf")
             self.path_plot_convergence_model_parameters_2 = os.path.join(outputs.plot_path, "convergence_2.pdf")
 
+        if outputs.output_function is not None:
+            self.output_function = outputs.output_function
+
         # Options
         # TODO : Maybe add to the outputs reader
         # <!> We would need the attributes of the model if we would want to reconstruct values without MCMC toolbox
@@ -114,6 +117,9 @@ class FitOutputManager:
                 self.print_algo_statistics(algo)
                 print()
                 self.print_model_statistics(model)
+                print()
+                if self.output_function is not None:
+                    self.output_function(model, realizations)
                 print()
                 self.print_time()
 
