@@ -1,4 +1,5 @@
 import torch
+from math import log
 
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.utils.attributes import AttributesFactory
@@ -8,7 +9,7 @@ from leaspy.io.realizations import CollectionRealization
 from leaspy.utils.docs import doc_with_super, doc_with_
 from leaspy.utils.subtypes import suffixed_method
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import DictParamsTorch, DictParams
+from leaspy.utils.typing import DictParamsTorch, DictParams, Optional
 
 from leaspy.io.realizations import (
     AbstractRealization,
@@ -77,7 +78,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
     @staticmethod
     def get_tau_xi(individual_parameters):
-        if 'tau_xi' in individual_parameters:
+        if (isinstance(individual_parameters, CollectionRealization) and 'tau_xi' in individual_parameters.names) or 'tau_xi' in individual_parameters:
             tau_xi = individual_parameters['tau_xi']
             if isinstance(tau_xi, IndividualRealization):
                 tau_xi = tau_xi.tensor
@@ -439,40 +440,65 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         p = (y @ precision_matrix)
         neg_loglike = 0.5 * (p * y).sum(dim=-1, keepdims=True)
         if include_constant:
-            neg_loglike += 0.5 * precision_matrix.shape[0] * torch.log(2 * torch.pi) - 0.5 * torch.log(torch.det(precision_matrix))
+            neg_loglike += 0.5 * precision_matrix.shape[0] * torch.log(2 * torch.tensor(torch.pi)) - 0.5 * torch.log(torch.det(precision_matrix))
         if not with_gradient:
             return neg_loglike
         nll_grad = p
         return neg_loglike, nll_grad
 
     # Override
-    def compute_regularity_realization(self, realization, cluster=0, proba_clusters=None):
+    def compute_regularity_realization(self, realizations, name):
         # Instantiate torch distribution
+        realization = realizations[name]
         if isinstance(realization, PopulationRealization):
             return self.compute_regularity_population_realization(realization)
         if isinstance(realization, IndividualRealization):
             name = realization.name
             # separate treatment for tau_xi which is multivariate
             if name == 'tau_xi':
-                if proba_clusters is not None:
-                    regs = torch.stack([self.compute_regularity_multivariate_variable(
-                                                                        realization.tensor,
-                                                                        self.parameters[f"tau_xi_{k}_mean"],
-                                                                        self._auxiliary[f"tau_xi_{k}_std_inv"],
-                                                                        include_constant=False,
-                                                                        ) for k in range(self.nb_clusters)])
-                    reg = (regs * proba_clusters.unsqueeze(-1)).sum(dim=0)
-                    return reg
-                else:
-                    return self.compute_regularity_multivariate_variable(
-                                                            realization.tensor,
-                                                            self.parameters[f"tau_xi_{cluster}_mean"],
-                                                            self._auxiliary[f"tau_xi_{cluster}_std_inv"],
-                                                            include_constant=False,
-                                                            )
+                proba_clusters = realizations["proba_clusters"].tensor
+                regs = torch.stack([self.compute_regularity_multivariate_variable(
+                                                                    realization.tensor,
+                                                                    self.parameters[f"tau_xi_{k}_mean"],
+                                                                    self._auxiliary[f"tau_xi_{k}_std_inv"],
+                                                                    include_constant=False,
+                                                                    ) for k in range(self.nb_clusters)])
+                reg = (regs * proba_clusters.unsqueeze(-1)).sum(dim=0)
+                return reg
             return self.compute_regularity_individual_realization(realization)
         raise LeaspyModelInputError(
             f"Realization {realization} not known, should be 'population' or 'individual'."
+        )
+
+    # overwrite
+    def compute_mean_traj(
+        self,
+        timepoints: torch.Tensor,
+        *,
+        attribute_type: Optional[str] = None,
+    ) -> torch.Tensor:
+        """
+        Compute trajectory of the model with individual parameters being the group-average ones.
+
+        TODO check dimensions of io?
+
+        Parameters
+        ----------
+        timepoints : :class:`torch.Tensor` [1, n_timepoints]
+        attribute_type : 'MCMC' or None
+
+        Returns
+        -------
+        :class:`torch.Tensor` [1, n_timepoints, dimension]
+            The group-average values at given timepoints
+        """
+        individual_parameters = {
+            'tau_xi': self.parameters[f'tau_xi_{0}_mean'].clone(),
+            'sources': torch.zeros(self.source_dimension)
+        }
+
+        return self.compute_individual_tensorized(
+            timepoints, individual_parameters, attribute_type=attribute_type
         )
 
     ##############################
@@ -541,17 +567,19 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         """
         tau, xi = self.get_tau_xi(realizations)
         mean_xi = torch.mean(xi)
-        if "xi" in realizations:
-            realizations["xi"].tensor = realizations["xi"].tensor - mean_xi
-        else:
-            realizations["tau_xi"].tensor[...,1] = realizations["tau_xi"].tensor[...,1] - mean_xi
+        realizations["tau_xi"].tensor[...,1] = realizations["tau_xi"].tensor[...,1] - mean_xi
         realizations["v0"].tensor = realizations["v0"].tensor + mean_xi
         self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
     def compute_cluster_probabilities(self, data, realizations):
         individual_attachments = torch.zeros((self.nb_clusters, data.n_individuals))
         for i in range(self.nb_clusters):
-            individual_attachments[i] -= self.compute_regularity_realization(realizations['tau_xi'], cluster=i).sum(
+            individual_attachments[i] -= self.compute_regularity_multivariate_variable(
+                realizations["tau_xi"].tensor,
+                self.parameters[f"tau_xi_{i}_mean"],
+                self._auxiliary[f"tau_xi_{i}_std_inv"],
+                include_constant=True,
+            ).sum(
                 dim=1).reshape(data.n_individuals)
         proba_clusters = torch.nn.Softmax(dim=0)(torch.clamp(individual_attachments, -100.))
         return proba_clusters
@@ -561,8 +589,9 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         initial_clusters = kwargs.get("initial_clusters", None)
         if initial_clusters is None:
             # Initialize random clusters
-            initial_clusters = torch.exp(torch.normal(size=(n_individuals, model.nb_clusters))).T
+            initial_clusters = torch.exp(torch.normal(0., 1., size=(n_individuals, model.nb_clusters))).T
             initial_clusters = initial_clusters / initial_clusters.sum(axis=0, keepdims=True)
+        return initial_clusters
 
     def compute_model_sufficient_statistics(
         self,

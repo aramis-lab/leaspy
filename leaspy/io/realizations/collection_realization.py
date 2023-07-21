@@ -70,10 +70,6 @@ class CollectionRealization(DictRealizations):
     def individual(self) -> DictRealizations:
         return self._individual
 
-    @property
-    def deterministic(self) -> DictRealizations:
-        return self._deterministic
-
     @individual.setter
     def individual(self, individual: DictRealizationsType):
         if isinstance(individual, dict):
@@ -81,6 +77,17 @@ class CollectionRealization(DictRealizations):
         else:
             self._individual = individual
         self._check_unicity_of_variable_names()
+
+    @property
+    def deterministic(self) -> DictRealizations:
+        return self._deterministic
+
+    @deterministic.setter
+    def deterministic(self, deterministic: DictRealizationsType):
+        if isinstance(deterministic, dict):
+            self._deterministic = DictRealizations(deterministic)
+        else:
+            self._deterministic = deterministic
 
     def _check_unicity_of_variable_names(self):
         variable_names_intersection = set(self.population.names).intersection(set(self.individual.names))
@@ -207,7 +214,10 @@ class CollectionRealization(DictRealizations):
                 continue
             name = info_variable["name"]
             realization = DeterministicRealization(
-                name, info_variable["shape"], n_individuals=n_individuals,
+                name, info_variable["shape"],
+                n_individuals=n_individuals,
+                init_function=info_variable["init_function"],
+                update_function=info_variable["update_function"],
             )
             realization.initialize(model, **realization_init_kws)
             self.deterministic[name] = realization

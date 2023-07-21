@@ -263,9 +263,15 @@ class IndividualRealization(AbstractRealization):
             sample the initial value.
         """
         distribution = self.distribution_factory(loc=mean, scale=std)
-        self.tensor = distribution.sample(
-            sample_shape=(self.n_individuals, *self.shape)
-        )
+        if mean.shape == self.shape:
+            self.tensor = distribution.sample(
+                sample_shape=(self.n_individuals,)
+            )
+        else:
+            self.tensor = distribution.sample(
+                sample_shape=(self.n_individuals, *self.shape)
+            )
+
 
     def __str__(self):
         s = super().__str__()
@@ -336,16 +342,22 @@ class DeterministicRealization(AbstractRealization):
             shape: Tuple[int, ...],
             *,
             n_individuals: int,
+            init_function,
+            update_function,
             **kwargs
     ):
         super().__init__(name, shape, **kwargs)
         self.n_individuals = n_individuals
-        self.init_function = kwargs["init_function"]
-        self.update_function = kwargs["update_function"]
+        self.init_function = init_function
+        self.update_function = update_function
 
     def to_dict(self):
         """Return a serialized dictionary of realization attributes."""
-        return dict(super().to_dict(), n_individuals=self.n_individuals)
+        return dict(super().to_dict(),
+                    n_individuals=self.n_individuals,
+                    init_function=self.init_function,
+                    update_function=self.update_function,
+                    )
 
     def initialize(
             self,

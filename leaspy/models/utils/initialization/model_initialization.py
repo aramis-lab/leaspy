@@ -534,8 +534,9 @@ def initialize_mixture(model, dataset, method):
     elif model.name == "mixture_linear":
         parameters = initialize_linear(model, dataset, method)
 
+    # for initialization of IP realizations only, not used after
     parameters["tau_xi_mean"] = torch.tensor([parameters['tau_mean'], parameters['xi_mean']])
-    parameters["tau_xi_std"] = 0.05
+    parameters["tau_xi_std"] = torch.tensor(0.05)
 
     for k in range(model.nb_clusters):
         parameters[f'tau_xi_{k}_mean'] = torch.tensor([torch.normal(parameters['tau_mean'], parameters['tau_std']),

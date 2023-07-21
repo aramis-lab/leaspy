@@ -65,8 +65,7 @@ class FitOutputManager:
             self.path_plot_convergence_model_parameters_1 = os.path.join(outputs.plot_path, "convergence_1.pdf")
             self.path_plot_convergence_model_parameters_2 = os.path.join(outputs.plot_path, "convergence_2.pdf")
 
-        if outputs.output_function is not None:
-            self.output_function = outputs.output_function
+        self.output_function = outputs.output_function
 
         # Options
         # TODO : Maybe add to the outputs reader
@@ -205,13 +204,17 @@ class FitOutputManager:
                     model_parameters_save.pop(key)
                     for column in range(value.shape[1]):
                         model_parameters_save[f"{key}_{column}"] = value[:, column].tolist()
-                if key == "deltas":
+                elif key == "deltas":
                     model_parameters_save.pop(key)
                     for line in range(value.shape[0]):
                         model_parameters_save[f"{key}_{line}"] = value[line].tolist()
                 # P0, V0
                 elif value.shape[0] == 1 and len(value.shape) > 1:
                     model_parameters_save[key] = value[0].tolist()
+                else:
+                    model_parameters_save.pop(key)
+                    for line in range(value.shape[0]):
+                        model_parameters_save[f"{key}_{line}"] = value[line].tolist()
             elif value.ndim == 1:
                 model_parameters_save[key] = value.tolist()
             else:  # ndim == 0
@@ -238,7 +241,23 @@ class FitOutputManager:
         """
         # TODO: not generic at all
         for name in ("xi", "tau"):
-            value = realizations[name].tensor.squeeze(1).detach().tolist()
+            if name in realizations.individual.names:
+                value = realizations[name].tensor.squeeze(1).detach().tolist()
+                path = os.path.join(self.path_save_model_parameters_convergence, name + ".csv")
+                with open(path, 'a', newline='') as filename:
+                    writer = csv.writer(filename)
+                    # writer.writerow([iteration]+list(model_parameters.values()))
+                    writer.writerow([iteration] + value)
+        if "tau_xi" in realizations.individual.names:
+            name = "tau"
+            value = realizations["tau_xi"].tensor[...,0].detach().tolist()
+            path = os.path.join(self.path_save_model_parameters_convergence, name + ".csv")
+            with open(path, 'a', newline='') as filename:
+                writer = csv.writer(filename)
+                # writer.writerow([iteration]+list(model_parameters.values()))
+                writer.writerow([iteration] + value)
+            name = "xi"
+            value = realizations["tau_xi"].tensor[..., 1].detach().tolist()
             path = os.path.join(self.path_save_model_parameters_convergence, name + ".csv")
             with open(path, 'a', newline='') as filename:
                 writer = csv.writer(filename)

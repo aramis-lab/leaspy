@@ -351,6 +351,8 @@ class AlgorithmSettings:
                     raise LeaspyAlgoInputError(f'You must provide a boolean to the input <{k}>! '
                                     f'You provide {v} of type {type(v)}.')
                 settings[k] = v
+            elif k in ['output_function']:
+                settings[k] = v
             else:
                 warnings.warn(f"The kwarg '{k}' you provided is not valid and was skipped.")
 
