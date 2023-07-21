@@ -315,7 +315,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         _, v0, mixing_matrix = self._get_attributes(attribute_type)
 
         # Individual parameters
-        xi, tau = self.get_tau_xi(individual_parameters)
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -353,7 +353,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         b = g_plus_1 * g_plus_1 / g
 
         # Individual parameters
-        xi, tau = self.get_tau_xi(individual_parameters)
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping

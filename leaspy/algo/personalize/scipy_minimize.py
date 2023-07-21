@@ -99,6 +99,21 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         if not self.scipy_minimize_params.get('method', 'BFGS').upper() == 'BFGS':
             print('\n' + msg + '\n')
 
+    def _get_tau_xi_mean_std(self, model):
+
+        if "tau_xi_0_mean" in model.parameters:
+            tau_mean = model.parameters["tau_xi_0_mean"][0].item()
+            xi_mean = model.parameters["tau_xi_0_mean"][1].item()
+            std = model.parameters["tau_xi_0_std"]
+            tau_std = std[0,0].item()
+            xi_std = std[1,1].item()
+        else:
+            xi_mean = model.parameters['xi_mean']
+            tau_mean = model.parameters['tau_mean']
+            xi_std = model.parameters['xi_std']
+            tau_std = model.parameters['tau_std']
+        return tau_mean, xi_mean, tau_std, xi_std
+
     def _initialize_parameters(self, model: AbstractModel) -> List[torch.FloatTensor]:
         """
         Initialize individual parameters of one patient with group average parameter.
@@ -115,8 +130,9 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             The individual **standardized** parameters to start with.
         """
         # rescale parameters to their natural scale so they are comparable (as well as their gradient)
-        x = [model.parameters["xi_mean"] / model.parameters["xi_std"],
-             model.parameters["tau_mean"] / model.parameters["tau_std"]
+        tau_mean, xi_mean, tau_std, xi_std = self._get_tau_xi_mean_std(model)
+        x = [tau_mean / tau_std,
+             xi_mean / xi_std
             ]
         if model.name != "univariate":
             x += [torch.tensor(0., dtype=torch.float32)
@@ -133,10 +149,16 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         tensorized_params = torch.tensor(x, dtype=torch.float32).view((1,-1)) # 1 individual
 
         # <!> order + rescaling of parameters
-        individual_parameters = {
-            'xi': tensorized_params[:,[0]] * model.parameters['xi_std'],
-            'tau': tensorized_params[:,[1]] * model.parameters['tau_std'],
-        }
+        _, _, tau_std, xi_std = self._get_tau_xi_mean_std(model)
+        if "tau_xi_0_mean" in model.parameters:
+            individual_parameters = {
+                'tau_xi': tensorized_params[:,:2] * torch.tensor([tau_std,xi_std]),
+            }
+        else:
+            individual_parameters = {
+                'tau': tensorized_params[:,[0]] * tau_std,
+                'xi': tensorized_params[:,[1]] * xi_std,
+            }
         if 'univariate' not in model.name and model.source_dimension > 0:
             individual_parameters['sources'] = tensorized_params[:, 2:] * model.parameters['sources_std']
 
@@ -149,9 +171,16 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             * concatenated with conventional order of x0
             * normalized because we derive w.r.t. "standardized" parameter (adimensional gradient)
         """
+        _, _, tau_std, xi_std = self._get_tau_xi_mean_std(model)
+        if "tau_xi" in dict_grad_tensors:
+            grad_tau = dict_grad_tensors['tau_xi'][...,:1]
+            grad_xi = dict_grad_tensors['tau_xi'][...,1:]
+        else:
+            grad_tau = dict_grad_tensors['tau']
+            grad_xi = dict_grad_tensors['xi']
         to_cat = [
-            dict_grad_tensors['xi'] * model.parameters['xi_std'],
-            dict_grad_tensors['tau'] * model.parameters['tau_std']
+            grad_tau * tau_std,
+            grad_xi * xi_std
         ]
         if 'univariate' not in model.name and model.source_dimension > 0:
             to_cat.append( dict_grad_tensors['sources'] * model.parameters['sources_std'] )
@@ -332,7 +361,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         # transformation is needed because of IndividualParameters expectations...
         return {
-            k: v.item() if k != 'sources' else v.detach().squeeze(0).tolist()
+            k: v.item() if not k in ['sources', 'tau_xi'] else v.detach().squeeze(0).tolist()
             for k,v in individual_params_tensorized.items()
         }
 
