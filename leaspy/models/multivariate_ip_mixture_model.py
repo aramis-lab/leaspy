@@ -115,7 +115,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
     ) -> torch.Tensor:
         # Population parameters
         positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
-        xi, tau = self.get_tau_xi(individual_parameters)
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -144,7 +144,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         b = g_plus_1 * g_plus_1 / g
 
         # Individual parameters
-        xi, tau = self.get_tau_xi(individual_parameters)
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -676,8 +676,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
                 err = tau_xi - self.parameters[f'tau_xi_{k}_mean'].unsqueeze(0)
                 err2 = (cluster * err).T @ err
                 tau_xi_std = S_inv * err2
-                self.parameters[f'tau_xi_{k}_std'] = tau_xi_std + 1e-8 * torch.eye(2)
-                self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'])
+                self.parameters[f'tau_xi_{k}_std'] = tau_xi_std
+                self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'] + 1e-8 * torch.eye(2))
 
         self.parameters['pi'] = clusters.sum(dim=1) / clusters.sum()
 
@@ -728,8 +728,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
                 err = tau_xi - self.parameters[f'tau_xi_{k}_mean'].unsqueeze(0)
                 err2 = (cluster * err).T @ err
                 tau_xi_std = S_inv * err2
-                self.parameters[f'tau_xi_{k}_std'] = tau_xi_std + 1e-8 * torch.eye(2)
-                self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'])
+                self.parameters[f'tau_xi_{k}_std'] = tau_xi_std
+                self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'] + 1e-8 * torch.eye(2))
 
         self.parameters["pi"] = clusters.sum(dim=1) / clusters.sum()
 
