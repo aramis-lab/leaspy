@@ -32,8 +32,8 @@ class ResultTest(LeaspyTestCase):
 
         # Inputs
         cls.data = Data.from_csv_file(cls.example_data_path)
-        cls.cofactors = pd.read_csv(cls.example_data_covars_path, dtype={'ID': str}).set_index('ID')
-        cls.data.load_cofactors(cls.cofactors)
+        cls.covariates = pd.read_csv(cls.example_data_covars_path, dtype={'ID': str}).set_index('ID')
+        cls.data.load_covariates(cls.covariates)
 
         cls.df = cls.data.to_dataframe()
 
@@ -131,7 +131,7 @@ class ResultTest(LeaspyTestCase):
         data_input_list = [self.data, self.df, self.example_data_path]
 
         def load_result_and_check_same_as_expected(ind_param, data):
-            results = Result.load_result(data, ind_param, cofactors=self.example_data_covars_path)
+            results = Result.load_result(data, ind_param, covariates=self.example_data_covars_path)
             new_df = results.data.to_dataframe()
             pd.testing.assert_frame_equal(new_df, self.df)
             self.generic_check_individual_parameters(ind_param=results.individual_parameters, nb_individuals=17)
@@ -151,9 +151,9 @@ class ResultTest(LeaspyTestCase):
     # The corresponding methods will be removed in a future release
     ###############################################################
 
-    def test_get_cofactor_distribution(self):
-        self.assertEqual(self.results.get_cofactor_distribution('Treatments'),
-                         self.cofactors.values.reshape(self.cofactors.shape[0]).tolist())
+    def test_get_covariate_distribution(self):
+        self.assertEqual(self.results.get_covariate_distribution('Treatments'),
+                         self.covariates.values.reshape(self.covariates.shape[0]).tolist())
 
     def test_get_patient_individual_parameters(self):
         self.assertAlmostEqual(self.results.get_patient_individual_parameters('116')['tau'].tolist()[0],
@@ -178,4 +178,4 @@ class ResultTest(LeaspyTestCase):
         xi_treatment_param = self.results.get_parameter_distribution('xi', 'Treatments')
         self.assertEqual(list(xi_treatment_param.keys()), ["Treatment_A", "Treatment_B"])
         self.assertEqual(len(xi_treatment_param['Treatment_A']),
-                         self.cofactors[self.cofactors['Treatments'] == 'Treatment_A'].shape[0])
+                         self.covariates[self.covariates['Treatments'] == 'Treatment_A'].shape[0])

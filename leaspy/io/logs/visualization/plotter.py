@@ -273,12 +273,12 @@ class Plotter:
         self.plt_show()
         plt.close()
 
-    def plot_distribution(self, results, parameter: str, cofactor=None, **kwargs):
+    def plot_distribution(self, results, parameter: str, covariate=None, **kwargs):
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
 
-        distribution = results.get_parameter_distribution(parameter, cofactor)
+        distribution = results.get_parameter_distribution(parameter, covariate)
 
-        if cofactor is None:
+        if covariate is None:
             ax.hist(distribution)
         else:
             for k, v in distribution.items():
@@ -291,13 +291,13 @@ class Plotter:
         self.plt_show()
         plt.close()
 
-    def plot_correlation(self, results, parameter_1, parameter_2, cofactor=None, **kwargs):
+    def plot_correlation(self, results, parameter_1, parameter_2, covariate=None, **kwargs):
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
 
-        d1 = results.get_parameter_distribution(parameter_1, cofactor)
-        d2 = results.get_parameter_distribution(parameter_2, cofactor)
+        d1 = results.get_parameter_distribution(parameter_1, covariate)
+        d2 = results.get_parameter_distribution(parameter_2, covariate)
 
-        if cofactor is None:
+        if covariate is None:
             ax.scatter(d1, d2)
 
         else:

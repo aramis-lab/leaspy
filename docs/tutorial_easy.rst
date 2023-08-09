@@ -16,7 +16,7 @@ Derive the individual parameters
 --------------------------------
 TODO
 
-Cofactor analysis
+Covariate analysis
 -----------------
 TODO
 
