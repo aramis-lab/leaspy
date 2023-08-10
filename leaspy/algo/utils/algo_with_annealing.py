@@ -108,23 +108,24 @@ class AlgoWithAnnealingMixin:
         if not self.annealing_on or self._annealing_period is None:
             return
 
-        if self.current_iteration <= self.algo_parameters['annealing']['n_iter']:
+        # Oscillating scheme
+        if self.algo_parameters['annealing'].get('oscillations', False):
+            params = self.algo_parameters['annealing']
+            b = params['range']
+            c = params['delay']
+            r = params['period']
+            k = self.current_iteration
+            kappa = c + 2. * float(k) * np.pi / r
+            self.temperature = max(1. + b * np.sin(kappa) / kappa, 0.1)
+
+            self.temperature_inv = 1. / self.temperature
+
+        elif self.current_iteration <= self.algo_parameters['annealing']['n_iter']:
             # If we cross a plateau step
             if self.current_iteration % self._annealing_period == 0:
 
-                # Oscillating scheme
-                if self.algo_parameters['annealing'].get('oscillations', False):
-                    params = self.algo_parameters['annealing']
-                    b = params['range']
-                    c = params['delay']
-                    r = params['period']
-                    k = self.current_iteration
-                    kappa = c + 2. * float(k) * np.pi / r
-                    self.temperature = max(1. + b * np.sin(kappa) / kappa, 0.1)
-
-                else:
-                    # Decrease temperature linearly
-                    self.temperature -= self._annealing_temperature_decrement
-                    self.temperature = max(self.temperature, 1)
+                # Decrease temperature linearly
+                self.temperature -= self._annealing_temperature_decrement
+                self.temperature = max(self.temperature, 1)
 
                 self.temperature_inv = 1. / self.temperature

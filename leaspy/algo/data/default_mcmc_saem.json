@@ -29,7 +29,11 @@
       "initial_temperature": 10,
       "n_plateau": 10,
       "n_iter": null,
-      "n_iter_frac": 0.5
+      "n_iter_frac": 0.5,
+      "oscillations": false,
+      "delay": 0.1,
+      "period": 100,
+      "range": 1.0
     }
   }
 }
