@@ -409,3 +409,52 @@ class DatasetTest(LeaspyTestCase):
             "\n- X [[0..3]]: [2, 3] are missing"
             "\n- Y [[0..2]]: [0, 2] are missing"
         ])
+
+    def test_covariates_constructor(self):
+        data_df = pd.DataFrame({
+            'ID':     ['S1', 'S1', 'S1', 'S2', 'S2', 'S3'],
+            'TIME':   [ 50.,  51.,  53.,  30., 35.3, 49.3],
+            'X':      [ 0.1,  0.5,  0.4,  0.4,  0.9,   0.], # only integers allowed!
+            'Y':      [ 1.,   1.,   nan,  0.2,  nan,  0.1],
+        })
+
+        covariates_df = pd.DataFrame({
+            'ID': ['S1', 'S2', 'S3'],
+            'covariate_quantitative': [25., 26., 10.],
+            'covariate_quantitative_with_missing': [25., nan, 10.],
+            'covariate_categorical_1': ['male', 'female', 'female'],
+            'covariate_categorical_2': ['placebo', 'treatment', 'placebo'],
+            'covariate_categorical_with_missing': ['mutation', nan, 'no mutation'],
+        }).set_index('ID')
+
+        data_object = Data.from_dataframe(data_df)
+        data_object.load_covariates(covariates_df)
+
+        dataset_object = Dataset(data_object)
+
+        expected_covariates_order = [
+            'covariate_quantitative',
+            'covariate_quantitative_with_missing',
+            'covariate_categorical_1',
+            'covariate_categorical_2',
+            'covariate_categorical_with_missing'
+        ]
+
+        expected_covariates =\
+            torch.tensor([
+                [25., 25.,  0.,  0.,  0.],
+                [26., nan,  1.,  1., nan],
+                [10., 10.,  1.,  0.,  1.]
+            ])
+
+        expected_correspondance_dict = {
+            'covariate_quantitative': {},
+            'covariate_quantitative_with_missing': {},
+            'covariate_categorical_1': {'male': 0.0, 'female': 1.0},
+            'covariate_categorical_2': {'placebo': 0.0, 'treatment': 1.0},
+            'covariate_categorical_with_missing': {'mutation': 0.0, 'no mutation': 1.0}
+        }
+
+        self.assertTrue(torch.all(torch.isclose(dataset_object.covariates, expected_covariates, equal_nan=True)))
+        self.assertDictEqual(dataset_object.covariates_association_dict, expected_correspondance_dict)
+        self.assertListEqual(dataset_object.covariates_order, expected_covariates_order)
