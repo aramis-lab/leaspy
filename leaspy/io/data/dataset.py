@@ -105,7 +105,7 @@ class Dataset:
         self.values: Optional[torch.FloatTensor] = None
         self.mask: Optional[torch.FloatTensor] = None
 
-        self.n_covariates: int = len(data.covariates)
+        self.n_covariates: int = None
         self.covariates: Optional[torch.FloatTensor] = None
         self.covariates_order: Optional[List[str]] = None
         self.covariates_association_dict: Optional[Dict[str, Dict[str, float]]] = None
@@ -197,38 +197,43 @@ class Dataset:
         TODO: we should add the option to have a one-hot encoding of such categorical
         covariates, for when the additive encoding does not make sense.
         """
-        if self.n_covariates > 0:
-            self.covariates = torch.zeros((data.n_individuals, self.n_covariates))
-            self.covariates_association_dict = {}
-            self.covariates_order = data.covariates
 
-            local_count = {}
+        self.n_covariates = len(data.covariates)
 
-            def _categorize(covariate_name: str, value: Any):
-                """
-                Helper function that matches string values for covariates into an
-                additive categorical encoding. E.g. {"Female", "Male"} possible
-                values get encoded as {0.0, 1.0}. The maching between strings and
-                quantitative encoding is stored into self.covariates_association_dict
-                """
-                if covariate_name not in local_count:
-                    local_count[covariate_name] = 0.
-                    self.covariates_association_dict[covariate_name] = {}
+        if self.n_covariates == 0:
+            return
 
-                if isinstance(value, str):
-                    if value not in self.covariates_association_dict[covariate_name]:
-                        self.covariates_association_dict[covariate_name][value] = local_count[covariate_name]
-                        local_count[covariate_name] += 1.0
+        self.covariates = torch.zeros((data.n_individuals, self.n_covariates))
+        self.covariates_association_dict = {}
+        self.covariates_order = data.covariates
 
-                    return self.covariates_association_dict[covariate_name][value]
+        local_count = {}
 
-                return value
+        def _categorize(covariate_name: str, value: Any):
+            """
+            Helper function that matches string values for covariates into an
+            additive categorical encoding. E.g. {"Female", "Male"} possible
+            values get encoded as {0.0, 1.0}. The maching between strings and
+            quantitative encoding is stored into self.covariates_association_dict
+            """
+            if covariate_name not in local_count:
+                local_count[covariate_name] = 0.
+                self.covariates_association_dict[covariate_name] = {}
 
-            for i, subject_id in data.iter_to_idx.items():
-                subject_covariates = data[subject_id].covariates
+            if isinstance(value, str):
+                if value not in self.covariates_association_dict[covariate_name]:
+                    self.covariates_association_dict[covariate_name][value] = local_count[covariate_name]
+                    local_count[covariate_name] += 1.0
 
-                for j, (covariate_name, value) in enumerate(subject_covariates.items()):
-                    self.covariates[i,j] = _categorize(covariate_name, value)
+                return self.covariates_association_dict[covariate_name][value]
+
+            return value
+
+        for i, subject_id in data.iter_to_idx.items():
+            subject_covariates = data[subject_id].covariates
+
+            for j, (covariate_name, value) in enumerate(subject_covariates.items()):
+                self.covariates[i, j] = _categorize(covariate_name, value)
 
     def _compute_L2_norm(self):
         self.L2_norm_per_ft = torch.sum(self.mask.float() * self.values * self.values,
