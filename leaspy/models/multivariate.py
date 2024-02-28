@@ -509,31 +509,7 @@ class MultivariateModel(AbstractMultivariateModel):
         pass
 
 
-class LinearMultivariateModel(MultivariateModel):
-    """Manifold model for multiple variables of interest (linear formulation)."""
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
-
-    @staticmethod
-    def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """Used to define the corresponding variable."""
-        return torch.ones_like(g)
-
-    @classmethod
-    def model_with_sources(
-        cls,
-        *,
-        rt: torch.Tensor,
-        space_shifts: torch.Tensor,
-        metric,
-        v0,
-        log_g,
-    ) -> torch.Tensor:
-        """Returns a model with sources."""
-        pop_s = (None, None, ...)
-        rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        return torch.exp(log_g[pop_s]) + v0[pop_s] * rt + space_shifts[:, None, ...]
-
+class LinearMultivariateInitializationMixin:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
@@ -582,34 +558,33 @@ class LinearMultivariateModel(MultivariateModel):
         return rounded_parameters
 
 
-class LogisticMultivariateModel(MultivariateModel):
-    """Manifold model for multiple variables of interest (logistic formulation)."""
+class LinearMultivariateModel(LinearMultivariateInitializationMixin, MultivariateModel):
+    """Manifold model for multiple variables of interest (linear formulation)."""
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
         """Used to define the corresponding variable."""
-        return (g + 1) ** 2 / g
+        return torch.ones_like(g)
 
     @classmethod
     def model_with_sources(
         cls,
         *,
-        rt: TensorOrWeightedTensor[float],
-        space_shifts: TensorOrWeightedTensor[float],
-        metric: TensorOrWeightedTensor[float],
-        v0: TensorOrWeightedTensor[float],
-        log_g: TensorOrWeightedTensor[float],
+        rt: torch.Tensor,
+        space_shifts: torch.Tensor,
+        metric,
+        v0,
+        log_g,
     ) -> torch.Tensor:
         """Returns a model with sources."""
-        # Shape: (Ni, Nt, Nfts)
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - log_g[pop_s]
-        model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
-        return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
+        return torch.exp(log_g[pop_s]) + v0[pop_s] * rt + space_shifts[:, None, ...]
 
+
+class LogisticMultivariateInitializationMixin:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
@@ -664,6 +639,37 @@ class LogisticMultivariateModel(MultivariateModel):
                 obs_model.extra_vars['noise_std'].shape
             )
         return rounded_parameters
+
+
+class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, MultivariateModel):
+    """Manifold model for multiple variables of interest (logistic formulation)."""
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+    @staticmethod
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
+        """Used to define the corresponding variable."""
+        return (g + 1) ** 2 / g
+
+    @classmethod
+    def model_with_sources(
+        cls,
+        *,
+        rt: TensorOrWeightedTensor[float],
+        space_shifts: TensorOrWeightedTensor[float],
+        metric: TensorOrWeightedTensor[float],
+        v0: TensorOrWeightedTensor[float],
+        log_g: TensorOrWeightedTensor[float],
+    ) -> torch.Tensor:
+        """Returns a model with sources."""
+        # Shape: (Ni, Nt, Nfts)
+        pop_s = (None, None, ...)
+        rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
+        w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - log_g[pop_s]
+        model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
+        return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
+
+
 
 """
 # document some methods (we cannot decorate them at method creation since they are

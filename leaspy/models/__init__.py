@@ -18,7 +18,7 @@ ALL_MODELS = {
     "logistic": LogisticMultivariateModel,
     "linear": LinearMultivariateModel,
     # 'mixed_linear-logistic': MultivariateModel,
-    # 'logistic_parallel': MultivariateParallelModel,
+    "logistic_parallel": MultivariateParallelModel,
 
     # naive models (for benchmarks)
     'lme': LMEModel,
