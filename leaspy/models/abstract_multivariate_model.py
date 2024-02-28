@@ -117,9 +117,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             log_g_std=Hyperparameter(0.01),
             tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
-            # xi_mean=Hyperparameter(0.),  # depends on model sub-type (parallel or not)
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
-
             # LATENT VARS
             log_g=PopulationLatentVariable(
                 Normal("log_g_mean", "log_g_std")
@@ -133,7 +131,6 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             # DERIVED VARS
             g=LinkedVariable(Exp("log_g")),
             alpha=LinkedVariable(Exp("xi")),
-            # rt=LinkedVariable(self.time_reparametrization),  # in super class...
         )
 
         if self.source_dimension >= 1:

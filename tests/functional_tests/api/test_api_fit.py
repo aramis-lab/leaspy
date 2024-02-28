@@ -258,7 +258,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             check_kws=DEFAULT_CHECK_KWS,
         )
 
-    @skip("Logistic parallel models are currently broken.")
+    #@skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel(self):
         self.generic_fit(
             "logistic_parallel",
@@ -267,7 +267,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             source_dimension=2,
         )
 
-    @skip("Logistic parallel models are currently broken.")
+    #@skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel_diagonal_noise(self):
         self.generic_fit(
             "logistic_parallel",
@@ -276,7 +276,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             source_dimension=2,
         )
 
-    @skip("Logistic parallel models are currently broken.")
+    #@skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel_diagonal_noise_no_source(self):
         self.generic_fit(
             "logistic_parallel",
@@ -332,7 +332,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             source_dimension=2,
         )
 
-    @skip("Logistic parallel models are currently broken.")
+    #@skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel_binary(self):
         self.generic_fit(
             "logistic_parallel",
