@@ -39,7 +39,10 @@ def cast_value_to_tensor(value, shape: Optional[tuple] = None) -> TensorOrWeight
     if not isinstance(value, (torch.Tensor, WeightedTensor)):
         value = torch.tensor(value)
     if shape is not None:
-        value = value.view(shape)  # no expansion here
+        try:
+            value = value.view(shape)  # no expansion here
+        except RuntimeError:
+            value = torch.broadcast_to(value, shape)
     return value
 
 

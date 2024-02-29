@@ -84,14 +84,6 @@ class AlgorithmSettingsTest(LeaspyTestCase):
             self.assertEqual(settings.name, 'constant_prediction')
             self.assertDictEqual(settings.parameters, {'prediction_type': prediction_type})
 
-    def test_lme_fit_algorithm(self):
-        settings = AlgorithmSettings('lme_fit')
-        self.assertEqual(settings.name, 'lme_fit')
-
-    def test_lme_personalize_algorithm(self):
-        settings = AlgorithmSettings('lme_personalize')
-        self.assertEqual(settings.name, 'lme_personalize')
-
     def test_default_constructor_with_kwargs(self):
         # Default constructor with kwargs
         name = 'mcmc_saem'

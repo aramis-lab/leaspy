@@ -6,7 +6,7 @@ import json
 from inspect import signature
 import pandas as pd
 
-from leaspy.utils.typing import FeatureType, List, Optional, DictParams, Tuple, KwargsType, DictParamsTorch
+from leaspy.utils.typing import FeatureType, List, Optional, DictParams, Tuple, KwargsType, DictParamsTorch, Any
 from leaspy.exceptions import LeaspyModelInputError, LeaspyInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.variables.specs import VarName
@@ -47,21 +47,20 @@ class BaseModel(ABC):
         Number of features.
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        dimension: Optional[int] = None,
+        features: Optional[List[FeatureType]] = None,
+    ):
         self.is_initialized: bool = False
         self.name = name
         self._features: Optional[List[FeatureType]] = None
         self._dimension: Optional[int] = None
-        self._set_hyperparameters(kwargs)
-
-    @property
-    def settable_hyperparameters(self) -> List[str]:
-        """Returns a list of settable hyperparameter names."""
-        return self._get_settable_hyperparameters()
-
-    def _get_settable_hyperparameters(self) -> List[str]:
-        """BaseModel has only features and dimension as settable hyperparameters."""
-        return ["features", "dimension"]
+        if dimension is None and features is not None:
+            dimension = len(features)
+        self.dimension = dimension
+        self.features = features
 
     @property
     def features(self) -> Optional[List[FeatureType]]:
@@ -120,64 +119,44 @@ class BaseModel(ABC):
     def parameters(self) -> DictParamsTorch:
         raise NotImplementedError
 
-    @abstractmethod
     def load_parameters(self, parameters: KwargsType) -> None:
-        raise NotImplementedError
-
-    @property
-    def hyperparameters_names(self) -> Tuple[VarName, ...]:
-        return tuple(self._get_hyperparameters_names())
-
-    def _get_hyperparameters_names(self) -> List[VarName]:
         """
-        Return the names of the model's hyperparameters.
-        This method only retrieve the hyperparameters stored as model attributes
-        like features, dimension, source_dimension...
-        Stateful models need to overwrite this method to add the hyperparameters
-        stored in the state.
-        """
-        return [
-            hp for hp in self.settable_hyperparameters
-            if hasattr(self, hp) and getattr(self, hp) is not None
-        ]
+        Instantiate or update the model's parameters.
 
-    @property
-    def hyperparameters(self) -> DictParamsTorch:
-        return self._get_hyperparameters()
-
-    def _get_hyperparameters(self) -> DictParamsTorch:
-        """
-        Returns a dictionary of the model's hyperparameters.
-        """
-        return {
-            name: getattr(self, name)
-            for name in self.settable_hyperparameters
-            if hasattr(self, name) and getattr(self, name) is not None
-        }
-
-    def _set_hyperparameters(self, hyperparameters: KwargsType) -> None:
-        """
-        Updates all model hyperparameters from the provided hyperparameters.
+        This requires that the model has previously been initialized.
 
         Parameters
         ----------
-        hyperparameters : KwargsType
-            The hyperparameters to be loaded.
+        parameters : :obj:`dict` [ :obj:`str`, Any ]
+            Contains the model's parameters.
         """
-        for param in self.settable_hyperparameters:
-            if param in hyperparameters:
-                setattr(self, param, hyperparameters[param])
-        self._raise_if_unknown_hyperparameters(hyperparameters)
+        for name, value in parameters.items():
+            self.set_parameter(name, value)
 
-    def _raise_if_unknown_hyperparameters(self, hyperparameters: KwargsType) -> None:
+    @abstractmethod
+    def set_parameter(self, name: str, value: Any) -> None:
         """
-        Raises a :exc:`.LeaspyModelInputError` if any unknown hyperparameter is provided to the model.
+        Set parameter name to given value.
+
+        Parameters
+        ----------
+        name: str
+            The name of the parameter to set.
+
+        value : Any
+            The value of the parameter.
         """
-        if len(unexpected_hyperparameters := set(hyperparameters.keys()).difference(set(self.settable_hyperparameters))) > 0:
-            raise LeaspyModelInputError(
-                f"Only {self.settable_hyperparameters} are valid hyperparameters for {self.__qualname__}. "
-                f"Unknown hyperparameters provided: {unexpected_hyperparameters}."
-            )
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def hyperparameters_names(self) -> Tuple[VarName, ...]:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def hyperparameters(self) -> DictParamsTorch:
+        raise NotImplementedError
 
     def initialize(self, dataset: Optional[Dataset] = None, method: Optional[InitializationMethod] = None) -> None:
         """
@@ -279,16 +258,19 @@ class BaseModel(ABC):
         from leaspy import __version__
         from .utilities import tensor_to_list
 
-        hyperparameters = {name: tensor_to_list(value) for name, value in (self.hyperparameters or {}).items()}
-
         return {
-            "leaspy_version": __version__,
-            "name": self.name,
-            "parameters": {
-                k: tensor_to_list(v)
-                for k, v in (self.parameters or {}).items()
-            },
-            **hyperparameters,
+                "leaspy_version": __version__,
+                "name": self.name,
+                "dimension": self.dimension,
+                "features": self.features,
+                "parameters": {
+                    name: tensor_to_list(value)
+                    for name, value in (self.parameters or {}).items()
+                },
+                "hyperparameters": {
+                    name: tensor_to_list(value)
+                    for name, value in (self.hyperparameters or {}).items()
+                },
         }
 
     @abstractmethod

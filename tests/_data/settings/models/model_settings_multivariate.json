@@ -1,5 +1,5 @@
 {
-  "leaspy_version": "1.1",
+  "leaspy_version": "2.0",
   "name": "multivariate",
   "dimension": 3,
   "source_dimension": 2,
@@ -8,10 +8,12 @@
     "beta": [[0.1, 0.2, 0.3], [0.5, 0.6, 0.9]],
     "tau_mean": 70,
     "tau_var": 50,
-    "xi_mean": -2,
     "xi_var": 4,
-    "sources_mean": [0.0, 0.1],
     "sources_var": [1.1, 0.9],
     "noise_var": 0.02
+  },
+  "hyperparameters": {
+    "xi_mean": -2,
+    "sources_mean": [0.0, 0.1]
   }
 }

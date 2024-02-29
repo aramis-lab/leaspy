@@ -4,16 +4,25 @@ import warnings
 import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-# import matplotlib.backends.backend_pdf
 import numpy as np
 import pandas as pd
 import torch
 
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.exceptions import LeaspyInputError, LeaspyTypeError, LeaspyIndividualParamsInputError
+from leaspy.models import AbstractModel
+from leaspy.utils.typing import List, Dict, Union
+from leaspy.io.data.data import Data
+
+from enum import Enum
 
 
-# TODO: outdated -
+class PlottingCase(str, Enum):
+    AVERAGE = "average"
+    OBS = "obs"
+    RECONS = "recons"
+
+
 class Plotting:
     """
     .. deprecated:: 1.2
@@ -33,12 +42,12 @@ class Plotting:
         Only used if palette is a string
     """
 
-    def __init__(self, model, output_path='.', palette='tab10', max_colors=10):
+    def __init__(self, model: AbstractModel, output_path='.', palette='tab10', max_colors=10):
 
         warnings.warn('Plotting will soon be removed from Leaspy, please use Plotter instead.',
                       FutureWarning)
 
-        self.model = model
+        self.model: AbstractModel = model
 
         # ---- Graphical options
         self.color_palette = None
@@ -62,7 +71,6 @@ class Plotting:
         max_colors : int > 0, optional (default, corresponding to model nb of features)
             Only used if palette is a string
         """
-
         if isinstance(palette, mpl.colors.Colormap):
             self.color_palette = palette
         else:
@@ -95,7 +103,7 @@ class Plotting:
         if not self.model.is_initialized:
             raise LeaspyInputError("Please initialize the model before plotting")
 
-    def _handle_kwargs_begin(self, kwargs, all_features_list = None):
+    def _handle_kwargs_begin(self, kwargs, all_features_list=None):
         """Extract kwargs corresponding to plot information and remove associated keys (in-place)."""
 
         # get features from initialized model if not set
@@ -116,8 +124,9 @@ class Plotting:
         # ---- Labels
         labels = kwargs.pop('labels', features)
         if len(labels) != len(features):
-            raise LeaspyInputError(f'Dimensions mismatch between features ({len(features)}) and labels ({len(labels)}.')
-
+            raise LeaspyInputError(
+                f"Dimensions mismatch between features ({len(features)}) and labels ({len(labels)}."
+            )
         # ---- Ax
         ax = kwargs.pop('ax', None)
         if ax is None:
@@ -129,10 +138,10 @@ class Plotting:
 
         return ax, features, features_ix, labels, colors
 
-    def _handle_kwargs_end(self, ax, kwargs, colors, labels):
+    def _handle_kwargs_end(self, ax, kwargs: Dict, colors: List[str], labels: List[str]):
         # ---- Legend
         dimension = len(labels)
-        #if dimension is None:
+        # if dimension is None:
         #    dimension = self.model.dimension
 
         custom_lines = [mpl.lines.Line2D([0], [0], color=colors[i], lw=4) for i in range(dimension)]
@@ -184,28 +193,33 @@ class Plotting:
         -------
         :class:`matplotlib.axes.Axes`
         """
-        # ---- Input manager
-        plot_kws = self._plot_kwargs('average', kwargs)
-
+        plot_kws = self._plot_kwargs(PlottingCase.AVERAGE, kwargs)
         ax, _, features_ix, labels, colors = self._handle_kwargs_begin(kwargs)
 
         # ---- Get timepoints
         mean_time = self.model.parameters['tau_mean'].item()
         std_time = max(self.model.parameters['tau_std'].item(), 4)
-        timepoints = mean_time + std_time * np.linspace(-kwargs.get('n_std_left', 3), kwargs.get('n_std_right', 6), kwargs.get('n_tpts', 100))
+        timepoints = (
+            mean_time + std_time * np.linspace(
+                -kwargs.get('n_std_left', 3),
+                kwargs.get('n_std_right', 6),
+                kwargs.get('n_tpts', 100),
+            )
+        )
         timepoints = torch.tensor(timepoints, dtype=torch.float32).unsqueeze(0)
 
         # ---- Compute average trajectory
-        mean_trajectory = self.model.compute_mean_traj(timepoints).cpu().detach().numpy()
+        mean_trajectory = self.model.compute_mean_trajectory(timepoints).cpu().detach().numpy()
 
         # ---- plot it for each dimension
         for ft_ix, ft_lbl, ft_color in zip(features_ix, labels, colors):
-            ax.plot(timepoints[0, :].cpu().detach().numpy(),
-                    mean_trajectory[0, :, ft_ix],
-                    c=ft_color,
-                    #label=ft_lbl, # not needed
-                    **plot_kws['model'])
-
+            ax.plot(
+                timepoints[0, :].cpu().detach().numpy(),
+                mean_trajectory[0, :, ft_ix],
+                c=ft_color,
+                # label=ft_lbl, # not needed
+                **plot_kws['model'],
+            )
         # ---- Title & labels
         ax.set_title('Average trajectories')
         ax.set_xlabel('Age')
@@ -214,46 +228,45 @@ class Plotting:
 
         return ax
 
-    def _plot_kwargs(self, case, kwargs):
-
-        if case == 'average':
-            return {'model':
-                dict(
-                    alpha = kwargs.get('alpha', self.alpha['average_model']),
-                    linestyle = kwargs.get('linestyle', self.linestyle['average_model']),
-                    linewidth = kwargs.get('linewidth', self.linewidth['average_model'])
-                )}
-        elif case == 'obs':
-            return {'obs':
-                dict(
-                    alpha = kwargs.get('alpha', self.alpha['individual_data']),
-                    linestyle = kwargs.get('linestyle', self.linestyle['individual_data']),
-                    linewidth = kwargs.get('linewidth', self.linewidth['individual_data']),
-                    marker = kwargs.get('marker', 'o'),
-                    markersize = kwargs.get('markersize', '3'),
-                )}
-        elif case == 'recons':
+    def _plot_kwargs(self, case: Union[str, PlottingCase], kwargs: Dict) -> Dict:
+        case = PlottingCase(case)
+        if case == PlottingCase.AVERAGE:
+            return {
+                "model": dict(
+                    alpha=kwargs.get('alpha', self.alpha['average_model']),
+                    linestyle=kwargs.get('linestyle', self.linestyle['average_model']),
+                    linewidth=kwargs.get('linewidth', self.linewidth['average_model'])
+                )
+            }
+        if case == PlottingCase.OBS:
+            return {
+                "obs": dict(
+                    alpha=kwargs.get('alpha', self.alpha['individual_data']),
+                    linestyle=kwargs.get('linestyle', self.linestyle['individual_data']),
+                    linewidth=kwargs.get('linewidth', self.linewidth['individual_data']),
+                    marker=kwargs.get('marker', 'o'),
+                    markersize=kwargs.get('markersize', '3'),
+                )
+            }
+        if case == PlottingCase.RECONS:
             # both observations & model will be displayed
             p_obs = dict(
-                marker = kwargs.get('marker', 'o'), # None not to display obs
-                markersize = kwargs.get('markersize', '4'),
-                alpha = kwargs.get('obs_alpha', self.alpha['individual_data']),
-                linestyle = kwargs.get('obs_ls', ''),
-                linewidth = kwargs.get('obs_lw', self.linewidth['individual_data']),
+                marker=kwargs.get('marker', 'o'), # None not to display obs
+                markersize=kwargs.get('markersize', '4'),
+                alpha=kwargs.get('obs_alpha', self.alpha['individual_data']),
+                linestyle=kwargs.get('obs_ls', ''),
+                linewidth=kwargs.get('obs_lw', self.linewidth['individual_data']),
             )
             p_model = dict(
-                alpha = kwargs.get('alpha', self.alpha['individual_model']),
-                linestyle = kwargs.get('linestyle', self.linestyle['individual_model']),
-                linewidth = kwargs.get('linewidth', self.linewidth['individual_model']),
+                alpha=kwargs.get('alpha', self.alpha['individual_model']),
+                linestyle=kwargs.get('linestyle', self.linestyle['individual_model']),
+                linewidth=kwargs.get('linewidth', self.linewidth['individual_model']),
             )
             return {'obs': p_obs, 'model': p_model}
-        else:
-            raise LeaspyInputError("case must be in {'average', 'obs', 'recons'}")
 
     @staticmethod
     def _get_ip_df_torch(individual_parameters):
-        # convert individual parameters in different cases
-
+        """Convert individual parameters in different cases."""
         if isinstance(individual_parameters, IndividualParameters):
             ip_df = individual_parameters.to_dataframe()
             ip_torch = individual_parameters.to_pytorch()
@@ -264,16 +277,24 @@ class Plotting:
             ip_df = IndividualParameters.from_pytorch(*individual_parameters).to_dataframe()
             ip_torch = individual_parameters
         else:
-            raise LeaspyTypeError("`individual_parameters` should be an IndividualParameters object, a pandas.DataFrame or a dict.")
-
+            raise LeaspyTypeError(
+                "`individual_parameters` should be an IndividualParameters object, a pandas.DataFrame or a dict."
+            )
         if ip_df.index.names != ['ID']:
-            raise LeaspyIndividualParamsInputError("Individual parameters index is not ['ID'] "
-                                                  f"as expected but {list(ip_df.index.names)}")
-
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters index is not ['ID'] as expected but {list(ip_df.index.names)}"
+            )
         return ip_df, ip_torch
 
-    def _plot_patients_generic(self, case, data, patients_idx='all', individual_parameters=None, reparametrized_ages=False, **kwargs):
-
+    def _plot_patients_generic(
+        self,
+        case: PlottingCase,
+        data: Data,
+        patients_idx='all',
+        individual_parameters=None,
+        reparametrized_ages: bool = False,
+        **kwargs,
+    ):
         # plot with reparametrized ages
         ip_df, ip_torch = None, None
         if individual_parameters is not None:
@@ -282,9 +303,9 @@ class Plotting:
 
         # ---- Input manager
         plot_kws = self._plot_kwargs(case, kwargs)
-        with_model = 'model' in plot_kws # plot reconstruction of model as well
+        with_model = 'model' in plot_kws  # plot reconstruction of model as well
         with_obs = 'obs' in plot_kws and plot_kws['obs'].get('marker') is not None
-        if not(with_model or with_obs): # (or both !)
+        if not (with_model or with_obs):  # (or both !)
             raise LeaspyInputError('Nothing to plot... nor model values nor observations.')
 
         # ---- Patients sublist
@@ -302,20 +323,24 @@ class Plotting:
         # features check
         if self.model.is_initialized:
             if data.headers != self.model.features:
-                raise LeaspyInputError('Features provided mismatch between data and model: '
-                                      f'{data.headers} != {self.model.features}')
-
+                raise LeaspyInputError(
+                    "Features provided mismatch between data and model: "
+                    f"{data.headers} != {self.model.features}"
+                )
         ax, features, features_ix, labels, colors = self._handle_kwargs_begin(kwargs, data.headers)
 
         # Data to dataframe (only selected patients)
         df = data.to_dataframe()
-        df['ID'] = df['ID'].astype(str) # needed because of IndividualParameters converting ID int -> str
+        df['ID'] = df['ID'].astype(str)  # needed because of IndividualParameters converting ID int -> str
         df = df.set_index('ID').loc[patients_idx]
 
         if reparametrized_ages:
             if ip_df is None:
-                raise LeaspyInputError('You want to plot reparametrized ages (`reparametrized_ages=True`) but you did not provide any individual parameters '
-                                       'to do so (please use `individual_parameters` argument).')
+                raise LeaspyInputError(
+                    "You want to plot reparametrized ages (`reparametrized_ages=True`) "
+                    "but you did not provide any individual parameters "
+                    "to do so (please use `individual_parameters` argument)."
+                )
             t0 = self.model.parameters['tau_mean'].item()
             df = df.join(ip_df)
             # reparametrized ages
@@ -331,14 +356,16 @@ class Plotting:
         if with_model:
             if ip_torch is None:
                 raise LeaspyInputError('Individual reconstruction need valid individual parameters.')
-            self._plot_model_trajectories(ax, df, self.model, ip_torch, features_ix, colors, reparametrized_ages, plot_kws['model'], **kwargs)
+            self._plot_model_trajectories(
+                ax, df, self.model, ip_torch, features_ix, colors, reparametrized_ages, plot_kws['model'], **kwargs
+            )
 
         # ---- Title & labels
         if with_obs:
             title = 'Observations'
             if with_model:
                 title += ' and individual trajectories'
-        else: # only with_model
+        else:  # only with_model
             title = 'Individual trajectories'
         ax.set_title(title)
 
@@ -352,7 +379,14 @@ class Plotting:
         return ax
 
     @staticmethod
-    def _plot_observations(ax, df, features, colors, reparametrized_ages, plot_kws):
+    def _plot_observations(
+        ax,
+        df: pd.DataFrame,
+        features: List[str],
+        colors: List[str],
+        reparametrized_ages: bool,
+        plot_kws: Dict,
+    ):
         """
         Internal routine: plot individual observations
 
@@ -370,14 +404,13 @@ class Plotting:
         plot_kws : dict
             Plot kwargs
         """
-
         if reparametrized_ages:
             time_col = 'TIME_reparam'
         else:
             time_col = 'TIME'
 
         df_with_time = df.set_index(df[time_col].rename('T'), append=True).sort_index()
-        df_with_time = df_with_time[features].dropna(how='all') # selected features only
+        df_with_time = df_with_time[features].dropna(how='all')  # selected features only
 
         for ind_id, ind_df in df_with_time.groupby('ID'):
 
@@ -386,14 +419,26 @@ class Plotting:
                 s_ind_ft = s_ind_ft.dropna()
 
                 # TODO? use a cycle of markers to better distinguish individuals?
-                ax.plot(s_ind_ft.reset_index('T')['T'],
-                        s_ind_ft,
-                        c=ft_color,
-                        #label=ft_lbl, # legend is done afterwards
-                        **plot_kws)
+                ax.plot(
+                    s_ind_ft.reset_index('T')['T'],
+                    s_ind_ft,
+                    c=ft_color,
+                    # label=ft_lbl, # legend is done afterwards
+                    **plot_kws,
+                )
 
     @staticmethod
-    def _plot_model_trajectories(ax, df, model, individual_parameters, features_ix, colors, reparametrized_ages, plot_kws, **kwargs):
+    def _plot_model_trajectories(
+        ax,
+        df: pd.DataFrame,
+        model: AbstractModel,
+        individual_parameters,
+        features_ix: List[int],
+        colors: List[str],
+        reparametrized_ages: bool,
+        plot_kws: dict,
+        **kwargs,
+    ):
         """
         Internal routine: plot individual trajectories estimated by model
 
@@ -418,39 +463,39 @@ class Plotting:
             * "n_tpts": int (default 100)
                 nb of tpts in trajectory
         """
-
         ip_indices, ip_torch = individual_parameters
 
         for ind_id, ind_df in df.groupby('ID'):
 
             ind_ix = ip_indices.index(ind_id)
-            ind_ip = {pn: pv[ind_ix] for pn, pv in ip_torch.items()} # torch compatible
+            ind_ip = {pn: pv[ind_ix] for pn, pv in ip_torch.items()}  # torch compatible
 
-            timepoints = ind_df['TIME'] # <!> always real patient ages here (to compute)
+            timepoints = ind_df['TIME']  # <!> always real patient ages here (to compute)
             min_t, max_t = min(timepoints), max(timepoints)
             total_t = max_t - min_t
 
-            timepoints = np.linspace(min_t - kwargs.get('factor_past', .5) * total_t, max_t + kwargs.get('factor_future', .5) * total_t, kwargs.get('n_tpts', 100))
+            timepoints = np.linspace(
+                min_t - kwargs.get('factor_past', .5) * total_t,
+                max_t + kwargs.get('factor_future', .5) * total_t, kwargs.get('n_tpts', 100)
+            )
             t = torch.tensor(timepoints, dtype=torch.float32).unsqueeze(0)
-
-            trajectory = model.compute_individual_tensorized(t, ind_ip).squeeze(0)
-
+            trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
             # times to plot if reparametrized ages are wanted
             if reparametrized_ages:
                 timepoints = (
                     model.time_reparametrization(t=t, alpha=ind_ip['xi'].exp(), tau=ind_ip['tau'])
                     + model.parameters['tau_mean'].item()
                 ).squeeze(0).cpu().numpy()
-
             for ft_ix, ft_color in zip(features_ix, colors):
-                ax.plot(timepoints,
-                        trajectory[:, ft_ix],
-                        c=ft_color,
-                        #label=ft_lbl,
-                        **plot_kws
-                        )
+                ax.plot(
+                    timepoints,
+                    trajectory[:, ft_ix],
+                    c=ft_color,
+                    # label=ft_lbl,
+                    **plot_kws
+                )
 
-    def patient_observations(self, data, patients_idx = 'all', individual_parameters = None, **kwargs):
+    def patient_observations(self, data: Data, patients_idx="all", individual_parameters=None, **kwargs):
         """
         Plot patient observations
 
@@ -459,30 +504,49 @@ class Plotting:
         data : :class:`.Data`
         patients_idx : 'all' (default), str or list[str]
             Patients to display (by their ID).
-        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be outputed by ip.to_dataframe()) or dict (Pytorch ip format) or None (default)
+        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` or None (default)
             If not None, observations are plotted with respect to reparametrized ages.
         """
+        return self._plot_patients_generic(
+            PlottingCase.OBS,
+            data,
+            patients_idx=patients_idx,
+            individual_parameters=individual_parameters,
+            reparametrized_ages=individual_parameters is not None,
+            **kwargs,
+        )
 
-        return self._plot_patients_generic('obs', data, patients_idx = patients_idx, individual_parameters = individual_parameters, reparametrized_ages = individual_parameters is not None, **kwargs)
-
-    def patient_observations_reparametrized(self, data, individual_parameters, patients_idx = 'all', **kwargs):
+    def patient_observations_reparametrized(self, data: Data, individual_parameters, patients_idx="all", **kwargs):
         """
         Plot patient observations (reparametrized ages)
 
-        cf. `patient_observations`, uniquely a reordering of arguments (and mandatory `individual_parameters`) for ease of use...
+        cf. `patient_observations`, uniquely a reordering of arguments
+        (and mandatory `individual_parameters`) for ease of use...
         """
+        return self._plot_patients_generic(
+            PlottingCase.OBS,
+            data,
+            patients_idx=patients_idx,
+            individual_parameters=individual_parameters,
+            reparametrized_ages=True,
+            **kwargs,
+        )
 
-        return self._plot_patients_generic('obs', data, patients_idx = patients_idx, individual_parameters = individual_parameters, reparametrized_ages = True, **kwargs)
-
-
-    def patient_trajectories(self, data, individual_parameters, patients_idx = 'all', reparametrized_ages = False, **kwargs):
+    def patient_trajectories(
+        self,
+        data: Data,
+        individual_parameters,
+        patients_idx="all",
+        reparametrized_ages: bool = False,
+        **kwargs,
+    ):
         """
         Plot patient observations together with model individual reconstruction
 
         Parameters
         ----------
         data : :class:`.Data`
-        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format)
+        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` or dict (Pytorch ip format)
         patients_idx : 'all' (default), str or list[str]
             Patients to display (by their ID).
         reparametrized_ages : bool (default False)
@@ -491,5 +555,11 @@ class Plotting:
             cf. :meth:`._plot_model_trajectories`
             In particular, pass marker=None if you don't want observations besides model
         """
-
-        return self._plot_patients_generic('recons', data, patients_idx = patients_idx, individual_parameters = individual_parameters, reparametrized_ages = reparametrized_ages, **kwargs)
+        return self._plot_patients_generic(
+            PlottingCase.RECONS,
+            data,
+            patients_idx=patients_idx,
+            individual_parameters=individual_parameters,
+            reparametrized_ages=reparametrized_ages,
+            **kwargs,
+        )

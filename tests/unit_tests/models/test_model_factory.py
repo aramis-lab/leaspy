@@ -1,13 +1,12 @@
+import re
 from unittest import skipIf
 
-from leaspy.models import ALL_MODELS, LogisticUnivariateModel
+from leaspy.models import ALL_MODELS, LogisticUnivariateModel, BaseModel
 from leaspy.models.factory import ModelFactory
 from leaspy.models.obs_models import FullGaussianObservationModel
+from leaspy.exceptions import LeaspyModelInputError
 
 from tests import LeaspyTestCase
-
-TEST_LINEAR_MODELS = True
-SKIP_LINEAR_MODELS = "Linear models are currently broken"
 
 TEST_LOGISTIC_PARALLEL_MODELS = False
 SKIP_LOGISTIC_PARALLEL_MODELS = "Logistic parallel models are currently broken"
@@ -15,7 +14,7 @@ SKIP_LOGISTIC_PARALLEL_MODELS = "Logistic parallel models are currently broken"
 
 class ModelFactoryTestMixin(LeaspyTestCase):
 
-    def check_model_factory_constructor(self, model):
+    def check_model_factory_constructor(self, model: BaseModel):
         """
         Test initialization of leaspy model.
 
@@ -24,7 +23,6 @@ class ModelFactoryTestMixin(LeaspyTestCase):
         model : str, optional (default None)
             Name of the model
         """
-        # valid name (preconditon)
         self.assertIn(model.name, ALL_MODELS)
         self.assertEqual(type(model), ALL_MODELS[model.name])
 
@@ -57,14 +55,20 @@ class ModelFactoryTest(ModelFactoryTestMixin):
     def _generic_univariate_hyperparameters_checker(self, model_name: str) -> None:
         model = ModelFactory.model(model_name, features=["t1"])
         self.assertEqual(model.features, ["t1"])
+        self.assertTrue(isinstance(model.obs_models, tuple))
+        self.assertEqual(len(model.obs_models), 1)
         self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
         self.assertEqual(model.dimension, 1)
         self.assertEqual(model.source_dimension, 0)
-        # inconsistent features for a univariate model (dimension=1)
-        with self.assertRaisesRegex(ValueError, r"(?i)\bdimension\b.+\bfeatures\b"):
+        with self.assertRaisesRegex(
+            LeaspyModelInputError,
+            re.escape(
+                "Cannot set the model's features to ['t1', 't2', 't3'], "
+                "because the model has been configured with a dimension of 1."
+            ),
+        ):
             ModelFactory.model(model_name, features=["t1", "t2", "t3"])
 
-    @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_load_hyperparameters_univariate_linear(self):
         self._generic_univariate_hyperparameters_checker("univariate_linear")
 
@@ -79,28 +83,29 @@ class ModelFactoryTest(ModelFactoryTestMixin):
             dimension=3,
         )
         self.assertEqual(model.features, ["t1", "t2", "t3"])
+        self.assertTrue(isinstance(model.obs_models, tuple))
+        self.assertEqual(len(model.obs_models), 1)
         self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
-        self.assertEqual(model.dimension, 3)  # TODO: automatic from length of features?
+        self.assertEqual(model.dimension, 3)
         self.assertEqual(model.source_dimension, 2)
-        with self.assertRaisesRegex(ValueError, r"(?i)\bhyperparameters\b.+\bblabla\b"):
-            ModelFactory.model(model_name, blabla=2)
 
-    @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_load_hyperparameters_multivariate_linear(self):
         self._generic_multivariate_hyperparameters_checker("linear")
 
     def test_load_hyperparameters_multivariate_logistic(self):
         self._generic_multivariate_hyperparameters_checker("logistic")
 
-    @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
+    #@skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
     def test_load_hyperparameters_multivariate_logistic_parallel(self):
         self._generic_multivariate_hyperparameters_checker("logistic_parallel")
 
-    def test_bad_noise_model_or_old_loss(self):
-        # raise if invalid loss
-        with self.assertRaises(ValueError):
-            ModelFactory.model("logistic", noise_model="bad_noise_model")
-
-        # NO MORE BACKWARD COMPAT -> raises about old loss kw
-        with self.assertRaises(ValueError):
-            ModelFactory.model("logistic", loss="MSE_diag_noise")
+    def test_bad_observation_model(self):
+        with self.assertRaisesRegex(
+            NotImplementedError,
+            re.escape(
+                "The requested ObservationModel bad_noise_model is not implemented. "
+                "Valid observation model names are: "
+                "['gaussian-diagonal', 'gaussian-scalar', 'bernoulli', 'ordinal', 'weibull-right-censored']."
+            ),
+        ):
+            ModelFactory.model("logistic", obs_models="bad_noise_model")

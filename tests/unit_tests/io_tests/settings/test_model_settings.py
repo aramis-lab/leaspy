@@ -25,9 +25,8 @@ class ModelSettingsTest(LeaspyTestCase):
         self.assertEqual(self.univariate_model_settings.parameters['p0'], 0.3)
         self.assertEqual(self.univariate_model_settings.parameters['tau_mean'], 50)
         self.assertEqual(self.univariate_model_settings.parameters['tau_var'], 2)
-        self.assertEqual(self.univariate_model_settings.parameters['xi_mean'], -10)
         self.assertEqual(self.univariate_model_settings.parameters['xi_var'], 0.8)
-        self.assertEqual(self.univariate_model_settings.hyperparameters, {})
+        self.assertEqual(self.univariate_model_settings.hyperparameters, {"xi_mean": -10})
 
     def test_model_settings_multivariate(self):
         self.assertEqual(self.multivariate_model_settings.name, "multivariate")
@@ -46,9 +45,13 @@ class ModelSettingsTest(LeaspyTestCase):
             }
         )
         self.assertEqual(
-            self.multivariate_model_settings.hyperparameters,
+            self.multivariate_model_settings.constructor_parameters,
             {
                 "dimension": 3,
                 "source_dimension": 2
             }
+        )
+        self.assertEqual(
+            self.multivariate_model_settings.hyperparameters,
+        {'xi_mean': -2, 'sources_mean': [0.0, 0.1]},
         )
