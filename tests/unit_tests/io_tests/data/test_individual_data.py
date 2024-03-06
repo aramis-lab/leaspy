@@ -35,7 +35,7 @@ class IndividualDataTest(LeaspyTestCase):
         self.assertEqual(data.timepoints.tolist(), [70, 75, 80])
         self.assertEqual(data.observations.tolist(), [[30], [35], [40]])
 
-        with pytest.raises(LeaspyDataInputError):
+        with self.assertRaises(LeaspyDataInputError):
             data.add_observations([70], [[40]])
 
     def test_add_cofactors(self):
@@ -47,9 +47,9 @@ class IndividualDataTest(LeaspyTestCase):
         data.add_cofactors(cofactors_dict)
         self.assertEqual(data.cofactors, cofactors_dict)
 
-        with pytest.raises(TypeError):
+        with self.assertRaises(TypeError):
             data.add_cofactors({5: 5})
         
-        with pytest.raises(LeaspyDataInputError):
+        with self.assertRaises(LeaspyDataInputError):
             data.add_cofactors({"weight": 5})
         

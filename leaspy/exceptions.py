@@ -3,22 +3,22 @@ Define custom Leaspy exceptions for better downstream handling.
 
 Exceptions classes are nested so to handle in the most convenient way for users::
 
-                    Exception
-                        |
-                        |
-                  LeaspyException        RuntimeError
-                        |         \            |
-                        |           LeaspyConvergenceError
-                       / \
-         TypeError    /   \     ValueError
-             |       /     \        |
-      LeaspyTypeError      LeaspyInputError
-                          /    |    |      \
-                         /     |    |  LeaspyIndividualParamsInputError
-                        /      |    |
-    LeaspyDataInputError       |  LeaspyAlgoInputError
-                               |
-                    LeaspyModelInputError
+                            Exception
+                                |
+                                |
+            KeyError      LeaspyException        RuntimeError
+                |       /       |         \            |
+         LeaspyKeyError         |           LeaspyConvergenceError
+                               / \
+                 TypeError    /   \     ValueError
+                     |       /     \        |
+              LeaspyTypeError      LeaspyInputError
+                                  /    |    |      \
+                                 /     |    |  LeaspyIndividualParamsInputError
+                                /      |    |
+            LeaspyDataInputError       |  LeaspyAlgoInputError
+                                       |
+                            LeaspyModelInputError
 
 For I/O operations, non-Leaspy specific errors may be raised, in particular:
     * :class:`FileNotFoundError`
@@ -30,6 +30,9 @@ class LeaspyException(Exception):
 
 class LeaspyConvergenceError(LeaspyException, RuntimeError):
     """Leaspy Exception for errors relative to convergence."""
+
+class LeaspyKeyError(LeaspyException, KeyError):
+    """Leaspy Exception, deriving from `KeyError`."""
 
 class LeaspyTypeError(LeaspyException, TypeError):
     """Leaspy Exception, deriving from `TypeError`."""

@@ -4,9 +4,11 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyKeyError, LeaspyTypeError
 
 from tests import LeaspyTestCase
 
@@ -18,7 +20,7 @@ class IndividualParametersTest(LeaspyTestCase):
         # for tmp handling
         super().setUpClass()
 
-        cls.indices = ['idx1', 'idx2', 'idx3']
+        cls.indices = dict.fromkeys(['idx1', 'idx2', 'idx3']).keys()
         cls.p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
         cls.p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
         cls.p3 = {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]}
@@ -32,7 +34,9 @@ class IndividualParametersTest(LeaspyTestCase):
 
         cls.ip = ip
 
-        cls.ip_df = pd.DataFrame(data=[[0.1, 70, 0.1, -0.3], [0.2, 73, -0.4, 0.1], [0.3, 58, -0.6, 0.2]],
+        cls.ip_df = pd.DataFrame(data=[[0.1, 70, 0.1, -0.3],
+                                       [0.2, 73, -0.4, 0.1],
+                                       [0.3, 58, -0.6, 0.2]],
                                   index=["idx1", "idx2", "idx3"],
                                   columns=["xi", "tau", "sources_0", "sources_1"])
 
@@ -47,9 +51,9 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_constructor(self):
 
         ip = IndividualParameters()
-        self.assertEqual(ip._indices, [])
+        self.assertEqual(ip.keys(), {}.keys())
         self.assertEqual(ip._individual_parameters, {})
-        self.assertEqual(ip._parameters_shape, None) # changed
+        self.assertEqual(ip.parameters_shape, None) # changed
         self.assertEqual(ip._default_saving_type, "csv")
 
     def test_individual_parameters(self):
@@ -64,23 +68,25 @@ class IndividualParametersTest(LeaspyTestCase):
         ip.add_individual_parameters("idx3", p3)
 
         ## test fail index exist
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyIndividualParamsInputError):
             ip.add_individual_parameters('idx1', p3)
         ## test fail index numeric
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyTypeError):
             ip.add_individual_parameters(1, p1)
+        ## test fail parameters not dict
+        with self.assertRaises(LeaspyTypeError):
+            ip.add_individual_parameters('int_dict', {1: 0.5})
         ## test fail expect scalar
-        with self.assertRaises(ValueError):
-            ip.add_individual_parameters('tau_list', {'tau': [0.2], 'xi': .1, 'sources': [0,0]})
+        with self.assertRaises(LeaspyTypeError):
+            ip.add_individual_parameters('tau_list', {'tau': [[0.2]], 'xi': .1, 'sources': [0,0]})
         ## test fail missing key
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyIndividualParamsInputError):
             ip.add_individual_parameters('no_xi', {'tau': 0.2, 'sources': [0,0]})
 
-        self.assertEqual(ip._indices, ["idx1", "idx2", "idx3"])
-        self.assertEqual(ip._indices, list(ip._individual_parameters.keys())) # TODO: delete indices? as they should be dict keys
+        self.assertEqual(ip.keys(), ip._individual_parameters.keys())
         self.assertEqual(ip._individual_parameters, {"idx1": p1, "idx2": p2, "idx3": p3})
-        self.assertEqual(ip._parameters_shape, {"xi": (), "tau": (), "sources": (2,)})
-        self.assertEqual(ip._parameters_size, {"xi": 1, "tau": 1, "sources": 2})
+        self.assertEqual(ip.parameters_shape, {"xi": (), "tau": (), "sources": (2,)})
+        self.assertEqual(ip.parameters_size, {"xi": 1, "tau": 1, "sources": 2})
 
         ### test with 1 source only (previous bug)
         ip1 = IndividualParameters()
@@ -90,11 +96,11 @@ class IndividualParametersTest(LeaspyTestCase):
         ip1.add_individual_parameters('id1', src1)
         ip1.add_individual_parameters('id2', src1)
 
-        self.assertEqual(ip1._parameters_shape, {"xi": (), "tau": (), "sources": (1,)})
-        self.assertEqual(ip1._parameters_size, {"xi": 1, "tau": 1, "sources": 1})
+        self.assertEqual(ip1.parameters_shape, {"xi": (), "tau": (), "sources": (1,)})
+        self.assertEqual(ip1.parameters_size, {"xi": 1, "tau": 1, "sources": 1})
 
         ## test fail compat nb sources 1 != 2
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyIndividualParamsInputError):
             ip1.add_individual_parameters('id_fail', p1)
 
         ## test columns of dataframe
@@ -104,26 +110,29 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertTrue(all(map(pd.api.types.is_numeric_dtype, ip1.to_dataframe().dtypes)))
 
     def test_get_item(self):
-        ip = IndividualParameters()
+        self.assertDictEqual(self.ip['idx1'], self.p1)
+        self.assertDictEqual(self.ip['idx2'], self.p2)
 
-        p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
-        p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
+        # Test List[IDType] (ex-subset) slicing
+        ip2 = self.ip[["idx1", "idx3"]]
 
-        ip.add_individual_parameters("idx1", p1)
-        ip.add_individual_parameters("idx2", p2)
-
-        self.assertDictEqual(ip['idx1'], p1)
-        self.assertDictEqual(ip['idx2'], p2)
-
-
-    def test_subset(self):
-
-        ip2 = self.ip.subset(["idx1", "idx3"])
-
-        self.assertEqual(ip2._indices, ["idx1", "idx3"])
         self.assertEqual(ip2._individual_parameters, {"idx1": self.p1, "idx3": self.p3})
-        self.assertEqual(ip2._parameters_shape, self.parameters_shape)
+        self.assertEqual(ip2.parameters_shape, self.parameters_shape)
 
+        with self.assertRaises(LeaspyKeyError):
+            _ = self.ip["wrong_idx"]
+
+        with self.assertRaises(LeaspyKeyError):
+            _ = self.ip[["wrong_idx1", "wrong_idx2"]]
+
+        with self.assertRaises(LeaspyTypeError):
+            _ = self.ip[3]
+
+    def test_contains(self):
+        assert "idx1" in self.ip
+
+        with self.assertRaises(LeaspyTypeError):
+            assert 1 in self.ip
 
     def test_get_mean(self):
 
@@ -136,6 +145,12 @@ class IndividualParametersTest(LeaspyTestCase):
         self.assertEqual(type(ss), list)
         self.assertAlmostEqual(ss[0], -0.3, delta=10e-10)
         self.assertAlmostEqual(ss[1], 0.0, delta=10e-10)
+
+        with self.assertRaises(LeaspyIndividualParamsInputError):
+            _ = IndividualParameters().get_mean("xi")
+
+        with self.assertRaises(LeaspyKeyError):
+            _ = self.ip.get_mean("wrong_parameter")
 
     def test_get_std(self):
 
@@ -163,9 +178,13 @@ class IndividualParametersTest(LeaspyTestCase):
 
         ip = IndividualParameters.from_dataframe(self.ip_df)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
-        self.assertEqual(ip._parameters_shape, self.parameters_shape)
+        self.assertEqual(ip.parameters_shape, self.parameters_shape)
+
+        wrong_df = self.ip_df.copy()
+        with self.assertRaises(LeaspyTypeError):
+            _ = IndividualParameters.from_dataframe(wrong_df.reset_index())
 
     def test_to_from_dataframe(self):
 
@@ -174,9 +193,9 @@ class IndividualParametersTest(LeaspyTestCase):
         ip2 = IndividualParameters.from_dataframe(df2)
 
         # Test between individual parameters
-        self.assertEqual(ip1._indices, ip2._indices)
+        self.assertEqual(ip1.keys(), ip2.keys())
         self.assertDictEqual(ip1._individual_parameters, ip2._individual_parameters)
-        self.assertDictEqual(ip1._parameters_shape, ip2._parameters_shape)
+        self.assertDictEqual(ip1.parameters_shape, ip2.parameters_shape)
 
         # Test between dataframes
         self.assertTrue((self.ip_df.values == df2.values).all())
@@ -190,7 +209,7 @@ class IndividualParametersTest(LeaspyTestCase):
 
         indices, ip_pytorch = ip.to_pytorch()
 
-        self.assertEqual(indices, self.indices)
+        self.assertEqual(indices, list(self.indices))
 
         self.assertEqual(ip_pytorch.keys(), self.ip_pytorch.keys())
         for k in self.ip_pytorch.keys():
@@ -201,9 +220,9 @@ class IndividualParametersTest(LeaspyTestCase):
 
         ip = IndividualParameters.from_pytorch(self.indices, self.ip_pytorch)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters.keys(), self.individual_parameters.keys())
-        self.assertDictEqual(ip._parameters_shape, self.parameters_shape)
+        self.assertDictEqual(ip.parameters_shape, self.parameters_shape)
         for k, v in self.individual_parameters.items():
             for kk, vv in self.individual_parameters[k].items():
                 self.assertIn(kk, ip._individual_parameters[k].keys())
@@ -221,9 +240,9 @@ class IndividualParametersTest(LeaspyTestCase):
         ip2 = IndividualParameters.from_pytorch(ip_indices, ip_pytorch2)
 
         # Test Individual parameters
-        self.assertEqual(ip._indices, ip2._indices)
+        self.assertEqual(ip.keys(), ip2.keys())
         self.assertDictEqual(ip._individual_parameters, ip2._individual_parameters)
-        self.assertDictEqual(ip._parameters_shape, ip2._parameters_shape)
+        self.assertDictEqual(ip.parameters_shape, ip2.parameters_shape)
 
 
         # Test Pytorch dictionaries
@@ -281,32 +300,32 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_load_csv(self):
         ip = IndividualParameters._load_csv(self.path_csv)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
-        self.assertEqual(ip._parameters_shape, self.parameters_shape)
+        self.assertEqual(ip.parameters_shape, self.parameters_shape)
 
     def test_load_json(self):
         ip = IndividualParameters._load_json(self.path_json)
 
-        self.assertEqual(ip._indices, self.indices)
+        self.assertEqual(ip.keys(), self.indices)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
-        self.assertEqual(ip._parameters_shape, self.parameters_shape)
+        self.assertEqual(ip.parameters_shape, self.parameters_shape)
 
     def test_load_individual_parameters(self):
 
         # Test json
         ip_json = IndividualParameters.load(self.path_json)
 
-        self.assertEqual(ip_json._indices, self.indices)
+        self.assertEqual(ip_json.keys(), self.indices)
         self.assertEqual(ip_json._individual_parameters, self.individual_parameters)
-        self.assertEqual(ip_json._parameters_shape, self.parameters_shape)
+        self.assertEqual(ip_json.parameters_shape, self.parameters_shape)
 
         # Test csv
         ip_csv = IndividualParameters.load(self.path_csv)
 
-        self.assertEqual(ip_csv._indices, self.indices)
+        self.assertEqual(ip_csv.keys(), self.indices)
         self.assertEqual(ip_csv._individual_parameters, self.individual_parameters)
-        self.assertEqual(ip_csv._parameters_shape, self.parameters_shape)
+        self.assertEqual(ip_csv.parameters_shape, self.parameters_shape)
 
     def test_save_individual_parameters(self):
 
