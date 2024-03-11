@@ -28,13 +28,13 @@ workflow:
     - '[[ "$CI_DEBUG" == "1" ]] && conda info || true'
 
 # Assign base job to different CI machines
-update_conda_macos:
-  extends: .update_conda
-  tags:
-    - macos
-    - conda
-  rules:
-    - if: $CI_COMMIT_BRANCH  # job not needed for latter deploy jobs (executed on linux only)
+#update_conda_macos:
+#  extends: .update_conda
+#  tags:
+#    - macos
+#    - conda
+#  rules:
+#    - if: $CI_COMMIT_BRANCH  # job not needed for latter deploy jobs (executed on linux only)
 
 update_conda_linux:
   extends: .update_conda
@@ -59,11 +59,11 @@ check_repo:
     matrix:
       # test on virtual envs with latest versions available complying with requirements
       - PYTHON_VERSION: ['3.8', '3.9', '3.10']
-        CI_RUNNER_TAG: ['macos', 'linux']
+        CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['latest']
       # test on virtual envs with oldest versions supported for requirements (>=X.Y.Z --> ==X.Y.Z)
       - PYTHON_VERSION: ['3.8']
-        CI_RUNNER_TAG: ['macos', 'linux']
+        CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['oldest']
   variables:
     CONDA_ENV_NAME: 'leaspy_env_${PYTHON_VERSION}_${PKG_REQS_MODE}_reqs_${CI_COMMIT_BRANCH}'
