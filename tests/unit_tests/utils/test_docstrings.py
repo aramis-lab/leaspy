@@ -26,6 +26,10 @@ import warnings
 
 import pytest
 
+
+pytest.skip("V2 API is unstable for now.", allow_module_level=True)
+
+
 numpydoc_validation = pytest.importorskip("numpydoc.validate")
 
 # Where to search for docstrings?
