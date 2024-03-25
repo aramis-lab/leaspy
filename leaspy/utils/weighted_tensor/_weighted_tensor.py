@@ -320,3 +320,8 @@ for cmp_name in ("lt", "le", "eq", "ne", "gt", "ge"):
         f"__{cmp_name}__",
         _factory_for_binary_operator(cmp_name, fill_value=None),
     )  # float('nan')
+
+
+class EventTensor(WeightedTensor):
+    """Special case where the WeightedTensor represents an event."""
+    pass

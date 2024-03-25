@@ -8,10 +8,11 @@ from ._utils import (
     wsum_dim_return_weighted_sum_only,
     wsum_dim_return_sum_of_weights_only,
 )
-from ._weighted_tensor import WeightedTensor, TensorOrWeightedTensor
+from ._weighted_tensor import WeightedTensor, TensorOrWeightedTensor, EventTensor
 
 
 __all__ = [
+    "EventTensor",
     "expand_left",
     "expand_right",
     "factory_weighted_tensor_unary_operator",
