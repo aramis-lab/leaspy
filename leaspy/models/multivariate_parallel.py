@@ -117,6 +117,14 @@ class MultivariateParallelModel(LogisticMultivariateInitializationMixin, Abstrac
     def get_variables_specs(self) -> NamedVariables:
         d = super().get_variables_specs()
         d.update(
+
+            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            log_g_std=Hyperparameter(0.01),
+            log_g=PopulationLatentVariable(
+                Normal("log_g_mean", "log_g_std")
+            ),
+            g=LinkedVariable(Exp("log_g")),
+
             xi_mean=ModelParameter.for_ind_mean("xi", shape=(1,)),
             deltas_mean=ModelParameter.for_pop_mean(
                 "deltas",

@@ -68,7 +68,12 @@ class ModelSettings:
             if "source_dimension" in settings:
                 for p_to_delete in ("sources_mean", "sources_std", "xi_mean") + ("betas", "mixing_matrix")*(settings['source_dimension'] == 0):
                     settings['parameters'].pop(p_to_delete, None)
-            for p_old, p_new in {'g': 'log_g_mean', 'v0': 'log_v0_mean', 'betas': 'betas_mean'}.items():
+            dict_rename = {
+                "v0": "log_v0_mean",
+                "betas": "betas_mean",
+                "g": "g_mean" if "linear" in settings["name"] else "log_g_mean",
+            }
+            for p_old, p_new in dict_rename.items():
                 v = settings['parameters'].pop(p_old, None)
                 if v is not None:
                     settings['parameters'][p_new] = v
