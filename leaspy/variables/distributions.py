@@ -8,7 +8,7 @@ from typing import Tuple, Any, ClassVar, Callable, Type
 import torch
 from torch.autograd import grad
 
-from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, sum_dim
+from leaspy.utils.weighted_tensor import EventTensor, WeightedTensor, TensorOrWeightedTensor, sum_dim
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import MultinomialDistribution
 from leaspy.utils.functional import NamedInputFunction
@@ -34,6 +34,7 @@ class StatelessDistributionFamily(ABC):
         Validate consistency of distribution parameters,
         returning them with out-of-place modifications if needed.
         """
+        raise NotImplementedError
 
     @classmethod
     def shape(cls, *params_shapes: Tuple[int, ...]) -> Tuple[int, ...]:
@@ -42,8 +43,7 @@ class StatelessDistributionFamily(ABC):
         given shapes of distribution parameters.
         """
         # We provide a default implementation which should fit for most cases
-        n_params = len(params_shapes)
-        if n_params != len(cls.parameters):
+        if (n_params := len(params_shapes)) != len(cls.parameters):
             raise LeaspyInputError(
                 f"Expecting {len(cls.parameters)} parameters but got {n_params}"
             )
@@ -66,6 +66,7 @@ class StatelessDistributionFamily(ABC):
         Sample values, given distribution parameters (`sample_shape` is
         prepended to shape of distribution parameters).
         """
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
@@ -74,50 +75,55 @@ class StatelessDistributionFamily(ABC):
         Mode of distribution (returning first value if discrete ties),
         given distribution parameters.
         """
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
     def mean(cls, *params: torch.Tensor) -> torch.Tensor:
         """Mean of distribution (if defined), given distribution parameters."""
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
     def stddev(cls, *params: torch.Tensor) -> torch.Tensor:
         """Standard-deviation of distribution (if defined), given distribution parameters."""
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
     def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
         """Negative log-likelihood of value, given distribution parameters."""
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
     def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
         """Jacobian w.r.t. value of negative log-likelihood, given distribution parameters."""
+        raise NotImplementedError
 
     @classmethod
     def _nll_and_jacobian(
-            cls,
-            x: WeightedTensor,
-            *params: torch.Tensor,
+        cls,
+        x: WeightedTensor,
+        *params: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         # not efficient implementation by default
         return cls._nll(x, *params), cls._nll_jacobian(x, *params)
 
-    # AUTOMATIC COMPATIBILITY LAYER for value being a regular or a weighted tensor
-
     @staticmethod
     def _get_func_result_for_tensor_or_weighted_tensor(
-            func: Callable,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+        func: Callable,
+        x: TensorOrWeightedTensor[float],
+        *params: TensorOrWeightedTensor[float],
     ) -> Any:
         """Automatic compatibility layer for value `x` being a regular or a weighted tensor."""
         StatelessDistributionFamily._check_weighted_tensors_have_same_weights(*(x, *params))
         if isinstance(x, torch.Tensor):
             x = WeightedTensor(x)
         r = func(x, *StatelessDistributionFamily._cast_parameters_to_tensors(params))
+        if isinstance(x, EventTensor):
+            return r
         conv = x.valued
         if isinstance(r, tuple):
             return tuple(map(conv, r))
@@ -129,7 +135,9 @@ class StatelessDistributionFamily(ABC):
         pass
 
     @staticmethod
-    def _cast_parameters_to_tensors(parameters: Tuple[TensorOrWeightedTensor[float]]) -> Tuple[torch.Tensor]:
+    def _cast_parameters_to_tensors(
+        parameters: Tuple[TensorOrWeightedTensor[float], ...],
+    ) -> Tuple[torch.Tensor, ...]:
         """Cast a tuple of tensor or WeightedTensor objects to a tuple of tensors."""
         new_parameters = []
         for param in parameters:
@@ -146,27 +154,27 @@ class StatelessDistributionFamily(ABC):
 
     @classmethod
     def nll(
-            cls,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+        cls,
+        x: TensorOrWeightedTensor[float],
+        *params: TensorOrWeightedTensor[float],
     ) -> WeightedTensor[float]:
         """Negative log-likelihood of value, given distribution parameters."""
         return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll, x, *params)
 
     @classmethod
     def nll_jacobian(
-            cls,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+        cls,
+        x: TensorOrWeightedTensor[float],
+        *params: TensorOrWeightedTensor[float],
     ) -> WeightedTensor[float]:
         """Jacobian w.r.t. value of negative log-likelihood, given distribution parameters."""
         return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll_jacobian, x, *params)
 
     @classmethod
     def nll_and_jacobian(
-            cls,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+        cls,
+        x: TensorOrWeightedTensor[float],
+        *params: TensorOrWeightedTensor[float],
     ) -> Tuple[WeightedTensor[float], WeightedTensor[float]]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll_and_jacobian, x, *params)
@@ -198,9 +206,9 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def sample(
-            cls,
-            *params: torch.Tensor,
-            sample_shape: Tuple[int, ...] = (),
+        cls,
+        *params: torch.Tensor,
+        sample_shape: Tuple[int, ...] = (),
     ) -> torch.Tensor:
         return cls.dist_factory(*params).sample(sample_shape)
 
@@ -262,9 +270,9 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def _nll_and_jacobian(
-            cls,
-            x: WeightedTensor,
-            *params: torch.Tensor,
+        cls,
+        x: WeightedTensor,
+        *params: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         nll = cls._nll(x, *params)
         (nll_grad_value,) = grad(nll, (x.value,), create_graph=x.requires_grad)
@@ -332,7 +340,6 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         torch.Tensor :
             The value of the distribution's mean.
         """
-        # Hardcode method for efficiency
         # `loc`, but with possible broadcasting of shape
         return torch.broadcast_tensors(loc, scale)[0]
 
@@ -353,32 +360,28 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         torch.Tensor :
             The value of the distribution's standard deviation.
         """
-        # Hardcode method for efficiency
         # `scale`, but with possible broadcasting of shape
         return torch.broadcast_tensors(loc, scale)[1]
 
     @classmethod
     def _nll(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        # Hardcode method for efficiency
         return (
-                0.5 * ((x.value - loc) / scale) ** 2
-                + torch.log(scale)
-                + cls.nll_constant_standard
+            0.5 * ((x.value - loc) / scale) ** 2
+            + torch.log(scale)
+            + cls.nll_constant_standard
         )
 
     @classmethod
     def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        # Hardcode method for efficiency
         return (x.value - loc) / scale ** 2
 
     @classmethod
     def _nll_and_jacobian(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
+        cls,
+        x: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # Hardcode method for efficiency
         z = (x.value - loc) / scale
         nll = 0.5 * z ** 2 + torch.log(scale) + cls.nll_constant_standard
         return nll, z / scale
@@ -467,6 +470,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @abstractmethod
     def _get_reparametrized_nu(nu: torch.Tensor, xi: torch.Tensor) -> torch.Tensor:
         """Reparametrization of nu using individual parameter xi."""
+        raise NotImplementedError
 
     @classmethod
     def stddev(
@@ -496,7 +500,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @classmethod
     def compute_log_likelihood_hazard(
         cls,
-        x: WeightedTensor,
+        x: EventTensor,
         nu: torch.Tensor,
         rho: torch.Tensor,
         xi: torch.Tensor,
@@ -518,7 +522,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @classmethod
     def _extract_reparametrized_parameters(
         cls,
-        x: WeightedTensor,
+        x: EventTensor,
         nu: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
@@ -534,7 +538,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @classmethod
     def compute_log_survival(
         cls,
-        x: WeightedTensor,
+        x: EventTensor,
         nu: torch.Tensor,
         rho: torch.Tensor,
         xi: torch.Tensor,
@@ -546,7 +550,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @classmethod
     def _nll(
         cls,
-        x: WeightedTensor,
+        x: EventTensor,
         nu: torch.Tensor,
         rho: torch.Tensor,
         xi: torch.Tensor,
@@ -561,7 +565,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @classmethod
     def _nll_and_jacobian(
         cls,
-        x: WeightedTensor,
+        x: EventTensor,
         nu: torch.Tensor,
         rho: torch.Tensor,
         xi: torch.Tensor,
@@ -572,7 +576,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     @classmethod
     def _nll_jacobian(
         cls,
-        x: WeightedTensor,
+        x: EventTensor,
         nu: torch.Tensor,
         rho: torch.Tensor,
         xi: torch.Tensor,
