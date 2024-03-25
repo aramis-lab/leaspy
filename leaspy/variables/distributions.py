@@ -642,9 +642,9 @@ class SymbolicDistribution:
                 f"while expecting {len(self.dist_family.parameters)}: {self.dist_family.parameters}"
             )
         for bypass_method in {"validate_parameters", "shape", "mode", "mean", "stddev"}:
-            object.__setattr__(self, bypass_method, self._get_func(bypass_method))
+            object.__setattr__(self, bypass_method, self.get_func(bypass_method))
 
-    def _get_func(self, func: str, *extra_args_names: str, **kws):
+    def get_func(self, func: str, *extra_args_names: str, **kws):
         """Get keyword-only function from the stateless distribution family."""
         return NamedInputFunction(
             getattr(self.dist_family, func),
@@ -653,7 +653,7 @@ class SymbolicDistribution:
         )
 
     def get_func_sample(
-            self, sample_shape: Tuple[int, ...] = ()
+        self, sample_shape: Tuple[int, ...] = ()
     ) -> NamedInputFunction[torch.Tensor]:
         """
         Factory of symbolic sampling function.
@@ -669,10 +669,10 @@ class SymbolicDistribution:
         NamedInputFunction :
             The sample function.
         """
-        return self._get_func("sample", sample_shape=sample_shape)
+        return self.get_func("sample", sample_shape=sample_shape)
 
     def get_func_nll(
-            self, value_name: str
+        self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
         """
         Factory of symbolic function: state -> negative log-likelihood of value.
@@ -686,10 +686,10 @@ class SymbolicDistribution:
         NamedInputFunction :
             The named input function to use to compute negative log likelihood.
         """
-        return self._get_func("nll", value_name)
+        return self.get_func("nll", value_name)
 
     def get_func_nll_jacobian(
-            self, value_name: str
+        self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
         """
         Factory of symbolic function: state -> jacobian w.r.t. value of negative log-likelihood.
@@ -703,10 +703,10 @@ class SymbolicDistribution:
         NamedInputFunction :
             The named input function to use to compute negative log likelihood jacobian.
         """
-        return self._get_func("nll_jacobian", value_name)
+        return self.get_func("nll_jacobian", value_name)
 
     def get_func_nll_and_jacobian(
-            self, value_name: str
+        self, value_name: str
     ) -> NamedInputFunction[Tuple[WeightedTensor[float], WeightedTensor[float]]]:
         """
         Factory of symbolic function: state -> (negative log-likelihood, its jacobian w.r.t. value).
@@ -720,12 +720,12 @@ class SymbolicDistribution:
         Tuple[NamedInputFunction, NamedInputFunction] :
             The named input functions to use to compute negative log likelihood and its jacobian.
         """
-        return self._get_func("nll_and_jacobian", value_name)
+        return self.get_func("nll_and_jacobian", value_name)
 
     @classmethod
     def bound_to(
-            cls,
-            dist_family: Type[StatelessDistributionFamily],
+        cls,
+        dist_family: Type[StatelessDistributionFamily],
     ) -> Callable[..., SymbolicDistribution]:
         """
         Return a factory to create `SymbolicDistribution` bound to the provided distribution family.

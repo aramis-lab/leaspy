@@ -70,13 +70,15 @@ class WeibullRightCensoredObservationModel(ObservationModel):
             self.dist.get_func_nll(self.name)
         )
         specs[f"survival_{self.name}"] = LinkedVariable(
-            self.dist._get_func("compute_log_survival", self.name)
+            self.dist.get_func("compute_log_survival", self.name)
         )
         return specs
 
     @classmethod
-    def default_init(self, **kwargs):
-        return self(nu = kwargs.pop("nu", "nu"),
-                    rho = kwargs.pop("rho", "rho"),
-                    xi = kwargs.pop("xi", "xi"),
-                    tau = kwargs.pop("tau", "tau"))
+    def default_init(cls, **kwargs):
+        return cls(
+            nu=kwargs.pop("nu", "nu"),
+            rho=kwargs.pop("rho", "rho"),
+            xi=kwargs.pop("xi", "xi"),
+            tau=kwargs.pop("tau", "tau"),
+        )
