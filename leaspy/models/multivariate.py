@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 from abc import abstractmethod
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Dict
 from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor
 from leaspy.models.base import InitializationMethod
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
@@ -469,9 +469,13 @@ class MultivariateModel(AbstractMultivariateModel):
                 model=LinkedVariable(self.model_with_sources),
                 metric_sqr=LinkedVariable(Sqr("metric")),
                 orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr")),
+                gradient=LinkedVariable(self.model_gradient_with_sources),
             )
         else:
-            d['model'] = LinkedVariable(self.model_no_sources)
+            d.update(
+                model= LinkedVariable(self.model_no_sources),
+                gradient=LinkedVariable(self.model_gradient_no_sources),
+            )
 
         # TODO: WIP
         #variables_info.update(self.get_additional_ordinal_population_random_variable_information())
@@ -486,6 +490,17 @@ class MultivariateModel(AbstractMultivariateModel):
 
     @classmethod
     def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
+        """Returns a model without source. A bit dirty?"""
+        return cls.model_gradient_with_sources(
+            rt=rt,
+            metric=metric,
+            v0=v0,
+            g=g,
+            space_shifts=torch.zeros((1, 1)),
+        )
+
+    @classmethod
+    def model_gradient_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
         """Returns a model without source. A bit dirty?"""
         return cls.model_with_sources(
             rt=rt,
@@ -506,6 +521,11 @@ class MultivariateModel(AbstractMultivariateModel):
         v0,
         g,
     ) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def model_gradient_with_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> Dict[str, torch.Tensor]:
+        """ Returns a dictionnary containing all the partial derivatives of the model variables """
         pass
 
 
@@ -712,7 +732,29 @@ class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, Multiva
         model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
 
-
+    @classmethod
+    def model_gradient_with_sources(
+            cls,
+            *,
+            alpha: torch.Tensor,
+            rt: TensorOrWeightedTensor[float],
+            mixing_matrix: TensorOrWeightedTensor[float],
+            space_shifts: TensorOrWeightedTensor[float],
+            metric: TensorOrWeightedTensor[float],
+            v0: TensorOrWeightedTensor[float],
+            g: TensorOrWeightedTensor[float],
+            model: TensorOrWeightedTensor[float],
+    ) -> Dict[str, torch.Tensor]:
+        """Returns the gradient of the model in a dictionnary"""
+        pop_s = (None, None, ...)
+        rt = unsqueeze_right(rt, ndim=1)
+        c = model * (1. - model) * metric[pop_s] #common factor
+        derivatives = {
+            'xi': c * v0[pop_s] * rt,
+            'tau': -c * v0[pop_s] * alpha,
+            'sources': c * mixing_matrix[pop_s],
+        }
+        return derivatives
 
 """
 # document some methods (we cannot decorate them at method creation since they are
