@@ -31,7 +31,7 @@ workflow:
 update_conda_macos:
   extends: .update_conda
   tags:
-    - macos
+    - arm
     - conda
   rules:
     - if: $CI_COMMIT_BRANCH  # job not needed for latter deploy jobs (executed on linux only)
@@ -58,12 +58,12 @@ check_repo:
   parallel:
     matrix:
       # test on virtual envs with latest versions available complying with requirements
-      - PYTHON_VERSION: ['3.8', '3.9', '3.10']
-        CI_RUNNER_TAG: ['macos', 'linux']
+      - PYTHON_VERSION: ['3.9', '3.10', '3.11']
+        CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['latest']
       # test on virtual envs with oldest versions supported for requirements (>=X.Y.Z --> ==X.Y.Z)
-      - PYTHON_VERSION: ['3.8']
-        CI_RUNNER_TAG: ['macos', 'linux']
+      - PYTHON_VERSION: ['3.9']
+        CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['oldest']
   variables:
     CONDA_ENV_NAME: 'leaspy_env_${PYTHON_VERSION}_${PKG_REQS_MODE}_reqs_${CI_COMMIT_BRANCH}'
@@ -85,8 +85,6 @@ check_repo:
     - conda activate $CONDA_ENV_NAME
     # when testing pipeline with oldest supported versions of dependencies, we modify in-place the requirements
     - '[[ "$PKG_REQS_MODE" == "oldest" ]] && sed -i.bak -E "s/>=/==/g" requirements.txt || true'
-    # when testing with our MacOS 10.12 CI machine we force not using a Pillow version that dropped support for this architecture
-    - '[[ "$CI_RUNNER_TAG" == "macos" ]] && echo "Pillow==9.0.1" >> requirements.txt || true'
     # TODO? use conda install --update-all --file ... instead of pip install?
     - pip install -U -r requirements.txt
     - pip install -U -r requirements_dev.txt
