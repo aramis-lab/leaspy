@@ -194,6 +194,63 @@ class WeightedTensor(Generic[VT]):
     def requires_grad(self) -> bool:
         return self.value.requires_grad
 
+    def abs(self) -> WeightedTensor:
+        return self.__abs__()
+
+    def all(self) -> bool:
+        return self.value.all()
+
+    def clamp(self, min: float, max: float) -> WeightedTensor:
+        return WeightedTensor(torch.clamp(self.value, min, max), self.weight)
+
+    def __neg__(self) -> WeightedTensor:
+        return _factory_for_unary_operators("neg")(self)
+
+    def __abs__(self) -> WeightedTensor:
+        return _factory_for_unary_operators("abs")(self)
+
+    def __add__(self, other: WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("add")(self, other)
+
+    def __radd__(self, other: WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("add", rev=True)(self, other)
+
+    def __sub__(self, other: WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("sub")(self, other)
+
+    def __rsub__(self, other: WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("sub", rev=True)(self, other)
+
+    def __mul__(self, other:  WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("mul")(self, other)
+
+    def __rmul__(self, other:  WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("mul", rev=True)(self, other)
+
+    def __truediv__(self, other: WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("truediv")(self, other)
+
+    def __rtruediv__(self, other: WeightedTensor) -> WeightedTensor:
+        return _factory_for_binary_operator("truediv", rev=True)(self, other)
+
+    def __lt__(self, other: WeightedTensor):
+        return _factory_for_binary_operator("lt", fill_value=None)(self, other)
+
+    def __le__(self, other: WeightedTensor):
+        return _factory_for_binary_operator("le", fill_value=None)(self, other)
+
+    def __eq__(self, other: WeightedTensor):
+        return _factory_for_binary_operator("eq", fill_value=None)(self, other)
+
+    def __ne__(self, other: WeightedTensor):
+        return _factory_for_binary_operator("ne", fill_value=None)(self, other)
+
+    def __gt__(self, other: WeightedTensor):
+        return _factory_for_binary_operator("gt", fill_value=None)(self, other)
+
+    def __ge__(self, other: WeightedTensor):
+        return _factory_for_binary_operator("ge", fill_value=None)(self, other)
+
     @staticmethod
     def get_filled_value_and_weight(
         t: TensorOrWeightedTensor[VT], *, fill_value: Optional[VT] = None
@@ -256,7 +313,6 @@ class WeightedTensor(Generic[VT]):
 TensorOrWeightedTensor = Union[torch.Tensor, WeightedTensor[VT]]
 
 
-# Add unary operators
 def _factory_for_unary_operators(name_of_operator: str, *, fill_value: Optional[VT] = 0):
     op = getattr(operator, name_of_operator)
 
@@ -266,15 +322,6 @@ def _factory_for_unary_operators(name_of_operator: str, *, fill_value: Optional[
     return _unary_op
 
 
-for operator_name in ("neg", "abs"):
-    setattr(
-        WeightedTensor,
-        f"__{operator_name}__",
-        _factory_for_unary_operators(operator_name),
-    )
-
-
-# Add binary operators
 def _factory_for_binary_operator(
     name_of_operator: str,
     *,
@@ -300,23 +347,3 @@ def _factory_for_binary_operator(
             return self._binary_op(op, self, other, **kws)
 
         return _binary_op
-
-
-for operator_name in ("add", "sub", "mul", "truediv"):
-    setattr(
-        WeightedTensor,
-        f"__{operator_name}__",
-        _factory_for_binary_operator(operator_name),
-    )
-    setattr(
-        WeightedTensor,
-        f"__r{operator_name}__",
-        _factory_for_binary_operator(operator_name, rev=True),
-    )
-
-for cmp_name in ("lt", "le", "eq", "ne", "gt", "ge"):
-    setattr(
-        WeightedTensor,
-        f"__{cmp_name}__",
-        _factory_for_binary_operator(cmp_name, fill_value=None),
-    )  # float('nan')
