@@ -71,6 +71,7 @@ class ModelSettings:
             dict_rename = {
                 "v0": "log_v0_mean",
                 "betas": "betas_mean",
+                "deltas": "deltas_mean",
                 "g": "g_mean" if "linear" in settings["name"] else "log_g_mean",
             }
             for p_old, p_new in dict_rename.items():
