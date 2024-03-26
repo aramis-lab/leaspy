@@ -99,6 +99,10 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
             vars_order = ['g', 'log_v0', 'tau', 'xi']
         elif set(vars_order) == {'g', 'betas', 'log_v0', 'xi', 'tau', 'sources'}:
             vars_order = ['g', 'log_v0', 'betas', 'tau', 'xi', 'sources']
+        elif set(vars_order) == {'betas', 'deltas', 'log_g', 'sources', 'tau', 'xi'}:
+            vars_order = ['log_g', 'deltas', 'betas', 'tau', 'xi', 'sources']
+        elif set(vars_order) == {'deltas', 'log_g', 'tau', 'xi'}:
+            vars_order = ['log_g', 'deltas', 'tau', 'xi']
         # END TMP
         if self.random_order_variables:
             shuffle(vars_order)  # shuffle order in-place!

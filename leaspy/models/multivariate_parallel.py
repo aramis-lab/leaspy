@@ -13,7 +13,7 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     VariablesValuesRO,
 )
-from leaspy.utils.functional import OrthoBasis
+from leaspy.utils.functional import Exp, OrthoBasis
 from leaspy.variables.distributions import Normal
 
 
@@ -118,7 +118,7 @@ class MultivariateParallelModel(LogisticMultivariateInitializationMixin, Abstrac
         d = super().get_variables_specs()
         d.update(
 
-            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(1,)),
             log_g_std=Hyperparameter(0.01),
             log_g=PopulationLatentVariable(
                 Normal("log_g_mean", "log_g_std")
@@ -133,7 +133,7 @@ class MultivariateParallelModel(LogisticMultivariateInitializationMixin, Abstrac
             deltas_std=Hyperparameter(0.01),
             deltas=PopulationLatentVariable(
                 Normal("deltas_mean", "deltas_std"),
-                sampling_kws={"scale": .1},
+                sampling_kws={"scale": 1.},
             ),
             deltas_padded=LinkedVariable(self.pad_deltas),
             deltas_exp=LinkedVariable(self.deltas_exp),

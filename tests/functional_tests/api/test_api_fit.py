@@ -118,7 +118,7 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
             new_shape = torch.tensor(new_model_dict['parameters'][p]).shape
             old_model_dict['parameters'][p] = torch.tensor(old_model_dict['parameters'][p]).expand(new_shape).tolist()
         # Transition tests refacto/old
-        for pp in ("log_g_std", "log_v0_std","g_std", "betas_std", "sources_mean", "sources_std", "xi_mean"):
+        for pp in ("log_g_std", "log_v0_std","g_std", "betas_std", "deltas_std", "sources_mean", "sources_std", "xi_mean"):
                new_model_dict['parameters'].pop(pp, None)
 
         del new_model_dict['obs_models']
