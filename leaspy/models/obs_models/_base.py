@@ -20,6 +20,7 @@ from leaspy.variables.specs import (
     VariableInterface,
     DataVariable,
     LinkedVariable,
+    GradientVariable,
     LVL_IND,
 )
 from leaspy.io.data.dataset import Dataset
@@ -82,7 +83,7 @@ class ObservationModel:
                 self.dist.get_func_nll(self.name).then(sum_dim, but_dim=LVL_IND)
             ),
             nll_attach_var: LinkedVariable(SumDim(f"{nll_attach_var}_ind")),
-            f"{nll_attach_var}_gradient": LinkedVariable(
+            f"{nll_attach_var}_gradient": GradientVariable(
                 self.dist.get_func_nll_jacobian(self.name)
             ), # This is the partial derivative wrt the model value / input of obs model
         }

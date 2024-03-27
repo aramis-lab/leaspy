@@ -442,7 +442,7 @@ class PopulationLatentVariable(LatentVariable):
                     # SumDim(f"nll_regul_{value_name}_full")
                     self.prior.get_func_nll(variable_name).then(sum_dim)
                 ),
-                f"nll_regul_{variable_name}_gradient": LinkedVariable(
+                f"nll_regul_{variable_name}_gradient": GradientVariable(
                     self.prior.get_func_nll_jacobian(variable_name)
                 ),
             }
@@ -507,7 +507,7 @@ class IndividualLatentVariable(LatentVariable):
                 f"nll_regul_{variable_name}": LinkedVariable(
                     SumDim(f"nll_regul_{variable_name}_ind")
                 ),
-                f"nll_regul_{variable_name}_gradient": LinkedVariable(
+                f"nll_regul_{variable_name}_gradient": GradientVariable(
                     self.prior.get_func_nll_jacobian(variable_name)
                 )
             }
@@ -560,6 +560,33 @@ class LinkedVariable(VariableInterface):
         """
         return self.f(**{k: state[k] for k in self.parameters})
 
+class GradientVariable(LinkedVariable):
+    """
+    Collection-like variable to store gradients for a specified node in the graph
+    """
+
+    def chain_rule(self, state: VariablesValuesRO, selfgradients: Dict[VarName, VarValue]) ->None:
+        """
+        Applies the chain rule to build gradients
+        """
+        new_vars = {} # to not override already computed grads
+        for parent in selfgradients:
+            parent_grad = f"{parent}_gradient"
+            if parent_grad in state:
+                for var, grad in state[parent_grad].items(): # recursively applies chain rule
+                    if not var in selfgradients:
+                        new_vars[var] = selfgradients[parent] * grad
+                    elif var in new_vars:
+                        new_vars[var] += selfgradients[parent] * grad
+        selfgradients.update(new_vars)
+
+    def compute(self, state: VariablesValuesRO) -> VarValue:
+        """
+        Override previous method to reset backprop flag if necessary
+        """
+        grads = super().compute(state)
+        self.chain_rule(state, grads)
+        return grads
 
 class NamedVariables(UserDict):
     """

@@ -271,8 +271,9 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         nll = cls._nll(x, *params)
         nll_grad_value = {
-            param : grad(nll, (params[i].value,), create_graph=x.requires_grad) for i, param in enumerate(cls.parameters)
+            param : grad(nll, (params[i].value,), create_graph=params[i].requires_grad) for i, param in enumerate(cls.parameters)
         }
+        nll_grad_value["value"] = grad(nll, (x.value,), create_graph=x.requires_grad)
         return nll, nll_grad_value
 
     @classmethod
@@ -374,7 +375,10 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     @classmethod
     def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> Dict[str, torch.Tensor]:
         # Hardcode method for efficiency
-        return {"loc": (loc - x.value) / scale ** 2}
+        return {
+            "loc": ((loc - x.value) / scale ** 2),
+            "value": ((x.value - loc) / scale ** 2),
+        }
 
     @classmethod
     def _nll_and_jacobian(
@@ -707,6 +711,7 @@ class SymbolicDistribution:
             The named input function to use to compute negative log likelihood jacobian.
         """
         name_mapper = {k: v for (k,v) in zip(self.dist_family.parameters, self.parameters_names)}
+        name_mapper["value"] = value_name
         return self._get_func("nll_jacobian", value_name).then(
             lambda x: {name_mapper[k] if k in name_mapper else k: v for k, v in x.items()}
         )
