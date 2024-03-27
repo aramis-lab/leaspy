@@ -1,12 +1,14 @@
 {
-  "leaspy_version": "1.1",
+  "leaspy_version": "2.0",
   "name": "univariate",
   "parameters": {
     "p0": 0.3,
     "tau_mean": 50,
     "tau_var": 2,
-    "xi_mean": -10,
     "xi_var": 0.8,
     "noise_var": 0.01
+  },
+  "hyperparameters": {
+    "xi_mean": -10
   }
 }

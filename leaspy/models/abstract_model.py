@@ -1,24 +1,17 @@
 from __future__ import annotations
 
-import re
 from abc import abstractmethod
-import json
-from inspect import signature
 import warnings
 
 import torch
-from torch._tensor_str import PRINT_OPTS as torch_print_opts
 
-from leaspy import __version__
 from leaspy.models.base import BaseModel, InitializationMethod
-from leaspy.models.obs_models import ObservationModel
-from leaspy.models.utilities import tensor_to_list
+from leaspy.models.obs_models import ObservationModel, ObservationModelFactoryInput, observation_model_factory
+from .utilities import cast_value_to_tensor, cast_value_to_2d_tensor, serialize_tensor
 from leaspy.io.data.dataset import Dataset
-from leaspy.variables.specs import PopulationLatentVariable, IndividualLatentVariable, LatentVariableInitType
 
 from leaspy.variables.specs import (
     VarName,
-    VarValue,
     Hyperparameter,
     ModelParameter,
     LinkedVariable,
@@ -49,6 +42,7 @@ from leaspy.utils.typing import (
     Tuple,
     Iterable,
     Optional,
+    Any,
 )
 
 
@@ -86,7 +80,7 @@ class AbstractModel(BaseModel):
         Names of the model features.
     parameters : :obj:`dict`
         Contains the model's parameters
-    obs_models : Tuple[ObservationModel, ...]
+    obs_models : Tuple[ObservationModelFactoryInput, ...]
         The observation model(s) associated to the model.
     fit_metrics : :obj:`dict`
         Contains the metrics that are measured during the fit of the model and reported to the user.
@@ -101,59 +95,34 @@ class AbstractModel(BaseModel):
         # TODO? if we'd allow to pass a state there should be a all bunch of checks I guess? only "equality" of DAG is OK?
         # (WIP: cf. comment regarding inclusion of state here)
         # state: Optional[State] = None,
-        # TODO? Factory of `ObservationModel` instead? (typically one would need the dimension to instantiate the `noise_std` variable of the right shape...)
-        obs_models: Union[ObservationModel, Iterable[ObservationModel]],
+        obs_models: Optional[Union[ObservationModelFactoryInput, Iterable[ObservationModelFactoryInput]]] = None,
+        dimension: Optional[int] = None,
+        features: Optional[List[FeatureType]] = None,
         fit_metrics: Optional[Dict[str, float]] = None,
+        variables_to_track: Optional[Iterable[VarName]] = None,
         **kwargs
     ):
-        super().__init__(name, **kwargs)
-
-        # observation models: one or multiple (WIP - e.g. for joint model)
-        if isinstance(obs_models, ObservationModel):
-            obs_models = (obs_models,)
-        self.obs_models = tuple(obs_models)
-
-        # Internal state to hold all model & data variables
+        super().__init__(name, dimension=dimension, features=features)
+        if obs_models is None:
+            obs_models = "gaussian-scalar" if dimension is None else "gaussian-diagonal"
+        if isinstance(obs_models, (list, tuple)):
+            self.obs_models = tuple(
+                [observation_model_factory(model, dimension=dimension, **kwargs) for model in obs_models]
+            )
+        elif isinstance(obs_models, dict):
+            # Not really satisfied... Used for api load
+            self.obs_models = tuple(
+                [observation_model_factory(obs_models['y'], dimension=dimension)]
+            )
+        else:
+            self.obs_models = (observation_model_factory(obs_models, dimension=dimension, **kwargs),)
         # WIP: cf. comment regarding inclusion of state here
         self._state: Optional[State] = None  # = state
-
-        # load hyperparameters
-        # <!> some may still be missing at this point (e.g. `dimension`, `source_dimension`, ...)
-        # (thus we sh/could NOT instantiate the DAG right now!)
-        self._load_hyperparameters(kwargs)
-
         # TODO: dirty hack for now, cf. AbstractFitAlgo
         self.fit_metrics = fit_metrics
-
-        self.tracked_variables: Set[str, ...] = set()
-
-    # @property
-    # def noise_model(self) -> BaseNoiseModel:
-    #     if self._noise_model is None:
-    #         raise LeaspyModelInputError("The `noise_model` was not properly initialized.")
-    #     return self._noise_model
-    #
-    # @noise_model.setter
-    # def noise_model(self, model: NoiseModelFactoryInput):
-    #     noise_model = noise_model_factory(model)
-    #     self.check_noise_model_compatibility(noise_model)
-    #     self._noise_model = noise_model
-    #
-    #def check_noise_model_compatibility(self, model: BaseNoiseModel) -> None:
-    #    """
-    #    Raise a LeaspyModelInputError is the provided noise model isn't compatible with the model instance.
-    #    This needs to be implemented in subclasses.
-    #
-    #    Parameters
-    #    ----------
-    #    model : BaseNoiseModel
-    #        The noise model with which to check compatibility.
-    #    """
-    #    if not isinstance(model, BaseNoiseModel):
-    #        raise LeaspyModelInputError(
-    #            "Expected a subclass of BaselNoiseModel, but received "
-    #            f"a {type(model).__name__} instead."
-    #        )
+        self.tracked_variables: Set[VarName, ...] = set()
+        if variables_to_track:
+            self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
     @property
     def state(self) -> State:
@@ -162,12 +131,13 @@ class AbstractModel(BaseModel):
         return self._state
 
     @state.setter
-    def state(self, s: State) -> None:
-        assert isinstance(s, State), "Provided state should be a valid State instance"
-        if self._state is not None and s.dag is not self._state.dag:
-            raise LeaspyModelInputError("DAG of new state does not match with previous one")
+    def state(self, new_state: State) -> None:
+        if not isinstance(new_state, State):
+            raise LeaspyModelInputError("Provided state should be a valid State instance.")
+        if self._state is not None and new_state.dag is not self._state.dag:
+            raise LeaspyModelInputError("DAG of new state does not match with previous one.")
         # TODO? perform some clean-up steps for provided state (cf. `_terminate_algo` of MCMC algo)
-        self._state = s
+        self._state = new_state
 
     @property
     def dag(self) -> VariablesDAG:
@@ -192,117 +162,57 @@ class AbstractModel(BaseModel):
     @property
     def parameters(self) -> DictParamsTorch:
         """Dictionary of values for model parameters."""
-        return {
-            p: self._state[p]
-            # TODO: a separated method for hyperparameters?
-            # include hyperparameters as well for now to micmic old behavior
-            for p in self.hyperparameters_names + self.parameters_names
-        }
+        return {p: self._state[p] for p in self.parameters_names}
 
-    @abstractmethod
-    def to_dict(self) -> KwargsType:
+    @property
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        return {p: self._state[p] for p in self.hyperparameters_names if p in self._state}
+
+    @property
+    def has_sources(self) -> bool:
+        return (
+            hasattr(self, 'source_dimension')
+            and isinstance(self.source_dimension, int)
+            and self.source_dimension > 0
+        )
+
+    def to_dict(self, **kwargs) -> KwargsType:
         """
         Export model as a dictionary ready for export.
 
-        Returns
+        Returns_tensorize_2D
         -------
         KwargsType :
             The model instance serialized as a dictionary.
         """
+        model_export = super().to_dict(**kwargs)
         return {
-            'leaspy_version': __version__,
-            'name': self.name,
-            'features': self.features,
-            'dimension': self.dimension,
-            'obs_models': {
-                obs_model.name: obs_model.to_string()
-                for obs_model in self.obs_models
-            },
-            # 'obs_models': export_obs_models(self.obs_models),
-            'parameters': {
-                k: tensor_to_list(v)
-                for k, v in (self.parameters or {}).items()
-            },
-            'fit_metrics': self.fit_metrics,  # TODO improve
+            **model_export,
+            **{
+                "obs_models": {
+                    obs_model.name: obs_model.to_string()
+                    for obs_model in self.obs_models
+                },
+                # 'obs_models': export_obs_models(self.obs_models),
+                "fit_metrics": self.fit_metrics,  # TODO improve
+                "tracked_variables": list(self.tracked_variables),
+            }
         }
-
-    def save(self, path: str, **kwargs) -> None:
-        """
-        Save ``Leaspy`` object as json model parameter file.
-
-        TODO move logic upstream?
-
-        Parameters
-        ----------
-        path : :obj:`str`
-            Path to store the model's parameters.
-        **kwargs
-            Keyword arguments for :meth:`.AbstractModel.to_dict` child method
-            and ``json.dump`` function (default to indent=2).
-        """
-        export_kws = {k: kwargs.pop(k) for k in signature(self.to_dict).parameters if k in kwargs}
-        model_settings = self.to_dict(**export_kws)
-
-        # Default json.dump kwargs:
-        kwargs = {'indent': 2, **kwargs}
-
-        with open(path, 'w') as fp:
-            json.dump(model_settings, fp, **kwargs)
 
     def load_parameters(self, parameters: KwargsType) -> None:
-        """
-        Instantiate or update the model's parameters.
-
-        It assumes that all model hyperparameters are defined.
-
-        Parameters
-        ----------
-        parameters : :obj:`dict` [ :obj:`str`, Any ]
-            Contains the model's parameters.
-        """
         if self._state is None:
             self._initialize_state()
-
-        # TODO: a bit dirty due to hyperparams / params mix (cf. `.parameters` property note)
-
-        params_names = self.parameters_names
-        missing_params = set(params_names).difference(parameters)
-        if len(missing_params):
-            warnings.warn(f"Missing some model parameters: {missing_params}")
-        extra_vars = set(parameters).difference(self.dag)
-        if len(extra_vars):
-            raise LeaspyModelInputError(f"Unknown model variables: {extra_vars}")
-        # TODO: check no DataVariable provided???
-        #extra_params = set(parameters).difference(cur_params)
-        #if len(extra_params):
-        #    # e.g. mixing matrix, which is a derived variable - checking their values only
-        #    warnings.warn(f"Ignoring some provided values that are not model parameters: {extra_params}")
-
-        def val_to_tensor(val, shape: Optional[tuple] = None):
-            if not isinstance(val, (torch.Tensor, WeightedTensor)):
-                val = torch.tensor(val)
-            if shape is not None:
-                val = val.view(shape)  # no expansion here
-            return val
-
-        # update parameters first (to be able to check values of derived variables afterwards)
-        provided_params = {
-            p: val_to_tensor(parameters[p], self.dag[p].shape)
-            for p in params_names if p in parameters
-        }
-        for p, val in provided_params.items():
-            # TODO: WeightedTensor? (e.g. batched `deltas`)
-            self._state[p] = val
-
+        if len(missing_parameters := set(self.parameters_names).difference(set(parameters.keys()))):
+            warnings.warn(f"Missing some model parameters: {missing_parameters}")
+        super().load_parameters(parameters)
         # derive the population latent variables from model parameters
         # e.g. to check value of `mixing_matrix` we need `v0` and `betas` (not just `log_v0` and `betas_mean`)
         self._state.put_population_latent_variables(LatentVariableInitType.PRIOR_MODE)
+        self._check_parameter_consistency()
 
-        # check equality of other values (hyperparameters or linked variables)
-        for parameter_name, parameter_value in parameters.items():
-            if parameter_name in provided_params:
-                continue
-            # TODO: a bit dirty due to hyperparams / params mix (cf. `.parameters` property note)
+    def _check_parameter_consistency(self):
+        for parameter_name, parameter_value in self.parameters.items():
             try:
                 current_value = self._state[parameter_name]
             except Exception as e:
@@ -310,7 +220,9 @@ class AbstractModel(BaseModel):
                     f"Impossible to compare value of provided value for {parameter_name} "
                     "- not computable given current state"
                 ) from e
-            parameter_value = val_to_tensor(parameter_value, getattr(self.dag[parameter_name], "shape", None))
+            parameter_value = cast_value_to_tensor(
+                parameter_value, getattr(self.dag[parameter_name], "shape", None)
+            )
             assert (
                 parameter_value.shape == current_value.shape,
                 (parameter_name, parameter_value.shape, current_value.shape)
@@ -321,36 +233,28 @@ class AbstractModel(BaseModel):
                 (parameter_name, parameter_value, current_value)
             )
 
-    @abstractmethod
-    def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
+    def set_parameter(self, name: str, value: Any) -> None:
         """
-        Load model's hyperparameters.
+        Set parameter name to given value.
 
         Parameters
         ----------
-        hyperparameters : :obj:`dict` [ :obj:`str`, Any ]
-            Contains the model's hyperparameters.
+        name: str
+            The name of the parameter to set.
+
+        value : Any
+            The value of the parameter.
 
         Raises
         ------
-        :exc:`.LeaspyModelInputError`
-            If any of the consistency checks fail.
+        LeaspyModelInputError :
+            If the name is not a known model parameter.
         """
+        if name not in self.parameters_names:
+            raise LeaspyModelInputError(f"Unknown model parameter: {name}.")
+        self._state[name] = cast_value_to_tensor(value, self.dag[name].shape)
 
-    @classmethod
-    def _raise_if_unknown_hyperparameters(cls, known_hps: Iterable[str], given_hps: KwargsType) -> None:
-        """
-        Raises a :exc:`.LeaspyModelInputError` if any unknown hyperparameter is provided to the model.
-        """
-        # TODO: replace with better logic from GenericModel in the future
-        unexpected_hyperparameters = set(given_hps.keys()).difference(known_hps)
-        if len(unexpected_hyperparameters) > 0:
-            raise LeaspyModelInputError(
-                f"Only {known_hps} are valid hyperparameters for {cls.__qualname__}. "
-                f"Unknown hyperparameters provided: {unexpected_hyperparameters}."
-            )
-
-    def _audit_individual_parameters(self, ips: DictParams) -> KwargsType:
+    def _audit_individual_parameters(self, individual_parameters: DictParams) -> KwargsType:
         """
         Perform various consistency and compatibility (with current model) checks
         on an individual parameters dict and outputs qualified information about it.
@@ -359,7 +263,7 @@ class AbstractModel(BaseModel):
 
         Parameters
         ----------
-        ips : :obj:`dict` [param: str, Any]
+        individual_parameters : :obj:`dict` [param: str, Any]
             Contains some un-trusted individual parameters.
             If representing only one individual (in a multivariate model) it could be:
                 * {'tau':0.1, 'xi':-0.3, 'sources':[0.1,...]}
@@ -385,150 +289,91 @@ class AbstractModel(BaseModel):
         :exc:`.LeaspyIndividualParamsInputError`
             If any of the consistency/compatibility checks fail.
         """
-
-        def is_array_like(v):
-            # abc.Collection is useless here because set, np.array(scalar) or torch.tensor(scalar)
-            # are abc.Collection but are not array_like in numpy/torch sense or have no len()
-            try:
-                len(v)  # exclude np.array(scalar) or torch.tensor(scalar)
-                return hasattr(v, '__getitem__')  # exclude set
-            except Exception:
-                return False
-
-        # Model supports and needs sources?
-        has_sources = (
-            hasattr(self, 'source_dimension')
-            and isinstance(self.source_dimension, int)
-            and self.source_dimension > 0
-        )
-
-        # Check parameters names
-        expected_parameters = set(['xi', 'tau'] + int(has_sources)*['sources'])
-        given_parameters = set(ips.keys())
+        expected_parameters = set(['xi', 'tau'] + int(self.has_sources)*['sources'])
+        given_parameters = set(individual_parameters.keys())
         symmetric_diff = expected_parameters.symmetric_difference(given_parameters)
         if len(symmetric_diff) > 0:
             raise LeaspyIndividualParamsInputError(
-                    f'Individual parameters dict provided {given_parameters} '
-                    f'is not compatible for {self.name} model. '
-                    f'The expected individual parameters are {expected_parameters}.')
-
+                    f"Individual parameters dict provided {given_parameters} "
+                    f"is not compatible for {self.name} model. "
+                    f"The expected individual parameters are {expected_parameters}."
+            )
         # Check number of individuals present (with low constraints on shapes)
-        ips_is_array_like = {k: is_array_like(v) for k, v in ips.items()}
-        ips_size = {k: len(v) if ips_is_array_like[k] else 1 for k, v in ips.items()}
-
-        if has_sources:
-            if not ips_is_array_like['sources']:
+        individual_parameters_is_array_like = {
+            k: _is_array_like(v) for k, v in individual_parameters.items()
+        }
+        individual_parameters_size = {
+            k: len(v)
+            if individual_parameters_is_array_like[k] else 1
+            for k, v in individual_parameters.items()
+        }
+        if self.has_sources:
+            if not individual_parameters_is_array_like['sources']:
                 raise LeaspyIndividualParamsInputError(
-                    f"Sources must be an array_like but {ips['sources']} was provided."
+                    f"Sources must be an array_like but {individual_parameters['sources']} was provided."
                 )
-
-            tau_xi_scalars = all(ips_size[k] == 1 for k in ["tau", "xi"])
-            if tau_xi_scalars and (ips_size['sources'] > 1):
+            tau_xi_scalars = all(individual_parameters_size[k] == 1 for k in ("tau", "xi"))
+            if tau_xi_scalars and (individual_parameters_size["sources"] > 1):
                 # is 'sources' not a nested array? (allowed iff tau & xi are scalars)
-                if not is_array_like(ips['sources'][0]):
+                if not _is_array_like(individual_parameters["sources"][0]):
                     # then update sources size (1D vector representing only 1 individual)
-                    ips_size['sources'] = 1
+                    individual_parameters_size["sources"] = 1
 
             # TODO? check source dimension compatibility?
-
-        uniq_sizes = set(ips_size.values())
-        if len(uniq_sizes) != 1:
+        if len(unique_sizes := set(individual_parameters_size.values())) != 1:
             raise LeaspyIndividualParamsInputError(
-                f"Individual parameters sizes are not compatible together. Sizes are {ips_size}."
+                "Individual parameters sizes are not compatible together. "
+                f"Sizes are {individual_parameters_size}."
             )
-
-        # number of individuals present
-        n_inds = uniq_sizes.pop()
-
         # properly choose unsqueezing dimension when tensorizing array_like (useful for sources)
         unsqueeze_dim = -1  # [1,2] => [[1],[2]] (expected for 2 individuals / 1D sources)
-        if n_inds == 1:
+        if (n_individuals := unique_sizes.pop()) == 1:
             unsqueeze_dim = 0  # [1,2] => [[1,2]] (expected for 1 individual / 2D sources)
-
         # tensorized (2D) version of ips
-        t_ips = {k: self._tensorize_2D(v, unsqueeze_dim=unsqueeze_dim) for k, v in ips.items()}
-
-        # construct logs
+        tensorized_individual_parameters = {
+            k: cast_value_to_2d_tensor(v, unsqueeze_dim=unsqueeze_dim)
+            for k, v in individual_parameters.items()
+        }
         return {
-            'nb_inds': n_inds,
-            'tensorized_ips': t_ips,
+            'nb_inds': n_individuals,
+            'tensorized_ips': tensorized_individual_parameters,
             'tensorized_ips_gen': (
-                {k: v[i, :].unsqueeze(0) for k, v in t_ips.items()} for i in range(n_inds)
+                {
+                    individual_name: individual_value[individual_idx, :].unsqueeze(0)
+                    for individual_name, individual_value in tensorized_individual_parameters.items()
+                }
+                for individual_idx in range(n_individuals)
             ),
         }
-
-    @staticmethod
-    def _tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
-        """
-        Helper to convert a scalar or array_like into an, at least 2D, dtype tensor.
-
-        Parameters
-        ----------
-        x : scalar or array_like
-            Element to be tensorized.
-        unsqueeze_dim : :obj:`int`
-            Dimension to be unsqueezed (0 or -1).
-            Meaningful for 1D array-like only (for scalar or vector
-            of length 1 it has no matter).
-
-        Returns
-        -------
-        :class:`torch.Tensor`, at least 2D
-
-        Examples
-        --------
-        >>> _tensorize_2D([1, 2], 0) == tensor([[1, 2]])
-        >>> _tensorize_2D([1, 2], -1) == tensor([[1], [2])
-        """
-        # convert to torch.Tensor if not the case
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=dtype)
-
-        # convert dtype if needed
-        if x.dtype != dtype:
-            x = x.to(dtype)
-
-        # if tensor is less than 2-dimensional add dimensions
-        while x.dim() < 2:
-            x = x.unsqueeze(dim=unsqueeze_dim)
-
-        # postcondition: x.dim() >= 2
-        return x
 
     def _get_tensorized_inputs(
         self,
         timepoints: torch.Tensor,
         individual_parameters: DictParamsTorch,
         *,
-        skip_ips_checks: bool = False,
+        skip_individual_parameters_checks: bool = False,
     ) -> Tuple[torch.Tensor, DictParamsTorch]:
-        if not skip_ips_checks:
-            # Perform checks on ips and gets tensorized version if needed
-            ips_info = self._audit_individual_parameters(individual_parameters)
-            n_inds = ips_info['nb_inds']
-            individual_parameters = ips_info['tensorized_ips']
-
-            if n_inds != 1:
+        if not skip_individual_parameters_checks:
+            individual_parameters_info = self._audit_individual_parameters(individual_parameters)
+            individual_parameters = individual_parameters_info["tensorized_ips"]
+            if (n := individual_parameters_info["nb_inds"]) != 1:
                 raise LeaspyModelInputError(
-                    f"Only one individual computation may be performed at a time. {n_inds} was provided."
+                    f"Only one individual computation may be performed at a time. {n} was provided."
                 )
-
         # Convert the timepoints (list of numbers, or single number) to a 2D torch tensor
-        timepoints = self._tensorize_2D(timepoints, unsqueeze_dim=0)  # 1 individual
+        timepoints = cast_value_to_2d_tensor(timepoints, unsqueeze_dim=0)  # 1 individual
         return timepoints, individual_parameters
 
     def _check_individual_parameters_provided(self, individual_parameters_keys: Iterable[str]) -> None:
         """Check consistency of individual parameters keys provided."""
-        ind_vars = set(self.individual_variables_names)
-        unknown_ips = set(individual_parameters_keys).difference(ind_vars)
-        missing_ips = ind_vars.difference(individual_parameters_keys)
-        errs = []
-        if len(unknown_ips):
-            errs.append(f"Unknown individual latent variables: {unknown_ips}")
-        if len(missing_ips):
-            errs.append(f"Missing individual latent variables: {missing_ips}")
-        if len(errs):
-            raise LeaspyIndividualParamsInputError(". ".join(errs))
+        individual_variable_names = set(self.individual_variables_names)
+        errors = []
+        if len(unknown_individual_parameters := set(individual_parameters_keys).difference(individual_variable_names)):
+            errors.append(f"Unknown individual latent variables: {unknown_individual_parameters}.")
+        if len(missing_individual_parameters := individual_variable_names.difference(individual_parameters_keys)):
+            errors.append(f"Missing individual latent variables: {missing_individual_parameters}.")
+        if errors:
+            raise LeaspyIndividualParamsInputError(". ".join(errors))
 
     # TODO: unit tests? (functional tests covered by api.estimate)
     def compute_individual_trajectory(
@@ -536,7 +381,7 @@ class AbstractModel(BaseModel):
         timepoints,
         individual_parameters: DictParams,
         *,
-        skip_ips_checks: bool = False,
+        skip_individual_parameters_checks: bool = False,
     ) -> torch.Tensor:
         """
         Compute scores values at the given time-point(s) given a subject's individual parameters.
@@ -550,7 +395,7 @@ class AbstractModel(BaseModel):
         individual_parameters : :obj:`dict`
             Contains the individual parameters.
             Each individual parameter should be a scalar or array_like.
-        skip_ips_checks : :obj:`bool` (default: ``False``)
+        skip_individual_parameters_checks : :obj:`bool` (default: ``False``)
             Flag to skip consistency/compatibility checks and tensorization
             of ``individual_parameters`` when it was done earlier (speed-up).
 
@@ -569,19 +414,20 @@ class AbstractModel(BaseModel):
         """
         self._check_individual_parameters_provided(individual_parameters.keys())
         timepoints, individual_parameters = self._get_tensorized_inputs(
-            timepoints, individual_parameters, skip_ips_checks=skip_ips_checks
+            timepoints,
+            individual_parameters,
+            skip_individual_parameters_checks=skip_individual_parameters_checks,
         )
-
         # TODO? ability to revert back after **several** assignments?
         # instead of cloning the state for this op?
         local_state = self.state.clone(disable_auto_fork=True)
         self._put_data_timepoints(local_state, timepoints)
-        for ip, ip_v in individual_parameters.items():
-            local_state[ip] = ip_v
+        for individual_parameter_name, individual_parameter_value in individual_parameters.items():
+            local_state[individual_parameter_name] = individual_parameter_value
 
         return local_state["model"]
 
-    def compute_prior_trajectory(
+    def _compute_prior_trajectory(
         self,
         timepoints: torch.Tensor,
         prior_type: LatentVariableInitType,
@@ -622,14 +468,15 @@ class AbstractModel(BaseModel):
 
         return local_state["model"]
 
-    def compute_mean_traj(self, timepoints: torch.Tensor):
+    def compute_mean_trajectory(self, timepoints: torch.Tensor) -> TensorOrWeightedTensor[float]:
         """Trajectory for average of individual parameters (not really meaningful for non-linear models)."""
-        # TODO/WIP: keep this in BaseModel interface? or only provide `compute_prior_trajectory`, or `compute_mode|typical_traj` instead?
-        return self.compute_prior_trajectory(timepoints, LatentVariableInitType.PRIOR_MEAN)
+        # TODO/WIP: keep this in BaseModel interface? or only
+        #  provide `compute_prior_trajectory`, or `compute_mode|typical_traj` instead?
+        return self._compute_prior_trajectory(timepoints, LatentVariableInitType.PRIOR_MEAN)
 
-    def compute_mode_traj(self, timepoints: torch.Tensor):
+    def compute_mode_trajectory(self, timepoints: torch.Tensor) -> TensorOrWeightedTensor[float]:
         """Most typical individual trajectory."""
-        return self.compute_prior_trajectory(timepoints, LatentVariableInitType.PRIOR_MODE)
+        return self._compute_prior_trajectory(timepoints, LatentVariableInitType.PRIOR_MODE)
 
     # TODO: unit tests? (functional tests covered by api.estimate)
     def compute_individual_ages_from_biomarker_values(
@@ -673,7 +520,9 @@ class AbstractModel(BaseModel):
         """
         raise NotImplementedError("TODO")
         value, individual_parameters = self._get_tensorized_inputs(
-            value, individual_parameters, skip_ips_checks=False
+            value,
+            individual_parameters,
+            skip_individual_parameters_checks=False,
         )
         return self.compute_individual_ages_from_biomarker_values_tensorized(
             value, individual_parameters, feature
@@ -753,19 +602,22 @@ class AbstractModel(BaseModel):
         -------
         :obj:`dict` [ suff_stat: :obj:`str`, :class:`torch.Tensor`]
         """
-        suff_stats = {}
-        for mp_var in state.dag.sorted_variables_by_type[ModelParameter].values():
-            mp_var: ModelParameter  # type-hint only
-            suff_stats.update(mp_var.suff_stats(state))
+        sufficient_statistics = {}
+        for model_parameter in state.dag.sorted_variables_by_type[ModelParameter].values():
+            model_parameter: ModelParameter
+            sufficient_statistics.update(model_parameter.suff_stats(state))
 
         # we add some fake sufficient statistics that are in fact convergence metrics (summed over individuals)
         # TODO proper handling of metrics
         # We do not account for regularization of pop. vars since we do NOT have true Bayesian priors on them (for now)
-        for k in ("nll_attach", "nll_regul_ind_sum"):
-            suff_stats[k] = state[k]
-        suff_stats["nll_tot"] = suff_stats["nll_attach"] + suff_stats["nll_regul_ind_sum"]  # "nll_regul_all_sum"
+        for statistic in ("nll_attach", "nll_regul_ind_sum"):
+            sufficient_statistics[statistic] = state[statistic]
+        sufficient_statistics["nll_tot"] = (
+                sufficient_statistics["nll_attach"] +
+                sufficient_statistics["nll_regul_ind_sum"]  # "nll_regul_all_sum"
+        )
 
-        return suff_stats
+        return sufficient_statistics
 
     @classmethod
     def update_parameters(
@@ -787,58 +639,26 @@ class AbstractModel(BaseModel):
         # <!> we should wait before updating state since some updating rules may depending on OLD state
         # (i.e. no sequential update of state but batched updates once all updated values were retrieved)
         # (+ it would be inefficient since we could recompute some derived values between updates!)
-        params_updates = {}
-        for mp_name, mp_var in state.dag.sorted_variables_by_type[ModelParameter].items():
-            mp_var: ModelParameter  # type-hint only
-            params_updates[mp_name] = mp_var.compute_update(
-                state=state, suff_stats=sufficient_statistics, burn_in=burn_in
+        parameter_updates = {}
+        for model_parameter_name, model_parameter_value in state.dag.sorted_variables_by_type[ModelParameter].items():
+            model_parameter_value: ModelParameter  # type-hint only
+            parameter_updates[model_parameter_name] = model_parameter_value.compute_update(
+                state=state,
+                suff_stats=sufficient_statistics,
+                burn_in=burn_in,
             )
-        # mass update at end
-        for mp, mp_updated_val in params_updates.items():
-            state[mp] = mp_updated_val
-
-    @classmethod
-    def _serialize_tensor(cls, v, *, indent: str = "", sub_indent: str = "") -> str:
-        """Nice serialization of floats, torch tensors (or numpy arrays)."""
-        if isinstance(v, (str, bool, int)):
-            return str(v)
-        if isinstance(v, float) or getattr(v, 'ndim', -1) == 0:
-            # for 0D tensors / arrays the default behavior is to print all digits...
-            # change this!
-            return f'{v:.{1+torch_print_opts.precision}g}'
-        if isinstance(v, (list, frozenset, set, tuple)):
-            try:
-                return cls._serialize_tensor(torch.tensor(list(v)), indent=indent, sub_indent=sub_indent)
-            except Exception:
-                return str(v)
-        if isinstance(v, dict):
-            if not len(v):
-                return ""
-            subs = [
-                f"{p} : " + cls._serialize_tensor(vp, indent="  ", sub_indent=" "*len(f"{p} : ["))
-                for p, vp in v.items()
-            ]
-            lines = [indent + _ for _ in "\n".join(subs).split("\n")]
-            return "\n" + "\n".join(lines)
-        # torch.tensor, np.array, ...
-        # in particular you may use `torch.set_printoptions` and `np.set_printoptions` globally
-        # to tune the number of decimals when printing tensors / arrays
-        v_repr = str(v)
-        # remove tensor prefix & possible device/size/dtype suffixes
-        v_repr = re.sub(r'^[^\(]+\(', '', v_repr)
-        v_repr = re.sub(r'(?:, device=.+)?(?:, size=.+)?(?:, dtype=.+)?\)$', '', v_repr)
-        # adjust justification
-        return re.sub(r'\n[ ]+([^ ])', rf'\n{sub_indent}\1', v_repr)
+        for model_parameter_name, model_parameter_value in parameter_updates.items():
+            state[model_parameter_name] = model_parameter_value
 
     def __str__(self):
         output = "=== MODEL ==="
-        output += self._serialize_tensor(self.parameters)
+        output += serialize_tensor(self.parameters)
 
         # TODO/WIP obs models...
         # nm_props = export_noise_model(self.noise_model)
         # nm_name = nm_props.pop('name')
         # output += f"\nnoise-model : {nm_name}"
-        # output += self._serialize_tensor(nm_props, indent="  ")
+        # output += serialize_tensor(nm_props, indent="  ")
 
         return output
 
@@ -888,17 +708,18 @@ class AbstractModel(BaseModel):
         NamedVariables :
             The specifications of the model's variables.
         """
-        d = NamedVariables({
+        variable_specs = NamedVariables({
             "t": DataVariable(),
             "rt": LinkedVariable(self.time_reparametrization),
             #"model": LinkedVariable(self.model),  # function arguments may depends on hyperparameters so postpone (e.g. presence of sources or not)
             #"model_jacobian_{ip}": LinkedVariable(self.model_jacobian), for ip in IndividualLatentVariables....
         })
-
-        single_obs_model = len(self.obs_models) == 1
-        for obs_model in self.obs_models:
-            d.update(obs_model.get_variables_specs(named_attach_vars=not single_obs_model))
-
+        for observation_model in self.obs_models:
+            variable_specs.update(
+                observation_model.get_variables_specs(
+                    named_attach_vars=(len(self.obs_models) != 1),
+                )
+            )
         #if not single_obs_model:
         #    raise NotImplementedError(
         #        "WIP: Only 1 noise model supported for now, but to be extended."
@@ -910,26 +731,7 @@ class AbstractModel(BaseModel):
         #        # TODO Same for nll_attach_ind jacobian, w.r.t each observation var???
         #    )
 
-        return d
-
-    def _initialize_state(self) -> None:
-        """
-        Initialize the internal state of model, as well as the underlying DAG.
-
-        Note that all model hyperparameters (dimension, source_dimension, ...) should be defined
-        in order to be able to do so.
-
-        Returns
-        -------
-        None
-        """
-        if self._state is not None:
-            raise LeaspyModelInputError("Trying to initialize the model's state again")
-        self.state = State(
-            VariablesDAG.from_dict(self.get_variables_specs()),
-            auto_fork_type=StateForkType.REF
-        )
-        self.state.track_variables(self.tracked_variables)
+        return variable_specs
 
     def initialize(self, dataset: Optional[Dataset] = None, method: Optional[InitializationMethod] = None) -> None:
         """
@@ -951,18 +753,38 @@ class AbstractModel(BaseModel):
             return
         # WIP: design of this may be better somehow?
         with self._state.auto_fork(None):
-
             # Set model parameters
             self._initialize_model_parameters(dataset, method=method)
-
             # Initialize population latent variables to their mode
             self._state.put_population_latent_variables(LatentVariableInitType.PRIOR_MODE)
+
+    def _initialize_state(self) -> None:
+        """
+        Initialize the internal state of model, as well as the underlying DAG.
+
+        Note that all model hyperparameters (dimension, source_dimension, ...) should be defined
+        in order to be able to do so.
+
+        Returns
+        -------
+        None
+        """
+        if self._state is not None:
+            raise LeaspyModelInputError("Trying to initialize the model's state again.")
+        self.state = State(
+            VariablesDAG.from_dict(self.get_variables_specs()),
+            auto_fork_type=StateForkType.REF
+        )
+        self.state.track_variables(self.tracked_variables)
 
     def put_individual_parameters(self, state: State, dataset: Dataset):
         if not state.are_variables_set(('xi', 'tau')):
             with state.auto_fork(None):
-                state.put_individual_latent_variables(LatentVariableInitType.PRIOR_SAMPLES,
-                                                      n_individuals=dataset.n_individuals)
+                state.put_individual_latent_variables(
+                    LatentVariableInitType.PRIOR_SAMPLES,
+                    n_individuals=dataset.n_individuals,
+                )
+
     def _put_data_timepoints(self, state: State, timepoints: TensorOrWeightedTensor[float]) -> None:
         """Put the timepoints variables inside the provided state (in-place)."""
         # TODO/WIP: we use a regular tensor with 0 for times so that 'model' is a regular tensor
@@ -982,16 +804,19 @@ class AbstractModel(BaseModel):
         """Put all the needed data variables inside the provided state (in-place)."""
         self._put_data_timepoints(
             state,
-            WeightedTensor(dataset.timepoints, dataset.mask.to(torch.bool).any(dim=LVL_FT))
+            WeightedTensor(
+                dataset.timepoints,
+                dataset.mask.to(torch.bool).any(dim=LVL_FT)
+            ),
         )
-        for obs_model in self.obs_models:
-            state[obs_model.name] = obs_model.getter(dataset)
+        for observation_model in self.obs_models:
+            state[observation_model.name] = observation_model.getter(dataset)
 
     def reset_data_variables(self, state: State) -> None:
         """Reset all data variables inside the provided state (in-place)."""
         state["t"] = None
-        for obs_model in self.obs_models:
-            state[obs_model.name] = None
+        for observation_model in self.obs_models:
+            state[observation_model.name] = None
 
     def _initialize_model_parameters(self, dataset: Dataset, method: InitializationMethod) -> None:
         """Initialize model parameters (in-place, in `_state`).
@@ -1034,7 +859,10 @@ class AbstractModel(BaseModel):
                         "was received and cannot be casted to a tensor.\nPlease verify this parameter "
                         "initialization code."
                     )
-            self._state[model_parameter_name] = model_parameter_initial_value.expand(model_parameter_variable.shape)
+            self.set_parameter(
+                model_parameter_name,
+                model_parameter_initial_value.expand(model_parameter_variable.shape),
+            )
 
     @abstractmethod
     def _compute_initial_values_for_model_parameters(
@@ -1043,6 +871,7 @@ class AbstractModel(BaseModel):
         method: InitializationMethod,
     ) -> VariablesValuesRO:
         """Compute initial values for model parameters."""
+        raise NotImplementedError
 
     def move_to_device(self, device: torch.device) -> None:
         """
@@ -1054,7 +883,17 @@ class AbstractModel(BaseModel):
         """
         if self._state is None:
             return
-
         self._state.to_device(device)
-        for hp in self.hyperparameters_names:
-            self._state.dag[hp].to_device(device)
+        for hyperparameter_name in self.hyperparameters_names:
+            if hyperparameter_name in self._state.dag:
+                self._state.dag[hyperparameter_name].to_device(device)
+
+
+def _is_array_like(v) -> bool:
+    # abc.Collection is useless here because set, np.array(scalar) or torch.tensor(scalar)
+    # are abc.Collection but are not array_like in numpy/torch sense or have no len()
+    try:
+        len(v)  # exclude np.array(scalar) or torch.tensor(scalar)
+        return hasattr(v, '__getitem__')  # exclude set
+    except Exception:
+        return False

@@ -31,6 +31,7 @@ class MultivariateParallelModel(LogisticMultivariateInitializationMixin, Abstrac
     """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
+        self._deltas_std = kwargs.get("deltas_std", 0.01)
 
     def _compute_initial_values_for_model_parameters(
         self,
@@ -130,7 +131,7 @@ class MultivariateParallelModel(LogisticMultivariateInitializationMixin, Abstrac
                 "deltas",
                 shape=(self.dimension - 1,),
             ),
-            deltas_std=Hyperparameter(0.01),
+            deltas_std=Hyperparameter(self._deltas_std),
             deltas=PopulationLatentVariable(
                 Normal("deltas_mean", "deltas_std"),
                 sampling_kws={"scale": 1.},

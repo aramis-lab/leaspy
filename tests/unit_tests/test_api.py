@@ -53,7 +53,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
                 leaspy.check_if_initialized()
 
         for observation_model_name, observation_model in OBSERVATION_MODELS.items():
-            if observation_model_name !=ObservationModelNames.WEIBULL_RIGHT_CENSORED:
+            if observation_model_name != ObservationModelNames.WEIBULL_RIGHT_CENSORED:
                 print(observation_model_name)
                 leaspy = Leaspy("logistic", obs_models=observation_model_name, dimension=1)
                 self.assertEqual(leaspy.type, "logistic")
@@ -83,9 +83,6 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
                         leaspy.model.obs_models[output['s']],
                         OBSERVATION_MODELS[ObservationModelNames.GAUSSIAN_SCALAR]
                     )
-
-
-
         for name in (
             "linear",
             "logistic",
@@ -111,9 +108,9 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         with self.assertRaises(ValueError):
             Leaspy('univariate')  # old name
 
-    def test_load_hyperparameters(self):
-        leaspy = self.get_hardcoded_model('logistic_diag_noise')
-        leaspy.model._load_hyperparameters({'source_dimension': 3})
+    def test_set_hyperparameters(self):
+        leaspy = self.get_hardcoded_model("logistic_diag_noise")
+        leaspy.model.source_dimension = 3
 
         self.assertEqual(leaspy.model.source_dimension, 3)
         self.assertIsInstance(leaspy.model.obs_models[0], FullGaussianObservationModel)

@@ -64,19 +64,8 @@ class Plotter:
         model: AbstractModel,
         timepoints: torch.Tensor,
     ) -> np.ndarray:
-        mean_trajectory = model.compute_mean_traj(timepoints)
+        mean_trajectory = model.compute_mean_trajectory(timepoints)
         return cls._torch_model_values_to_numpy_postprocessed_values(mean_trajectory, model=model)
-
-    @classmethod
-    def _compute_individual_tensorized_postprocessed(
-        cls,
-        model: AbstractModel,
-        timepoints: torch.Tensor,
-        individual_parameters: DictParamsTorch,
-        **kws,
-    ) -> np.ndarray:
-        model_values = model.compute_individual_tensorized(timepoints, individual_parameters, **kws)
-        return cls._torch_model_values_to_numpy_postprocessed_values(model_values, model=model)
 
     @classmethod
     def _compute_individual_trajectory_postprocessed(
@@ -228,7 +217,7 @@ class Plotter:
             t = torch.tensor(timepoints).unsqueeze(0)
             indiv_parameters = results.get_patient_individual_parameters(idx)
 
-            trajectory_np = self._compute_individual_tensorized_postprocessed(model, t, indiv_parameters).squeeze(0)
+            trajectory_np = self._compute_individual_trajectory_postprocessed(model, t, indiv_parameters).squeeze(0)
             for dim in range(model.dimension):
                 not_nans_idx = np.array(~np.isnan(observations[:, dim]), dtype=bool)
                 ax.plot(np.array(timepoints), trajectory_np[:, dim], c=colors[dim])
@@ -322,7 +311,7 @@ class Plotter:
     ) -> None:
         dataset = Dataset(results.data)
 
-        model_values_np = self._compute_individual_tensorized_postprocessed(
+        model_values_np = self._compute_individual_trajectory_postprocessed(
             model, dataset.timepoints, results.individual_parameters
         )
         timepoints = np.linspace(
@@ -361,7 +350,7 @@ class Plotter:
 
     @classmethod
     def plot_error(cls, path, dataset, model: AbstractModel, param_ind, colors=None, labels=None):
-        model_values_np = cls._compute_individual_tensorized_postprocessed(model, dataset.timepoints, param_ind)
+        model_values_np = cls._compute_individual_trajectory_postprocessed(model, dataset.timepoints, param_ind)
 
         if colors is None:
             colors = cm.rainbow(np.linspace(0, 1, model_values_np.shape[-1]))
@@ -416,7 +405,7 @@ class Plotter:
         colors = cm.Dark2(np.linspace(0, 1, n_pats + 2))
         fig, ax = plt.subplots(1, 1)
 
-        model_values_np = cls._compute_individual_tensorized_postprocessed(
+        model_values_np = cls._compute_individual_trajectory_postprocessed(
             model, dataset.timepoints, param_ind,
             attribute_type=attribute_type,
         )

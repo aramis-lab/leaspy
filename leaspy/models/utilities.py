@@ -4,7 +4,7 @@ import torch
 import warnings
 import pandas as pd
 
-from leaspy.utils.weighted_tensor import WeightedTensor
+from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor
 from leaspy.exceptions import LeaspyConvergenceError
 
 
@@ -17,6 +17,105 @@ def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
     if isinstance(x, WeightedTensor):
         raise NotImplementedError("TODO")
     return x
+
+
+def cast_value_to_tensor(value, shape: Optional[tuple] = None) -> TensorOrWeightedTensor:
+    """
+    Cast provided value to a tensor if not a tensor or a WeightedTensor.
+
+    Parameters
+    ----------
+    value : Any
+        The value which should be casted to a tensor.
+
+    shape : tuple, optional
+        If a specific shape is expected.
+
+    Returns
+    -------
+    value : TensorOrWeightedTensor
+        The casted value.
+    """
+    if not isinstance(value, (torch.Tensor, WeightedTensor)):
+        value = torch.tensor(value)
+    if shape is not None:
+        try:
+            value = value.view(shape)  # no expansion here
+        except RuntimeError:
+            value = torch.broadcast_to(value, shape)
+    return value
+
+
+def cast_value_to_2d_tensor(value, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
+    """
+    Convert a scalar or array_like into an, at least 2D, dtype tensor.
+
+    Parameters
+    ----------
+    value : scalar or array_like
+        Element to be tensorized.
+    unsqueeze_dim : :obj:`int`
+        Dimension to be unsqueezed (0 or -1).
+        Meaningful for 1D array-like only (for scalar or vector
+        of length 1 it has no matter).
+    dtype : torch dtype
+
+    Returns
+    -------
+    :class:`torch.Tensor`, at least 2D
+
+    Examples
+    --------
+    >>> cast_value_to_2d_tensor([1, 2], 0) == tensor([[1, 2]])
+    >>> cast_value_to_2d_tensor([1, 2], -1) == tensor([[1], [2])
+    """
+    if not isinstance(value, torch.Tensor):
+        value = torch.tensor(value, dtype=dtype)
+    if value.dtype != dtype:
+        value = value.to(dtype)
+    while value.dim() < 2:
+        value = value.unsqueeze(dim=unsqueeze_dim)
+    return value
+
+
+def serialize_tensor(value, *, indent: str = "", sub_indent: str = "") -> str:
+    """Serialization of floats, torch tensors (or numpy arrays)."""
+    import re
+    from torch._tensor_str import PRINT_OPTS as torch_print_opts
+
+    if isinstance(value, (str, bool, int)):
+        return str(value)
+    if isinstance(value, float) or getattr(value, 'ndim', -1) == 0:
+        # for 0D tensors / arrays the default behavior is to print all digits...
+        # change this!
+        return f'{value:.{1 + torch_print_opts.precision}g}'
+    if isinstance(value, (list, frozenset, set, tuple)):
+        try:
+            return serialize_tensor(
+                torch.tensor(list(value)),
+                indent=indent,
+                sub_indent=sub_indent,
+            )
+        except Exception:
+            return str(value)
+    if isinstance(value, dict):
+        if not len(value):
+            return ""
+        subs = [
+            f"{p} : " + serialize_tensor(vp, indent="  ", sub_indent=" "*len(f"{p} : ["))
+            for p, vp in value.items()
+        ]
+        lines = [indent + _ for _ in "\n".join(subs).split("\n")]
+        return "\n" + "\n".join(lines)
+    # torch.tensor, np.array, ...
+    # in particular you may use `torch.set_printoptions` and `np.set_printoptions` globally
+    # to tune the number of decimals when printing tensors / arrays
+    value_repr = str(value)
+    # remove tensor prefix & possible device/size/dtype suffixes
+    value_repr = re.sub(r'^[^\(]+\(', '', value_repr)
+    value_repr = re.sub(r'(?:, device=.+)?(?:, size=.+)?(?:, dtype=.+)?\)$', '', value_repr)
+    # adjust justification
+    return re.sub(r'\n[ ]+([^ ])', rf'\n{sub_indent}\1', value_repr)
 
 
 def compute_std_from_variance(

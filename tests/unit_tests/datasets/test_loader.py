@@ -59,9 +59,6 @@ class LoaderTest(LeaspyTestCase):
             places=6,
         )
         parameters = {
-            "log_g_std": torch.tensor(0.0100),
-            "log_v0_std": torch.tensor(0.0100),
-            "xi_mean": torch.tensor(0.),
             "log_g_mean": torch.tensor([-1.1862]),
             "log_v0_mean": torch.tensor([-4.0517]),
             "noise_std": torch.tensor([0.0212]),
@@ -70,6 +67,12 @@ class LoaderTest(LeaspyTestCase):
             "xi_std": torch.tensor([0.5543]),
         }
         self.assertDictAlmostEqual(leaspy_instance.model.parameters, parameters, atol=1e-4)
+        hyperparameters = {
+            "log_g_std": torch.tensor(0.0100),
+            "log_v0_std": torch.tensor(0.0100),
+            "xi_mean": torch.tensor(0.),
+        }
+        self.assertDictAlmostEqual(leaspy_instance.model.hyperparameters, hyperparameters, atol=1e-4)
 
     def test_load_individual_parameters(self):
         """

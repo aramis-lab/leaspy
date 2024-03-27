@@ -34,11 +34,12 @@ class ModelSettings:
 
         ModelSettings._check_settings(settings)
         self.name: str = settings["name"].lower()
-        self.parameters: KwargsType = settings['parameters']
-        self.hyperparameters: KwargsType = {
-            k.lower(): v for k, v in settings.items()
-            if k not in ("name", "parameters", "leaspy_version")
-        }
+        self.constructor_parameters = {}
+        for name in ("dimension", "features", "fit_metrics", "source_dimension", "obs_models"):
+            if name in settings:
+                self.constructor_parameters[name] = settings[name]
+        self.parameters: KwargsType = settings["parameters"]
+        self.hyperparameters: KwargsType = settings["hyperparameters"]
 
     @staticmethod
     def _check_settings(settings: dict) -> None:

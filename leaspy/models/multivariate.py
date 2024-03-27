@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 from abc import abstractmethod
 
-from typing import Iterable, Optional
+from leaspy.models.obs_models import ObservationModelFactoryInput
 from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor
 from leaspy.models.base import InitializationMethod
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
@@ -12,6 +12,7 @@ from leaspy.utils.docs import doc_with_super
 
 from leaspy.variables.state import State
 from leaspy.variables.specs import (
+    VarName,
     NamedVariables,
     ModelParameter,
     PopulationLatentVariable,
@@ -25,6 +26,15 @@ from leaspy.utils.functional import Exp, Sqr, OrthoBasis
 from leaspy.utils.weighted_tensor import unsqueeze_right
 
 from leaspy.models.obs_models import FullGaussianObservationModel
+
+from leaspy.utils.typing import (
+    FeatureType,
+    Union,
+    List,
+    Iterable,
+    Optional,
+    Dict,
+)
 
 
 # TODO refact? implement a single function
@@ -53,9 +63,18 @@ class MultivariateModel(AbstractMultivariateModel):
         * If hyperparameters are inconsistent
     """
 
-    def __init__(self, name: str, variables_to_track: Optional[Iterable[str]] = None, **kwargs):
-        super().__init__(name, **kwargs)
-
+    def __init__(
+        self,
+        name: str,
+        *,
+        obs_models: Optional[Union[ObservationModelFactoryInput, Iterable[ObservationModelFactoryInput]]] = None,
+        dimension: Optional[int] = None,
+        source_dimension: Optional[int] = None,
+        features: Optional[List[FeatureType]] = None,
+        fit_metrics: Optional[Dict[str, float]] = None,
+        variables_to_track: Optional[Iterable[VarName]] = None,
+        **kwargs,
+    ):
         variables_to_track = variables_to_track or (
             "g",
             "v0",
@@ -70,7 +89,18 @@ class MultivariateModel(AbstractMultivariateModel):
             "xi",
             "tau"
         )
-        self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
+        super().__init__(
+            name,
+            obs_models=obs_models,
+            dimension=dimension,
+            source_dimension=source_dimension,
+            features=features,
+            fit_metrics=fit_metrics,
+            variables_to_track=variables_to_track,
+            **kwargs,
+        )
+        self._xi_mean = kwargs.get("xi_mean", 0.0)
+        self._log_v0_std = kwargs.get("log_v0_std", 0.01)
 
     """
     @suffixed_method
@@ -445,15 +475,15 @@ class MultivariateModel(AbstractMultivariateModel):
         NamedVariables :
             The specifications of the model's variables.
         """
-        d = super().get_variables_specs()
-        d.update(
+        variable_specs = super().get_variables_specs()
+        variable_specs.update(
             # PRIORS
             log_v0_mean=ModelParameter.for_pop_mean(
                 "log_v0",
                 shape=(self.dimension,),
             ),
-            log_v0_std=Hyperparameter(0.01),
-            xi_mean=Hyperparameter(0.),
+            log_v0_std=Hyperparameter(self._log_v0_std),
+            xi_mean=Hyperparameter(self._xi_mean),
             # LATENT VARS
             log_v0=PopulationLatentVariable(
                 Normal("log_v0_mean", "log_v0_std"),
@@ -465,19 +495,19 @@ class MultivariateModel(AbstractMultivariateModel):
             metric=LinkedVariable(self.metric),  # for linear model: metric & metric_sqr are fixed = 1.
         )
         if self.source_dimension >= 1:
-            d.update(
+            variable_specs.update(
                 model=LinkedVariable(self.model_with_sources),
                 metric_sqr=LinkedVariable(Sqr("metric")),
                 orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr")),
             )
         else:
-            d['model'] = LinkedVariable(self.model_no_sources)
+            variable_specs["model"] = LinkedVariable(self.model_no_sources)
 
         # TODO: WIP
         #variables_info.update(self.get_additional_ordinal_population_random_variable_information())
         #self.update_ordinal_population_random_variable_information(variables_info)
 
-        return d
+        return variable_specs
 
     @staticmethod
     @abstractmethod

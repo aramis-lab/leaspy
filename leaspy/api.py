@@ -539,10 +539,13 @@ class Leaspy:
         xi_std : 0.5663877129554749
         noise_std : 0.021229960024356842
         """
-        reader = ModelSettings(path_to_model_settings)
-        leaspy = cls(reader.name, **reader.hyperparameters)
-        leaspy.model.load_parameters(reader.parameters)
-
+        settings = ModelSettings(path_to_model_settings)
+        leaspy = cls(
+            settings.name,
+            **settings.constructor_parameters,
+            **settings.hyperparameters,
+        )
+        leaspy.model.load_parameters(settings.parameters)
         leaspy.model.is_initialized = True
 
         return leaspy
