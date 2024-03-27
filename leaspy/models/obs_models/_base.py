@@ -82,7 +82,9 @@ class ObservationModel:
                 self.dist.get_func_nll(self.name).then(sum_dim, but_dim=LVL_IND)
             ),
             nll_attach_var: LinkedVariable(SumDim(f"{nll_attach_var}_ind")),
-            # TODO jacobian of {nll_attach_var}_ind_jacobian_{self.name} wrt "y" as well? (for scipy minimize)
+            f"{nll_attach_var}_gradient": LinkedVariable(
+                self.dist.get_func_nll_jacobian(self.name)
+            ), # This is the partial derivative wrt the model value / input of obs model
         }
 
     def serialized(self) -> Any:

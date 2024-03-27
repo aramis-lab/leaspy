@@ -645,7 +645,7 @@ class LinearMultivariateModel(LinearMultivariateInitializationMixin, Multivariat
         broadcasting_dummy = torch.ones(rt.shape)
         derivatives = {
             'xi': v0[pop_s] * rt,
-            'tau': -v0[pop_s] * alpha * broadcasting_dummy,
+            'tau': -v0[pop_s] * alpha[:, None, ...] * broadcasting_dummy,
             'sources': mixing_matrix.T[pop_s] * broadcasting_dummy.unsqueeze(-1),
         }
         return derivatives
@@ -778,7 +778,7 @@ class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, Multiva
         c = model * (1. - model) * metric[pop_s] #common factor
         derivatives = {
             'xi': c * v0[pop_s] * rt,
-            'tau': -c * v0[pop_s] * alpha,
+            'tau': -c * v0[pop_s] * alpha[:, None, ...],
             'sources': unsqueeze_right(c, ndim=1) * mixing_matrix.T[pop_s],
         }
         return derivatives

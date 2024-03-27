@@ -121,6 +121,9 @@ class StatelessDistributionFamily(ABC):
         conv = x.valued
         if isinstance(r, tuple):
             return tuple(map(conv, r))
+        # quick fix for handling gradients as dicts
+        if isinstance(r, dict):
+            return {k: conv(v) for k, v in r.items()}
         return conv(r)
 
     @staticmethod
