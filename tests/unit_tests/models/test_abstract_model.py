@@ -46,7 +46,7 @@ class AbstractModelTest(LeaspyTestCase):
             # "get_initial_model_parameters",
             "get_variables_specs",
             "initialize",
-            "initialize_model_parameters",
+            # "initialize_model_parameters",
             # "initialize_state",
             # "load_hyperparameters",
             "load_parameters",
