@@ -386,7 +386,6 @@ class LatentVariable(IndepVariable):
         #    f"nll_regul_{value_name}_full": LinkedVariable(
         #        self.prior.get_func_nll(value_name)
         #    ),
-        #    # TODO: jacobian as well...
         # }
         pass
 
@@ -443,7 +442,9 @@ class PopulationLatentVariable(LatentVariable):
                     # SumDim(f"nll_regul_{value_name}_full")
                     self.prior.get_func_nll(variable_name).then(sum_dim)
                 ),
-                # TODO: jacobian as well...
+                f"nll_regul_{variable_name}_gradient": LinkedVariable(
+                    self.prior.get_func_nll_jacobian(variable_name).then(sum_dim, but_dim=LVL_IND)
+                ),
             }
         )
         return d
@@ -506,7 +507,9 @@ class IndividualLatentVariable(LatentVariable):
                 f"nll_regul_{variable_name}": LinkedVariable(
                     SumDim(f"nll_regul_{variable_name}_ind")
                 ),
-                # TODO: jacobian as well...
+                f"nll_regul_{variable_name}_gradient": LinkedVariable(
+                    self.prior.get_func_nll_jacobian(variable_name).then(sum_dim, but_dim=LVL_IND)
+                )
             }
         )
         return d
@@ -590,7 +593,6 @@ class NamedVariables(UserDict):
     )
 
     AUTOMATIC_VARS: ClassVar = (
-        # TODO? jacobians as well
         "nll_regul_ind_sum_ind",
         "nll_regul_ind_sum",
         # "nll_regul_pop_sum" & "nll_regul_all_sum" are not really relevant so far
@@ -632,7 +634,6 @@ class NamedVariables(UserDict):
 
     @property
     def _auto_vars(self) -> Dict[VarName, LinkedVariable]:
-        # TODO? add jacobian as well?
         d = dict(
             # nll_regul_pop_sum=LinkedVariable(
             #     Sum(
