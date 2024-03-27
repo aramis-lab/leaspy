@@ -507,6 +507,7 @@ class MultivariateModel(AbstractMultivariateModel):
             metric=metric,
             v0=v0,
             g=g,
+            mixing_matrix=torch.zeros((1,1)), # wrong but gradient of sources should not be used anyway
             space_shifts=torch.zeros((1, 1)),
         )
 
