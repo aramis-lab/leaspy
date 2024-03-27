@@ -469,12 +469,12 @@ class MultivariateModel(AbstractMultivariateModel):
                 model=LinkedVariable(self.model_with_sources),
                 metric_sqr=LinkedVariable(Sqr("metric")),
                 orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr")),
-                gradient=LinkedVariable(self.model_gradient_with_sources),
+                model_gradient=LinkedVariable(self.model_gradient_with_sources),
             )
         else:
             d.update(
                 model= LinkedVariable(self.model_no_sources),
-                gradient=LinkedVariable(self.model_gradient_no_sources),
+                model_gradient=LinkedVariable(self.model_gradient_no_sources),
             )
 
         # TODO: WIP
@@ -622,7 +622,33 @@ class LinearMultivariateModel(LinearMultivariateInitializationMixin, Multivariat
         """Returns a model with sources."""
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        return (g[pop_s] + v0[pop_s] * rt + space_shifts[:, None, ...]).weighted_value
+        model = g[pop_s] + v0[pop_s] * rt + space_shifts[:, None, ...]
+        model, weights = WeightedTensor.get_filled_value_and_weight(model, fill_value=0.)
+        return WeightedTensor(model, weights).weighted_value
+
+    @classmethod
+    def model_gradient_with_sources(
+        cls,
+        *,
+        alpha: torch.Tensor,
+        rt: TensorOrWeightedTensor[float],
+        mixing_matrix: TensorOrWeightedTensor[float],
+        space_shifts: TensorOrWeightedTensor[float],
+        metric: TensorOrWeightedTensor[float],
+        v0: TensorOrWeightedTensor[float],
+        g: TensorOrWeightedTensor[float],
+        model: TensorOrWeightedTensor[float],
+    ) -> Dict[str, torch.Tensor]:
+        """Returns the gradient of the model in a dictionnary"""
+        pop_s = (None, None, ...)
+        rt = unsqueeze_right(rt, ndim=1)
+        broadcasting_dummy = torch.ones(rt.shape)
+        derivatives = {
+            'xi': v0[pop_s] * rt,
+            'tau': -v0[pop_s] * alpha * broadcasting_dummy,
+            'sources': mixing_matrix.T[pop_s] * broadcasting_dummy.unsqueeze(-1),
+        }
+        return derivatives
 
 
 class LogisticMultivariateInitializationMixin:
@@ -735,16 +761,16 @@ class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, Multiva
 
     @classmethod
     def model_gradient_with_sources(
-            cls,
-            *,
-            alpha: torch.Tensor,
-            rt: TensorOrWeightedTensor[float],
-            mixing_matrix: TensorOrWeightedTensor[float],
-            space_shifts: TensorOrWeightedTensor[float],
-            metric: TensorOrWeightedTensor[float],
-            v0: TensorOrWeightedTensor[float],
-            g: TensorOrWeightedTensor[float],
-            model: TensorOrWeightedTensor[float],
+        cls,
+        *,
+        alpha: torch.Tensor,
+        rt: TensorOrWeightedTensor[float],
+        mixing_matrix: TensorOrWeightedTensor[float],
+        space_shifts: TensorOrWeightedTensor[float],
+        metric: TensorOrWeightedTensor[float],
+        v0: TensorOrWeightedTensor[float],
+        g: TensorOrWeightedTensor[float],
+        model: TensorOrWeightedTensor[float],
     ) -> Dict[str, torch.Tensor]:
         """Returns the gradient of the model in a dictionnary"""
         pop_s = (None, None, ...)
@@ -753,7 +779,7 @@ class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, Multiva
         derivatives = {
             'xi': c * v0[pop_s] * rt,
             'tau': -c * v0[pop_s] * alpha,
-            'sources': c * mixing_matrix[pop_s],
+            'sources': unsqueeze_right(c, ndim=1) * mixing_matrix.T[pop_s],
         }
         return derivatives
 
