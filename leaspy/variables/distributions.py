@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Tuple, Any, ClassVar, Callable, Type
+from typing import Tuple, Any, ClassVar, Callable, Type, Dict
 
 import torch
 from torch.autograd import grad
@@ -92,7 +92,7 @@ class StatelessDistributionFamily(ABC):
 
     @classmethod
     @abstractmethod
-    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
+    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> Dict[str, torch.Tensor]:
         """Jacobian w.r.t. value of negative log-likelihood, given distribution parameters."""
 
     @classmethod
@@ -100,7 +100,7 @@ class StatelessDistributionFamily(ABC):
             cls,
             x: WeightedTensor,
             *params: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor,  Dict[str, torch.Tensor]]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         # not efficient implementation by default
         return cls._nll(x, *params), cls._nll_jacobian(x, *params)
@@ -161,7 +161,7 @@ class StatelessDistributionFamily(ABC):
             cls,
             x: TensorOrWeightedTensor[float],
             *params: TensorOrWeightedTensor[float],
-    ) -> WeightedTensor[float]:
+    ) -> Dict[str, WeightedTensor[float]]:
         """Jacobian w.r.t. value of negative log-likelihood, given distribution parameters."""
         return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll_jacobian, x, *params)
 
@@ -170,7 +170,7 @@ class StatelessDistributionFamily(ABC):
             cls,
             x: TensorOrWeightedTensor[float],
             *params: TensorOrWeightedTensor[float],
-    ) -> Tuple[WeightedTensor[float], WeightedTensor[float]]:
+    ) -> Tuple[WeightedTensor[float], Dict[str, WeightedTensor[float]]]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll_and_jacobian, x, *params)
 
@@ -268,13 +268,15 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
             cls,
             x: WeightedTensor,
             *params: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         nll = cls._nll(x, *params)
-        (nll_grad_value,) = grad(nll, (x.value,), create_graph=x.requires_grad)
+        nll_grad_value = {
+            param : grad(nll, (params[i].value,), create_graph=x.requires_grad) for i, param in enumerate(cls.parameters)
+        }
         return nll, nll_grad_value
 
     @classmethod
-    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
+    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) ->  Dict[str, torch.Tensor]:
         return cls._nll_and_jacobian(x, *params)[1]
 
 
@@ -370,9 +372,9 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         )
 
     @classmethod
-    def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> Dict[str, torch.Tensor]:
         # Hardcode method for efficiency
-        return (x.value - loc) / scale ** 2
+        return {"loc": (loc - x.value) / scale ** 2}
 
     @classmethod
     def _nll_and_jacobian(
@@ -380,11 +382,11 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             x: WeightedTensor,
             loc: torch.Tensor,
             scale: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         # Hardcode method for efficiency
         z = (x.value - loc) / scale
         nll = 0.5 * z ** 2 + torch.log(scale) + cls.nll_constant_standard
-        return nll, z / scale
+        return nll, {"loc": z / scale}
 
     # @classmethod
     # def sample(cls, loc, scale, *, sample_shape = ()):
@@ -569,7 +571,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         return cls._nll(x, nu, rho, xi, tau), cls._nll_jacobian(x, nu, rho, xi, tau)
 
     @classmethod
@@ -580,7 +582,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> Dict[str, torch.Tensor]:
         pass  # WIP
         # Get inputs
         xi_format = xi[:, 0]
@@ -595,12 +597,10 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
                 rho - 1) / event_rep_time
 
         # Normalise as compute on normalised variables
-        to_cat = [
-            grad_xi,
-            grad_tau,
-        ]
-
-        grads = torch.cat(to_cat, dim=-1).squeeze(0)
+        grads = {
+            "xi":grad_xi,
+            "tau":grad_tau,
+        }
 
         return grads
 
@@ -706,7 +706,10 @@ class SymbolicDistribution:
         NamedInputFunction :
             The named input function to use to compute negative log likelihood jacobian.
         """
-        return self._get_func("nll_jacobian", value_name)
+        name_mapper = {k: v for (k,v) in zip(self.dist_family.parameters, self.parameters_names)}
+        return self._get_func("nll_jacobian", value_name).then(
+            lambda x: {name_mapper[k] if k in name_mapper else k: v for k, v in x.items()}
+        )
 
     def get_func_nll_and_jacobian(
             self, value_name: str
@@ -723,7 +726,7 @@ class SymbolicDistribution:
         Tuple[NamedInputFunction, NamedInputFunction] :
             The named input functions to use to compute negative log likelihood and its jacobian.
         """
-        return self._get_func("nll_and_jacobian", value_name)
+        return self._get_func("nll_and_jacobian", value_name) # WARNING : not mapping gradient names
 
     @classmethod
     def bound_to(

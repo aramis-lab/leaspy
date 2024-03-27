@@ -443,7 +443,7 @@ class PopulationLatentVariable(LatentVariable):
                     self.prior.get_func_nll(variable_name).then(sum_dim)
                 ),
                 f"nll_regul_{variable_name}_gradient": LinkedVariable(
-                    self.prior.get_func_nll_jacobian(variable_name).then(sum_dim, but_dim=LVL_IND)
+                    self.prior.get_func_nll_jacobian(variable_name)
                 ),
             }
         )
@@ -508,7 +508,7 @@ class IndividualLatentVariable(LatentVariable):
                     SumDim(f"nll_regul_{variable_name}_ind")
                 ),
                 f"nll_regul_{variable_name}_gradient": LinkedVariable(
-                    self.prior.get_func_nll_jacobian(variable_name).then(sum_dim, but_dim=LVL_IND)
+                    self.prior.get_func_nll_jacobian(variable_name)
                 )
             }
         )
