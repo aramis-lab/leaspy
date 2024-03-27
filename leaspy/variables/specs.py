@@ -384,7 +384,7 @@ class LatentVariable(IndepVariable):
         # return {
         #    # Not really useful... directly sum it to be memory efficient...
         #    f"nll_regul_{value_name}_full": LinkedVariable(
-        #        self.prior.get_func_nll(value_name)
+        #        self.prior.get_func_regularization(value_name)
         #    ),
         #    # TODO: jacobian as well...
         # }
@@ -441,7 +441,7 @@ class PopulationLatentVariable(LatentVariable):
             {
                 f"nll_regul_{variable_name}": LinkedVariable(
                     # SumDim(f"nll_regul_{value_name}_full")
-                    self.prior.get_func_nll(variable_name).then(sum_dim)
+                    self.prior.get_func_regularization(variable_name).then(sum_dim)
                 ),
                 # TODO: jacobian as well...
             }
@@ -501,7 +501,7 @@ class IndividualLatentVariable(LatentVariable):
             {
                 f"nll_regul_{variable_name}_ind": LinkedVariable(
                     # SumDim(f"nll_regul_{value_name}_full", but_dim=LVL_IND)
-                    self.prior.get_func_nll(variable_name).then(sum_dim, but_dim=LVL_IND)
+                    self.prior.get_func_regularization(variable_name).then(sum_dim, but_dim=LVL_IND)
                 ),
                 f"nll_regul_{variable_name}": LinkedVariable(
                     SumDim(f"nll_regul_{variable_name}_ind")
