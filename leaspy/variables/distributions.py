@@ -87,12 +87,12 @@ class StatelessDistributionFamily(ABC):
 
     @classmethod
     @abstractmethod
-    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
+    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         """Negative log-likelihood of value, given distribution parameters."""
 
     @classmethod
     @abstractmethod
-    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
+    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         """Jacobian w.r.t. value of negative log-likelihood, given distribution parameters."""
 
     @classmethod
@@ -100,76 +100,46 @@ class StatelessDistributionFamily(ABC):
             cls,
             x: WeightedTensor,
             *params: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[WeightedTensor, WeightedTensor]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         # not efficient implementation by default
         return cls._nll(x, *params), cls._nll_jacobian(x, *params)
 
-    # AUTOMATIC COMPATIBILITY LAYER for value being a regular or a weighted tensor
-
-    @staticmethod
-    def _get_func_result_for_tensor_or_weighted_tensor(
-            func: Callable,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
-    ) -> Any:
-        """Automatic compatibility layer for value `x` being a regular or a weighted tensor."""
-        StatelessDistributionFamily._check_weighted_tensors_have_same_weights(*(x, *params))
-        if isinstance(x, torch.Tensor):
-            x = WeightedTensor(x)
-        r = func(x, *StatelessDistributionFamily._cast_parameters_to_tensors(params))
-        conv = x.valued
-        if isinstance(r, tuple):
-            return tuple(map(conv, r))
-        return conv(r)
-
-    @staticmethod
-    def _check_weighted_tensors_have_same_weights(*tensors: TensorOrWeightedTensor[float]):
-        """Check that all weighted tensors passed as input have the same weights."""
-        pass
-
-    @staticmethod
-    def _cast_parameters_to_tensors(parameters: Tuple[TensorOrWeightedTensor[float]]) -> Tuple[torch.Tensor]:
-        """Cast a tuple of tensor or WeightedTensor objects to a tuple of tensors."""
-        new_parameters = []
-        for param in parameters:
-            if isinstance(param, WeightedTensor):
-                new_parameters.append(param.value)
-            elif isinstance(param, torch.Tensor):
-                new_parameters.append(param)
-            else:
-                raise TypeError(
-                    f"Parameters of StatelessDistributionFamily should be Tensors "
-                    f"or WeightedTensors but a {type(param)} was received."
-                )
-        return tuple(new_parameters)
-
     @classmethod
     def nll(
             cls,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+            x: WeightedTensor[float],
+            *params: torch.Tensor,
     ) -> WeightedTensor[float]:
         """Negative log-likelihood of value, given distribution parameters."""
-        return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll, x, *params)
+        return cls._nll(x, *params)
+
+    @classmethod
+    def regularization(
+            cls,
+            x: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> WeightedTensor[float]:
+        """Negative log-likelihood of value, given distribution parameters."""
+        return cls._nll(WeightedTensor(x), *params)
 
     @classmethod
     def nll_jacobian(
             cls,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+            x: WeightedTensor[float],
+            *params: torch.Tensor,
     ) -> WeightedTensor[float]:
         """Jacobian w.r.t. value of negative log-likelihood, given distribution parameters."""
-        return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll_jacobian, x, *params)
+        return cls._nll_jacobian(x, *params)
 
     @classmethod
     def nll_and_jacobian(
             cls,
-            x: TensorOrWeightedTensor[float],
-            *params: TensorOrWeightedTensor[float],
+            x: WeightedTensor[float],
+            *params: torch.Tensor,
     ) -> Tuple[WeightedTensor[float], WeightedTensor[float]]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
-        return cls._get_func_result_for_tensor_or_weighted_tensor(cls._nll_and_jacobian, x, *params)
+        return cls._nll_and_jacobian(x, *params)
 
 
 class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFamily):
@@ -257,21 +227,21 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
         return cls.dist_factory(*params).stddev
 
     @classmethod
-    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
-        return -cls.dist_factory(*params).log_prob(x.value)
+    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        return WeightedTensor(-cls.dist_factory(*params).log_prob(x.value), x.weight)
 
     @classmethod
     def _nll_and_jacobian(
             cls,
             x: WeightedTensor,
             *params: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[WeightedTensor, WeightedTensor]:
         nll = cls._nll(x, *params)
-        (nll_grad_value,) = grad(nll, (x.value,), create_graph=x.requires_grad)
-        return nll, nll_grad_value
+        (nll_grad_value,) = grad(nll.value, (x.value,), create_graph=x.requires_grad)
+        return nll, WeightedTensor(nll_grad_value, x.weight)
 
     @classmethod
-    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> torch.Tensor:
+    def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         return cls._nll_and_jacobian(x, *params)[1]
 
 
@@ -358,18 +328,18 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         return torch.broadcast_tensors(loc, scale)[1]
 
     @classmethod
-    def _nll(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    def _nll(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> WeightedTensor:
         # Hardcode method for efficiency
-        return (
+        return WeightedTensor((
                 0.5 * ((x.value - loc) / scale) ** 2
                 + torch.log(scale)
                 + cls.nll_constant_standard
-        )
+        ), x.weight)
 
     @classmethod
-    def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> WeightedTensor:
         # Hardcode method for efficiency
-        return (x.value - loc) / scale ** 2
+        return WeightedTensor((x.value - loc) / scale ** 2, x.weight)
 
     @classmethod
     def _nll_and_jacobian(
@@ -377,11 +347,11 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             x: WeightedTensor,
             loc: torch.Tensor,
             scale: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[WeightedTensor, WeightedTensor]:
         # Hardcode method for efficiency
         z = (x.value - loc) / scale
         nll = 0.5 * z ** 2 + torch.log(scale) + cls.nll_constant_standard
-        return nll, z / scale
+        return WeightedTensor(nll, x.weight), WeightedTensor(z / scale, x.weight)
 
     # @classmethod
     # def sample(cls, loc, scale, *, sample_shape = ()):
@@ -551,12 +521,12 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> WeightedTensor:
         """Compute survival neg log-likelihood."""
         log_survival = cls.compute_log_survival(x, nu, rho, xi, tau)
         log_hazard = cls.compute_log_likelihood_hazard(x, nu, rho, xi, tau)
 
-        return -1 * (log_survival + log_hazard)
+        return WeightedTensor(-1 * (log_survival + log_hazard))
 
     @classmethod
     def _nll_and_jacobian(
@@ -566,7 +536,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[WeightedTensor, WeightedTensor]:
         return cls._nll(x, nu, rho, xi, tau), cls._nll_jacobian(x, nu, rho, xi, tau)
 
     @classmethod
@@ -642,9 +612,9 @@ class SymbolicDistribution:
                 f"while expecting {len(self.dist_family.parameters)}: {self.dist_family.parameters}"
             )
         for bypass_method in {"validate_parameters", "shape", "mode", "mean", "stddev"}:
-            object.__setattr__(self, bypass_method, self._get_func(bypass_method))
+            object.__setattr__(self, bypass_method, self.get_func(bypass_method))
 
-    def _get_func(self, func: str, *extra_args_names: str, **kws):
+    def get_func(self, func: str, *extra_args_names: str, **kws):
         """Get keyword-only function from the stateless distribution family."""
         return NamedInputFunction(
             getattr(self.dist_family, func),
@@ -669,7 +639,24 @@ class SymbolicDistribution:
         NamedInputFunction :
             The sample function.
         """
-        return self._get_func("sample", sample_shape=sample_shape)
+        return self.get_func("sample", sample_shape=sample_shape)
+
+    def get_func_regularization(
+            self, value_name: str
+    ) -> NamedInputFunction[WeightedTensor[float]]:
+        """
+        Factory of symbolic function: state -> negative log-likelihood of value.
+
+        Parameters
+        ----------
+        value_name : str
+
+        Returns
+        -------
+        NamedInputFunction :
+            The named input function to use to compute negative log likelihood.
+        """
+        return self.get_func("regularization", value_name)
 
     def get_func_nll(
             self, value_name: str
@@ -686,7 +673,7 @@ class SymbolicDistribution:
         NamedInputFunction :
             The named input function to use to compute negative log likelihood.
         """
-        return self._get_func("nll", value_name)
+        return self.get_func("nll", value_name)
 
     def get_func_nll_jacobian(
             self, value_name: str
@@ -703,7 +690,7 @@ class SymbolicDistribution:
         NamedInputFunction :
             The named input function to use to compute negative log likelihood jacobian.
         """
-        return self._get_func("nll_jacobian", value_name)
+        return self.get_func("nll_jacobian", value_name)
 
     def get_func_nll_and_jacobian(
             self, value_name: str
@@ -720,7 +707,7 @@ class SymbolicDistribution:
         Tuple[NamedInputFunction, NamedInputFunction] :
             The named input functions to use to compute negative log likelihood and its jacobian.
         """
-        return self._get_func("nll_and_jacobian", value_name)
+        return self.get_func("nll_and_jacobian", value_name)
 
     @classmethod
     def bound_to(

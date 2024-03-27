@@ -76,8 +76,8 @@ class MultivariateModel(AbstractMultivariateModel):
         **kwargs,
     ):
         variables_to_track = variables_to_track or (
-            "log_g_mean",
-            "log_v0_mean",
+            "g",
+            "v0",
             "noise_std",
             "tau_mean",
             "tau_std",
@@ -515,13 +515,13 @@ class MultivariateModel(AbstractMultivariateModel):
         pass
 
     @classmethod
-    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, log_g) -> torch.Tensor:
+    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
         """Returns a model without source. A bit dirty?"""
         return cls.model_with_sources(
             rt=rt,
             metric=metric,
             v0=v0,
-            log_g=log_g,
+            g=g,
             space_shifts=torch.zeros((1, 1)),
         )
 
@@ -534,7 +534,7 @@ class MultivariateModel(AbstractMultivariateModel):
         space_shifts: torch.Tensor,
         metric,
         v0,
-        log_g,
+        g,
     ) -> torch.Tensor:
         pass
 
@@ -565,7 +565,7 @@ class LinearMultivariateInitializationMixin:
         velocities = torch.tensor(df_grp['slope'].mean().values)
 
         parameters = {
-            "log_g_mean": positions,
+            "g_mean": positions,
             "log_v0_mean": get_log_velocities(velocities, self.features),
             # "betas": torch.zeros((self.dimension - 1, self.source_dimension)),
             "tau_mean": torch.tensor(t0),
@@ -590,6 +590,29 @@ class LinearMultivariateInitializationMixin:
 
 class LinearMultivariateModel(LinearMultivariateInitializationMixin, MultivariateModel):
     """Manifold model for multiple variables of interest (linear formulation)."""
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+    def get_variables_specs(self) -> NamedVariables:
+        """
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
+
+        Returns
+        -------
+        NamedVariables :
+            The specifications of the model's variables.
+        """
+        d = super().get_variables_specs()
+        d.update(
+            g_mean=ModelParameter.for_pop_mean("g", shape=(self.dimension,)),
+            g_std=Hyperparameter(0.01),
+            g=PopulationLatentVariable(
+                Normal("g_mean", "g_std")
+            ),
+        )
+
+        return d
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
         """Used to define the corresponding variable."""
@@ -603,12 +626,12 @@ class LinearMultivariateModel(LinearMultivariateInitializationMixin, Multivariat
         space_shifts: torch.Tensor,
         metric,
         v0,
-        log_g,
+        g,
     ) -> torch.Tensor:
         """Returns a model with sources."""
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        return torch.exp(log_g[pop_s]) + v0[pop_s] * rt + space_shifts[:, None, ...]
+        return (g[pop_s] + v0[pop_s] * rt + space_shifts[:, None, ...]).weighted_value
 
 
 class LogisticMultivariateInitializationMixin:
@@ -670,6 +693,32 @@ class LogisticMultivariateInitializationMixin:
 
 class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, MultivariateModel):
     """Manifold model for multiple variables of interest (logistic formulation)."""
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+    def get_variables_specs(self) -> NamedVariables:
+        """
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
+
+        Returns
+        -------
+        NamedVariables :
+            The specifications of the model's variables.
+        """
+        d = super().get_variables_specs()
+        d.update(
+            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            log_g_std=Hyperparameter(0.01),
+            log_g=PopulationLatentVariable(
+                Normal("log_g_mean", "log_g_std")
+            ),
+            g=LinkedVariable(Exp("log_g")),
+
+        )
+
+        return d
+
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
         """Used to define the corresponding variable."""
@@ -683,13 +732,13 @@ class LogisticMultivariateModel(LogisticMultivariateInitializationMixin, Multiva
         space_shifts: TensorOrWeightedTensor[float],
         metric: TensorOrWeightedTensor[float],
         v0: TensorOrWeightedTensor[float],
-        log_g: TensorOrWeightedTensor[float],
+        g: TensorOrWeightedTensor[float],
     ) -> torch.Tensor:
         """Returns a model with sources."""
         # Shape: (Ni, Nt, Nfts)
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - log_g[pop_s]
+        w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - torch.log(g[pop_s])
         model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
 

@@ -137,15 +137,10 @@ class AbstractMultivariateModel(AbstractModel):
         variable_specs = super().get_variables_specs()
         variable_specs.update(
             # PRIORS
-            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
-            log_g_std=Hyperparameter(self._log_g_std),
             tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             # LATENT VARS
-            log_g=PopulationLatentVariable(
-                Normal("log_g_mean", "log_g_std")
-            ),
             xi=IndividualLatentVariable(
                 Normal("xi_mean", "xi_std")
             ),
@@ -153,7 +148,6 @@ class AbstractMultivariateModel(AbstractModel):
                 Normal("tau_mean", "tau_std")
             ),
             # DERIVED VARS
-            g=LinkedVariable(Exp("log_g")),
             alpha=LinkedVariable(Exp("xi")),
         )
         if self.source_dimension >= 1:
