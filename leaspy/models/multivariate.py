@@ -510,7 +510,7 @@ class MultivariateModel(AbstractMultivariateModel):
 
 
 class LinearMultivariateInitializationMixin:
-        """Compute initial values for model parameters"""
+    """Compute initial values for model parameters."""
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
