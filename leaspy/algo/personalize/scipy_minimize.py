@@ -353,35 +353,17 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             * objective : float
             * gradient : array-like[float] with same length as `x` (= all dimensions of individual latent variables, concatenated)
         """
-        raise NotImplementedError("TODO...")
+        ips = scaling.unscaling(x)
+        for ip, ip_val in ips.items():
+            state[ip] = ip_val
+        loss = state["nll_attach"] + self.regularity_factor * state["nll_regul_ind_sum"]
 
-        individual_parameters = self._pull_individual_parameters(x, model)
-        predictions = model.compute_individual_tensorized(dataset.timepoints, individual_parameters)
+        gradients = state.dag["nll_attach_gradient"].compute(state) # strangely the direct call to state["nll_attach_gradient"] yields a None...
 
-        nll_regul, d_nll_regul_grads = self._get_regularity(model, individual_parameters)
-        nll_attach = model.noise_model.compute_nll(dataset, predictions, with_gradient=with_gradient)
-        if with_gradient:
-            nll_attach, nll_attach_grads_fact = nll_attach
-
-        # we must sum separately the terms due to implicit broadcasting
-        nll = nll_attach.squeeze(0).sum() + nll_regul.squeeze(0)
-
-        if not with_gradient:
-            return nll.item()
-
-        nll_regul_grads = self._get_normalized_grad_tensor_from_grad_dict(d_nll_regul_grads, model).squeeze(0)
-
-        d_preds_grads = model.compute_jacobian_tensorized(dataset.timepoints, individual_parameters)
-        # put derivatives consecutively in the right order
-        # --> output shape [1, n_tpts, n_fts [, n_ordinal_lvls], n_dims_params]
-        preds_grads = self._get_normalized_grad_tensor_from_grad_dict(d_preds_grads, model).squeeze(0)
-
-        grad_dims_to_sum = tuple(range(0, preds_grads.ndim - 1))
-        nll_attach_grads = (preds_grads * nll_attach_grads_fact.squeeze(0).unsqueeze(-1)).sum(dim=grad_dims_to_sum)
-
-        nll_grads = nll_attach_grads + nll_regul_grads
-
-        return nll.item(), nll_grads
+        grads_ind = {}
+        for name in state.dag.individual_variable_names:
+            grads_ind[name] = (state[f"nll_regul_{name}_gradient"][name] + gradients[name].sum(axis=(-1, -2, -3))).value.reshape(-1) # casting back to Tensor
+        return loss.item(), scaling.scaling(grads_ind)
 
     def _get_individual_parameters_patient(
         self,
@@ -560,7 +542,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         # optimize by sending exact gradient of optimized function?
         with_jac = self.algo_parameters['use_jacobian']
-        if with_jac and not self.is_jacobian_implemented(model):
+        if with_jac and not "nll_attach_gradient" in state:
             warnings.warn(
                 "In `scipy_minimize` you requested `use_jacobian=True` but it "
                 f"is not implemented in your model {model.name}. "
