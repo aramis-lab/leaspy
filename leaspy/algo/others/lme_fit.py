@@ -91,6 +91,8 @@ class LMEFitAlgorithm(AbstractAlgo): # AbstractFitAlgo not so generic (EM)
                           'The current behaviour will soon be dropped.', FutureWarning)
             model.load_hyperparameters(model_hps_in_algo_settings)
         # END DEPRECATED
+        if model.dimension != len(dataset.headers):
+            raise ValueError('LME is only univariate')
 
         # get data
         ages = self._get_reformated(dataset, 'timepoints')

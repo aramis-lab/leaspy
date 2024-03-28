@@ -52,6 +52,10 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
 
         ip = IndividualParameters()
         residuals = []
+
+        if model.features != dataset.headers:
+            raise ValueError("Your data and the model you are using for personnalisation do not have the same headers.")
+
         for it in range(dataset.n_individuals):
             idx = dataset.indices[it]
             times = dataset.get_times_patient(it)
