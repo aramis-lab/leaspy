@@ -358,7 +358,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             state[ip] = ip_val
         loss = state["nll_attach"] + self.regularity_factor * state["nll_regul_ind_sum"]
 
-        gradients = state.dag["nll_attach_gradient"].compute(state) # strangely the direct call to state["nll_attach_gradient"] yields a None...
+        gradients = state["nll_attach_gradient"]
 
         grads_ind = {}
         for name in state.dag.individual_variable_names:

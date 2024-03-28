@@ -573,11 +573,13 @@ class GradientVariable(LinkedVariable):
         for parent in selfgradients:
             parent_grad = f"{parent}_gradient"
             if parent_grad in state:
-                for var, grad in state[parent_grad].items(): # recursively applies chain rule
-                    if not var in selfgradients:
-                        new_vars[var] = selfgradients[parent] * grad
-                    elif var in new_vars:
+                parent_grads = state[parent_grad]
+                for var in parent_grads: # recursively applies chain rule
+                    grad = state[parent_grad][var]
+                    if var in new_vars:
                         new_vars[var] += selfgradients[parent] * grad
+                    elif not var in selfgradients:
+                        new_vars[var] = selfgradients[parent] * grad
         selfgradients.update(new_vars)
 
     def compute(self, state: VariablesValuesRO) -> VarValue:

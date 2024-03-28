@@ -16,7 +16,7 @@ from tests import LeaspyTestCase
 TEST_LOGISTIC_PARALLEL_MODELS = False
 SKIP_LOGISTIC_PARALLEL_MODELS = "Logistic parallel models are currently broken."
 
-TEST_LOGISTIC_MODELS_WITH_JACOBIAN = False
+TEST_LOGISTIC_MODELS_WITH_JACOBIAN = True
 SKIP_LOGISTIC_MODELS_WITH_JACOBIAN = "Jacobian not implemented for logistic model."
 
 TEST_LOGISTIC_BINARY_MODELS = False
@@ -27,7 +27,7 @@ SKIP_LOGISTIC_BINARY_MODELS = "Logistic binary models are currently broken."
 TEST_LINEAR_MODELS = True
 SKIP_LINEAR_MODELS = "Linear models are currently broken."
 
-TEST_LINEAR_MODELS_WITH_JACOBIAN = False
+TEST_LINEAR_MODELS_WITH_JACOBIAN = True
 SKIP_LINEAR_MODELS_WITH_JACOBIAN = "Jacobian not implemented for linear model."
 
 # Ordinal observation models are not yet implemented in Leaspy v2.
