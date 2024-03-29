@@ -7,12 +7,11 @@ from typing import Tuple, Any, ClassVar, Callable, Type
 
 import torch
 from torch.autograd import grad
-
+from leaspy.constants import constants
 from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, sum_dim
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import MultinomialDistribution
 from leaspy.utils.functional import NamedInputFunction
-
 
 class StatelessDistributionFamily(ABC):
     """
@@ -479,7 +478,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         hazard = torch.where(
             event_reparametrized_time > 0,
             (rho / nu_reparametrized) * ((event_reparametrized_time / nu_reparametrized) ** (rho - 1.)),
-            -float('inf')
+            -constants.INFINITY
         )
         log_hazard = torch.where(hazard > 0, torch.log(hazard), hazard)
         log_hazard = torch.where(event_bool != 0, log_hazard, torch.tensor(0., dtype=torch.double))
