@@ -4,7 +4,7 @@ import torch
 import operator
 from typing import Callable, Tuple, TypeVar, Set, Optional, Iterable
 
-from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
+from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.utils.typing import KwargsType
 
 from ._named_input_function import NamedInputFunction
@@ -112,6 +112,10 @@ def _arguments_checker(
     return check_arguments
 
 
-def _sum_args(*args: torch.Tensor, **start_kw) -> torch.Tensor:
+def _sum_args(*args: TensorOrWeightedTensor, **start_kw) -> TensorOrWeightedTensor:
     """Summation of regular tensors with variadic input instead of standard iterable input."""
-    return sum(args, **start_kw)
+    summation = sum(args, **start_kw)
+    if not isinstance(summation, (torch.Tensor, WeightedTensor)):
+        # If args is empty, sum returns a float 0 that needs to be converted to a tensor
+        return torch.tensor(summation)
+    return summation
