@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping
-from typing import Tuple, Optional, Set, Iterable, List
+from typing import Tuple, Optional, Set, Iterable, List, Union
 from contextlib import contextmanager
 from enum import Enum, auto
 import copy
@@ -341,7 +341,7 @@ class State(MutableMapping):
                 if v is not None:
                     self._last_fork[k] = v.to(device=device)
 
-    def put_population_latent_variables(self, method: Optional[LatentVariableInitType]) -> None:
+    def put_population_latent_variables(self, method: Optional[Union[str, LatentVariableInitType]]) -> None:
         """Put some predefined values in state for all population latent variables (in-place)."""
         # Nota: fixing order of variables in this loop is pointless since no randomness is involved in init of pop. vars
         for pp, var in self.dag.sorted_variables_by_type[PopulationLatentVariable].items():
@@ -352,11 +352,11 @@ class State(MutableMapping):
                 self[pp] = var.get_init_func(method).call(self)
 
     def put_individual_latent_variables(
-            self,
-            method: Optional[LatentVariableInitType] = None,
-            *,
-            n_individuals: Optional[int] = None,
-            df: Optional[pd.DataFrame] = None,
+        self,
+        method: Optional[Union[str, LatentVariableInitType]] = None,
+        *,
+        n_individuals: Optional[int] = None,
+        df: Optional[pd.DataFrame] = None,
     ) -> None:
 
         """Put some predefined values in state for all individual latent variables (in-place)."""

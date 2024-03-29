@@ -11,6 +11,7 @@ from typing import (
     FrozenSet,
     Optional,
     Tuple,
+    Union,
     Mapping as TMapping,
     MutableMapping as TMutableMapping,
 )
@@ -329,12 +330,12 @@ class DataVariable(IndepVariable):
     is_settable: ClassVar = True
 
 
-class LatentVariableInitType(Enum):
+class LatentVariableInitType(str, Enum):
     """Type of initialization for latent variables."""
 
-    PRIOR_MODE = auto()
-    PRIOR_MEAN = auto()
-    PRIOR_SAMPLES = auto()
+    PRIOR_MODE = "mode"
+    PRIOR_MEAN = "mean"
+    PRIOR_SAMPLES = "samples"
 
 
 @dataclass(frozen=True)
@@ -364,11 +365,12 @@ class LatentVariable(IndepVariable):
 
     def _get_init_func_generic(
         self,
-        method: LatentVariableInitType,
+        method: Union[str, LatentVariableInitType],
         *,
         sample_shape: Tuple[int, ...],
     ) -> NamedInputFunction[torch.Tensor]:
         """Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization."""
+        method = LatentVariableInitType(method)
         if method is LatentVariableInitType.PRIOR_SAMPLES:
             return self.prior.get_func_sample(sample_shape)
         if method is LatentVariableInitType.PRIOR_MODE:
@@ -400,14 +402,14 @@ class PopulationLatentVariable(LatentVariable):
 
     def get_init_func(
         self,
-        method: LatentVariableInitType,
+        method: Union[str, LatentVariableInitType],
     ) -> NamedInputFunction[torch.Tensor]:
         """
         Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization.
 
         Parameters
         ----------
-        method : LatentVariableInitType
+        method : LatentVariableInitType or str
             The method to be used.
 
         Returns
@@ -456,7 +458,7 @@ class IndividualLatentVariable(LatentVariable):
 
     def get_init_func(
         self,
-        method: LatentVariableInitType,
+        method: Union[str, LatentVariableInitType],
         *,
         n_individuals: int,
     ) -> NamedInputFunction[torch.Tensor]:
@@ -464,7 +466,7 @@ class IndividualLatentVariable(LatentVariable):
 
         Parameters
         ----------
-        method : LatentVariableInitType
+        method : LatentVariableInitType or str
             The method to be used.
 
         n_individuals : int
