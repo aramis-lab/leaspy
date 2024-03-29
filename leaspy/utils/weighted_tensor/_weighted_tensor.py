@@ -279,13 +279,13 @@ def _apply_operation(
             else:
                 return WeightedTensor(
                     result_value,
-                    b.weight.expand(result_value.shape) if b.weight.shape != result_value.shape else b.weight,
+                    b.weight.expand(result_value.shape).clone() if b.weight.shape != result_value.shape else b.weight.clone(),
                 )
         else:
             if b.weight is None:
                 return WeightedTensor(
                     result_value,
-                    a.weight.expand(result_value.shape) if a.weight.shape != result_value.shape else a.weight,
+                    a.weight.expand(result_value.shape).clone() if a.weight.shape != result_value.shape else a.weight.clone(),
                 )
             else:
                 if not torch.equal(a.weight, b.weight):
@@ -295,7 +295,7 @@ def _apply_operation(
                     )
                 return WeightedTensor(
                     result_value,
-                    a.weight.expand(result_value.shape) if a.weight.shape != result_value.shape else a.weight,
+                    a.weight.expand(result_value.shape).clone() if a.weight.shape != result_value.shape else a.weight.clone(),
                 )
     result_value = operation(b, a.value) if reverse else operation(a.value, b)
     result_weight = None
@@ -304,4 +304,4 @@ def _apply_operation(
             result_weight = a.weight.expand(result_value.shape)
         else:
             result_weight = a.weight
-    return WeightedTensor(result_value, result_weight)
+    return WeightedTensor(result_value, result_weight.clone())
