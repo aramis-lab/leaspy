@@ -34,27 +34,29 @@ class WeightedTensor(Generic[VT]):
 
     value: torch.Tensor
     weight: Optional[torch.Tensor] = None
+    unsafe: bool = True
 
     def __post_init__(self):
-        if not isinstance(self.value, torch.Tensor):
-            assert not isinstance(
-                self.value, WeightedTensor
-            ), "You should NOT init a `WeightedTensor` with another"
-            object.__setattr__(self, "value", torch.tensor(self.value))
-        if self.weight is not None:
-            if not isinstance(self.weight, torch.Tensor):
+        if not self.unsafe:
+            if not isinstance(self.value, torch.Tensor):
                 assert not isinstance(
-                    self.weight, WeightedTensor
-                ), "You should NOT use a `WeightedTensor` for weights"
-                object.__setattr__(self, "weight", torch.tensor(self.weight))
-            assert (self.weight >= 0).all(), "Weights must be non-negative"
-            # we forbid implicit broadcasting of weights for safety
-            assert (
-                self.weight.shape == self.value.shape
-            ), f"Bad shapes: {self.weight.shape} != {self.value.shape}"
-            assert (
-                self.weight.device == self.value.device
-            ), f"Bad devices: {self.weight.device} != {self.value.device}"
+                    self.value, WeightedTensor
+                ), "You should NOT init a `WeightedTensor` with another"
+                object.__setattr__(self, "value", torch.tensor(self.value))
+            if self.weight is not None:
+                if not isinstance(self.weight, torch.Tensor):
+                    assert not isinstance(
+                        self.weight, WeightedTensor
+                    ), "You should NOT use a `WeightedTensor` for weights"
+                    object.__setattr__(self, "weight", torch.tensor(self.weight))
+                assert (self.weight >= 0).all(), "Weights must be non-negative"
+                # we forbid implicit broadcasting of weights for safety
+                assert (
+                    self.weight.shape == self.value.shape
+                ), f"Bad shapes: {self.weight.shape} != {self.value.shape}"
+                assert (
+                    self.weight.device == self.value.device
+                ), f"Bad devices: {self.weight.device} != {self.value.device}"
 
     @property
     def weighted_value(self) -> torch.Tensor:
@@ -207,46 +209,46 @@ class WeightedTensor(Generic[VT]):
         return WeightedTensor(abs(self.value), self.weight)
 
     def __add__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "add")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "add")
 
     def __radd__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "add")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "add")
 
     def __sub__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "sub")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "sub")
 
     def __rsub__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "sub", reverse=True)
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "sub", reverse=True)
 
     def __mul__(self, other:  TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "mul")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "mul")
 
     def __rmul__(self, other:  TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "mul")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "mul")
 
     def __truediv__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "truediv")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "truediv")
 
     def __rtruediv__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "truediv", reverse=True)
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "truediv", reverse=True)
 
     def __lt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "lt")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "lt")
 
     def __le__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "le")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "le")
 
     def __eq__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "eq")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "eq")
 
     def __ne__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "ne")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "ne")
 
     def __gt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "gt")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "gt")
 
     def __ge__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "ge")
+        return (_apply_operation_unsafe if self.unsafe else _apply_operation)(self, other, "ge")
 
     @staticmethod
     def get_filled_value_and_weight(
@@ -279,13 +281,21 @@ def _apply_operation(
             else:
                 return WeightedTensor(
                     result_value,
-                    b.weight.expand(result_value.shape).clone() if b.weight.shape != result_value.shape else b.weight.clone(),
+                    (
+                        b.weight.expand(result_value.shape).clone()
+                        if b.weight.shape != result_value.shape
+                        else b.weight.clone()
+                    ),
                 )
         else:
             if b.weight is None:
                 return WeightedTensor(
                     result_value,
-                    a.weight.expand(result_value.shape).clone() if a.weight.shape != result_value.shape else a.weight.clone(),
+                    (
+                        a.weight.expand(result_value.shape).clone()
+                        if a.weight.shape != result_value.shape
+                        else a.weight.clone()
+                    ),
                 )
             else:
                 if not torch.equal(a.weight, b.weight):
@@ -295,7 +305,11 @@ def _apply_operation(
                     )
                 return WeightedTensor(
                     result_value,
-                    a.weight.expand(result_value.shape).clone() if a.weight.shape != result_value.shape else a.weight.clone(),
+                    (
+                        a.weight.expand(result_value.shape).clone()
+                        if a.weight.shape != result_value.shape
+                        else a.weight.clone()
+                    ),
                 )
     result_value = operation(b, a.value) if reverse else operation(a.value, b)
     result_weight = None
@@ -305,3 +319,21 @@ def _apply_operation(
         else:
             result_weight = a.weight
     return WeightedTensor(result_value, result_weight.clone())
+
+
+def _apply_operation_unsafe(
+    a: WeightedTensor,
+    b: TensorOrWeightedTensor,
+    operator_name: str,
+    reverse: bool = False,
+) -> WeightedTensor:
+    operation = getattr(operator, operator_name)
+    if isinstance(b, WeightedTensor):
+        return WeightedTensor(
+            operation(b.value, a.value) if reverse else operation(a.value, b.value),
+            a.weight,
+        )
+    return WeightedTensor(
+        operation(b, a.value) if reverse else operation(a.value, b),
+        a.weight,
+    )
