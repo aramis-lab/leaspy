@@ -356,6 +356,9 @@ class VariablesDAG(Mapping):
 
     @property
     def individual_variable_names(self) -> Tuple[VarName, ...]:
-        return tuple(
-            self.sorted_variables_by_type[IndividualLatentVariable].keys()
-        )
+        try:
+            return tuple(
+                self.sorted_variables_by_type[IndividualLatentVariable].keys()
+            )
+        except KeyError:
+            return ()
