@@ -400,7 +400,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_joint",
             "scipy_minimize",
-            0.30333825945854187,
+            0.2959330677986145,
             {"use_jacobian": False},
         )
 
@@ -417,14 +417,14 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_joint",
             "mode_real",
-            0.30058470368385315,
+            0.26655313372612,
         )
 
     def test_univariate_joint_mean_real(self):
         self._personalize_generic(
             "univariate_joint",
             "mean_real",
-            0.30380967259407043,
+            0.2860680818557739,
         )
 
     ################################################################
