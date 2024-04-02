@@ -25,7 +25,7 @@ class DataTest(LeaspyTestCase):
         self.assertEqual(data.dimension, 1)
         self.assertEqual(data.n_individuals, 7)
         self.assertEqual(data.n_visits, 33)
-        self.assertEqual(data.cofactors, [])
+        self.assertEqual(data.covariates, [])
         self.assertEqual(data.event_time_name, None)
         self.assertEqual(data.event_bool_name, None)
 
@@ -43,7 +43,7 @@ class DataTest(LeaspyTestCase):
         self.assertEqual(data.dimension, 3)
         self.assertEqual(data.n_individuals, 5)
         self.assertEqual(data.n_visits, 18)
-        self.assertEqual(data.cofactors, [])
+        self.assertEqual(data.covariates, [])
         self.assertEqual(data.event_time_name, None)
         self.assertEqual(data.event_bool_name, None)
 
@@ -69,12 +69,12 @@ class DataTest(LeaspyTestCase):
         """
         self.assertEqual(data.headers, sub_data.headers)
         self.assertEqual(data.dimension, sub_data.dimension)
-        self.assertEqual(data.cofactors, sub_data.cofactors)
+        self.assertEqual(data.covariates, sub_data.covariates)
 
         self.assertEqual(individual.idx, sub_individual.idx)
         self.assertEqual(individual.timepoints.tolist(), sub_individual.timepoints.tolist())
         self.assertEqual(individual.observations.tolist(), sub_individual.observations.tolist())
-        self.assertEqual(individual.cofactors, sub_individual.cofactors)
+        self.assertEqual(individual.covariates, sub_individual.covariates)
 
     def test_data_slicing(self):
         data = self.load_multivariate_data()
@@ -121,60 +121,60 @@ class DataTest(LeaspyTestCase):
             if iter > 4:
                 break
 
-    def test_data_cofactors_and_dataframe(self):
+    def test_data_covariates_and_dataframe(self):
         data = self.load_multivariate_data()
         individual_key = 3
         individual = data[3]
 
-        # Test load_cofactors()
+        # Test load_covariates()
         idx_list = data.individuals.keys()
-        cofactors_list = ["Cofactor_1", "Cofactor_2"]
-        cofactors_df = pd.DataFrame(
+        covariates_list = ["Covariate_1", "Covariate_2"]
+        covariates_df = pd.DataFrame(
             index=idx_list,
             data=[(idx[0], idx[-1]) for idx in idx_list],
-            columns=cofactors_list
+            columns=covariates_list
         )
-        cofactors_df.index.name = "ID"
-        data.load_cofactors(cofactors_df, cofactors=None)
-        self.assertEqual(data.cofactors, cofactors_list)
-        self.assertEqual(individual.cofactors["Cofactor_2"], individual.idx[-1])
+        covariates_df.index.name = "ID"
+        data.load_covariates(covariates_df, covariates=None)
+        self.assertEqual(data.covariates, covariates_list)
+        self.assertEqual(individual.covariates["Covariate_2"], individual.idx[-1])
 
-        # Cover load_cofactors() errors
+        # Cover load_covariates() errors
         with pytest.raises(LeaspyDataInputError):
-            wrong_cofactors_df = cofactors_df.copy()
-            wrong_cofactors_df.index.name = "Wrong_index_name"
-            data.load_cofactors(wrong_cofactors_df, cofactors=None)
+            wrong_covariates_df = covariates_df.copy()
+            wrong_covariates_df.index.name = "Wrong_index_name"
+            data.load_covariates(wrong_covariates_df, covariates=None)
         
         with pytest.raises(LeaspyDataInputError):
-            wrong_cofactors_df = cofactors_df.copy()
-            wrong_cofactors_df.loc[4] = [0 for _ in cofactors_list]
-            data.load_cofactors(wrong_cofactors_df, cofactors=None)
+            wrong_covariates_df = covariates_df.copy()
+            wrong_covariates_df.loc[4] = [0 for _ in covariates_list]
+            data.load_covariates(wrong_covariates_df, covariates=None)
         
         with pytest.raises(LeaspyDataInputError):
-            wrong_cofactors_df = cofactors_df.copy()
-            wrong_cofactors_df.drop(individual.idx, inplace=True)
-            data.load_cofactors(wrong_cofactors_df, cofactors=None)
+            wrong_covariates_df = covariates_df.copy()
+            wrong_covariates_df.drop(individual.idx, inplace=True)
+            data.load_covariates(wrong_covariates_df, covariates=None)
 
         # Test to_dataframe()
-        df = data.to_dataframe(cofactors="all")
+        df = data.to_dataframe(covariates="all")
         self.assertEqual(
             df.shape,
-            (data.n_visits, len(data.headers + data.cofactors) + 2)
+            (data.n_visits, len(data.headers + data.covariates) + 2)
         )
         self.assertEqual(
-            df.loc[df["ID"] == individual.idx, "Cofactor_1"].to_list(),
+            df.loc[df["ID"] == individual.idx, "Covariate_1"].to_list(),
             [individual.idx[0] for _ in range(len(individual.timepoints))]
         )
 
         # Cover to_dataframe() errors
         with pytest.raises(LeaspyDataInputError):
-            _ = data.to_dataframe(cofactors="Cofactor_1")
+            _ = data.to_dataframe(covariates="Covariate_1")
         
         with pytest.raises(LeaspyTypeError):
-            _ = data.to_dataframe(cofactors={})
+            _ = data.to_dataframe(covariates={})
         
         with pytest.raises(LeaspyDataInputError):
-            _ = data.to_dataframe(cofactors=["Wrong_cofactor"])
+            _ = data.to_dataframe(covariates=["Wrong_covariate"])
 
     def test_data_with_event(self):
         # Load data

@@ -61,6 +61,17 @@ class Dataset:
         Binary mask associated to values.
         If 1: value is meaningful
         If 0: value is meaningless (either was nan or does not correspond to a real visit - only here for padding)
+    n_covariates : int
+        Number of covariates
+    covariates : :class:`torch.FloatTensor`, shape (n_individuals, n_covariates)
+        Values of covariates for each patients. Potential 'categorical' (i.e. strings) covariates
+        stored in the Data objects are converted into quantitative values (with an additive scheme)
+        during loading
+    covariates_order : List[str]
+        Ordered names of the covariates corresponding to the columns of the covariates attribute
+    covariates_association_dict : Dict[str, Dict[str, float]]
+        If categorical covariates have been loaded, this dictionary indexed by the names of
+        covariates links the categorical values (strings) to their quantitative equivalent
     L2_norm_per_ft : :class:`torch.FloatTensor`, shape (dimension,)
         Sum of all non-nan squared values, feature per feature
     L2_norm : scalar :class:`torch.FloatTensor`
@@ -93,6 +104,12 @@ class Dataset:
         self.timepoints: Optional[torch.FloatTensor] = None
         self.values: Optional[torch.FloatTensor] = None
         self.mask: Optional[torch.FloatTensor] = None
+
+        self.n_covariates: int = None
+        self.covariates: Optional[torch.FloatTensor] = None
+        self.covariates_order: Optional[List[str]] = None
+        self.covariates_association_dict: Optional[Dict[str, Dict[str, float]]] = None
+
         self.n_observations: Optional[int] = None
         self.n_observations_per_ft: Optional[torch.LongTensor] = None
         self.n_observations_per_ind_per_ft: Optional[torch.LongTensor] = None
@@ -121,6 +138,8 @@ class Dataset:
 
         if self.event_time_name:
             self._construct_events(data)
+
+        self._construct_covariates(data)
 
         self.no_warning = no_warning
 
@@ -167,6 +186,54 @@ class Dataset:
     def _construct_events(self, data: Data):
         self.event_time = torch.tensor([_.event_time for _ in data], dtype=torch.double)
         self.event_bool = torch.tensor([bool(_.event_bool) for _ in data], dtype=torch.int)
+
+    def _construct_covariates(self, data: Data):
+        """
+        Fills the self.covariates attribute according to the covariates encountered
+        in the data object. If categorical covariate are ecountered (encoded by
+        strings), these values are converted to an additive quantitative encoding
+        so that they can be stored and handled in a torch tensor.
+
+        TODO: we should add the option to have a one-hot encoding of such categorical
+        covariates, for when the additive encoding does not make sense.
+        """
+
+        self.n_covariates = len(data.covariates)
+
+        if self.n_covariates == 0:
+            return
+
+        self.covariates = torch.zeros((data.n_individuals, self.n_covariates))
+        self.covariates_association_dict = {}
+        self.covariates_order = data.covariates
+
+        local_count = {}
+
+        def _categorize(covariate_name: str, value: Any):
+            """
+            Helper function that matches string values for covariates into an
+            additive categorical encoding. E.g. {"Female", "Male"} possible
+            values get encoded as {0.0, 1.0}. The maching between strings and
+            quantitative encoding is stored into self.covariates_association_dict
+            """
+            if covariate_name not in local_count:
+                local_count[covariate_name] = 0.
+                self.covariates_association_dict[covariate_name] = {}
+
+            if isinstance(value, str):
+                if value not in self.covariates_association_dict[covariate_name]:
+                    self.covariates_association_dict[covariate_name][value] = local_count[covariate_name]
+                    local_count[covariate_name] += 1.0
+
+                return self.covariates_association_dict[covariate_name][value]
+
+            return value
+
+        for i, subject_id in data.iter_to_idx.items():
+            subject_covariates = data[subject_id].covariates
+
+            for j, (covariate_name, value) in enumerate(subject_covariates.items()):
+                self.covariates[i, j] = _categorize(covariate_name, value)
 
     def _compute_L2_norm(self):
         self.L2_norm_per_ft = torch.sum(self.mask.float() * self.values * self.values,

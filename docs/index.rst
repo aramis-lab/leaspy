@@ -39,7 +39,7 @@ Description
 
 - Recombining them to reconstruct the long-term spatio-temporal trajectory of evolution
 - Positioning each patient observations relatively to the group-average timeline, in term of both temporal differences (time shift and acceleration factor) and spatial differences (different sequences of events, spatial pattern of progression, ...)
-- Quantifying impact of cofactors (gender, genetic mutation, environmental factors, ...) on the evolution of the signal
+- Quantifying impact of covariates (gender, genetic mutation, environmental factors, ...) on the evolution of the signal
 - Imputing missing values
 - Predicting future observations
 - Simulating virtual patients to un-bias the initial cohort or mimic its characteristics

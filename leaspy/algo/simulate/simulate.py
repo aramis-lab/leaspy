@@ -36,9 +36,9 @@ class SimulationAlgorithm(AbstractAlgo):
     To simulate new data given existing one by learning the individual parameters joined distribution.
 
     You can choose to only learn the distribution of a group of patient.
-    To do so, choose the cofactor(s) and the cofactor(s) state of the wanted patient in the settings.
-    For instance, for an Alzheimer's disease patient, you can load a genetic cofactor informative of the APOE4 carriers.
-    Choose cofactor ['genetic'] and cofactor_state ['APOE4'] to simulate only APOE4 carriers.
+    To do so, choose the covariate(s) and the covariate(s) state of the wanted patient in the settings.
+    For instance, for an Alzheimer's disease patient, you can load a genetic covariate informative of the APOE4 carriers.
+    Choose covariate ['genetic'] and covariate_state ['APOE4'] to simulate only APOE4 carriers.
 
     Parameters
     ----------
@@ -47,8 +47,8 @@ class SimulationAlgorithm(AbstractAlgo):
         They may include the following parameters, described in __Attributes__ section:
             * `noise`
             * `bandwidth_method`
-            * `cofactor`
-            * `cofactor_state`
+            * `covariate`
+            * `covariate_state`
             * `number_of_subjects`
             * `mean_number_of_visits`, `std_number_of_visits`, `min_number_of_visits`, `max_number_of_visits`
             * `delay_btw_visits`
@@ -69,18 +69,18 @@ class SimulationAlgorithm(AbstractAlgo):
 
     bandwidth_method : float or str or callable, optional
         Bandwidth argument used in :class:`scipy.stats.gaussian_kde` in order to learn the patients' distribution.
-    cofactor : list[str], optional (default = None)
-        The list of cofactors included used to select the wanted group of patients (ex - ['genetic']).
-        All of them must correspond to an existing cofactor in the attribute `Data`
+    covariate : list[str], optional (default = None)
+        The list of covariates included used to select the wanted group of patients (ex - ['genetic']).
+        All of them must correspond to an existing covariate in the attribute `Data`
         of the input `result` of the :meth:`~.run` method.
-        TODO? should we allow to learn joint distribution of individual parameters and numeric/categorical cofactors (not fixed)?
-    cofactor_state : list[str], optional (default None)
-        The cofactors states used to select the wanted group of patients (ex - ['APOE4']).
-        There is exactly one state per cofactor in `cofactor` (same order).
-        It must correspond to an existing cofactor state in the attribute `Data`
+        TODO? should we allow to learn joint distribution of individual parameters and numeric/categorical covariates (not fixed)?
+    covariate_state : list[str], optional (default None)
+        The covariates states used to select the wanted group of patients (ex - ['APOE4']).
+        There is exactly one state per covariate in `covariate` (same order).
+        It must correspond to an existing covariate state in the attribute `Data`
         of the input `result` of the :meth:`~.run` method.
-        TODO? it could be replaced by methods to easily sub-select individual having certain cofactors PRIOR to running
-        this algorithm + the functionality described just above (included varying cofactors as part of the distribution to estimate).
+        TODO? it could be replaced by methods to easily sub-select individual having certain covariates PRIOR to running
+        this algorithm + the functionality described just above (included varying covariates as part of the distribution to estimate).
     features_bounds : bool or dict[str, (float, float)] (default False)
         Specify if the scores of the generated subjects must be bounded.
         This parameter can express in two way:
@@ -167,9 +167,9 @@ class SimulationAlgorithm(AbstractAlgo):
         self.bandwidth_method = settings.parameters['bandwidth_method']
         self.sources_method = settings.parameters['sources_method']
 
-        # TODO? refact params: dict {cofactor_1: forced_state_1, ...}
-        self.cofactor = settings.parameters['cofactor']
-        self.cofactor_state = settings.parameters['cofactor_state']
+        # TODO? refact params: dict {covariate_1: forced_state_1, ...}
+        self.covariate = settings.parameters['covariate']
+        self.covariate_state = settings.parameters['covariate_state']
 
         self.reparametrized_age_bounds = settings.parameters['reparametrized_age_bounds']
         self.features_bounds = settings.parameters['features_bounds']
@@ -285,26 +285,26 @@ class SimulationAlgorithm(AbstractAlgo):
             except Exception as e:
                 raise LeaspyAlgoInputError('The "delay_btw_visits" function input n:int and return a numpy.ndarray<n>[float > 0]') from e
 
-    def _validate_cofactors(self):
+    def _validate_covariates(self):
 
-        if int(self.cofactor is None) ^ int(self.cofactor_state is None):
-            raise LeaspyAlgoInputError("`cofactor` and `cofactor_state` should be None or not None simultaneously!")
+        if int(self.covariate is None) ^ int(self.covariate_state is None):
+            raise LeaspyAlgoInputError("`covariate` and `covariate_state` should be None or not None simultaneously!")
 
-        if self.cofactor is not None:
-            # TODO: check that the loaded cofactors states are strings?
-            if not isinstance(self.cofactor, list):
-                raise LeaspyAlgoInputError("`cofactor` should be a list of cofactors whose states want to be fixed.")
-            if not isinstance(self.cofactor_state, list):
-                raise LeaspyAlgoInputError("`cofactor_state` should be the list of cofactors states to fix (same order as `cofactor` list).")
-            if len(self.cofactor) != len(self.cofactor_state):
-                raise LeaspyAlgoInputError("`cofactor` and `cofactor_state` should have equal length (exactly 1 state per cofactor)")
+        if self.covariate is not None:
+            # TODO: check that the loaded covariates states are strings?
+            if not isinstance(self.covariate, list):
+                raise LeaspyAlgoInputError("`covariate` should be a list of covariates whose states want to be fixed.")
+            if not isinstance(self.covariate_state, list):
+                raise LeaspyAlgoInputError("`covariate_state` should be the list of covariates states to fix (same order as `covariate` list).")
+            if len(self.covariate) != len(self.covariate_state):
+                raise LeaspyAlgoInputError("`covariate` and `covariate_state` should have equal length (exactly 1 state per covariate)")
 
     def _validate_algo_parameters(self):
 
         # complex checks in separate methods for clarity
         self._validate_number_of_subjects_and_visits()
         self._validate_delay_btw_visits()
-        self._validate_cofactors()
+        self._validate_covariates()
 
         # other simpler checks
         self._validate_parameter_has_type('prefix', str, 'a string')
@@ -326,42 +326,42 @@ class SimulationAlgorithm(AbstractAlgo):
         #self._check_parameter_has_type('noise', (), ..., optional=True)  # to be checked by `_get_noise_model`
         #self._check_parameter_has_type('bandwidth_method', ...)  # error message to be raised by scipy if bad input
 
-    def _check_cofactors(self, data):
+    def _check_covariates(self, data):
         """
-        Check the coherence of cofactors given with respect to data object.
+        Check the coherence of covariates given with respect to data object.
 
         Parameters
         ----------
         data : :class:`.Data`
-            Contains the cofactors and cofactors' states.
+            Contains the covariates and covariates' states.
 
         Raises
         ------
         :exc:`.LeaspyAlgoInputError`
-            Raised if the parameters "cofactor" and "cofactor_state" do not receive a valid value.
+            Raised if the parameters "covariate" and "covariate_state" do not receive a valid value.
         """
-        cofactors = {}
+        covariates = {}
         for ind in data.individuals.values():
-            if bool(ind.cofactors):
-                for key, val in ind.cofactors.items():
-                    if key in cofactors.keys():
-                        cofactors[key].add(val)
+            if bool(ind.covariates):
+                for key, val in ind.covariates.items():
+                    if key in covariates.keys():
+                        covariates[key].add(val)
                     else:
                         # set (unique vals)
-                        cofactors[key] = {val}
+                        covariates[key] = {val}
 
-        unknown_cofactors = [cof_ft for cof_ft in self.cofactor if cof_ft not in cofactors.keys()]
-        if len(unknown_cofactors) > 0:
+        unknown_covariates = [cof_ft for cof_ft in self.covariate if cof_ft not in covariates.keys()]
+        if len(unknown_covariates) > 0:
             raise LeaspyAlgoInputError(
-                f'The `cofactor` parameter has cofactors unknown in your data: {unknown_cofactors}. '
-                f'The available cofactor(s) are {list(cofactors.keys())}.')
+                f'The `covariate` parameter has covariates unknown in your data: {unknown_covariates}. '
+                f'The available covariate(s) are {list(covariates.keys())}.')
 
-        invalid_cofactors = dict([(cof_ft, cof_val) for cof_ft, cof_val in zip(self.cofactor, self.cofactor_state)
-                             if cof_val not in cofactors[cof_ft]])
-        if len(invalid_cofactors) > 0:
+        invalid_covariates = dict([(cof_ft, cof_val) for cof_ft, cof_val in zip(self.covariate, self.covariate_state)
+                             if cof_val not in covariates[cof_ft]])
+        if len(invalid_covariates) > 0:
             raise LeaspyAlgoInputError(
-                f'The `cofactor_state` parameter is invalid for cofactors {invalid_cofactors}. '
-                f'The available cofactor states for those are: { {k: cofactors[k] for k in invalid_cofactors} }.')
+                f'The `covariate_state` parameter is invalid for covariates {invalid_covariates}. '
+                f'The available covariate states for those are: { {k: covariates[k] for k in invalid_covariates} }.')
 
     @staticmethod
     def _get_mean_and_covariance_matrix(m):
@@ -833,8 +833,8 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Notes
         -----
-        In simulation_settings, one can specify in the parameters the cofactor & cofactor_state. By doing so,
-        one can simulate based only on the subject for the given cofactor & cofactor's state.
+        In simulation_settings, one can specify in the parameters the covariate & covariate_state. By doing so,
+        one can simulate based only on the subject for the given covariate & covariate's state.
 
         By default, all the subjects provided are used to estimate the joined distribution.
         """
@@ -850,15 +850,15 @@ class SimulationAlgorithm(AbstractAlgo):
         noise_dist = self._get_noise_distribution(model, dataset, dict_pytorch)
         self._check_noise_distribution(model, noise_dist)
 
-        if self.cofactor is not None:
-            self._check_cofactors(data)
+        if self.covariate is not None:
+            self._check_covariates(data)
 
         # --------- Get individual parameters & reparametrized baseline ages - for joined density estimation
-        # Get individual parameters (optional - & the cofactor states)
-        df_ind_param = results.get_dataframe_individual_parameters(cofactors=self.cofactor)
-        if self.cofactor_state:
-            for cof, cof_state in zip(self.cofactor, self.cofactor_state):
-                # Select only subjects with the given cofactor state and remove the associated column
+        # Get individual parameters (optional - & the covariate states)
+        df_ind_param = results.get_dataframe_individual_parameters(covariates=self.covariate)
+        if self.covariate_state:
+            for cof, cof_state in zip(self.covariate, self.covariate_state):
+                # Select only subjects with the given covariate state and remove the associated column
                 df_ind_param = df_ind_param[df_ind_param[cof] == cof_state].drop(columns=cof)
 
         # Add the baseline ages

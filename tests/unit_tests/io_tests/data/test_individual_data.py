@@ -13,7 +13,7 @@ class IndividualDataTest(LeaspyTestCase):
         self.assertEqual(data_int.idx, 1)
         self.assertEqual(data_int.timepoints, None)
         self.assertEqual(data_int.observations, None)
-        self.assertEqual(data_int.cofactors, {})
+        self.assertEqual(data_int.covariates, {})
 
         data_float = IndividualData(1.2)
         self.assertEqual(data_float.idx, 1.2)
@@ -38,20 +38,20 @@ class IndividualDataTest(LeaspyTestCase):
         with pytest.raises(LeaspyDataInputError):
             data.add_observations([70], [[40]])
 
-    def test_add_cofactors(self):
+    def test_add_covariates(self):
         data = IndividualData("test")
-        cofactors_dict = {
+        covariates_dict = {
             "gender": "male",
             "weight": 60
         }
-        data.add_cofactors(cofactors_dict)
-        self.assertEqual(data.cofactors, cofactors_dict)
+        data.add_covariates(covariates_dict)
+        self.assertEqual(data.covariates, covariates_dict)
 
         with pytest.raises(TypeError):
-            data.add_cofactors({5: 5})
+            data.add_covariates({5: 5})
         
         with pytest.raises(LeaspyDataInputError):
-            data.add_cofactors({"weight": 5})
+            data.add_covariates({"weight": 5})
         
     def test_add_event(self):
         # Add first observation

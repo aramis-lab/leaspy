@@ -32,8 +32,8 @@ class SimulationAlgorithmTest(LeaspyTestCase):
 
         # reused data, model, individual parameters
         cls.data = cls.get_suited_test_data_for_model('logistic_scalar_noise')
-        cofactors = pd.read_csv(cls.example_data_covars_path, dtype={'ID': str}).set_index('ID')
-        cls.data.load_cofactors(cofactors, cofactors=["Treatments"])
+        covariates = pd.read_csv(cls.example_data_covars_path, dtype={'ID': str}).set_index('ID')
+        cls.data.load_covariates(covariates, covariates=["Treatments"])
 
         cls.lsp = cls.get_hardcoded_model('logistic_scalar_noise')
 
@@ -119,34 +119,34 @@ class SimulationAlgorithmTest(LeaspyTestCase):
         self.assertAllClose(np.cov(values.T), t_cov, what='matrix.cov')
 
     @skip("Broken : Simulate algorithm is currently broken")
-    def test_check_cofactors(self):
+    def test_check_covariates(self):
         """
-        Test Leaspy.simulate return a ``ValueError`` if the ``cofactor`` and ``cofactor_state`` parameters given
+        Test Leaspy.simulate return a ``ValueError`` if the ``covariate`` and ``covariate_state`` parameters given
         in the ``AlgorithmSettings`` are invalid.
         """
         lsp, individual_parameters, data = self.lsp, self.individual_parameters, self.data
 
-        # cofactor not None but cofactor_state None...
-        settings = AlgorithmSettings('simulation', cofactor=["Treatments"])
+        # covariate not None but covariate_state None...
+        settings = AlgorithmSettings('simulation', covariate=["Treatments"])
         self.assertRaises(ValueError, lsp.simulate, individual_parameters, data, settings)
 
-        # bad type for cofactor / cofactor state
-        settings = AlgorithmSettings('simulation', cofactor="Treatments", cofactor_state=["Treatment_A"])
+        # bad type for covariate / covariate state
+        settings = AlgorithmSettings('simulation', covariate="Treatments", covariate_state=["Treatment_A"])
         self.assertRaises(ValueError, lsp.simulate, individual_parameters, data, settings)
 
-        settings = AlgorithmSettings('simulation', cofactor=["Treatments"], cofactor_state="Treatment_A")
+        settings = AlgorithmSettings('simulation', covariate=["Treatments"], covariate_state="Treatment_A")
         self.assertRaises(ValueError, lsp.simulate, individual_parameters, data, settings)
 
-        # bad length for cofactor_state
-        settings = AlgorithmSettings('simulation', cofactor=["Treatments"], cofactor_state=["Treatment_A", "Treatment_B"])
+        # bad length for covariate_state
+        settings = AlgorithmSettings('simulation', covariate=["Treatments"], covariate_state=["Treatment_A", "Treatment_B"])
         self.assertRaises(ValueError, lsp.simulate, individual_parameters, data, settings)
 
-        # invalid cofactor name
-        settings = AlgorithmSettings('simulation', cofactor=["dummy"], cofactor_state=["dummy"])
+        # invalid covariate name
+        settings = AlgorithmSettings('simulation', covariate=["dummy"], covariate_state=["dummy"])
         self.assertRaises(ValueError, lsp.simulate, individual_parameters, data, settings)
 
-        # invalid cofactor state
-        settings = AlgorithmSettings('simulation', cofactor=["Treatments"], cofactor_state=["dummy"])
+        # invalid covariate state
+        settings = AlgorithmSettings('simulation', covariate=["Treatments"], covariate_state=["dummy"])
         self.assertRaises(ValueError, lsp.simulate, individual_parameters, data, settings)
 
     def _check_bin_values(self, result: Result) -> None:
@@ -321,7 +321,7 @@ class SimulationAlgorithmTest(LeaspyTestCase):
         self.assertTrue(all(repam_age > 63) & all(repam_age < 77))  # "soft" bounds compared to (65, 75)
 
     @skip("Broken : Simulate algorithm is currently broken")
-    def test_simulation_cofactors_run(self):
+    def test_simulation_covariates_run(self):
         """
         Test if the simulation run properly with different settings (no result check, only unit test).
         """
@@ -334,8 +334,8 @@ class SimulationAlgorithmTest(LeaspyTestCase):
             std_number_of_visits=0,
             sources_method="full_kde",
             bandwidth_method=.2,
-            cofactor=["Treatments"],
-            cofactor_state=["Treatment_A"],
+            covariate=["Treatments"],
+            covariate_state=["Treatment_A"],
         )
         lsp.simulate(individual_parameters, data, settings)  # just test if run without error
 

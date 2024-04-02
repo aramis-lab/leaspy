@@ -32,8 +32,8 @@ class Data(Iterable):
         Number of individuals
     n_visits : int
         Total number of visits
-    cofactors : List[FeatureType]
-        Feature names corresponding to cofactors
+    covariates : List[FeatureType]
+        Feature names corresponding to covariates
     event_time_name : str
         Name of the header that store the time at event in the original dataframe
     event_bool_name : str
@@ -74,14 +74,14 @@ class Data(Iterable):
             return sum(len(indiv.timepoints) for indiv in self.individuals.values())
 
     @property
-    def cofactors(self) -> List[FeatureType]:
-        """Feature names corresponding to cofactors"""
+    def covariates(self) -> List[FeatureType]:
+        """Feature names corresponding to covariates"""
         if len(self.individuals) == 0:
             return []
-        # Consistency checks are in place to ensure that cofactors are the same
+        # Consistency checks are in place to ensure that covariates are the same
         # for all individuals, so they can be retrieved from any one
         indiv = next(x for x in self.individuals.values())
-        return list(indiv.cofactors.keys())
+        return list(indiv.covariates.keys())
 
     def __getitem__(self, key: Union[int, IDType, slice, List[int], List[IDType]]) -> Union[IndividualData, Data]:
         if isinstance(key, int):
@@ -124,19 +124,19 @@ class Data(Iterable):
             raise LeaspyTypeError("Cannot test Data membership for "
                                   "an element of this type")
 
-    def load_cofactors(self, df: pd.DataFrame, *, cofactors: Optional[List[FeatureType]] = None) -> None:
+    def load_covariates(self, df: pd.DataFrame, *, covariates: Optional[List[FeatureType]] = None) -> None:
         """
-        Load cofactors from a `pandas.DataFrame` to the `Data` object
+        Load covariates from a `pandas.DataFrame` to the `Data` object
 
         Parameters
         ----------
         df : :class:`pandas.DataFrame`
-            The dataframe where the cofactors are stored.
+            The dataframe where the covariates are stored.
             Its index should be ID, the identifier of subjects
             and it should uniquely index the dataframe (i.e. one row per individual).
-        cofactors : List[FeatureType] or None (default)
-            Names of the column(s) of df which shall be loaded as cofactors.
-            If None, all the columns from the input dataframe will be loaded as cofactors.
+        covariates : List[FeatureType] or None (default)
+            Names of the column(s) of df which shall be loaded as covariates.
+            If None, all the columns from the input dataframe will be loaded as covariates.
 
         Raises
         ------
@@ -154,9 +154,9 @@ class Data(Iterable):
                                        "not contain any NaN nor any duplicate.")
 
         internal_dtype_indices = pd.api.types.infer_dtype(self.iter_to_idx.values())
-        cofactors_dtype_indices = pd.api.types.infer_dtype(df.index)
-        if cofactors_dtype_indices != internal_dtype_indices:
-            raise LeaspyDataInputError(f"The ID type in your cofactors ({cofactors_dtype_indices}) "
+        covariates_dtype_indices = pd.api.types.infer_dtype(df.index)
+        if covariates_dtype_indices != internal_dtype_indices:
+            raise LeaspyDataInputError(f"The ID type in your covariates ({covariates_dtype_indices}) "
                                        f"is inconsistent with the ID type in Data ({internal_dtype_indices}):\n{df.index}")
 
         internal_indices = pd.Index(self.iter_to_idx.values())
@@ -166,17 +166,17 @@ class Data(Iterable):
         if len(missing_individuals):
             raise LeaspyDataInputError(f"These individuals are missing: {missing_individuals}")
         if len(unknown_individuals):
-            warnings.warn(f"These individuals with cofactors are not part of your Data: {unknown_individuals}")
+            warnings.warn(f"These individuals with covariates are not part of your Data: {unknown_individuals}")
 
-        if cofactors is None:
-            cofactors = df.columns.tolist()
+        if covariates is None:
+            covariates = df.columns.tolist()
 
-        # sub-select the individuals & cofactors to look for
-        d_cofactors = df.loc[internal_indices, cofactors].to_dict(orient='index')
+        # sub-select the individuals & covariates to look for
+        d_covariates = df.loc[internal_indices, covariates].to_dict(orient='index')
 
         # Loop per individual
-        for idx_subj, d_cofactors_subj in d_cofactors.items():
-            self.individuals[idx_subj].add_cofactors(d_cofactors_subj)
+        for idx_subj, d_covariates_subj in d_covariates.items():
+            self.individuals[idx_subj].add_covariates(d_covariates_subj)
 
     @staticmethod
     def from_csv_file(path: str, data_type: str = 'visit', *, pd_read_csv_kws: dict = {}, facto_kws: dict = {},
@@ -204,17 +204,17 @@ class Data(Iterable):
         reader.read(df=df, **df_reader_kws)
         return Data._from_reader(reader, )
 
-    def to_dataframe(self, *, cofactors: Union[List[FeatureType], str, None] = None,
+    def to_dataframe(self, *, covariates: Union[List[FeatureType], str, None] = None,
                      reset_index: bool = True) -> pd.DataFrame:
         """
         Convert the Data object to a :class:`pandas.DataFrame`
 
         Parameters
         ----------
-        cofactors : List[FeatureType], 'all', or None (default None)
-            Cofactors to include in the DataFrame.
-            If None (default), no cofactors are included.
-            If "all", all the available cofactors are included.
+        covariates : List[FeatureType], 'all', or None (default None)
+            Covariates to include in the DataFrame.
+            If None (default), no covariates are included.
+            If "all", all the available covariates are included.
         reset_index : bool (default True)
             Whether to reset index levels in output.
 
@@ -222,32 +222,32 @@ class Data(Iterable):
         -------
         :class:`pandas.DataFrame`
             A DataFrame containing the individuals' ID, timepoints and
-            associated observations (optional - and cofactors).
+            associated observations (optional - and covariates).
 
         Raises
         ------
         :exc:`.LeaspyDataInputError`
         :exc:`.LeaspyTypeError`
         """
-        if cofactors is None:
-            cofactors_list = []
-        elif isinstance(cofactors, str):
-            if cofactors == "all":
-                cofactors_list = self.cofactors
+        if covariates is None:
+            covariates_list = []
+        elif isinstance(covariates, str):
+            if covariates == "all":
+                covariates_list = self.covariates
             else:
-                raise LeaspyDataInputError("Invalid `cofactors` argument value")
+                raise LeaspyDataInputError("Invalid `covariates` argument value")
         elif (
-                isinstance(cofactors, list)
-                and all(isinstance(c, str) for c in cofactors)
+                isinstance(covariates, list)
+                and all(isinstance(c, str) for c in covariates)
         ):
-            cofactors_list = cofactors
+            covariates_list = covariates
         else:
-            raise LeaspyTypeError("Invalid `cofactors` argument type")
+            raise LeaspyTypeError("Invalid `covariates` argument type")
 
-        unknown_cofactors = list(set(cofactors_list) - set(self.cofactors))
-        if len(unknown_cofactors):
-            raise LeaspyDataInputError(f'These cofactors are not part of '
-                                       f'your Data: {unknown_cofactors}')
+        unknown_covariates = list(set(covariates_list) - set(self.covariates))
+        if len(unknown_covariates):
+            raise LeaspyDataInputError(f'These covariates are not part of '
+                                       f'your Data: {unknown_covariates}')
 
         # Build the dataframe, one individual at a time
         def get_individual_df(individual_data: IndividualData):
@@ -273,10 +273,10 @@ class Data(Iterable):
             for individual_data in self.individuals.values()
         ])
 
-        for cofactor in cofactors_list:
+        for covariate in covariates_list:
             for i in self.individuals.values():
                 indiv_slice = pd.IndexSlice[i.idx, :]
-                df.loc[indiv_slice, cofactor] = i.cofactors[cofactor]
+                df.loc[indiv_slice, covariate] = i.covariates[covariate]
 
         if reset_index:
             df = df.reset_index()

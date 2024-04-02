@@ -82,40 +82,40 @@ class Result:
         return ind_parameters
 
     # TODO: unit test & functional test
-    def get_dataframe_individual_parameters(self, cofactors: Union[str, List[str]] = None) -> pd.DataFrame:
+    def get_dataframe_individual_parameters(self, covariates: Union[str, List[str]] = None) -> pd.DataFrame:
         """
         Return the dataframe of the individual parameters.
 
         Each row corresponds to a subject. The columns correspond
         (in this order) to the subjects' ID, the individual parameters (one column per individual parameter) & the
-        cofactors (one column per cofactor).
+        covariates (one column per covariate).
 
         Parameters
         ----------
-        cofactors : str or list[str], optional (default None)
-            Contains the cofactor(s) to join to the logs dataframe.
+        covariates : str or list[str], optional (default None)
+            Contains the covariate(s) to join to the logs dataframe.
 
         Returns
         -------
         :class:`pandas.DataFrame`
-            Contains for each patient his ID & his individual parameters (optional and his cofactors states)
+            Contains for each patient his ID & his individual parameters (optional and his covariates states)
 
         Notes
         -----
-        The cofactors must be present in the leaspy data object stored into the .data attribute of the result instance.
+        The covariates must be present in the leaspy data object stored into the .data attribute of the result instance.
         See the example.
 
         Examples
         --------
-        Load a longitudinal multivariate dataset & the subjects' cofactors. Compute the individual parameters for this
-        dataset & get the corresponding dataframe with the genetic APOE cofactor
+        Load a longitudinal multivariate dataset & the subjects' covariates. Compute the individual parameters for this
+        dataset & get the corresponding dataframe with the genetic APOE covariate
 
         >>> import pandas as pd
         >>> from leaspy import AlgorithmSettings, Data, Leaspy, Plotter
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv')  # replace with your own path!
-        >>> genes_cofactors = pd.read_csv('data/genes_cofactors.csv')  # replace with your own path!
-        >>> print(genes_cofactors.head())
+        >>> genes_covariates = pd.read_csv('data/genes_covariates.csv')  # replace with your own path!
+        >>> print(genes_covariates.head())
                    ID      APOE4
         0  sub-HS0102          1
         1  sub-HS0112          0
@@ -123,7 +123,7 @@ class Result:
         3  sub-HS0114          1
         4  sub-HS0115          0
 
-        >>> data.load_cofactors(genes_cofactors, ['GENES'])
+        >>> data.load_covariates(genes_covariates, ['GENES'])
         >>> model_settings = AlgorithmSettings('mcmc_saem', seed=0)
         >>> personalize_settings = AlgorithmSettings('mode_real', seed=0)
         >>> leaspy_logistic.fit(data, model_settings)
@@ -154,23 +154,23 @@ class Result:
 
         df_individual_parameters = pd.DataFrame(patient_dict).set_index('ID')
 
-        # If you want to load cofactors too
-        if cofactors is not None:
-            if isinstance(cofactors, str):
-                cofactors = [cofactors]
+        # If you want to load covariates too
+        if covariates is not None:
+            if isinstance(covariates, str):
+                covariates = [covariates]
 
-            cofactor_dict = {'ID': list(self.data.individuals.keys())}
+            covariate_dict = {'ID': list(self.data.individuals.keys())}
 
-            for cofactor in cofactors:
-                cofactor_dict[cofactor] = [self.data.individuals[idx].cofactors[cofactor] for
-                                           idx in cofactor_dict['ID']]
+            for covariate in covariates:
+                covariate_dict[covariate] = [self.data.individuals[idx].covariates[covariate] for
+                                           idx in covariate_dict['ID']]
 
-            df_cofactors = pd.DataFrame(cofactor_dict).set_index('ID')
-            df_individual_parameters = df_individual_parameters.join(df_cofactors)
+            df_covariates = pd.DataFrame(covariate_dict).set_index('ID')
+            df_individual_parameters = df_individual_parameters.join(df_covariates)
 
         return df_individual_parameters
 
-    def save_individual_parameters_csv(self, path: str, idx: List[IDType] = None, cofactors=None, **args):
+    def save_individual_parameters_csv(self, path: str, idx: List[IDType] = None, covariates=None, **args):
         """
         Save the individual parameters in a csv format.
 
@@ -180,14 +180,14 @@ class Result:
             The logs' path.
         idx : list [str], optional (default None)
             Contain the IDs of the selected subjects. If ``None``, all the subjects are selected.
-        cofactors : str or list [str], optional (default None)
-            Contains the cofactor(s) to join to the logs dataframe.
+        covariates : str or list [str], optional (default None)
+            Contains the covariate(s) to join to the logs dataframe.
         **args
             Parameters to pass to :meth:`pandas.DataFrame.to_csv`.
 
         Notes
         -----
-        The cofactors must be present in the leaspy data object stored into the :attr:`.data` attribute of the result instance.
+        The covariates must be present in the leaspy data object stored into the :attr:`.data` attribute of the result instance.
         See the example.
 
         Examples
@@ -197,19 +197,19 @@ class Result:
         >>> from leaspy import AlgorithmSettings, Data, Leaspy
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv') # replace with your own path!
-        >>> genes_cofactors = pd.read_csv('data/genes_cofactors.csv')  # replace with your own path!
-        >>> data.load_cofactors(genes_cofactors, ['GENES'])
+        >>> genes_covariates = pd.read_csv('data/genes_covariates.csv')  # replace with your own path!
+        >>> data.load_covariates(genes_covariates, ['GENES'])
         >>> model_settings = AlgorithmSettings('mcmc_saem', seed=0)
         >>> personalize_settings = AlgorithmSettings('mode_real', seed=0)
         >>> leaspy_logistic.fit(data, model_settings)
         >>> individual_results = leaspy_logistic.personalize(data, model_settings)
         >>> output_path = 'outputs/logistic_seed0-mode_real_seed0-individual_parameter.csv'
         >>> idx = list(individual_results.individual_parameters.keys())[:20]
-        >>> individual_results.save_individual_parameters_csv(output_path, idx, cofactors='GENES')
+        >>> individual_results.save_individual_parameters_csv(output_path, idx, covariates='GENES')
         """
         self._check_folder_existence(path)
 
-        df_individual_parameters = self.get_dataframe_individual_parameters(cofactors=cofactors)
+        df_individual_parameters = self.get_dataframe_individual_parameters(covariates=covariates)
         if idx:
             if not isinstance(idx, list):
                 raise LeaspyIndividualParamsInputError("Input 'idx' must be a list, even if it contains only one element! "
@@ -541,7 +541,7 @@ class Result:
                                                    "giving the path of the file containing the individual parameters!")
 
     @classmethod
-    def load_result(cls, data, individual_parameters, *, cofactors=None, **kwargs):
+    def load_result(cls, data, individual_parameters, *, covariates=None, **kwargs):
         """
         Load a `Result` class object from two file - one for the individual data & one for the individual parameters.
 
@@ -551,9 +551,9 @@ class Result:
             The file's path or a DataFrame containing the features' scores.
         individual_parameters : str or :class:`pandas.DataFrame`
             The file's path or a DataFrame containing the individual parameters.
-        cofactors : str or :class:`pandas.DataFrame`, optional (default None)
-            The file's path or a DataFrame containing the individual cofactors.
-            The ID must be in index! Thus, the shape is (n_subjects, n_cofactors).
+        covariates : str or :class:`pandas.DataFrame`, optional (default None)
+            The file's path or a DataFrame containing the individual covariates.
+            The ID must be in index! Thus, the shape is (n_subjects, n_covariates).
         **kwargs
             Parameters to pass to `Result.load_individual_parameters` method.
 
@@ -590,21 +590,21 @@ class Result:
                         "or a string giving the path of the file containing the features' scores! "
                         f"You gave an object of type {type(data)}")
 
-        if cofactors is not None:
-            if isinstance(cofactors, str):
-                cofactors_df = pd.read_csv(cofactors, dtype={'ID': str}).set_index('ID')
-            elif isinstance(cofactors, pd.DataFrame):
-                cofactors_df = cofactors.copy()
+        if covariates is not None:
+            if isinstance(covariates, str):
+                covariates_df = pd.read_csv(covariates, dtype={'ID': str}).set_index('ID')
+            elif isinstance(covariates, pd.DataFrame):
+                covariates_df = covariates.copy()
             else:
-                raise LeaspyTypeError("The given `cofactors` input must be a pandas.DataFrame "
-                            "or a string giving the path of the file containing the cofactors! "
-                            f"You gave an object of type {type(cofactors)}")
-            data.load_cofactors(cofactors_df)
+                raise LeaspyTypeError("The given `covariates` input must be a pandas.DataFrame "
+                            "or a string giving the path of the file containing the covariates! "
+                            f"You gave an object of type {type(covariates)}")
+            data.load_covariates(covariates_df)
 
         individual_parameters = cls.load_individual_parameters(individual_parameters, **kwargs)
         return cls(data, individual_parameters)
 
-    def get_error_distribution_dataframe(self, model, cofactors=None):
+    def get_error_distribution_dataframe(self, model, covariates=None):
         """
         Get signed residual distribution per patient, per sub-score & per visit. Each residual is equal to the
         modeled data minus the observed data.
@@ -612,9 +612,9 @@ class Result:
         Parameters
         ----------
         model : :class:`~.models.abstract_model.AbstractModel`
-        cofactors : str, list [str], optional (default None)
-            Contains the cofactors' names to be included in the DataFrame. By default, no cofactors are returned.
-            If cofactors == "all", all the available cofactors are returned.
+        covariates : str, list [str], optional (default None)
+            Contains the covariates' names to be included in the DataFrame. By default, no covariates are returned.
+            If covariates == "all", all the available covariates are returned.
 
         Returns
         -------
@@ -641,19 +641,19 @@ class Result:
         )
         residuals_dataframe = residuals_dataset.to_pandas()
 
-        if cofactors is not None:
-            if isinstance(cofactors, str):
-                if cofactors == "all":
-                    cofactors_list = self.data.cofactors
+        if covariates is not None:
+            if isinstance(covariates, str):
+                if covariates == "all":
+                    covariates_list = self.data.covariates
                 else:
-                    cofactors_list = [cofactors]
-            elif isinstance(cofactors, list):
-                cofactors_list = cofactors
+                    covariates_list = [covariates]
+            elif isinstance(covariates, list):
+                covariates_list = covariates
             else:
-                raise LeaspyTypeError("The given `cofactors` input must be a string or a list of strings! "
-                                      f"You gave an object of type {type(cofactors)}")
-            cofactors_df = self.data.to_dataframe(cofactors=cofactors).groupby('ID').first()[cofactors_list]
-            residuals_dataframe = residuals_dataframe.join(cofactors_df)
+                raise LeaspyTypeError("The given `covariates` input must be a string or a list of strings! "
+                                      f"You gave an object of type {type(covariates)}")
+            covariates_df = self.data.to_dataframe(covariates=covariates).groupby('ID').first()[covariates_list]
+            residuals_dataframe = residuals_dataframe.join(covariates_df)
 
         return residuals_dataframe
 
@@ -663,7 +663,7 @@ class Result:
     ###############################################################
 
     @staticmethod
-    def get_cofactor_states(cofactors: List) -> List:
+    def get_covariate_states(covariates: List) -> List:
         """
         .. deprecated:: 1.0
 
@@ -671,8 +671,8 @@ class Result:
 
         Parameters
         ----------
-        cofactors : list[str]
-            Distribution list of the cofactors.
+        covariates : list[str]
+            Distribution list of the covariates.
 
         Returns
         -------
@@ -681,7 +681,7 @@ class Result:
         """
         warnings.warn("This method will soon be removed!", DeprecationWarning)
 
-        result = set(cofactors)
+        result = set(covariates)
         return sorted(result)
 
     @staticmethod
@@ -698,7 +698,7 @@ class Result:
 
         return param, None
 
-    def get_parameter_distribution(self, parameter: ParamType, cofactor=None):
+    def get_parameter_distribution(self, parameter: ParamType, covariate=None):
         """
         .. deprecated:: 1.0
 
@@ -709,8 +709,8 @@ class Result:
         parameter : str
             The wanted parameter's name (ex: 'xi', 'tau', ...).
             It can also be `sources_i` to only get the i-th dimension of multivariate `sources` parameter.
-        cofactor : str, optional (default None)
-            The wanted cofactor's name.
+        covariate : str, optional (default None)
+            The wanted covariate's name.
 
         Returns
         -------
@@ -721,21 +721,21 @@ class Result:
         :exc:`.LeaspyIndividualParamsInputError`
             if unsupported individual parameters
         :exc:`.LeaspyInputError`
-            if unknown cofactor
+            if unknown covariate
 
         Notes
         -----
-        If ``cofactor is None``:
+        If ``covariate is None``:
             * If the parameter is univariate => return a list the parameter's distribution:
                 list[float]
             * If the parameter is multivariate => return a dictionary:
                 {'parameter1': distribution of parameter variable 1, 'parameter2': ...}
 
-        If ``cofactor is not None``:
+        If ``covariate is not None``:
             * If the parameter is univariate => return a dictionary:
-                {'cofactor1': parameter distribution such that patient.covariate = covariate1, 'cofactor2': ...}
+                {'covariate1': parameter distribution such that patient.covariate = covariate1, 'covariate2': ...}
             * If the parameter is multivariate => return a dictionary:
-                {'cofactor1': {'parameter1': ..., 'parameter2': ...}, 'cofactor2': {...}, ...}
+                {'covariate1': {'parameter1': ..., 'parameter2': ...}, 'covariate2': {...}, ...}
         """
         warnings.warn("This method will soon be removed!", DeprecationWarning)
 
@@ -752,9 +752,9 @@ class Result:
             raise LeaspyIndividualParamsInputError(f'The chosen parameter {parameter} is a tensor '
                                                    f'of dimension {p_ndim}: it should be <= 2!')
         ##############################################
-        # If there is no cofactor to take into account
+        # If there is no covariate to take into account
         ##############################################
-        if cofactor is None:
+        if covariate is None:
             # If parameter is 1-dimensional
             if parameter_distribution.shape[1] == 1:
                 # return a list of length = N_subjects
@@ -767,17 +767,17 @@ class Result:
             return parameter_distribution
 
         ############################################################
-        # If the distribution as asked for different cofactor values
+        # If the distribution as asked for different covariate values
         ############################################################
-        # Check if the cofactor exist
-        all_cofactors = self.data[0].cofactors.keys()
-        if cofactor not in all_cofactors:
-            raise LeaspyInputError(f"The cofactor '{cofactor}' do not exist. "
-                                   f"Here are the available cofactors: {list(all_cofactors)}")
+        # Check if the covariate exist
+        all_covariates = self.data[0].covariates.keys()
+        if covariate not in all_covariates:
+            raise LeaspyInputError(f"The covariate '{covariate}' do not exist. "
+                                   f"Here are the available covariates: {list(all_covariates)}")
         # Get possible covariate stats
-        # cofactors = [_.cofactors[cofactor] for _ in self.data if _.cofactors[cofactor] is not None]
-        cofactors = self.get_cofactor_distribution(cofactor)
-        cofactor_states = self.get_cofactor_states(cofactors)
+        # covariates = [_.covariates[covariate] for _ in self.data if _.covariates[covariate] is not None]
+        covariates = self.get_covariate_distribution(covariate)
+        covariate_states = self.get_covariate_states(covariates)
 
         # Initialize the result
         distributions = {}
@@ -785,48 +785,48 @@ class Result:
         # If parameter 1-dimensional
         if parameter_distribution.shape[1] == 1:
             parameter_distribution = parameter_distribution.view(-1).tolist()  # ex: [1, 2, 3]
-            # Create one entry per cofactor state
-            for p in cofactor_states:
+            # Create one entry per covariate state
+            for p in covariate_states:
                 if p not in distributions.keys():
                     distributions[p] = []
                 # For each covariate state, get parameter distribution
                 for i, v in enumerate(parameter_distribution):
-                    if self.data[i].cofactors[cofactor] == p:
+                    if self.data[i].covariates[covariate] == p:
                         distributions[p].append(v)
-                        # return {'cofactor1': ..., 'cofactor2': ...}
+                        # return {'covariate1': ..., 'covariate2': ...}
         else:
-            # Create one dictionary per cofactor state
-            for p in cofactor_states:
+            # Create one dictionary per covariate state
+            for p in covariate_states:
                 if p not in distributions.keys():
                     # Create one dictionary per parameter dimension
                     distributions[p] = {parameter + str(i): [] for i in range(parameter_distribution.shape[1])}
                 # Fill these entries by the corresponding values of the corresponding subject
                 for i, v in enumerate(parameter_distribution.tolist()):
-                    if self.data[i].cofactors[cofactor] == p:
+                    if self.data[i].covariates[covariate] == p:
                         for j, key in enumerate(distributions[p].keys()):
                             distributions[p][key].append(v[j])
-                            # return {'cofactor1': {'parameter1': .., 'parameter2': ..}, 'cofactor2': { .. }, .. }
+                            # return {'covariate1': {'parameter1': .., 'parameter2': ..}, 'covariate2': { .. }, .. }
         return distributions
 
-    def get_cofactor_distribution(self, cofactor: str):
+    def get_covariate_distribution(self, covariate: str):
         """
         .. deprecated:: 1.0
 
-        Get the list of the cofactor's distribution.
+        Get the list of the covariate's distribution.
 
         Parameters
         ----------
-        cofactor : str
-            Cofactor's name
+        covariate : str
+            Covariate's name
 
         Returns
         -------
         list
-            Cofactor's distribution.
+            Covariate's distribution.
         """
         warnings.warn("This method will soon be removed!", DeprecationWarning)
 
-        return [d.cofactors[cofactor] for d in self.data]
+        return [d.covariates[covariate] for d in self.data]
 
     def get_patient_individual_parameters(self, idx: IDType):
         """

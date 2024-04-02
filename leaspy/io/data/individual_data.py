@@ -24,8 +24,8 @@ class IndividualData:
     observations : np.ndarray[float, 2D]
         Observed data points.
         Shape is ``(n_timepoints, n_features)``
-    cofactors : Dict[FeatureType, Any]
-        Cofactors in the form {cofactor_name: cofactor_value}
+    covariates : Dict[FeatureType, Any]
+        Covariates in the form {covariate_name: covariate_value}
     event_time: Float
         Time of an event, if the event is censored, the time correspond to the last patient observation
     event_bool: bool
@@ -38,7 +38,7 @@ class IndividualData:
         self.observations: np.ndarray = None
         self.event_time: float = None
         self.event_bool: Optional[int] = None
-        self.cofactors: Dict[FeatureType, Any] = {}
+        self.covariates: Dict[FeatureType, Any] = {}
 
     def add_observations(self, timepoints: List[float], observations: List[List[float]]) -> None:
         """
@@ -90,14 +90,14 @@ class IndividualData:
         self.event_time = event_time
         self.event_bool = event_bool
 
-    def add_cofactors(self, d: Dict[FeatureType, Any]) -> None:
+    def add_covariates(self, d: Dict[FeatureType, Any]) -> None:
         """
-        Include new cofactors
+        Include new covariates
 
         Parameters
         ----------
         d : Dict[FeatureType, Any]
-            Cofactors to include, in the form `{name: value}`
+            Covariates to include, in the form `{name: value}`
 
         Raises
         ------
@@ -111,7 +111,7 @@ class IndividualData:
             raise LeaspyTypeError("Invalid argument type for `d`")
 
         for k, v in d.items():
-            if k in self.cofactors.keys() and v != self.cofactors[k]:
-                raise LeaspyDataInputError(f"Cofactor {k} is already present "
+            if k in self.covariates.keys() and v != self.covariates[k]:
+                raise LeaspyDataInputError(f"Covariate {k} is already present "
                                            f"for patient {self.idx}")
-            self.cofactors[k] = v
+            self.covariates[k] = v
