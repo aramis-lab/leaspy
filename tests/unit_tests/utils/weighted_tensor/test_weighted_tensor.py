@@ -50,31 +50,31 @@ class WeightedTensorTest(LeaspyTestCase):
 
     @property
     def random_weighted_tensor(self) -> WeightedTensor:
-        return WeightedTensor(self.random_data)
+        return WeightedTensor(self.random_data, unsafe=False)
 
     @property
     def random_weighted_tensor_with_weights(self) -> WeightedTensor:
-        return WeightedTensor(self.random_data, self.random_weights)
+        return WeightedTensor(self.random_data, self.random_weights, unsafe=False)
 
     @property
     def weighted_tensor_1_x_3(self) -> WeightedTensor:
-        return WeightedTensor(self.value_1_x_3, self.weight_1_x_3)
+        return WeightedTensor(self.value_1_x_3, self.weight_1_x_3, unsafe=False)
 
     @property
     def weighted_tensor_1_x_3_no_weight(self) -> WeightedTensor:
-        return WeightedTensor(self.value_1_x_3)
+        return WeightedTensor(self.value_1_x_3, unsafe=False)
 
     @property
     def weighted_tensor_2_x_3(self) -> WeightedTensor:
-        return WeightedTensor(self.value_2_x_3, self.weight_2_x_3)
+        return WeightedTensor(self.value_2_x_3, self.weight_2_x_3, unsafe=False)
 
     @property
     def weighted_tensor_2_x_3_no_weight(self) -> WeightedTensor:
-        return WeightedTensor(self.value_2_x_3)
+        return WeightedTensor(self.value_2_x_3, unsafe=False)
 
     @property
     def weighted_tensor_3_x_3(self) -> WeightedTensor:
-        return WeightedTensor(self.value_3_x_3, self.weight_3_x_3)
+        return WeightedTensor(self.value_3_x_3, self.weight_3_x_3, unsafe=False)
 
     @property
     def tensor_3_x_3(self) -> torch.Tensor:
@@ -255,7 +255,7 @@ class WeightedTensorTest(LeaspyTestCase):
         self.assert_has_all_operator_defined(self.random_weighted_tensor_with_weights)
 
     def test_weighted_tensor_operation(self):
-        expected = WeightedTensor([0.0, 1.0, 2.0])
+        expected = WeightedTensor([0.0, 1.0, 2.0], unsafe=False)
 
         self.assertEqual(
             self.weighted_tensor_1_x_3_no_weight + 1,
@@ -284,8 +284,9 @@ class WeightedTensorTest(LeaspyTestCase):
         t1 = WeightedTensor(
             self.weighted_tensor_1_x_3_no_weight.value,
             abs(self.weighted_tensor_1_x_3_no_weight).value.to(int),
+            unsafe=False,
         )
-        t2 = WeightedTensor(self.weighted_tensor_1_x_3_no_weight.value, t1.weight)
+        t2 = WeightedTensor(self.weighted_tensor_1_x_3_no_weight.value, t1.weight, unsafe=False)
 
         self.assertEqual(t1 - t2, 0)
         self.assertEqual(t1 + t2, 2 * t1)
@@ -298,10 +299,12 @@ class WeightedTensorTest(LeaspyTestCase):
         t1 = WeightedTensor(
             self.weighted_tensor_1_x_3_no_weight.value,
             abs(self.weighted_tensor_1_x_3_no_weight).value.to(int),
+            unsafe=False,
         )
         t2 = WeightedTensor(
             self.weighted_tensor_1_x_3_no_weight.value,
             t1.weight,
+            unsafe=False,
         )
         old_id1 = id(t1)
 
@@ -319,8 +322,9 @@ class WeightedTensorTest(LeaspyTestCase):
         t1 = WeightedTensor(
             self.weighted_tensor_1_x_3_no_weight.value,
             abs(self.weighted_tensor_1_x_3_no_weight).value.to(int),
+            unsafe=False,
         )
-        t2 = WeightedTensor(self.weighted_tensor_1_x_3_no_weight.value, t1.weight)
+        t2 = WeightedTensor(self.weighted_tensor_1_x_3_no_weight.value, t1.weight, unsafe=False)
 
         self.assertEqual(t1, t2)
         self.assertLessEqual(t1 - 0.2, t2)
@@ -459,6 +463,7 @@ class WeightedTensorTest(LeaspyTestCase):
         input_tensor = WeightedTensor(
             [[-1.0, 0.0, 1.0]],
             [[1, 0, 0]],
+            unsafe=False,
         )
 
         self.assert_value_and_weight(

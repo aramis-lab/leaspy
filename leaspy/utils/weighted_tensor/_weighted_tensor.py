@@ -312,13 +312,16 @@ def _apply_operation(
                     ),
                 )
     result_value = operation(b, a.value) if reverse else operation(a.value, b)
-    result_weight = None
     if a.weight is not None:
-        if a.weight.shape != result_value.shape:
-            result_weight = a.weight.expand(result_value.shape)
-        else:
-            result_weight = a.weight
-    return WeightedTensor(result_value, result_weight.clone())
+        return WeightedTensor(
+            result_value,
+            (
+                a.weight.expand(result_value.shape).clone()
+                if a.weight.shape != result_value.shape
+                else a.weight.clone()
+            )
+        )
+    return WeightedTensor(result_value)
 
 
 def _apply_operation_unsafe(
