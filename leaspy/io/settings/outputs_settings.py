@@ -20,9 +20,9 @@ class OutputsSettings:
             * console_print_periodicity : int >= 1 or None
                 Flag to log into console convergence data every N iterations
                 If None, no console prints.
-            * save_periodicity : int >= 1 or None
+            * save_periodicity : int >= 1, optional
                 Flag to save convergence data every N iterations
-                If None, no data will be saved.
+                Default=50.
             * plot_periodicity : int >= 1 or None
                 Flag to plot convergence data every N iterations
                 If None, no plots will be saved.
@@ -44,7 +44,7 @@ class OutputsSettings:
     def __init__(self, settings):
         self.console_print_periodicity = None
         self.plot_periodicity = None
-        self.save_periodicity = None
+        self.save_periodicity = 50
         self.save_last_n_realizations = 100
 
         self.root_path = None

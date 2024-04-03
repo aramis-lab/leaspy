@@ -103,7 +103,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             for self.current_iteration in range(1, self.algo_parameters['n_iter']+1):
                 self.iteration(model, state)
                 if self.logs:
-                    state.save(self.logs.parameter_convergence_path, iteration=self.current_iteration)
+                    self.log_current_iteration(state)
 
                 if self.output_manager is not None:
                     # print/plot first & last iteration!
@@ -120,6 +120,29 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         loss = self._terminate_algo(model, state)
         return state, loss
+
+    def log_current_iteration(self, state: State):
+        if (
+                self.is_current_iteration_in_last_n()
+                or self.should_current_iteration_be_saved()
+        ):
+            state.save(
+                self.logs.parameter_convergence_path,
+                iteration=self.current_iteration,
+            )
+
+    def is_current_iteration_in_last_n(self):
+        """Return True if current iteration is within the last n realizations defined in logging settings."""
+        return (
+                self.current_iteration > self.algo_parameters["n_iter"] - self.logs.save_last_n_realizations
+        )
+
+    def should_current_iteration_be_saved(self):
+        """Return True if current iteration should be saved based on log saving periodicity."""
+        return (
+                self.logs.save_periodicity
+                and self.current_iteration % self.logs.save_periodicity == 0
+        )
 
     def _get_fit_metrics(self) -> Optional[Dict[str, float]]:
         # TODO: finalize metrics handling, a bit dirty to place them in sufficient stats, only with a prefix...
