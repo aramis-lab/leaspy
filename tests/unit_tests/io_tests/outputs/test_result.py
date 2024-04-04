@@ -17,6 +17,12 @@ class Method(str, Enum):
     TORCH = "torch"
 
 
+class Method(str, Enum):
+    JSON = "json"
+    CSV = "csv"
+    TORCH = "torch"
+
+
 class ResultTest(LeaspyTestCase):
 
     @classmethod
