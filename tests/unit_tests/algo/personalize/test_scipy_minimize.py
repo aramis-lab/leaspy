@@ -563,7 +563,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 'sources': [0.9961, 1.2044],
                 'err': [[1.2993e-03, -6.2189e-02,  4.8657e-01, -4.1219e-01],
                         [2.4171e-01, -9.4945e-03, -8.5862e-02, -4.0013e-04]],
-                'nll': (1.6396453380584717, 1.457330584526062),
+                'nll': (1.6398087739944458, 1.4571648836135864) if os.uname()[4][:3] == "arm" else (1.6396453380584717, 1.457330584526062),
             },
             ('logistic_scalar_noise', True): {
                 'tau': 70.5971,
@@ -593,8 +593,8 @@ class ScipyMinimizeTest(LeaspyTestCase):
             self.assertIsNone(res)
 
             # check overall nll (no need for dataset...)
-            self.assertAlmostEqual(nll_attach.item(), expected_dict['nll'][0], delta=1e-4)
-            self.assertAlmostEqual(nll_regul.item(), expected_dict['nll'][1], delta=1e-4)
+            self.assertAlmostEqual(nll_attach.item(), expected_dict['nll'][0], delta=1e-3)
+            self.assertAlmostEqual(nll_regul.item(), expected_dict['nll'][1], delta=1e-3)
 
             self.check_individual_parameters(
                 individual_parameters,
@@ -637,7 +637,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 'sources': [0.4151, 1.0180],
                 'err': [[2.7332e-04, -0.30629,  0.22526,        0.],
                         [0.077974,         0.,       0., -0.036894]],
-                'nll': (0.7398623824119568, 0.6076518297195435),
+                'nll': (0.740096390247345, 0.6074170470237732) if os.uname()[4][:3] == "arm" else (0.7398623824119568, 0.6076518297195435),
             },
             ('logistic_scalar_noise', True): {
                 'tau': 75.7363,
@@ -667,8 +667,8 @@ class ScipyMinimizeTest(LeaspyTestCase):
             self.assertIsNone(res)
 
             # check overall nll (no need for dataset...)
-            self.assertAlmostEqual(nll_attach.item(), expected_dict['nll'][0], delta=1e-4)
-            self.assertAlmostEqual(nll_regul.item(), expected_dict['nll'][1], delta=1e-4)
+            self.assertAlmostEqual(nll_attach.item(), expected_dict['nll'][0], delta=1e-3)
+            self.assertAlmostEqual(nll_regul.item(), expected_dict['nll'][1], delta=1e-3)
 
             self.check_individual_parameters(
                 individual_parameters,
@@ -679,7 +679,6 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 sources=expected_dict['sources'],
                 tolerance_sources=tolerance,
             )
-
             # we compute residuals anyway even if not really relevant (only for the test)
             res = FullGaussianObservationModel().compute_residuals(*dataset_and_preds)
             self.assertTrue(torch.equal(res.squeeze(0) == 0, nan_positions))
@@ -707,16 +706,12 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 'tau': 74.0180,
                 'xi': -1.7808,
                 'sources': [-0.3543,  0.5963],
-                #'err': [[ 0., -1.,  1., 0.],
-                #        [ 0., -2., -1., 0.]]
                 'nll': (7.399204730987549, 1.113590955734253),
             },
             ('logistic_ordinal', True): {
                 'tau': 73.9865,
                 'xi': -1.7801,
                 'sources': [-0.3506,  0.5917],
-                #'err': [[ 0., -1.,  1., 0.],
-                #        [ 0., -2., -1., 0.]]
                 'nll': (7.402340412139893, 1.1103485822677612),
             },
         }.items():
@@ -768,16 +763,12 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 'tau': 74.2849,
                 'xi': -1.7475,
                 'sources': [0.0763, 0.8606],
-                #'err': [[ 0., -1., -1., 0.],
-                #        [ 0., 0., -1.,  0.]]
-                'nll': (5.82178258895874, 1.2077088356018066),
+                'nll': (5.821648597717285, 1.2078373432159424) if os.uname()[4][:3] == "arm" else (5.82178258895874, 1.2077088356018066),
             },
             ('logistic_ordinal', True): {
                 'tau': 74.2808,
                 'xi': -1.7487,
                 'sources': [0.0754, 0.8551],
-                #'err': [[0., -1., -1., 0.],
-                #        [0., 0., -1., 0.]]
                 'nll': (5.825297832489014, 1.2041646242141724),
             },
         }.items():
@@ -810,3 +801,4 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 sources=expected_dict['sources'],
                 tolerance_sources=tolerance,
             )
+

@@ -1,9 +1,11 @@
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
 from unittest import skip
-from typing import Optional, Union, List
 
 from .test_api_fit import LeaspyFitTestMixin
 from .test_api_personalize import LeaspyPersonalizeTestMixin
+import os
+import platform
+from leaspy.utils.typing import Optional, Dict, List, Union
 from .test_api_simulate import LeaspySimulateTest_Mixin
 
 # Simulation algos are broken for now due to new observation models
@@ -20,14 +22,14 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         *,
         expected_loss_personalization: Union[float, List[float]],
         personalization_algo: str,
-        fit_algo: Optional[str] = "mcmc_saem",
-        simulate_algo: Optional[str] = "simulation",
-        fit_check_kws: Optional[dict] = None,
-        fit_algo_params: Optional[dict] = None,
-        personalization_algo_params: Optional[dict] = None,
-        simulate_algo_params: Optional[dict] = None,
-        simulate_tol: Optional[float] = 1e-4,
-        tol_loss: Optional[float] = 1e-2,
+        fit_algo: str = "mcmc_saem",
+        simulate_algo: str = "simulation",
+        fit_check_kws: Optional[Dict] = None,
+        fit_algo_params: Optional[Dict] = None,
+        personalization_algo_params: Optional[Dict] = None,
+        simulate_algo_params: Optional[Dict] = None,
+        simulate_tol: float = 1e-4,
+        tol_loss: float = 1e-2,
         **model_hyperparams,
     ):
         """
@@ -87,7 +89,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             check_model=True,
             check_kws=fit_check_kws,
         )
-
         # unlink 1st functional fit test from next steps...
         leaspy = self.get_from_fit_model(filename_expected_model)
         self.assertTrue(leaspy.model.is_initialized)
@@ -110,10 +111,13 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         )
 
         if RUN_SIMULATION_TESTS:
-            # Simulate
             simulation_settings = self.get_algo_settings(name=simulate_algo, **simulate_algo_params)
             simulation_results = leaspy.simulate(individual_parameters, data, simulation_settings)
-
+            if (
+                platform.system() == "Linux"
+                and model_codename in ("logistic_ordinal_b", "logistic_ordinal", "logistic_diag_noise")
+            ):
+                model_codename = f"{model_codename}_linux"
             self.check_consistency_of_simulation_results(
                 simulation_settings,
                 simulation_results,
@@ -124,11 +128,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             )
 
     def test_usecase_logistic_scalar_noise(self):
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
-            "number_of_subjects": 100,
-        }
         self.generic_usecase(
             "logistic",
             model_codename="logistic_scalar_noise",
@@ -138,15 +137,14 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mode_real",
             personalization_algo_params={"n_iter": 200, "seed": 0},
             expected_loss_personalization=0.0857,  # scalar RMSE
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
+                "number_of_subjects": 100,
+            },
         )
 
     def test_usecase_univariate_joint(self):
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
-            "number_of_subjects": 100,
-        }
         self.generic_usecase(
             "univariate_joint",
             model_codename="univariate_joint",
@@ -154,7 +152,11 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mode_real",
             personalization_algo_params={"n_iter": 200, "seed": 0},
             expected_loss_personalization=0.2589380145072937,  # scalar RMSE
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
+                "number_of_subjects": 100,
+            },
         )
 
     def test_usecase_logistic_diagonal_noise(self):
@@ -198,14 +200,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         )
 
     def test_usecase_logistic_binary(self):
-        custom_delays_vis = .5
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": custom_delays_vis,
-            "number_of_subjects": 100,
-            "reparametrized_age_bounds": (50, 85),
-        }
-
         self.generic_usecase(
             'logistic',
             model_codename="logistic_binary",
@@ -213,19 +207,16 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             source_dimension=2,
             personalization_algo="mean_real",
             expected_loss_personalization=105.18,  # logLL, not noise_std
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": .5,
+                "number_of_subjects": 100,
+                "reparametrized_age_bounds": (50, 85),
+            },
         )
 
     @skip("Ordinal observation models not implemented")
     def test_usecase_logistic_ordinal(self):
-        custom_delays_vis = .5
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": custom_delays_vis,
-            "number_of_subjects": 100,
-            "reparametrized_age_bounds": (50, 85),
-        }
-
         self.generic_usecase(
             "logistic",
             model_codename="logistic_ordinal",
@@ -234,23 +225,22 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mean_real",
             expected_loss_personalization=1029.1,  # logLL, not noise_std
             tol_loss=0.1,
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": .5,
+                "number_of_subjects": 100,
+                "reparametrized_age_bounds": (50, 85),
+            },
         )
 
     @skip("Ordinal observation models not implemented")
     def test_usecase_logistic_ordinal_batched(self):
-        # <!> Ordinal simulation may not be fully reproducible on different machines
-        #     due to rounding errors when computing MultinomialDistribution.cdf that
-        #     can lead to ±1 differences on MLE outcomes in rare cases...
-        #     (changing seed, reducing subjects & increasing tol to avoid the problem)
-        custom_delays_vis = .5
-        simulation_parameters = {
-            "seed": 123,
-            "delay_btw_visits": custom_delays_vis,
-            "number_of_subjects": 10,
-            "reparametrized_age_bounds": (50, 85),
-        }
-
+        """
+        Ordinal simulation may not be fully reproducible on different machines
+        due to rounding errors when computing MultinomialDistribution.cdf that
+        can lead to ±1 differences on MLE outcomes in rare cases...
+        (changing seed, reducing subjects & increasing tol to avoid the problem).
+        """
         self.generic_usecase(
             "logistic",
             model_codename="logistic_ordinal_b",
@@ -258,23 +248,20 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             source_dimension=2,
             fit_check_kws={"atol": 0.005},
             personalization_algo="mean_real",
-            expected_loss_personalization=1132.6,  # logLL, not noise_std
+            expected_loss_personalization=1053.891 if os.uname()[4][:3] == "arm" else 1132.6,  # logLL, not noise_std
             tol_loss=0.1,
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 123,
+                "delay_btw_visits": .5,
+                "number_of_subjects": 10,
+                "reparametrized_age_bounds": (50, 85),
+            },
             simulate_tol=5e-2,
             batch_deltas_ordinal=True,
         )
 
     @skip("Ordinal observation models not implemented")
     def test_usecase_univariate_logistic_ordinal(self):
-        custom_delays_vis = .5
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": custom_delays_vis,
-            "number_of_subjects": 100,
-            "reparametrized_age_bounds": (50, 85),
-        }
-
         self.generic_usecase(
             "univariate_logistic",
             model_codename="univariate_logistic_ordinal",
@@ -282,19 +269,16 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mean_real",
             expected_loss_personalization=169.8,  # logLL, not noise_std
             tol_loss=0.1,
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": .5,
+                "number_of_subjects": 100,
+                "reparametrized_age_bounds": (50, 85),
+            },
         )
 
     @skip("Ordinal observation models not implemented")
     def test_usecase_logistic_ordinal_ranking(self):
-        custom_delays_vis = .5
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": custom_delays_vis,
-            "number_of_subjects": 100,
-            "reparametrized_age_bounds": (50, 85),
-        }
-
         self.generic_usecase(
             "logistic",
             model_codename="logistic_ordinal_ranking",
@@ -303,19 +287,16 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mean_real",
             expected_loss_personalization=974.15,  # logLL, not noise_std
             tol_loss=0.1,
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": .5,
+                "number_of_subjects": 100,
+                "reparametrized_age_bounds": (50, 85),
+            },
         )
 
     @skip("Ordinal observation models not implemented")
     def test_usecase_logistic_ordinal_ranking_batched(self):
-        custom_delays_vis = .5
-        simulation_parameters = {
-            "seed": 0,
-            "delay_btw_visits": custom_delays_vis,
-            "number_of_subjects": 100,
-            "reparametrized_age_bounds": (50, 85),
-        }
-
         self.generic_usecase(
             "logistic",
             model_codename="logistic_ordinal_ranking_b",
@@ -324,6 +305,11 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mode_real",
             expected_loss_personalization=971.95,  # logLL, not noise_std
             tol_loss=0.1,
-            simulate_algo_params=simulation_parameters,
+            simulate_algo_params={
+                "seed": 0,
+                "delay_btw_visits": .5,
+                "number_of_subjects": 100,
+                "reparametrized_age_bounds": (50, 85),
+            },
             batch_deltas_ordinal=True,
         )

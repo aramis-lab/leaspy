@@ -404,21 +404,18 @@ class State(MutableMapping):
                 writer = csv.writer(filename)
                 writer.writerow(value)
 
-    def _get_value_as_list_of_floats(self, variable_name: str) -> List[float, ...]:
+    def _get_value_as_list_of_floats(self, variable_name: str) -> List:
         """Return the value of the given variable as a list of floats."""
         value = self.__getitem__(variable_name)
         if isinstance(value, WeightedTensor):
             value = value.weighted_value
         try:
-            return [value.item()]
-        except ValueError:
-            try:
-                return [tensor.item() for tensor in value]
-            except ValueError:
-                raise ValueError(
-                    f"Unable to get the value of variable {variable_name} as a list of floats. "
-                    f"The value in the state for this variable is : {value}."
-                )
+            return [value.tolist()]
+        except Exception:
+            raise ValueError(
+                f"Unable to get the value of variable {variable_name} as a list of floats. "
+                f"The value in the state for this variable is : {value}."
+            )
 
     def get_tensor_value(self, variable_name: str) -> torch.Tensor:
         if isinstance(self[variable_name], WeightedTensor):

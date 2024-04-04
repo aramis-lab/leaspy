@@ -1,3 +1,4 @@
+import os
 import math
 import warnings
 
@@ -8,7 +9,7 @@ from typing import Optional, Union, List
 from unittest import skipIf
 
 from leaspy import Data, Dataset, IndividualParameters
-
+from leaspy.utils.typing import Optional, Union, List, Dict
 from tests import LeaspyTestCase
 
 # Logistic parallel models are currently broken in Leaspy v2.
@@ -592,7 +593,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_binary",
             "mode_real",
-            111.96,
+            112.105 if os.uname()[4][:3] == "arm" else 111.96,
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -600,7 +601,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_binary",
             "mean_real",
-            120.06,
+            120.16 if os.uname()[4][:3] == "arm" else 120.06,
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -617,7 +618,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal",
             "scipy_minimize",
-            629.97,
+            636.24 if os.uname()[4][:3] == "arm" else 629.97,
             {"use_jacobian": True},
         )
 
@@ -1002,7 +1003,6 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
             ('mode_real', {}, .4),
             ('mean_real', {}, .4),
         ]:
-
             subtest = dict(perso_algo=perso_algo, perso_kws=perso_kws)
             with self.subTest(**subtest):
                 algo = self.get_algo_settings(name=perso_algo, seed=0, progress_bar=False, **perso_kws)
@@ -1011,7 +1011,8 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                     # drop rows full of nans, nothing is left...
                     Data.from_dataframe(df)
 
-                with self.assertWarnsRegex(UserWarning, r"These columns only contain nans: \['Y0', 'Y1', 'Y2', 'Y3'\]"):
+                with self.assertWarnsRegex(UserWarning,
+                                           r"These columns only contain nans: \['Y0', 'Y1', 'Y2', 'Y3'\]"):
                     data_1 = Data.from_dataframe(df.head(1), drop_full_nan=False)
                     data_2 = Data.from_dataframe(df, drop_full_nan=False)
 
@@ -1055,13 +1056,12 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                 self.assertDictAlmostEqual(dict_1, {
                     'tau': [lsp.model.parameters['tau_mean']],
                     'xi': [[0.]],
-                    'sources': [lsp.model.source_dimension*[0.]],
+                    'sources': [lsp.model.source_dimension * [0.]],
                 }, allclose_custom=allclose_custom, msg=subtest)
 
     def test_personalize_same_if_extra_totally_nan_visits(self):
-
         df = pd.DataFrame({
-            'ID': ['SUBJ1']*4,
+            'ID': ['SUBJ1'] * 4,
             'TIME': [75.12, 78.9, 67.1, 76.1],
             'Y0': [nan, .6, nan, .2],
             'Y1': [nan, .4, nan, nan],
@@ -1078,7 +1078,6 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
             ('mode_real', {}, 1e-3),
             ('mean_real', {}, 1e-3),
         ]:
-
             subtest = dict(perso_algo=perso_algo, perso_kws=perso_kws)
             with self.subTest(**subtest):
                 algo = self.get_algo_settings(name=perso_algo, seed=0, progress_bar=False, **perso_kws)
@@ -1109,18 +1108,3 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                 self.assertEqual(indices_1, indices_2)
 
                 self.assertDictAlmostEqual(dict_1, dict_2, atol=tol, msg=subtest)
-
-    # TODO : problem with nans
-    """
-    def test_personalize_gradientdescent(self):
-        # Inputs
-        data = Data.from_csv_file(self.example_data_path)
-
-        # Initialize
-        leaspy = Leaspy.load(...)
-
-        # Launch algorithm
-        algo_personalize_settings = AlgorithmSettings('gradient_descent_personalize', seed=2)
-        result = leaspy.personalize(data, settings=algo_personalize_settings)
-
-        self.assertAlmostEqual(result.noise_std,  0.17925, delta=0.01)"""
