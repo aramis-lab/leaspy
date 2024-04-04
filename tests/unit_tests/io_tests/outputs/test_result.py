@@ -1,42 +1,33 @@
 import os
-import filecmp
-import inspect
-import warnings
-
-import pandas as pd
 import torch
+import warnings
+import pandas as pd
+from enum import Enum
 
 from leaspy import Data, Result
+from leaspy.utils.typing import Callable
 
 from tests import LeaspyTestCase
 from unittest import skip
+
+
+class Method(str, Enum):
+    JSON = "json"
+    CSV = "csv"
+    TORCH = "torch"
 
 
 class ResultTest(LeaspyTestCase):
 
     @classmethod
     def setUpClass(cls):
-
-        # for tmp handling
         super().setUpClass()
-
         # The list of individuals that were pre-saved for tests on subset of individuals
-        cls.idx_sub = ['116', '142', '169']
-
-        # Starting from Torch 1.6.0 a new serialization method is used
-        sig = inspect.signature(torch.save).parameters
-        if '_use_new_zipfile_serialization' in sig and sig['_use_new_zipfile_serialization'].default is True:
-            cls.torch_save_suffix = '_v2.pt'
-        else:
-            cls.torch_save_suffix = '.pt' #'_v1.pt'
-
-        # Inputs
+        cls.idx_sub = ["116", "142", "169"]
         cls.data = Data.from_csv_file(cls.example_data_path)
         cls.cofactors = pd.read_csv(cls.example_data_covars_path, dtype={'ID': str}).set_index('ID')
         cls.data.load_cofactors(cls.cofactors)
-
         cls.df = cls.data.to_dataframe()
-
         load_individual_parameters_path = cls.from_personalize_ip_path("data_tiny-individual_parameters.json")
         cls.results = Result.load_result(cls.data, load_individual_parameters_path)
 
@@ -47,7 +38,7 @@ class ResultTest(LeaspyTestCase):
     def test_constructor(self):
         self.assertIsInstance(self.results.data, Data)
         self.assertIsInstance(self.results.individual_parameters, dict)
-        self.assertEqual(list(self.results.individual_parameters.keys()), ['tau', 'xi', 'sources'])
+        self.assertEqual(list(self.results.individual_parameters.keys()), ["tau", "xi", "sources"])
         for key in self.results.individual_parameters.keys():
             self.assertEqual(len(self.results.individual_parameters[key]), 17)
         self.assertEqual(self.results.noise_std, None)
@@ -59,49 +50,66 @@ class ResultTest(LeaspyTestCase):
         self.assertEqual(f('tau'), ('tau', None))
         self.assertEqual(f('abc_def_5'), ('abc_def', 5))
 
-    def test_save_individual_parameters(self):
+    def _saving_method_factory(self, method: Method) -> Callable:
+        if method == Method.JSON:
+            return self.results.save_individual_parameters_json
+        if method == Method.CSV:
+            return self.results.save_individual_parameters_csv
+        if method == Method.TORCH:
+            return self.results.save_individual_parameters_torch
 
-        to_test = [
-            # method, path, args, kwargs
+    def _loading_method_factory(self, method: Method) -> Callable:
+        if method == Method.JSON:
+            return self.results.load_individual_parameters_from_json
+        if method == Method.CSV:
+            return self.results.load_individual_parameters_from_csv
+        if method == Method.TORCH:
+            return self.results.load_individual_parameters_from_torch
 
-            ## JSON
-            # test save default
-            (self.results.save_individual_parameters_json, 'data_tiny-individual_parameters.json', [], dict(indent=None)),
-            # test to save only a subset of subjects
-            (self.results.save_individual_parameters_json, 'data_tiny-individual_parameters-3subjects.json', [self.idx_sub], dict(indent=None)),
-            # test if run with an **args of json.dump
-            (self.results.save_individual_parameters_json, 'data_tiny-individual_parameters-indent_4.json', [self.idx_sub], dict(indent=4)),
+    def _save_and_compare(self, individual_parameter_filename: str, method: Method, *args, **kwargs):
+        path_to_expected_individual_parameters = self.from_personalize_ip_path(individual_parameter_filename)
+        path_to_computed_individual_parameters = self.get_test_tmp_path(individual_parameter_filename)
+        self._saving_method_factory(method)(path_to_computed_individual_parameters, *args, **kwargs)
+        self.assertDictAlmostEqual(
+            self._loading_method_factory(method)(path_to_expected_individual_parameters),
+            self._loading_method_factory(method)(path_to_computed_individual_parameters),
+        )
+        os.unlink(path_to_computed_individual_parameters)
 
-            ## CSV
-            # test save default
-            (self.results.save_individual_parameters_csv, 'data_tiny-individual_parameters.csv', [], {}),
-            # test to save only a subset of subjects
-            (self.results.save_individual_parameters_csv, 'data_tiny-individual_parameters-3subjects.csv', [self.idx_sub], {}),
+    def test_save_individual_parameters_default_json(self):
+        self._save_and_compare("data_tiny-individual_parameters.json", Method.JSON, indent=None)
 
-            ## Torch (suffix depend on PyTorch version)
-            # test save default
-            (self.results.save_individual_parameters_torch,
-             f'data_tiny-individual_parameters{self.torch_save_suffix}', [], {}),
-            # test to save only a subset of subjects
-            (self.results.save_individual_parameters_torch,
-             f'data_tiny-individual_parameters-3subjects{self.torch_save_suffix}', [self.idx_sub], {}),
-        ]
+    def test_save_individual_parameters_subset_of_subjects_json(self):
+        self._save_and_compare(
+            "data_tiny-individual_parameters-3subjects.json", Method.JSON, self.idx_sub, indent=None
+        )
 
-        # We check that each re-saved file (with options) is same as expected
-        for saving_method, ip_original, args, kwargs in to_test:
-            with self.subTest(ip_original=ip_original):
-                path_original = self.from_personalize_ip_path(ip_original)
-                path_copy = self.get_test_tmp_path(ip_original)
-                saving_method(path_copy, *args, **kwargs)
-                self.assertTrue(filecmp.cmp(path_original, path_copy, shallow=False))
-                os.unlink(path_copy)
+    def test_save_individual_parameters_with_json_dump_args(self):
+        self._save_and_compare(
+            "data_tiny-individual_parameters-indent_4.json", Method.JSON, self.idx_sub, indent=4
+        )
 
-        # Bad type: a list of indexes is expected for `idx` keyword (no tuple nor scalar!)
-        bad_idx = ['116', 116, ('116',), ('116', '142')]
+    def test_save_individual_parameters_default_csv(self):
+        self._save_and_compare("data_tiny-individual_parameters.csv", Method.CSV)
+
+    def test_save_individual_parameters_subset_of_subjects_csv(self):
+        self._save_and_compare("data_tiny-individual_parameters-3subjects.csv", Method.CSV, self.idx_sub)
+
+    def test_save_individual_parameters_default_torch(self):
+        self._save_and_compare("data_tiny-individual_parameters.pt", Method.TORCH)
+
+    def test_save_individual_parameters_subset_of_subjects_torch(self):
+        self._save_and_compare(
+            "data_tiny-individual_parameters-3subjects.pt", Method.TORCH, self.idx_sub
+        )
+
+    def test_save_individual_parameters_bad_type(self):
+        """Bad type: a list of indexes is expected for `idx` keyword (no tuple nor scalar!)."""
+        bad_idx = ["116", 116, ("116",), ("116", "142")]
         fake_save = {
-            'should_not_be_saved_due_to_error.json': self.results.save_individual_parameters_json,
-            'should_not_be_saved_due_to_error.csv': self.results.save_individual_parameters_csv,
-            f'should_not_be_saved_due_to_error{self.torch_save_suffix}': self.results.save_individual_parameters_torch,
+            "should_not_be_saved_due_to_error.json": self.results.save_individual_parameters_json,
+            "should_not_be_saved_due_to_error.csv": self.results.save_individual_parameters_csv,
+            f"should_not_be_saved_due_to_error.pt": self.results.save_individual_parameters_torch,
         }
         for fake_path, saving_method in fake_save.items():
             for idx in bad_idx:
@@ -110,7 +118,7 @@ class ResultTest(LeaspyTestCase):
 
     def generic_check_individual_parameters(self, ind_param, *, nb_individuals: int):
         self.assertEqual(type(ind_param), dict)
-        self.assertEqual(list(ind_param.keys()), ['tau', 'xi', 'sources'])
+        self.assertEqual(list(ind_param.keys()), ["tau", "xi", "sources"])
         for key in ind_param.keys():
             self.assertEqual(type(ind_param[key]), torch.Tensor)
             self.assertEqual(ind_param[key].dtype, torch.float32)
@@ -121,25 +129,20 @@ class ResultTest(LeaspyTestCase):
         self.generic_check_individual_parameters(self.results.individual_parameters, nb_individuals=17)
 
     def test_load_result(self):
-
-        ind_param_input_list = [
-            self.from_personalize_ip_path("data_tiny-individual_parameters.json"),
-            self.from_personalize_ip_path("data_tiny-individual_parameters.csv"),
-            self.from_personalize_ip_path(f"data_tiny-individual_parameters{self.torch_save_suffix}")
+        individual_parameter_input_list = [
+            self.from_personalize_ip_path(f"data_tiny-individual_parameters.{extension}")
+            for extension in ("json", "csv", "pt")
         ]
-
-        data_input_list = [self.data, self.df, self.example_data_path]
-
-        def load_result_and_check_same_as_expected(ind_param, data):
-            results = Result.load_result(data, ind_param, cofactors=self.example_data_covars_path)
-            new_df = results.data.to_dataframe()
-            pd.testing.assert_frame_equal(new_df, self.df)
-            self.generic_check_individual_parameters(ind_param=results.individual_parameters, nb_individuals=17)
-
-        for data_input in data_input_list:
-            for ind_param_input in ind_param_input_list:
+        for data_input in (self.data, self.df, self.example_data_path):
+            for ind_param_input in individual_parameter_input_list:
                 with self.subTest(ip_path=ind_param_input, data=data_input):
-                    load_result_and_check_same_as_expected(ind_param_input, data_input)
+                    self._load_result_and_check_same_as_expected(ind_param_input, data_input)
+
+    def _load_result_and_check_same_as_expected(self, ind_param, data):
+        results = Result.load_result(data, ind_param, cofactors=self.example_data_covars_path)
+        new_df = results.data.to_dataframe()
+        pd.testing.assert_frame_equal(new_df, self.df)
+        self.generic_check_individual_parameters(ind_param=results.individual_parameters, nb_individuals=17)
 
     @skip("Broken: 'MultivariateModel' object has no attribute 'compute_individual_tensorized'")
     def test_get_error_distribution_dataframe(self):

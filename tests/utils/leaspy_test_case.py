@@ -113,9 +113,13 @@ class LeaspyTestCase(TestCase):
     @classmethod
     def from_fit_model_path(cls, model_name: str):
         """<!> `model_name` should have NO extension"""
+        import os
+
         from_fit_path = cls.from_fit_models_folder
         if model_name.endswith('_gpu'):
             from_fit_path += '/gpu'  # not tested in CI so probably out-of-date
+        if os.uname()[4][:3] == "arm":
+            model_name = f"{model_name}_arm"
         return os.path.join(from_fit_path, model_name + '.json')
 
     @classmethod

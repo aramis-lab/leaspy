@@ -4,6 +4,7 @@ import pandas as pd
 
 from leaspy.io.data.data import Data
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
+from leaspy.utils.typing import Tuple
 
 from tests import LeaspyTestCase
 
@@ -102,7 +103,7 @@ class DataTest(LeaspyTestCase):
         # Unsupported slicing
         with pytest.raises(LeaspyTypeError):
             _ = data[{}]
-        
+ 
         # Membership
         assert individual.idx in data
         assert data[0].idx not in sub_data_slice
@@ -121,12 +122,8 @@ class DataTest(LeaspyTestCase):
             if iter > 4:
                 break
 
-    def test_data_cofactors_and_dataframe(self):
+    def get_data_and_cofactors_df(self) -> Tuple[Data, pd.DataFrame]:
         data = self.load_multivariate_data()
-        individual_key = 3
-        individual = data[3]
-
-        # Test load_cofactors()
         idx_list = data.individuals.keys()
         cofactors_list = ["Cofactor_1", "Cofactor_2"]
         cofactors_df = pd.DataFrame(
@@ -136,43 +133,55 @@ class DataTest(LeaspyTestCase):
         )
         cofactors_df.index.name = "ID"
         data.load_cofactors(cofactors_df, cofactors=None)
-        self.assertEqual(data.cofactors, cofactors_list)
-        self.assertEqual(individual.cofactors["Cofactor_2"], individual.idx[-1])
+        return data, cofactors_df
 
-        # Cover load_cofactors() errors
-        with pytest.raises(LeaspyDataInputError):
-            wrong_cofactors_df = cofactors_df.copy()
-            wrong_cofactors_df.index.name = "Wrong_index_name"
-            data.load_cofactors(wrong_cofactors_df, cofactors=None)
-        
-        with pytest.raises(LeaspyDataInputError):
-            wrong_cofactors_df = cofactors_df.copy()
-            wrong_cofactors_df.loc[4] = [0 for _ in cofactors_list]
-            data.load_cofactors(wrong_cofactors_df, cofactors=None)
-        
-        with pytest.raises(LeaspyDataInputError):
-            wrong_cofactors_df = cofactors_df.copy()
-            wrong_cofactors_df.drop(individual.idx, inplace=True)
-            data.load_cofactors(wrong_cofactors_df, cofactors=None)
+    def test_data_load_cofactors(self):
+        data, _ = self.get_data_and_cofactors_df()
+        self.assertEqual(data.cofactors, ["Cofactor_1", "Cofactor_2"])
+        self.assertEqual(data[3].cofactors["Cofactor_2"], data[3].idx[-1])
 
-        # Test to_dataframe()
+    def test_data_load_cofactors_index_error(self):
+        data, cofactors_df = self.get_data_and_cofactors_df()
+        cofactors_df.index.name = "Wrong_index_name"
+        with pytest.raises(LeaspyDataInputError):
+            data.load_cofactors(cofactors_df, cofactors=None)
+
+    def test_data_load_cofactors_value_error(self):
+        data, cofactors_df = self.get_data_and_cofactors_df()
+        cofactors_df.loc[4] = [0, 0]
+        with pytest.raises(LeaspyDataInputError):
+            data.load_cofactors(cofactors_df, cofactors=None)
+
+    def test_data_load_cofactors_missing_entry_error(self):
+        data, cofactors_df = self.get_data_and_cofactors_df()
+        cofactors_df.drop(data[3].idx, inplace=True)
+        with pytest.raises(LeaspyDataInputError):
+            data.load_cofactors(cofactors_df, cofactors=None)
+
+    def test_data_cofactors_to_dataframe(self):
+        data, cofactors_df = self.get_data_and_cofactors_df()
         df = data.to_dataframe(cofactors="all")
         self.assertEqual(
             df.shape,
             (data.n_visits, len(data.headers + data.cofactors) + 2)
         )
         self.assertEqual(
-            df.loc[df["ID"] == individual.idx, "Cofactor_1"].to_list(),
-            [individual.idx[0] for _ in range(len(individual.timepoints))]
+            df.loc[df["ID"] == data[3].idx, "Cofactor_1"].to_list(),
+            [data[3].idx[0] for _ in range(len(data[3].timepoints))]
         )
 
-        # Cover to_dataframe() errors
+    def test_data_cofactors_to_dataframe_error(self):
+        data, _ = self.get_data_and_cofactors_df()
         with pytest.raises(LeaspyDataInputError):
-            _ = data.to_dataframe(cofactors="Cofactor_1")
-        
+            data.to_dataframe(cofactors="Cofactor_1")
+
+    def test_data_cofactors_to_dataframe_empty_error(self):
+        data, _ = self.get_data_and_cofactors_df()
         with pytest.raises(LeaspyTypeError):
-            _ = data.to_dataframe(cofactors={})
-        
+            data.to_dataframe(cofactors={})
+
+    def test_data_cofactors_to_dataframe_wrong_cofactor_error(self):
+        data, _ = self.get_data_and_cofactors_df()
         with pytest.raises(LeaspyDataInputError):
             _ = data.to_dataframe(cofactors=["Wrong_cofactor"])
 
@@ -255,3 +264,4 @@ class DataTest(LeaspyTestCase):
 
         with pytest.raises(LeaspyDataInputError):
             data = Data.from_dataframe(df)
+

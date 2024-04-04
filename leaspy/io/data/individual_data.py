@@ -90,13 +90,13 @@ class IndividualData:
         self.event_time = event_time
         self.event_bool = event_bool
 
-    def add_cofactors(self, d: Dict[FeatureType, Any]) -> None:
+    def add_cofactors(self, cofactors: Dict[FeatureType, Any]) -> None:
         """
         Include new cofactors
 
         Parameters
         ----------
-        d : Dict[FeatureType, Any]
+        cofactors : Dict[FeatureType, Any]
             Cofactors to include, in the form `{name: value}`
 
         Raises
@@ -105,13 +105,16 @@ class IndividualData:
         :exc:`.LeaspyTypeError`
         """
         if not (
-            isinstance(d, dict)
-            and all(isinstance(k, str) for k in d.keys())
+            isinstance(cofactors, dict)
+            and all(isinstance(cofactor_name, str) for cofactor_name in cofactors.keys())
         ):
-            raise LeaspyTypeError("Invalid argument type for `d`")
+            raise LeaspyTypeError("Invalid argument type for `cofactors`")
 
-        for k, v in d.items():
-            if k in self.cofactors.keys() and v != self.cofactors[k]:
-                raise LeaspyDataInputError(f"Cofactor {k} is already present "
-                                           f"for patient {self.idx}")
-            self.cofactors[k] = v
+        for cofactor_name, cofactor_value in cofactors.items():
+            if cofactor_name in self.cofactors and cofactor_value != self.cofactors[cofactor_name]:
+                raise LeaspyDataInputError(
+                    f"Cofactor {cofactor_name} is already present for patient {self.idx} "
+                    f"with a value of {self.cofactors[cofactor_name]} different from the value "
+                    f"{cofactor_value} that you are trying to set."
+                )
+            self.cofactors[cofactor_name] = cofactor_value
