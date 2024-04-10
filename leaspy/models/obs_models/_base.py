@@ -59,6 +59,13 @@ class ObservationModel:
         """
         return f"nll_attach_{self.name}" if named_attach_vars else "nll_attach"
 
+    def get_likelihood_var_name(self, named_attach_vars: bool = True) -> str:
+        """
+        Return the name of the negative log likelihood attachement
+        variable.
+        """
+        return f"likelihood_{self.name}" if named_attach_vars else "likelihood_"
+
     def get_variables_specs(
         self,
         named_attach_vars: bool = True,
@@ -67,6 +74,10 @@ class ObservationModel:
         # TODO change? a bit dirty? possibility of having aliases for variables?
 
         nll_attach_var = self.get_nll_attach_var_name(
+            named_attach_vars
+        )
+
+        likelihood_var = self.get_likelihood_var_name(
             named_attach_vars
         )
 
@@ -83,6 +94,12 @@ class ObservationModel:
             ),
             nll_attach_var: LinkedVariable(SumDim(f"{nll_attach_var}_ind")),
             # TODO jacobian of {nll_attach_var}_ind_jacobian_{self.name} wrt "y" as well? (for scipy minimize)
+            f"{likelihood_var}_ind": LinkedVariable(
+            self.dist.get_func("likelihood", self.name).then(sum_dim, but_dim=LVL_IND)
+            ),
+            likelihood_var: LinkedVariable(SumDim(f"{likelihood_var}_ind")),
+            # TODO jacobian of {nll_attach_var}_ind_jacobian_{self.name} wrt "y" as well? (for scipy minimize)
+
         }
 
     def serialized(self) -> Any:

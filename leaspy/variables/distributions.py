@@ -140,6 +140,11 @@ class StatelessDistributionFamily(ABC):
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         return cls._nll_and_jacobian(x, *params)
 
+    @classmethod
+    @abstractmethod
+    def likelihood(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        """Negative log-likelihood of value, given distribution parameters."""
+
 
 class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFamily):
     """Wrapper to build a `StatelessDistributionFamily` class from an existing torch distribution class."""
@@ -243,6 +248,11 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         return cls._nll_and_jacobian(x, *params)[1]
 
+    @classmethod
+    def likelihood(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        """Negative log-likelihood of value, given distribution parameters."""
+        nll = cls._nll(x, *params)
+        return WeightedTensor(torch.exp(nll.value), nll.weight)
 
 class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Bernoulli family (stateless)."""
@@ -485,6 +495,25 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         return log_hazard
 
     @classmethod
+    def compute_hazard(
+            cls,
+            x: WeightedTensor,
+            nu: torch.Tensor,
+            rho: torch.Tensor,
+            xi: torch.Tensor,
+            tau: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> torch.Tensor:
+        event_reparametrized_time, _, nu_reparametrized = cls._extract_reparametrized_parameters(x, nu, xi, tau)
+        # Hazard neg log-likelihood only for patient with event not censored
+        hazard = torch.where(
+            event_reparametrized_time > 0,
+            (rho / nu_reparametrized) * ((event_reparametrized_time / nu_reparametrized) ** (rho - 1.)),
+            0.
+        )
+        return hazard
+
+    @classmethod
     def _extract_reparametrized_parameters(
         cls,
         x: WeightedTensor,
@@ -570,6 +599,19 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
 
         return grads
 
+    @classmethod
+    def likelihood(
+        cls,
+        x: WeightedTensor,
+        nu: torch.Tensor,
+        rho: torch.Tensor,
+        xi: torch.Tensor,
+        tau: torch.Tensor,
+    ) -> WeightedTensor:
+        """Negative log-likelihood of value, given distribution parameters."""
+        log_survival = cls.compute_log_survival(x, nu, rho, xi, tau)
+        hazard = cls.compute_hazard(x, nu, rho, xi, tau)
+        return WeightedTensor(torch.exp(log_survival)*hazard)
 
 class WeibullRightCensoredFamily(AbstractWeibullRightCensoredFamily):
     parameters: ClassVar = ("nu", "rho", 'xi', 'tau')

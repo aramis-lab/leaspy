@@ -66,8 +66,14 @@ class WeibullRightCensoredObservationModel(ObservationModel):
         nll_attach_var = self.get_nll_attach_var_name(
             named_attach_vars
         )
+        likelihood_var = self.get_likelihood_var_name(
+            named_attach_vars
+        )
         specs[f"{nll_attach_var}_ind"] = LinkedVariable(
             self.dist.get_func_nll(self.name)
+        )
+        specs[f"{likelihood_var}_ind"] = LinkedVariable(
+            self.dist.get_func("likelihood", self.name)
         )
         specs[f"survival_{self.name}"] = LinkedVariable(
             self.dist.get_func("compute_log_survival", self.name)
