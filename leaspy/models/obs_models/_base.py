@@ -94,10 +94,9 @@ class ObservationModel:
             ),
             nll_attach_var: LinkedVariable(SumDim(f"{nll_attach_var}_ind")),
             # TODO jacobian of {nll_attach_var}_ind_jacobian_{self.name} wrt "y" as well? (for scipy minimize)
-            f"{likelihood_var}_ind": LinkedVariable(
-            self.dist.get_func("likelihood", self.name).then(sum_dim, but_dim=LVL_IND)
+            likelihood_var: LinkedVariable(
+            self.dist.get_func("likelihood", self.name)
             ),
-            likelihood_var: LinkedVariable(SumDim(f"{likelihood_var}_ind")),
             # TODO jacobian of {nll_attach_var}_ind_jacobian_{self.name} wrt "y" as well? (for scipy minimize)
 
         }

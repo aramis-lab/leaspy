@@ -251,8 +251,8 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     @classmethod
     def likelihood(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         """Negative log-likelihood of value, given distribution parameters."""
-        nll = cls._nll(x, *params)
-        return WeightedTensor(torch.exp(nll.value), nll.weight)
+        nll = cls._nll(x, *params).sum()
+        return WeightedTensor(torch.exp(nll))
 
 class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Bernoulli family (stateless)."""
@@ -609,8 +609,12 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
     ) -> WeightedTensor:
         """Negative log-likelihood of value, given distribution parameters."""
-        log_survival = cls.compute_log_survival(x, nu, rho, xi, tau)
+        log_survival = cls.compute_log_survival(x, nu, rho, xi, tau).sum()
+        event_reparametrized_time, event_bool, nu_reparametrized = cls._extract_reparametrized_parameters(
+            x, nu, xi, tau,
+        )
         hazard = cls.compute_hazard(x, nu, rho, xi, tau)
+        hazard = torch.where(event_bool != 0, hazard, torch.tensor(1., dtype=torch.double)).prod()
         return WeightedTensor(torch.exp(log_survival)*hazard)
 
 class WeibullRightCensoredFamily(AbstractWeibullRightCensoredFamily):
