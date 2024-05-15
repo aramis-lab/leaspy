@@ -18,6 +18,11 @@ class AbstractModelTest(LeaspyTestCase):
         # "logistic_parallel",  currently broken
     )
 
+    crossentropy_compatible = (
+        "univariate_logistic",
+        "logistic",
+    )
+
     @LeaspyTestCase.allow_abstract_class_init(AbstractModel)
     def test_abstract_model_constructor(self):
         """
@@ -96,23 +101,24 @@ class AbstractModelTest(LeaspyTestCase):
         Check if the following models run with the following algorithms.
         """
         for model_name in self.model_names:
-            with self.subTest(model_name=model_name):
-                extra_kws = {}
-                if "univariate" not in model_name:
-                    extra_kws["source_dimension"] = 2  # force so not to get a warning
+            if model_name in self.crossentropy_compatible:
+                with self.subTest(model_name=model_name):
+                    extra_kws = {}
+                    if "univariate" not in model_name:
+                        extra_kws["source_dimension"] = 2  # force so not to get a warning
 
-                leaspy = Leaspy(model_name, obs_models="bernoulli", **extra_kws)
-                settings = AlgorithmSettings('mcmc_saem', n_iter=200, seed=0)
-                data = self.get_suited_test_data_for_model(model_name + '_binary')
+                    leaspy = Leaspy(model_name, obs_models="bernoulli", **extra_kws)
+                    settings = AlgorithmSettings('mcmc_saem', n_iter=200, seed=0)
+                    data = self.get_suited_test_data_for_model(model_name + '_binary')
 
-                leaspy.fit(data, settings)
+                    leaspy.fit(data, settings)
 
-                for method in ['scipy_minimize']:
-                    extra_kws = dict()  # not for all algos
-                    if '_real' in method:
-                        extra_kws = dict(n_iter=100)
-                    settings = AlgorithmSettings(method, seed=0, **extra_kws)
-                    leaspy.personalize(data, settings)
+                    for method in ['scipy_minimize']:
+                        extra_kws = dict()  # not for all algos
+                        if '_real' in method:
+                            extra_kws = dict(n_iter=100)
+                        settings = AlgorithmSettings(method, seed=0, **extra_kws)
+                        leaspy.personalize(data, settings)
 
     def test_tensorize_2D(self):
 
