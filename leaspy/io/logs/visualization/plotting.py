@@ -2,7 +2,6 @@ import os
 import warnings
 
 import matplotlib as mpl
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 # import matplotlib.backends.backend_pdf
 import numpy as np
@@ -70,7 +69,7 @@ class Plotting:
                 if self.model.dimension is not None:
                     raise LeaspyInputError("Initialize model first please, with a not None dimension")
                 max_colors = self.model.dimension
-            self.color_palette = cm.get_cmap(palette, max_colors)
+            self.color_palette = mpl.colormaps[palette].resampled(max_colors)
 
     def colors(self, at=None):
         """
