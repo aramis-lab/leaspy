@@ -1,3 +1,3 @@
-from matplotlib import cm
+import matplotlib as mpl
 
-color_palette = cm.get_cmap('Accent', 8)
+color_palette = mpl.colormaps["Accent"].resampled(8)
