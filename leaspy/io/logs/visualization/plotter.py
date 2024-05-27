@@ -9,7 +9,6 @@ import torch
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from matplotlib.lines import Line2D
 import matplotlib.backends.backend_pdf
 
@@ -104,7 +103,7 @@ class Plotter:
     ):
         labels = model.features
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
-        colors = kwargs.get('color', cycle(cm.get_cmap("tab20").colors))
+        colors = kwargs.get("color", cycle(mpl.colormaps["tab20"].colors))
 
         try:
             iter(model)
@@ -206,7 +205,7 @@ class Plotter:
 
     def plot_patient_trajectory(self, model: AbstractModel, results, indices, **kwargs) -> None:
 
-        colors = kwargs['color'] if 'color' in kwargs.keys() else cm.Dark2(np.linspace(0, 1, model.dimension))
+        colors = kwargs["color"] if "color" in kwargs.keys() else mpl.colormaps["Dark2"](np.linspace(0, 1, model.dimension))
         labels = model.features
         if 'ax' in kwargs.keys():
             ax = kwargs['ax']
@@ -256,7 +255,7 @@ class Plotter:
         **kwargs,
     ) -> None:
         # 1 individual at a time...
-        colors = kwargs['color'] if 'color' in kwargs.keys() else cm.Dark2(np.linspace(0, 1, model.dimension))
+        colors = kwargs["color"] if "color" in kwargs.keys() else mpl.colormaps["Dark2"](np.linspace(0, 1, model.dimension))
         labels = model.features
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
 
@@ -364,7 +363,7 @@ class Plotter:
         model_values_np = cls._compute_individual_tensorized_postprocessed(model, dataset.timepoints, param_ind)
 
         if colors is None:
-            colors = cm.rainbow(np.linspace(0, 1, model_values_np.shape[-1]))
+            colors = mpl.colormaps["rainbow"](np.linspace(0, 1, model_values_np.shape[-1]))
         if labels is None:
             labels = np.arange(model_values_np.shape[-1])
             labels = [str(k) for k in labels]
@@ -413,7 +412,8 @@ class Plotter:
             patients_list = max_patient_number
             n_pats = len(patients_list)
 
-        colors = cm.Dark2(np.linspace(0, 1, n_pats + 2))
+        colors = mpl.colormaps["Dark2"](np.linspace(0, 1, n_pats + 2))
+
         fig, ax = plt.subplots(1, 1)
 
         model_values_np = cls._compute_individual_tensorized_postprocessed(
