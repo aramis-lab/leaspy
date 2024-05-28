@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping
-from typing import Tuple, Optional, Set, Iterable, List, Union
+from typing import Tuple, Optional, Set, Iterable, List, Union, Dict
 from contextlib import contextmanager
 from enum import Enum, auto
 import copy
@@ -397,25 +397,35 @@ class State(MutableMapping):
         """
         output_folder = Path(output_folder)
         for variable in self._tracked_variables:
-            value = self._get_value_as_list_of_floats(variable)
-            if iteration != None:
-                value.insert(0, iteration)
-            with open(output_folder / f"{variable}.csv", 'a', newline='') as filename:
-                writer = csv.writer(filename)
-                writer.writerow(value)
+            dict_value = self._get_value_as_dict_of_lists(variable)
+            for variable_name, value in dict_value.items():
+                if iteration != None:
+                    value.insert(0, iteration)
+                with open(output_folder / f"{variable_name}.csv", 'a', newline='') as filename:
+                    writer = csv.writer(filename)
+                    writer.writerow(value)
 
-    def _get_value_as_list_of_floats(self, variable_name: str) -> List:
-        """Return the value of the given variable as a list of floats."""
+    def _get_value_as_dict_of_lists(self, variable_name: str) -> Dict[str, List[float]]:
+        """Return the value of the given variable as a dictionary of list of floats."""
         value = self.__getitem__(variable_name)
         if isinstance(value, WeightedTensor):
             value = value.weighted_value
-        try:
-            return [value.tolist()]
-        except Exception:
+        if value.ndim == 0:
+            return {variable_name: [value.tolist()]}
+        elif value.ndim == 1:
+            return {variable_name: value.tolist()}
+        elif value.ndim == 2:
+            if value.shape[1] == 1:
+                return {variable_name: value[:, 0].tolist()}
+            else:
+                return {f"{variable_name}_{i}": value[:,i].tolist() for i in range(value.shape[1])}
+        else:
             raise ValueError(
-                f"Unable to get the value of variable {variable_name} as a list of floats. "
-                f"The value in the state for this variable is : {value}."
+                f"The value of variable {variable_name} "
+                f"is a tensor of dimension {value.ndim} > 2 "
+                f"which is not supported. The value is: {value}."
             )
+
 
     def get_tensor_value(self, variable_name: str) -> torch.Tensor:
         if isinstance(self[variable_name], WeightedTensor):

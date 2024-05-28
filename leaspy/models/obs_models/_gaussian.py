@@ -122,9 +122,9 @@ class FullGaussianObservationModel(GaussianObservationModel):
         y_l2_per_ft = state["y_L2_per_ft"]
         n_obs_per_ft = state["n_obs_per_ft"]
         # TODO: same remark as in `.scalar_noise_std_update()`
-        s1 = sum_dim(y_x_model, but_dim=LVL_FT)
-        s2 = sum_dim(model_x_model, but_dim=LVL_FT)
-        noise_var = (y_l2_per_ft - 2 * s1 + s2) / n_obs_per_ft.float()
+        # sum must be done after computation to use weights of y in model to mask missing data
+        summed = sum_dim(- 2 * y_x_model + model_x_model, but_dim=LVL_FT)
+        noise_var = (y_l2_per_ft + summed) / n_obs_per_ft.float()
 
         return compute_std_from_variance(
             noise_var,
