@@ -4,7 +4,10 @@
   "features": ["Y0", "Y1", "Y2", "Y3"],
   "dimension": 4,
   "source_dimension": 2,
-  "noise_model": "gaussian_scalar",
+  "noise_model": {
+    "name": "gaussian-scalar",
+    "scale": 0.1
+  },
   "parameters": {
     "g": [0.0, 0.0, 0.0, 0.0],
     "tau_mean": 75.0,
@@ -14,7 +17,6 @@
     "xi_std": 0.5,
     "sources_mean": 0.0,
     "sources_std": 1.0,
-    "noise_std": 0.1,
     "betas": [[1.0, 0.0], [0.0, 1.0], [0.7, -0.7]],
     "mixing_matrix": [[-0.8499999642372131, -0.14999999105930328], [0.7166666984558105, -0.05000000074505806], [-0.28333330154418945, 0.9500000476837158], [0.4166666865348816, -0.75]]
   }

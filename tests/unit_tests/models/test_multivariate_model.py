@@ -1,4 +1,4 @@
-from leaspy.models.multivariate_model import MultivariateModel
+from leaspy.models.multivariate import MultivariateModel
 
 from tests import LeaspyTestCase
 

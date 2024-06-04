@@ -159,10 +159,10 @@ class DatasetTest(LeaspyTestCase):
         for case_name, (ordinal_infos, warnings_unexpected, warnings_missing) in {
             "'true' ordinal infos": (
                 {
-                    'features': [
-                        {'name': 'FT_0-3', 'max_level': 3},
-                        {'name': 'FT_0-2', 'max_level': 2},
-                    ],
+                    'max_levels': {
+                        'FT_0-3': 3,
+                        'FT_0-2': 2,
+                    },
                     'max_level': 3,
                 },
                 None, # warnings unexpected
@@ -170,10 +170,10 @@ class DatasetTest(LeaspyTestCase):
             ),
             "'true' ordinal infos for features but faking a higher max_level": (
                 {
-                    'features': [
-                        {'name': 'FT_0-3', 'max_level': 3},
-                        {'name': 'FT_0-2', 'max_level': 2},
-                    ],
+                    'max_levels': {
+                        'FT_0-3': 3,
+                        'FT_0-2': 2,
+                    },
                     'max_level': 5, # fake to check behavior
                 },
                 None,
@@ -181,10 +181,10 @@ class DatasetTest(LeaspyTestCase):
             ),
             "ordinal infos with missing code=[3, 4] for FT_0-2": (
                 {
-                    'features': [
-                        {'name': 'FT_0-3', 'max_level': 3},
-                        {'name': 'FT_0-2', 'max_level': 4}, # +2
-                    ],
+                    'max_levels': {
+                        'FT_0-3': 3,
+                        'FT_0-2': 4, # +2
+                    },
                     'max_level': 4,
                 },
                 None,
@@ -192,10 +192,10 @@ class DatasetTest(LeaspyTestCase):
             ),
             "ordinal infos with unexpected code=[3] for FT_0-3": (
                 {
-                    'features': [
-                        {'name': 'FT_0-3', 'max_level': 2}, # -1
-                        {'name': 'FT_0-2', 'max_level': 2},
-                    ],
+                    'max_levels': {
+                        'FT_0-3': 2, # -1
+                        'FT_0-2': 2,
+                    },
                     'max_level': 3,
                 },
                 "Some features have unexpected codes (they were clipped to the maximum known level):\n- FT_0-3 [[0..2]]: [3] were unexpected",
@@ -211,8 +211,9 @@ class DatasetTest(LeaspyTestCase):
                 lvls = lvls.tolist()
 
                 # the potentially clipped code
-                c1 = lambda c: min(c, ordinal_infos['features'][0]['max_level'])
-                c2 = lambda c: min(c, ordinal_infos['features'][1]['max_level'])
+                l_max_levels = list(ordinal_infos['max_levels'].values())
+                c1 = lambda c: min(c, l_max_levels[0])
+                c2 = lambda c: min(c, l_max_levels[1])
 
                 expected_pdf = torch.tensor([
                     [[lvls[c1(1)], lvls[0], lvls[c1(3)], lvls[c1(2)]], [lvls[c1(1)], lvls[c1(1)], lvls[nan_coding], lvls[nan_coding]]], # FT1
@@ -279,35 +280,71 @@ class DatasetTest(LeaspyTestCase):
         err_rx = "not consistent with features"
 
         ordinal_infos = {
-            'features': [
-                # bad var order
-                {'name': 'Y', 'max_level': 3},
-                {'name': 'X', 'max_level': 2},
-            ],
+            'max_levels': {
+                # bad vars order
+                'Y': 3,
+                'X': 2,
+            },
             'max_level': 3,
         }
         with self.assertRaisesRegex(ValueError, err_rx):
             dataset.get_one_hot_encoding(sf=False, ordinal_infos=ordinal_infos)
 
         ordinal_infos = {
-            'features': [
-                {'name': 'X', 'max_level': 3},
-                {'name': 'Y', 'max_level': 2},
-                {'name': 'Z', 'max_level': 3}, # extra var
-            ],
+            'max_levels': {
+                'X': 3,
+                'Y': 2,
+                'Z': 3, # extra var
+            },
             'max_level': 3,
         }
         with self.assertRaisesRegex(ValueError, err_rx):
             dataset.get_one_hot_encoding(sf=False, ordinal_infos=ordinal_infos)
 
         ordinal_infos = {
-            'features': [
-                {'name': 'X', 'max_level': 3},
+            'max_levels': {
+                'X': 3,
                 # missing var
-            ],
+            },
             'max_level': 3,
         }
         with self.assertRaisesRegex(ValueError, err_rx):
+            dataset.get_one_hot_encoding(sf=False, ordinal_infos=ordinal_infos)
+
+    def test_get_one_hot_encoding_errors_not_int(self):
+        df = pd.DataFrame({
+            'ID':     ['S1', 'S1', 'S1', 'S1', 'S2', 'S2'],
+            'TIME':   [ 50.,  51.,  53.,  59., 35.3, 43.9],
+            'X':      [ 1,    0,    5,    1,   6,    1   ],
+            'Y':      [ 1,    1,  nan,    4, nan,    4.01   ],  # 1 float -> expected error
+        })
+        dataset = Dataset(Data.from_dataframe(df))
+        ordinal_infos = {
+            'max_levels': {
+                'X': 10,
+                'Y': 6,
+            },
+            'max_level': 10,
+        }
+        with self.assertRaisesRegex(ValueError, "integer"):
+            dataset.get_one_hot_encoding(sf=False, ordinal_infos=ordinal_infos)
+
+    def test_get_one_hot_encoding_errors_not_positive(self):
+        df = pd.DataFrame({
+            'ID':     ['S1', 'S1', 'S1', 'S1', 'S2', 'S2'],
+            'TIME':   [ 50.,  51.,  53.,  59., 35.3, 43.9],
+            'X':      [ 1,    0,    5,    1,   6,    1   ],
+            'Y':      [ 1,    -1,  nan,    4, nan,    4   ],  # negative int
+        })
+        dataset = Dataset(Data.from_dataframe(df))
+        ordinal_infos = {
+            'max_levels': {
+                'X': 10,
+                'Y': 6,
+            },
+            'max_level': 10,
+        }
+        with self.assertRaisesRegex(ValueError, ">= 0"):
             dataset.get_one_hot_encoding(sf=False, ordinal_infos=ordinal_infos)
 
     def test_get_one_hot_encoding_many_warnings(self):
@@ -316,16 +353,16 @@ class DatasetTest(LeaspyTestCase):
             'ID':     ['S1', 'S1', 'S1', 'S1', 'S2', 'S2'],
             'TIME':   [ 50.,  51.,  53.,  59., 35.3, 43.9],
             'X':      [ 1,    0,    5,    1,   6,    1   ],
-            'Y':      [ 1,    -1,  nan,    4, nan,    -4   ],
+            'Y':      [ 1,    1,  nan,    4, nan,    4   ],
         })
         # create the dataset
         dataset = Dataset(Data.from_dataframe(df))
 
         ordinal_infos = {
-            'features': [
-                {'name': 'X', 'max_level': 3},
-                {'name': 'Y', 'max_level': 2},
-            ],
+            'max_levels': {
+                'X': 3,
+                'Y': 2,
+            },
             'max_level': 3,
         }
 
@@ -338,9 +375,9 @@ class DatasetTest(LeaspyTestCase):
         self.assertEqual(ws, [
             "Some features have unexpected codes (they were clipped to the maximum known level):"
             "\n- X [[0..3]]: [5, 6] were unexpected"
-            "\n- Y [[0..2]]: [-4, -1, 4] were unexpected",
+            "\n- Y [[0..2]]: [4] were unexpected",
 
             "Some features have missing codes:"
             "\n- X [[0..3]]: [2, 3] are missing"
-            "\n- Y [[0..2]]: [2] are missing" # the day where the missing check discard nans we'll have missing 0 as well
+            "\n- Y [[0..2]]: [0, 2] are missing"
         ])

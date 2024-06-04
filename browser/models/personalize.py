@@ -1,12 +1,8 @@
-import os
-import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-# Add leaspy source to path (overwrite any existing leaspy package by inserting instead of appending)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from leaspy import Leaspy, Data, AlgorithmSettings
 
@@ -22,7 +18,7 @@ def convert_data(data):
     # Ages
     birthday = datetime.strptime(data['birthday'], '%Y-%m-%d')
     dates = [_[0] for _ in data['scores'] if _[0]]
-    dates = [datetime.strptime(_, '%m/%d/%Y') for _ in dates]
+    dates = [datetime.strptime(_, '%d/%m/%Y') for _ in dates]
     ages = [relativedelta(_, birthday) for _ in dates]
     ages = [_.years + _.months/12 + _.days/365 for _ in ages]
     ages = np.array(ages, dtype=np.float32)
@@ -46,11 +42,6 @@ def get_individual_parameters(data):
 
     # Algorithm
     settings = AlgorithmSettings('scipy_minimize', seed=0, progress_bar=False, use_jacobian=True)
-
-    # Remove non-supported model hyperparameters
-    if data['model']['name'].startswith('univariate_'):
-        data['model'].pop('dimension')
-        data['model'].pop('source_dimension')
 
     # Leaspy loading + personalization
     leaspy = Leaspy.load(data['model'])

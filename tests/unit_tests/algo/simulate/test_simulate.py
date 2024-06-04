@@ -157,8 +157,7 @@ class SimulationAlgorithmTest(LeaspyTestCase):
         lsp_diag = self.get_hardcoded_model('logistic_diag_noise')
 
         lsp_bin = copy.deepcopy(lsp_diag)
-        lsp_bin.model.load_hyperparameters(dict(noise_model='bernoulli'))
-        lsp_bin.model.parameters['noise_std'] = None
+        lsp_bin.model.noise_model = 'bernoulli'
 
         # noise: value (scalar)
         settings = AlgorithmSettings('simulation', seed=0, noise=.12)
@@ -183,13 +182,14 @@ class SimulationAlgorithmTest(LeaspyTestCase):
         for lsp_obj in [lsp_scal, lsp_diag, lsp_bin]:
             r = lsp_obj.simulate(individual_parameters, data, settings)
             if lsp_obj != lsp_bin:
-                self.assertEqual(r.noise_std.numel(), len(lsp_obj.model.parameters['noise_std'].view(-1)))
+                model_noise_scale = lsp_obj.model.noise_model.parameters['scale']
+                self.assertEqual(r.noise_std.numel(), model_noise_scale.numel())
             else:
                 self.assertIsNone(r.noise_std)
                 self._check_bin_values(r)
 
-        # noise: default (old kwd for 'inherit_struct')
-        with self.assertWarns(FutureWarning):
+        # noise: removed 'default' (replaced by 'inherit_struct')
+        with self.assertRaises(ValueError):
             settings = AlgorithmSettings('simulation', seed=0, noise='default')
             lsp_diag.simulate(individual_parameters, data, settings)
 
@@ -199,7 +199,8 @@ class SimulationAlgorithmTest(LeaspyTestCase):
         for lsp_obj in [lsp_scal, lsp_diag, lsp_bin]:
             r = lsp_obj.simulate(individual_parameters, data, settings)
             if lsp_obj != lsp_bin:
-                self.assertAllClose(r.noise_std, lsp_obj.model.parameters['noise_std'], what='noise')
+                model_noise_scale = lsp_obj.model.noise_model.parameters['scale']
+                self.assertAllClose(r.noise_std, model_noise_scale, what='noise')
             else:
                 self.assertIsNone(r.noise_std)
                 self._check_bin_values(r)
@@ -355,9 +356,10 @@ class SimulationAlgorithmTest(LeaspyTestCase):
         simulation_settings = AlgorithmSettings('simulation', seed=0)
         simulated_data = leaspy_logistic.simulate(individual_parameters, data, simulation_settings)
 
-        simu_df = simulated_data.data.to_dataframe()
-        self.assertEqual(['ID', 'TIME', 'PUTAMEN'], list(simu_df.columns))
-        simu_df.set_index('ID', inplace=True)
+        simu_df = simulated_data.data.to_dataframe(reset_index=False)
+        self.assertEqual(simu_df.index.names, ['ID', 'TIME'])
+        self.assertEqual(list(simu_df.columns), ['PUTAMEN'])
+        simu_df.reset_index('TIME', inplace=True)
         self.assertListEqual(list(simu_df.dtypes), ['float64']*2)
         self.assertTrue(all(simu_df['PUTAMEN'].values <= 1))
         self.assertTrue(all(simu_df['PUTAMEN'].values >= 0))

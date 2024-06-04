@@ -4,6 +4,10 @@ import time
 
 from leaspy.io.logs.visualization.plotter import Plotter
 
+from leaspy.io.data.data import Data
+from leaspy.models.abstract_model import AbstractModel
+from leaspy.io.realizations import CollectionRealization
+
 
 class FitOutputManager:
     """
@@ -73,7 +77,13 @@ class FitOutputManager:
 
         self.save_last_n_realizations = outputs.save_last_n_realizations
 
-    def iteration(self, algo, data, model, realizations):
+    def iteration(
+        self,
+        algo,
+        data: Data,
+        model: AbstractModel,
+        realizations: CollectionRealization,
+    ):
         """
         Call methods to save state of the running computation, display statistics & plots if the current iteration
         is a multiple of `periodicity_print`, `periodicity_plot` or `periodicity_save`
@@ -100,7 +110,7 @@ class FitOutputManager:
         if self.periodicity_print is not None:
             if iteration == 1 or iteration % self.periodicity_print == 0:
                 # print first iteration
-                print() # newline
+                print()
                 self.print_algo_statistics(algo)
                 print()
                 self.print_model_statistics(model)
@@ -137,7 +147,7 @@ class FitOutputManager:
         print(f"Duration since last print: {current_time - self.time:.3f}s")
         self.time = current_time
 
-    def print_model_statistics(self, model):
+    def print_model_statistics(self, model: AbstractModel):
         """
         Print model's statistics
 
@@ -163,7 +173,7 @@ class FitOutputManager:
     ## Saving methods
     ########
 
-    def save_model_parameters_convergence(self, iteration, model):
+    def save_model_parameters_convergence(self, iteration: int, model: AbstractModel) -> None:
         """
         Save the current state of the model's parameters
 
@@ -208,9 +218,10 @@ class FitOutputManager:
                 writer = csv.writer(filename)
                 writer.writerow([iteration] + value)
 
-    def save_realizations(self, iteration, realizations):
+    def save_realizations(self, iteration: int, realizations: CollectionRealization) -> None:
         """
-        Save the current realizations. The path is given by the attribute path_save_model_parameters_convergence
+        Save the current realizations.
+        The path is given by the attribute path_save_model_parameters_convergence.
 
         Parameters
         ----------
@@ -220,16 +231,16 @@ class FitOutputManager:
             Current state of the realizations
         """
         # TODO: not generic at all
-        for name in ['xi', 'tau']:
-            value = realizations[name].tensor_realizations.squeeze(1).detach().tolist()
+        for name in ("xi", "tau"):
+            value = realizations[name].tensor.squeeze(1).detach().tolist()
             path = os.path.join(self.path_save_model_parameters_convergence, name + ".csv")
             with open(path, 'a', newline='') as filename:
                 writer = csv.writer(filename)
                 # writer.writerow([iteration]+list(model_parameters.values()))
                 writer.writerow([iteration] + value)
-        if "sources" in realizations.reals_ind_variable_names:
-            for i in range(realizations['sources'].tensor_realizations.shape[1]):
-                value = realizations['sources'].tensor_realizations[:, i].detach().tolist()
+        if "sources" in realizations.individual.names:
+            for i in range(realizations["sources"].tensor.shape[1]):
+                value = realizations["sources"].tensor[:, i].detach().tolist()
                 path = os.path.join(self.path_save_model_parameters_convergence, 'sources' + str(i) + ".csv")
                 with open(path, 'a', newline='') as filename:
                     writer = csv.writer(filename)
@@ -240,7 +251,7 @@ class FitOutputManager:
     ## Plotting methods
     ########
 
-    def plot_convergence_model_parameters(self, model):
+    def plot_convergence_model_parameters(self, model: AbstractModel):
         """
         Plot the convergence of the model parameters (calling the `Plotter`)
 
@@ -257,9 +268,16 @@ class FitOutputManager:
     #def plot_model_average_trajectory(self, model):
     #    raise NotImplementedError
 
-    def plot_patient_reconstructions(self, iteration, data, model, realizations):
+    def plot_patient_reconstructions(
+        self,
+        iteration: int,
+        data: Data,
+        model: AbstractModel,
+        realizations: CollectionRealization,
+    ) -> None:
         """
-        Plot on the same graph for several patients their real longitudinal values and their reconstructions by the model
+        Plot on the same graph for several patients their real longitudinal values
+        and their reconstructions by the model.
 
         Parameters
         ----------
@@ -273,5 +291,6 @@ class FitOutputManager:
             Current state of the realizations
         """
         path_iteration = os.path.join(self.path_plot_patients, f'plot_patients_{iteration}.pdf')
-        param_ind = model.get_param_from_real(realizations)
-        self.plotter.plot_patient_reconstructions(path_iteration, data, model, param_ind, **self.plot_options)
+        self.plotter.plot_patient_reconstructions(
+            path_iteration, data, model, realizations.individual.tensors_dict, **self.plot_options
+        )

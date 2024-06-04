@@ -1,0 +1,27 @@
+{
+  "leaspy_version": "1.4.0",
+  "name": "univariate_linear",
+  "features": [
+    "Y0"
+  ],
+  "dimension": 1,
+  "source_dimension": 0,
+  "noise_model": "gaussian_scalar",
+  "parameters": {
+    "g": [
+      0.4445808529853821
+    ],
+    "v0": [
+      -3.442329168319702
+    ],
+    "betas": [],
+    "tau_mean": 77.91061401367188,
+    "tau_std": 6.064311981201172,
+    "xi_mean": 0.0,
+    "xi_std": 0.43325600028038025,
+    "sources_mean": 0.0,
+    "sources_std": 1.0,
+    "noise_std": 0.0704135000705719,
+    "mixing_matrix": []
+  }
+}

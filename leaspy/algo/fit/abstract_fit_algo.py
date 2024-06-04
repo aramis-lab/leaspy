@@ -1,13 +1,18 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Dict, Optional
 from abc import abstractmethod
 
 from leaspy.algo.abstract_algo import AbstractAlgo
-from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel
-from leaspy.io.realizations.collection_realization import CollectionRealization
 from leaspy.algo.utils.algo_with_device import AlgoWithDeviceMixin
 
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.exceptions import LeaspyAlgoInputError
+
+from leaspy.io.realizations import CollectionRealization
+
+if TYPE_CHECKING:
+    from leaspy.io.data.dataset import Dataset
+    from leaspy.models.abstract_model import AbstractModel
 
 
 class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
@@ -84,14 +89,9 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         """
 
         with self._device_manager(model, dataset):
-            # Initialize the `CollectionRealization` (from the random variables of the model)
-            realizations = model.initialize_realizations_for_model(dataset.n_individuals)
-
-            # Smart init the realizations
-            realizations = model.smart_initialization_realizations(dataset, realizations)
-
-            # Initialize Algo
-            self._initialize_algo(dataset, model, realizations)
+            realizations = CollectionRealization()
+            realizations.initialize(model, n_individuals=dataset.n_individuals)
+            self._initialize_algo(dataset, model)
 
             if self.algo_parameters['progress_bar']:
                 self._display_progress_bar(-1, self.algo_parameters['n_iter'], suffix='iterations')
@@ -103,18 +103,57 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
                 if self.output_manager is not None:
                     # print/plot first & last iteration!
-                    # <!> everything that will be printed/saved is AFTER iteration N (including temperature when annealing...)
+                    # <!> everything that will be printed/saved is AFTER iteration N (including
+                    # temperature when annealing...)
                     self.output_manager.iteration(self, dataset, model, realizations)
 
                 if self.algo_parameters['progress_bar']:
-                    self._display_progress_bar(self.current_iteration - 1, self.algo_parameters['n_iter'], suffix='iterations')
+                    self._display_progress_bar(
+                        self.current_iteration - 1,
+                        self.algo_parameters['n_iter'],
+                        suffix='iterations',
+                    )
 
             # Finally we compute model attributes once converged
-            model.attributes.update(['all'], model.parameters)
+            model.attributes.update({'all'}, model.parameters)
 
-        loss = model.parameters['log-likelihood'] if model.noise_model in ['bernoulli', 'ordinal', 'ordinal_ranking'] else model.parameters['noise_std']
+        # TODO: finalize metrics handling
+        # we store metrics after the fit so they can be exported along with model
+        # parameters & hyper-parameters for archive...
+        model.fit_metrics = self._get_fit_metrics()
+
+        # TODO: Shouldn't we always return (nll_tot, nll_attach, nll_regul_tot or nll_regul_{ind_param},
+        #  and parameters of noise-model if any)
+        # If noise-model is a 1-parameter distribution family final loss is the value of this parameter
+        # Otherwise we use the negative log-likelihood as measure of goodness-of-fit
+        if len(model.noise_model.free_parameters) == 1:
+            loss = next(iter(model.noise_model.parameters.values()))
+        else:
+            # TODO? rather return nll_tot (unlike previously)
+            loss = self.sufficient_statistics.get("nll_attach", -1.)
 
         return realizations, loss
+
+    def _get_fit_metrics(self) -> Optional[Dict[str, float]]:
+        # TODO: finalize metrics handling, a bit dirty to place them in sufficient stats, only with a prefix...
+        if self.sufficient_statistics is None:
+            return
+        return {
+            # (scalars only)
+            k: v.item() for k, v in self.sufficient_statistics.items()
+            if k.startswith('nll_')
+        }
+
+    def __str__(self) -> str:
+        out = super().__str__()
+        # add the fit metrics after iteration number (included the sufficient statistics for now...)
+        fit_metrics = self._get_fit_metrics() or {}
+        if len(fit_metrics):
+            out += "\n= Metrics ="
+            for m, v in fit_metrics.items():
+                out += f"\n    {m} : {v:.5g}"
+
+        return out
 
     @abstractmethod
     def iteration(self, dataset: Dataset, model: AbstractModel, realizations: CollectionRealization):
@@ -132,7 +171,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         """
 
     @abstractmethod
-    def _initialize_algo(self, dataset: Dataset, model: AbstractModel, realizations: CollectionRealization) -> None:
+    def _initialize_algo(self, dataset: Dataset, model: AbstractModel) -> None:
         """
         Initialize the fit algorithm (abstract method).
 
@@ -140,7 +179,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         ----------
         dataset : :class:`.Dataset`
         model : :class:`~.models.abstract_model.AbstractModel`
-        realizations : :class:`~.io.realizations.collection_realization.CollectionRealization`
         """
 
     def _maximization_step(self, dataset: Dataset, model: AbstractModel, realizations: CollectionRealization):
@@ -154,24 +192,28 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         model : :class:`.AbstractModel`
         realizations : :class:`.CollectionRealization`
         """
-        if self._is_burn_in():
-            # the maximization step is memoryless
-            model.update_model_parameters_burn_in(dataset, realizations)
-        else:
-            sufficient_statistics = model.compute_sufficient_statistics(dataset, realizations)
+        sufficient_statistics = model.compute_sufficient_statistics(dataset, realizations)
 
-            burn_in_step = self.current_iteration - self.algo_parameters['n_burn_in_iter'] # min = 1, max = n_iter - n_burn_in_iter
+        if self._is_burn_in() or self.current_iteration == 1 + self.algo_parameters['n_burn_in_iter']:
+            # the maximization step is memoryless (or first iteration with memory)
+            self.sufficient_statistics = sufficient_statistics
+        else:
+            burn_in_step = self.current_iteration - self.algo_parameters['n_burn_in_iter'] # min = 2, max = n_iter - n_burn_in_iter
             burn_in_step **= -self.algo_parameters['burn_in_step_power']
 
-            if self.sufficient_statistics is None:
-                # 1st iteration post burn-in
-                self.sufficient_statistics = sufficient_statistics
-            else:
-                # this new formulation (instead of v + burn_in_step*(sufficient_statistics[k] - v)) enables to keep `inf` deltas
-                self.sufficient_statistics = {k: v * (1. - burn_in_step) + burn_in_step * sufficient_statistics[k]
-                                              for k, v in self.sufficient_statistics.items()}
+            # this new formulation (instead of v + burn_in_step*(sufficient_statistics[k] - v))
+            # enables to keep `inf` deltas
+            self.sufficient_statistics = {
+                k: v * (1. - burn_in_step) + burn_in_step * sufficient_statistics[k]
+                for k, v in self.sufficient_statistics.items()
+            }
 
-            model.update_model_parameters_normal(dataset, self.sufficient_statistics)
+        # TODO: use the same method in both cases (<!> very minor differences that might break
+        #  exact reproducibility in tests)
+        if self._is_burn_in():
+            model.update_parameters_burn_in(dataset, self.sufficient_statistics)
+        else:
+            model.update_parameters_normal(dataset, self.sufficient_statistics)
 
         # No need to update model attributes (derived from model parameters)
         # since all model computations are done with the MCMC toolbox during calibration

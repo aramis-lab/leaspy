@@ -12,26 +12,17 @@ let compute_values = (ages, model_parameters, individual_parameters) => {
 
 let compute_linear = (ages, parameters, individual_parameters) => {
   // Model parameters
-  var univariate = !('v0' in parameters)
   var t0 = parameters['tau_mean']
   var g = parameters['g']
-  var log_v0 = null
-  var mixing_matrix = null
-
-  if (univariate) {
-    if (typeof g == 'number'){ g = [g] }
-    log_v0 = [parameters['xi_mean']]
-  } else {
-    log_v0 = parameters['v0']
-    mixing_matrix = parameters['mixing_matrix']
-  }
+  var log_v0 = parameters['v0']
+  var mixing_matrix =  parameters['mixing_matrix']
 
   // Individual parameters
   var alpha = Math.exp(individual_parameters['xi'])
   var tau = individual_parameters['tau']
   var sources = individual_parameters['sources']
   var space_shift = new Array(g.length).fill(0)
-  if (mixing_matrix) {
+  if (mixing_matrix && mixing_matrix.length) {
     space_shift = math.multiply(mixing_matrix, sources);
   }
 
@@ -81,31 +72,38 @@ let compute_ordinal_expectation = (pdf) => {
   return math.sum(cs)
 }
 
+let model_is_ordinal = model => {
+  if (!('noise_model' in model)) {
+    alert('Legacy model without noise model')
+    return false
+  }
+  noise_model = model['noise_model']
+  if (typeof noise_model === 'object') {
+    // new
+    noise_model_name = noise_model['name']
+  } else {
+    // legacy
+    noise_model_name = noise_model
+  }
+  return typeof noise_model_name === 'string' && noise_model_name.startsWith('ordinal')
+}
+
 let compute_logistic = (ages, parameters, individual_parameters, model) => {
   // Specific types of models
-  var univariate = !('v0' in parameters)
-  var is_ordinal = 'noise_model' in model && model['noise_model'].startsWith('ordinal')
+  var is_ordinal = model_is_ordinal(model)
 
   // Model parameters
   var t0 = parameters['tau_mean']
   var log_g = parameters['g']
-  var log_v0 = null
-  var mixing_matrix = null
-
-  if (univariate) {
-    if (typeof log_g == 'number'){ log_g = [log_g] }
-    log_v0 = [parameters['xi_mean']]
-  } else {
-    log_v0 = parameters['v0']
-    mixing_matrix = parameters['mixing_matrix']
-  }
+  var log_v0 = parameters['v0']
+  var mixing_matrix = parameters['mixing_matrix']
 
   // Individual parameters
   var alpha = Math.exp(individual_parameters['xi'])
   var tau = individual_parameters['tau']
   var sources = individual_parameters['sources']
   var space_shift = new Array(log_g.length).fill(0)
-  if (mixing_matrix) {
+  if (mixing_matrix && mixing_matrix.length) {
     space_shift = math.multiply(mixing_matrix, sources);
   }
 
@@ -116,11 +114,7 @@ let compute_logistic = (ages, parameters, individual_parameters, model) => {
     var output = []
     var g_i = Math.exp(log_g[i])
     var v_i = Math.exp(log_v0[i])
-    if (univariate) {
-      var b_i = 1. // no such thing in univariate
-    } else {
-      var b_i = (1+g_i) * (1+g_i) / g_i
-    }
+    var b_i = (1+g_i) * (1+g_i) / g_i
 
     var deltas_i = null;
 
@@ -138,13 +132,7 @@ let compute_logistic = (ages, parameters, individual_parameters, model) => {
         var sf_ij = [];
         for(var k=0; k < deltas_i.length; ++k) {
           // Survival function: P(Y_i > k), k=0..max_level_i-1
-          var x_ijk;
-          if (univariate) {
-            // <!> This is subtle but by design: in univariate `deltas` <-> `deltas * v0` compared to multivariate
-            x_ijk = v_i * r_age - deltas_i[k];
-          } else {
-            x_ijk = v_i * (r_age - deltas_i[k]) + space_shift[i];
-          }
+          var x_ijk = v_i * (r_age - deltas_i[k]) + space_shift[i];
           sf_ij.push(1./(1. + Math.exp(log_g[i] - b_i * x_ijk)))
         }
         // Compute MLE (or expectation?)
@@ -181,7 +169,7 @@ let compute_logistic_parallel = (ages, parameters, individual_parameters) => {
   var tau = individual_parameters['tau']
   var sources = individual_parameters['sources']
   var space_shift = new Array(deltas.length).fill(0)
-  if (mixing_matrix) {
+  if (mixing_matrix && mixing_matrix.length) {
     space_shift = math.multiply(mixing_matrix, sources);
   }
 

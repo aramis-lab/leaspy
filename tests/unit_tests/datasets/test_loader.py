@@ -1,6 +1,5 @@
-from torch import tensor, allclose
-
 from leaspy.datasets.loader import Loader
+from leaspy.models.noise_models import GaussianScalarNoiseModel
 
 from tests import LeaspyTestCase
 
@@ -41,15 +40,21 @@ class LoaderTest(LeaspyTestCase):
 
         leaspy_instance = Loader.load_leaspy_instance('parkinson-putamen-train')
         self.assertEqual(leaspy_instance.model.features, ['PUTAMEN'])
-        self.assertEqual(leaspy_instance.model.noise_model, 'gaussian_scalar')
+        self.assertIsInstance(leaspy_instance.model.noise_model, GaussianScalarNoiseModel)
+        self.assertDictAlmostEqual(leaspy_instance.model.noise_model.parameters, {"scale": 0.02122}, atol=1e-4)
 
-        parameters = {"g": tensor([-0.7901085019111633]),
-                      "tau_mean": tensor(64.18125915527344),
-                      "tau_std": tensor(10.199116706848145),
-                      "xi_mean": tensor(-2.346343994140625),
-                      "xi_std": tensor(0.5663877129554749),
-                      "noise_std": tensor(0.021229960024356842)}
-        self.assertEqual(leaspy_instance.model.parameters, parameters)
+        parameters = {
+            "g": [-1.1861],
+            "v0": [-4.0517],
+            "tau_mean": 68.7493,
+            "tau_std": 10.0294,
+            "xi_mean": 0.0,
+            "xi_std": 0.5542,
+            "sources_mean": 0.0,
+            "sources_std": 1.0,
+            "betas": [],
+        }
+        self.assertDictAlmostEqual(leaspy_instance.model.parameters, parameters, atol=1e-4)
 
     def test_load_individual_parameters(self):
         """
@@ -63,7 +68,6 @@ class LoaderTest(LeaspyTestCase):
 
         ip = Loader.load_individual_parameters('alzheimer-multivariate')
 
-        self.assertAlmostEqual(ip.get_mean('tau'), 76.9612791442871)
-        self.assertAlmostEqual(ip.get_mean('xi'), 0.0629326763143763)
-        self.assertAllClose(ip.get_mean('sources'),
-                            [0.003150840562302619, -0.02109330625506118], what='sources.mean')
+        self.assertAlmostEqual(ip.get_mean('tau'), 76.9612, delta=1e-4)
+        self.assertAlmostEqual(ip.get_mean('xi'), 0.0629, delta=1e-4)
+        self.assertAllClose(ip.get_mean('sources'), [0.00315, -0.02109], atol=1e-5, rtol=1e-4, what='sources.mean')

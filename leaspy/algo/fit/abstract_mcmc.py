@@ -1,11 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from random import shuffle
 
 from leaspy.algo.fit.abstract_fit_algo import AbstractFitAlgo
-from leaspy.algo.utils.samplers import AlgoWithSamplersMixin
+from leaspy.algo.utils.algo_with_samplers import AlgoWithSamplersMixin
 from leaspy.algo.utils.algo_with_annealing import AlgoWithAnnealingMixin
-from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel
-from leaspy.io.realizations.collection_realization import CollectionRealization
+
+from leaspy.io.realizations import CollectionRealization
+
+if TYPE_CHECKING:
+    from leaspy.io.data.dataset import Dataset
+    from leaspy.models.abstract_model import AbstractModel
 
 
 class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFitAlgo):
@@ -40,7 +45,11 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
     ## Initialization
     ###########################
 
-    def _initialize_algo(self, dataset: Dataset, model: AbstractModel, realizations: CollectionRealization) -> None:
+    def _initialize_algo(
+        self,
+        dataset: Dataset,
+        model: AbstractModel,
+    ) -> None:
         """
         Initialize the samplers, annealing, MCMC toolbox and sufficient statistics.
 
@@ -48,12 +57,11 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
         ----------
         dataset : :class:`.Dataset`
         model : :class:`~.models.abstract_model.AbstractModel`
-        realizations : :class:`~.io.realizations.collection_realization.CollectionRealization`
         """
-
         # MCMC toolbox (cache variables for speed-ups + tricks)
         # TODO? why not using just initialized `realizations` here in MCMC toolbox initialization?
-        # TODO? we should NOT store the MCMC_toolbox in the model even if convenient, since actually it ONLY belongs to the algorithm!
+        # TODO? we should NOT store the MCMC_toolbox in the model even if convenient, since actually
+        #  it ONLY belongs to the algorithm!
         model.initialize_MCMC_toolbox()
 
         # Samplers mixin
@@ -66,7 +74,12 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
     ## Core
     ###########################
 
-    def iteration(self, dataset: Dataset, model: AbstractModel, realizations: CollectionRealization):
+    def iteration(
+        self,
+        dataset: Dataset,
+        model: AbstractModel,
+        realizations: CollectionRealization,
+    ) -> None:
         """
         MCMC-SAEM iteration.
 
@@ -79,9 +92,7 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
         model : :class:`~.models.abstract_model.AbstractModel`
         realizations : :class:`~.io.realizations.collection_realization.CollectionRealization`
         """
-
-        # Sample step (with order of population & individual variables shuffled)
-        vars_order = realizations.reals_pop_variable_names + realizations.reals_ind_variable_names  # new list (no need to copy it)
+        vars_order = realizations.population.names + realizations.individual.names
         if self.random_order_variables:
             shuffle(vars_order)  # shuffle order in-place!
 

@@ -1,5 +1,5 @@
 import torch
-
+from typing import Optional, Tuple
 from .abstract_attributes import AbstractAttributes
 
 from leaspy.exceptions import LeaspyModelInputError
@@ -29,7 +29,7 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
         Whether model is univariate or not (i.e. dimension == 1)
     has_sources : bool
         Whether model has sources or not (not univariate and source_dimension >= 1)
-    update_possibilities : tuple[str]
+    update_possibilities : set[str]
         Contains the available parameters to update. Different models have different parameters.
 
     positions : :class:`torch.Tensor` [dimension] (default None)
@@ -51,47 +51,34 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
         if any inconsistent parameter.
     """
 
-    def __init__(self, name: str, dimension: int, source_dimension: int = None):
+    def __init__(self, name: str, dimension: int, source_dimension: int):
 
         super().__init__(name, dimension, source_dimension)
 
-        self.positions: torch.FloatTensor = None
+        self.positions: torch.FloatTensor = torch.FloatTensor()
+        self.velocities: torch.FloatTensor = torch.FloatTensor()
+        self.mixing_matrix: torch.FloatTensor = torch.FloatTensor()
+        self.betas: torch.FloatTensor = torch.FloatTensor()
+        self.orthonormal_basis = None
+        self.update_possibilities = {'all', 'g', 'v0', 'v0_collinear'}
 
-        if self.univariate:
-            self.update_possibilities = ('all', 'g')
-        else:
-            if not (isinstance(source_dimension, int) and (0 <= source_dimension < dimension)):
-                raise LeaspyModelInputError("In `AbstractManifoldModelAttributes` you must provide "
-                            "an integer in [0, dimension - 1] for the parameters `source_dimension` for non univariate models.")
+        if self.has_sources:
+            self.update_possibilities.add('betas')
 
-            self.betas: torch.FloatTensor = None
-            self.mixing_matrix: torch.FloatTensor = None
-            self.orthonormal_basis: torch.FloatTensor = None
-            self.update_possibilities = ('all', 'g', 'v0', 'v0_collinear', 'betas')
-
-    def get_attributes(self):
+    def get_attributes(self) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """
-        Returns the attributes of the model.
+        Returns the attributes of the model, which is a tuple of three torch tensors.
 
-        It is either a tuple of torch tensors or a single torch tensor if there is
-        only one attribute for the model (e.g.: univariate models). For the precise
-        definitions of those attributes please refer to the exact attributes class
-        associated to your model.
+        For the precise definitions of those attributes please refer to the exact
+        attributes class associated to your model.
 
         Returns
         -------
-        For univariate models:
-            positions: `torch.Tensor`
-
-        For multivariate (but not parallel) models:
-            * positions: `torch.Tensor`
-            * velocities: `torch.Tensor`
-            * mixing_matrix: `torch.Tensor`
+        positions: `torch.Tensor`
+        velocities: `torch.Tensor`
+        mixing_matrix: `torch.Tensor`
         """
-        if self.univariate:
-            return self.positions
-        else:
-            return self.positions, self.velocities, self.mixing_matrix
+        return self.positions, self.velocities, self.mixing_matrix
 
     def _compute_velocities(self, values: DictParamsTorch):
         """
@@ -229,7 +216,6 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
         """
         return torch.mm(matrix, linear_combination_values)
 
-
     @staticmethod
     def _check_collinearity_vectors(*vectors: torch.FloatTensor) -> bool:
         """
@@ -243,7 +229,6 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
         linalg_mod = getattr(torch, 'linalg')
         torch_matrix_rank = getattr(linalg_mod, 'matrix_rank', torch.matrix_rank)
         return torch_matrix_rank(torch.stack(vectors).view(len(vectors), -1)).item() <= 1
-
 
     def _compute_mixing_matrix(self):
         """

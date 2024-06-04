@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import torch
 
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import DictParamsTorch, ParamType, Tuple
+from leaspy.utils.typing import DictParamsTorch, ParamType, Tuple, Set
 
 
 class AbstractAttributes(ABC):
@@ -33,7 +33,7 @@ class AbstractAttributes(ABC):
     has_sources : bool
         Whether model has sources or not (not univariate and source_dimension >= 1)
         TODO? move to AbstractManifoldModelAttributes?
-    update_possibilities : tuple[str] (default empty)
+    update_possibilities : set[str] (default empty)
         Contains the available parameters to update. Different models have different parameters.
 
     Raises
@@ -42,43 +42,57 @@ class AbstractAttributes(ABC):
         if any inconsistent parameter.
     """
 
-    def __init__(self, name: str, dimension: int = None, source_dimension: int = None):
+    def __init__(self, name: str, dimension: int, source_dimension: int):
 
         if not (isinstance(name, str) and len(name)):
-            raise LeaspyModelInputError("In model attributes, you must provide a non-empty string for the parameter `name`.")
+            raise LeaspyModelInputError(
+                "In model attributes, you must provide a non-empty string for the parameter `name`."
+            )
         self.name = name
 
         if not (isinstance(dimension, int) and dimension >= 1):
-            raise LeaspyModelInputError("In model attributes, you must provide an integer >= 1 for the parameter `dimension`.")
+            raise LeaspyModelInputError(
+                "In model attributes, you must provide an integer >= 1 for the parameter `dimension`."
+            )
         self.dimension = dimension
         self.univariate = dimension == 1
 
         self.source_dimension = source_dimension
-        self.has_sources = bool(source_dimension) # False iff None or == 0
+        self.has_sources = bool(source_dimension)
 
         if self.univariate and self.has_sources:
             raise LeaspyModelInputError("Inconsistent attributes: presence of sources for a univariate model.")
 
-        self.update_possibilities: Tuple[ParamType, ...] = () # empty tuple
+        if not (isinstance(source_dimension, int) and (0 <= source_dimension < dimension)):
+            raise LeaspyModelInputError(
+                "In model attributes, you must provide an integer in [0, dimension - 1] for the parameter `source_dimension`."
+            )
+
+        self.update_possibilities: Set[ParamType] = set()
 
     @abstractmethod
-    def get_attributes(self) -> Tuple[torch.FloatTensor, ...]:
+    def get_attributes(self) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """
-        Returns the essential attributes of a given model.
+        Returns the attributes of the model, which is a tuple of three torch tensors.
+
+        For the precise definitions of those attributes please refer to the exact
+        attributes class associated to your model.
 
         Returns
         -------
-        Depends on the subclass, please refer to each specific class.
+        positions: `torch.Tensor`
+        velocities: `torch.Tensor`
+        mixing_matrix: `torch.Tensor`
         """
 
     @abstractmethod
-    def update(self, names_of_changed_values: Tuple[ParamType, ...], values: DictParamsTorch) -> None:
+    def update(self, names_of_changed_values: Set[ParamType], values: DictParamsTorch) -> None:
         """
         Update model group average parameter(s).
 
         Parameters
         ----------
-        names_of_changed_values : list [str]
+        names_of_changed_values : set[str]
            Values to be updated
         values : dict [str, `torch.Tensor`]
            New values used to update the model's group average parameters
@@ -104,19 +118,19 @@ class AbstractAttributes(ABC):
             if isinstance(attribute, torch.Tensor):
                 setattr(self, attribute_name, attribute.to(device))
 
-    def _check_names(self, names_of_changed_values: Tuple[ParamType, ...]):
+    def _check_names(self, names_of_changed_values: Set[ParamType]):
         """
         Check if the name of the parameter(s) to update are in the possibilities allowed by the model.
 
         Parameters
         ----------
-        names_of_changed_values : list [str]
+        names_of_changed_values : set[str]
 
         Raises
         ------
         :exc:`.LeaspyModelInputError`
             If `names_of_changed_values` contains unknown values to update.
         """
-        unknown_update_possibilities = set(names_of_changed_values).difference(self.update_possibilities)
-        if len(unknown_update_possibilities) > 0:
+        unknown_update_possibilities = names_of_changed_values.difference(self.update_possibilities)
+        if len(unknown_update_possibilities):
             raise LeaspyModelInputError(f"{unknown_update_possibilities} not in the attributes that can be updated")

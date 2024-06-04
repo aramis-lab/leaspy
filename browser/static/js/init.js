@@ -25,7 +25,7 @@ var DECIMALS_Y = 2; // in tooltip
 var DECIMALS_AGE = 1; // in tooltip
 
 var ORDINAL_EXPECTATION = true; // otherwise simply plot the ordinal MLE
-var ORDINAL_NORMALIZE = true; // should we scale all ordinal features into [0, 1]
+var ORDINAL_NORMALIZE = false; // should we scale all ordinal features into [0, 1] (REDO plot or personalization if true)
 
 // seaborn "muted" color palette (10 colors)
 var PLOT_COLORS = [

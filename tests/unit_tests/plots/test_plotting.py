@@ -24,7 +24,7 @@ class PlottingTest(MatplotlibTestCase):
         cls.ips = cls.get_from_personalize_individual_params('data_tiny-individual_parameters.csv')
         _, cls.ips_torch = cls.ips.to_pytorch()
         cls.data = cls.get_suited_test_data_for_model('logistic_diag_noise')
-        cls.dataset = Dataset(cls.data, model=cls.leaspy.model)
+        cls.dataset = Dataset(cls.data)
         cls.result = Result(cls.data, cls.ips_torch)
 
         cls.inds = ['116', '142', '169']

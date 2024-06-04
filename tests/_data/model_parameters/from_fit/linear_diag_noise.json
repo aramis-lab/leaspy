@@ -9,7 +9,23 @@
   ],
   "dimension": 4,
   "source_dimension": 2,
-  "noise_model": "gaussian_diagonal",
+  "fit_metrics": {
+    "nll_regul_tau": 53.649688720703125,
+    "nll_regul_xi": 20.499046325683594,
+    "nll_regul_sources": 51.580875396728516,
+    "nll_regul_tot": 125.72960662841797,
+    "nll_attach": -642.1902465820312,
+    "nll_tot": -516.460693359375
+  },
+  "noise_model": {
+    "name": "gaussian-diagonal",
+    "scale": [
+      0.07667658478021622,
+      0.055551011115312576,
+      0.08027703315019608,
+      0.1676429659128189
+    ]
+  },
   "parameters": {
     "g": [
       0.4763120412826538,
@@ -43,12 +59,6 @@
     "xi_std": 0.8079444169998169,
     "sources_mean": 0.0,
     "sources_std": 1.0,
-    "noise_std": [
-      0.07667658478021622,
-      0.055551011115312576,
-      0.08027703315019608,
-      0.1676429659128189
-    ],
     "mixing_matrix": [
       [
         0.04444575682282448,

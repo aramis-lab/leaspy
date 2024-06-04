@@ -8,7 +8,7 @@ import torch
 import numpy as np
 
 from leaspy.algo.abstract_algo import AbstractAlgo
-from leaspy.models.lme_model import LMEModel
+from leaspy.models.lme import LMEModel
 from leaspy.exceptions import LeaspyDataInputError
 
 if TYPE_CHECKING:

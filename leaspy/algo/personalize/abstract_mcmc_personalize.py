@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-
 from random import shuffle
 from copy import copy
 from abc import abstractmethod
@@ -8,15 +7,16 @@ from abc import abstractmethod
 import torch
 
 from leaspy.algo.personalize.abstract_personalize_algo import AbstractPersonalizeAlgo
-from leaspy.algo.utils.samplers import AlgoWithSamplersMixin
+from leaspy.algo.utils.algo_with_samplers import AlgoWithSamplersMixin
 from leaspy.algo.utils.algo_with_device import AlgoWithDeviceMixin
 from leaspy.algo.utils.algo_with_annealing import AlgoWithAnnealingMixin
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.utils.typing import DictParamsTorch
 
 if TYPE_CHECKING:
-    from leaspy.models.abstract_model import AbstractModel
     from leaspy.io.data.dataset import Dataset
+    from leaspy.models.abstract_model import AbstractModel
+from leaspy.io.realizations import CollectionRealization
 
 
 class AbstractMCMCPersonalizeAlgo(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AlgoWithDeviceMixin, AbstractPersonalizeAlgo):
@@ -71,13 +71,11 @@ class AbstractMCMCPersonalizeAlgo(AlgoWithAnnealingMixin, AlgoWithSamplersMixin,
             self._initialize_annealing()
 
             # Initialize realizations, only for individual variables, and at their mean values
-            pop_var_skipper = lambda info_var: info_var['type'] == 'population'
-            realizations = model.initialize_realizations_for_model(
-                                    dataset.n_individuals,
-                                    skip_variable=pop_var_skipper,
-                                    individual_variable_init_at_mean=True,
+            realizations = CollectionRealization()
+            realizations.initialize_individuals(
+                model, n_individuals=dataset.n_individuals, init_at_mean=True,
             )
-            ind_vars_names = copy(realizations.reals_ind_variable_names)
+            ind_vars_names = copy(realizations.individual.names)
 
             n_iter = self.algo_parameters['n_iter']
             if self.algo_parameters.get('progress_bar', True):
@@ -92,13 +90,14 @@ class AbstractMCMCPersonalizeAlgo(AlgoWithAnnealingMixin, AlgoWithSamplersMixin,
                 last_attachment = None
                 tot_regularities = 0.
                 for ind_var_name in ind_vars_names:
-                    last_attachment, regularity_var = self.samplers[ind_var_name].sample(dataset, model, realizations,
-                                                                                         self.temperature_inv, **computation_kws)
+                    last_attachment, regularity_var = self.samplers[ind_var_name].sample(
+                        dataset, model, realizations, self.temperature_inv, **computation_kws
+                    )
                     tot_regularities += regularity_var
 
                 # Append current realizations if "burn-in phase" is finished
                 if not self._is_burn_in():
-                    realizations_history.append(realizations.clone_realizations())
+                    realizations_history.append(realizations.clone())
                     attachment_history.append(last_attachment.clone().detach())
                     regularity_history.append(tot_regularities.clone().detach())
 
@@ -112,16 +111,19 @@ class AbstractMCMCPersonalizeAlgo(AlgoWithAnnealingMixin, AlgoWithSamplersMixin,
 
             # Stack tensor realizations as well as attachments and tot_regularities
             torch_realizations = {
-                ind_var_name: torch.stack([realizations[ind_var_name].tensor_realizations
-                                           for realizations in realizations_history])
-                for ind_var_name in realizations.reals_ind_variable_names
+                ind_var_name: torch.stack(
+                    [
+                        realizations[ind_var_name].tensor for realizations in realizations_history
+                    ]
+                ) for ind_var_name in realizations.individual.names
             }
             torch_attachments = torch.stack(attachment_history)
             torch_tot_regularities = torch.stack(regularity_history)
 
             # Derive individual parameters from `realizations_history` list
             individual_parameters_torch = self._compute_individual_parameters_from_samples_torch(
-                                                    torch_realizations, torch_attachments, torch_tot_regularities)
+                torch_realizations, torch_attachments, torch_tot_regularities
+            )
 
             # Create the IndividualParameters object
             return IndividualParameters.from_pytorch(dataset.indices, individual_parameters_torch)

@@ -23,6 +23,7 @@ workflow:
   retry: 1
   script:
     - '[[ "$CI_DEBUG" == "1" ]] && env || true'
+    - source $HOME/miniconda3/etc/profile.d/conda.sh
     - conda update --yes conda
     - '[[ "$CI_DEBUG" == "1" ]] && conda info || true'
 
@@ -30,7 +31,7 @@ workflow:
 update_conda_macos:
   extends: .update_conda
   tags:
-    - macos
+    - arm
     - conda
   rules:
     - if: $CI_COMMIT_BRANCH  # job not needed for latter deploy jobs (executed on linux only)
@@ -57,12 +58,12 @@ check_repo:
   parallel:
     matrix:
       # test on virtual envs with latest versions available complying with requirements
-      - PYTHON_VERSION: ['3.7', '3.8', '3.9'] # 3.10
-        CI_RUNNER_TAG: ['macos', 'linux']
+      - PYTHON_VERSION: ['3.9', '3.10', '3.11']
+        CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['latest']
       # test on virtual envs with oldest versions supported for requirements (>=X.Y.Z --> ==X.Y.Z)
-      - PYTHON_VERSION: ['3.7']
-        CI_RUNNER_TAG: ['macos', 'linux']
+      - PYTHON_VERSION: ['3.9']
+        CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['oldest']
   variables:
     CONDA_ENV_NAME: 'leaspy_env_${PYTHON_VERSION}_${PKG_REQS_MODE}_reqs_${CI_COMMIT_BRANCH}'
@@ -77,14 +78,13 @@ check_repo:
 # TODO? for linux, use Python Docker images instead. (no need for conda...)
 .create_and_activate_conda_env_before:
   before_script:
+    - source $HOME/miniconda3/etc/profile.d/conda.sh
     - conda --version
     # use 'create --yes' to force re-creation of env if it already exists (instead of '|| true' that just continues if env already exists)
     - conda create --yes python=$PYTHON_VERSION --name $CONDA_ENV_NAME || true
     - conda activate $CONDA_ENV_NAME
     # when testing pipeline with oldest supported versions of dependencies, we modify in-place the requirements
     - '[[ "$PKG_REQS_MODE" == "oldest" ]] && sed -i.bak -E "s/>=/==/g" requirements.txt || true'
-    # when testing with our MacOS 10.12 CI machine we force not using a Pillow version that dropped support for this architecture
-    - '[[ "$CI_RUNNER_TAG" == "macos" ]] && echo "Pillow!=9.1.0" >> requirements.txt || true'
     # TODO? use conda install --update-all --file ... instead of pip install?
     - pip install -U -r requirements.txt
     - pip install -U -r requirements_dev.txt
@@ -95,6 +95,7 @@ check_repo:
 # delete the conda env just after test so that space is not wasted too long for concurrent pipelines
 .remove_conda_env_after:
   after_script:
+    - source $HOME/miniconda3/etc/profile.d/conda.sh
     - conda env remove --yes --name $CONDA_ENV_NAME
 
 # Run the whole test suite and report results

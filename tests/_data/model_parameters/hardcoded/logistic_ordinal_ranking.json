@@ -9,7 +9,15 @@
   ],
   "dimension": 4,
   "source_dimension": 2,
-  "noise_model": "ordinal_ranking",
+  "noise_model": {
+    "name": "ordinal-ranking",
+    "max_levels": {
+      "Y0": 3,
+      "Y1": 4,
+      "Y2": 6,
+      "Y3": 10
+    }
+  },
   "parameters": {
     "g": [
       -4.29,
@@ -69,8 +77,7 @@
       -2.3,
       -0.3,
       -2.3
-    ],
-    "log-likelihood": 986.2
+    ]
   },
   "batch_deltas_ordinal": false
 }

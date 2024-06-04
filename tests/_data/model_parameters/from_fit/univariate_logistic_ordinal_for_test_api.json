@@ -1,23 +1,43 @@
 {
-  "leaspy_version": "1.3.1",
+  "leaspy_version": "1.4.0",
   "name": "univariate_logistic",
   "features": [
     "Y0"
   ],
-  "noise_model": "ordinal",
+  "dimension": 1,
+  "source_dimension": 0,
+  "fit_metrics": {
+    "nll_regul_tau": 52.3507080078125,
+    "nll_regul_xi": -44.663902282714844,
+    "nll_regul_tot": 7.6868085861206055,
+    "nll_attach": 175.8132781982422,
+    "nll_tot": 183.5001220703125
+  },
+  "noise_model": {
+    "name": "ordinal",
+    "max_levels": {
+      "Y0": 3
+    }
+  },
   "parameters": {
     "g": [
-      -4.507537841796875
+      -4.81337833404541
     ],
-    "tau_mean": 84.5403823852539,
-    "tau_std": 5.738014221191406,
-    "xi_mean": -1.3751164674758911,
-    "xi_std": 0.015398288145661354,
+    "v0": [
+      -5.562199592590332
+    ],
+    "betas": [],
+    "tau_mean": 84.7153091430664,
+    "tau_std": 5.2598958015441895,
+    "xi_mean": 0.0,
+    "xi_std": 0.017479395493865013,
+    "sources_mean": 0.0,
+    "sources_std": 1.0,
     "deltas_Y0": [
-      1.102103053906638,
-      1.6550278912578926
+      1.004859209060669,
+      1.79833984375
     ],
-    "log-likelihood": 105.17070770263672
+    "mixing_matrix": []
   },
   "batch_deltas_ordinal": false
 }

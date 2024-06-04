@@ -1,5 +1,5 @@
 from leaspy import Leaspy, AlgorithmSettings
-from leaspy.models.constant_model import ConstantModel
+from leaspy.models.constant import ConstantModel
 
 import numpy as np
 import pandas as pd

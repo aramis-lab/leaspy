@@ -1,4 +1,4 @@
-from leaspy.models.constant_model import ConstantModel
+from leaspy.models.constant import ConstantModel
 
 from tests import LeaspyTestCase
 

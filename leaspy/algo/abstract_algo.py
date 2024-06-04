@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple, Union, Any
 from copy import deepcopy
-
 import sys
 from abc import ABC, abstractmethod
 import time
@@ -11,12 +10,12 @@ import numpy as np
 import torch
 
 from leaspy.io.logs.fit_output_manager import FitOutputManager
-from leaspy.utils.typing import Optional, Tuple, Any
 from leaspy.exceptions import LeaspyModelInputError, LeaspyAlgoInputError
 
 if TYPE_CHECKING:
-    from leaspy.io.settings.algorithm_settings import AlgorithmSettings
     from leaspy.models.abstract_model import AbstractModel
+    from leaspy.io.settings.outputs_settings import OutputsSettings
+    from leaspy.io.settings.algorithm_settings import AlgorithmSettings
 
 
 class AbstractAlgo(ABC):
@@ -67,27 +66,6 @@ class AbstractAlgo(ABC):
         self.algo_parameters = deepcopy(settings.parameters)
 
         self.output_manager: Optional[FitOutputManager] = None
-        self._log_noise_fmt = '.2%'
-
-    # Format used to display noise std-dev values
-    @property
-    def log_noise_fmt(self):
-        """
-        Getter
-
-        Returns
-        -------
-        format : str
-            The format for the print of the loss
-        """
-        return self._log_noise_fmt
-
-    @log_noise_fmt.setter
-    def log_noise_fmt(self, model):
-        if hasattr(model, 'noise_model') and model.noise_model in ['bernoulli', 'ordinal', 'ordinal_ranking']:
-            self._log_noise_fmt = '.4f'
-        else:
-            self._log_noise_fmt = '.2%'
 
     ###########################
     # Initialization
@@ -117,7 +95,11 @@ class AbstractAlgo(ABC):
     ###########################
 
     @abstractmethod
-    def run_impl(self, model: AbstractModel, *args, **extra_kwargs) -> Tuple[Any, Optional[torch.FloatTensor]]:
+    def run_impl(
+            self,
+            model: AbstractModel,
+            *args, **extra_kwargs,
+    ) -> Tuple[Any, Optional[torch.FloatTensor]]:
         """
         Run the algorithm (actual implementation), to be implemented in children classes.
 
@@ -134,7 +116,7 @@ class AbstractAlgo(ABC):
         -------
         A 2-tuple containing:
             * the result to send back to user
-            * optional float tensor representing noise std-dev (to be printed)
+            * optional float tensor representing loss (to be printed)
 
         See Also
         --------
@@ -143,7 +125,7 @@ class AbstractAlgo(ABC):
         :class:`.SimulationAlgorithm`
         """
 
-    def run(self, model: AbstractModel, *args, return_noise: bool = False, **extra_kwargs) -> Any:
+    def run(self, model: AbstractModel, *args, return_loss: bool = False, **extra_kwargs) -> Any:
         """
         Main method, run the algorithm.
 
@@ -155,8 +137,8 @@ class AbstractAlgo(ABC):
             The used model.
         dataset : :class:`.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
-        return_noise : bool (default False), keyword only
-            Should the algorithm return main output and optional noise output as a 2-tuple?
+        return_loss : bool (default False), keyword only
+            Should the algorithm return main output and optional loss output as a 2-tuple?
 
         Returns
         -------
@@ -176,29 +158,31 @@ class AbstractAlgo(ABC):
         # Set seed if needed
         self._initialize_seed(self.seed)
 
-        # Get the right printing format
-        self.log_noise_fmt = model
-
         # Init the run
         time_beginning = time.time()
 
-        # Get the results (with noise)
-        output, noise_std = self.run_impl(model, *args, **extra_kwargs)
+        # Get the results (with loss)
+        output, loss = self.run_impl(model, *args, **extra_kwargs)
 
         # Print run infos
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get('progress_bar'):
-            print()  # new line for clarity
+            # new line for clarity
+            print()
         print(f"\n{self.family.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}")
 
-        noise_repr = self._noise_std_repr(noise_std, model=model)
-        if noise_repr is not None:
-            noise_type = "log-likelihood" if (getattr(model, 'noise_model', None) in ['bernoulli', 'ordinal', 'ordinal_ranking']) else "standard deviation of the noise"
-            print(f"The {noise_type} at the end of the {self.family} is:\n{noise_repr}")
+        if loss is not None:
+            loss_type, loss_scalar_fmt = getattr(
+                getattr(model, 'noise_model', None),
+                "canonical_loss_properties",
+                ("standard-deviation of the noise", ".2%")
+            )
+            loss_repr = self._loss_repr(loss, features=model.features, loss_scalar_fmt=loss_scalar_fmt)
+            print(f"The {loss_type} at the end of the {self.family} is: {loss_repr}")
 
         # Return only output part
-        if return_noise:
-            return output, noise_std
+        if return_loss:
+            return output, loss
         else:
             return output
 
@@ -252,7 +236,7 @@ class AbstractAlgo(ABC):
                 print(f"Replacing {k} parameter from value {previous_v} to value {v}")
             self.algo_parameters[k] = v
 
-    def set_output_manager(self, output_settings):
+    def set_output_manager(self, output_settings: OutputsSettings) -> None:
         """
         Set a :class:`~.io.logs.fit_output_manager.FitOutputManager` object for the run of the algorithm
 
@@ -279,7 +263,7 @@ class AbstractAlgo(ABC):
             self.output_manager = FitOutputManager(output_settings)
 
     @staticmethod
-    def _display_progress_bar(iteration, n_iter, suffix, n_step_default=50):
+    def _display_progress_bar(iteration: int, n_iter: int, suffix: str, n_step_default: int = 50):
         """
         Display a progression bar while running algorithm, simply based on `sys.stdout`.
 
@@ -314,18 +298,21 @@ class AbstractAlgo(ABC):
                 sys.stdout.write(f"|{'#'*nbar}{'-'*(n_step - nbar)}|   {iteration_plus_1}/{n_iter} {suffix}")
                 sys.stdout.flush()
 
-    def _noise_std_repr(self, noise_std: Optional[torch.FloatTensor], model: AbstractModel) -> Optional[str]:
+    @staticmethod
+    def _loss_repr(loss: Union[np.ndarray, torch.FloatTensor], features: list, loss_scalar_fmt: str) -> str:
         """
-        Get a nice string representation of noise std-dev for a given model.
+        Get a nice string representation of loss for a given model.
 
         TODO? move this code into a NoiseModel helper class
 
         Parameters
         ----------
-        noise_std : :class:`torch.FloatTensor`
-            Std-deviation of noise (tensor).
-        model : :class:`.AbstractModel`
-            Model that noise was estimated on.
+        loss : :class:`torch.FloatTensor`
+            Loss value (tensor).
+        features : list[str]
+            Model features (to be used for multivariate losses).
+        loss_scalar_fmt : str
+            Format for elements of loss.
 
         Returns
         -------
@@ -334,31 +321,28 @@ class AbstractAlgo(ABC):
         Raises
         ------
         :exc:`.LeaspyModelInputError`
-            If model and noise are inconsistent.
+            If multivariate loss and model dimension are inconsistent.
         """
-        if noise_std is None:
-            return None
+        loss_elts = np.array(loss).reshape(-1).tolist()  # can be torch tensor or numpy array (LME, constant model ...)
+        loss_elts_nb = len(loss_elts)
 
-        noise_elts = np.array(noise_std).reshape(-1).tolist()  # can be torch tensor or numpy array (LME, constant model ...)
-        noise_elts_nb = len(noise_elts)
+        if loss_elts_nb != 1:
+            if loss_elts_nb != len(features):
+                raise LeaspyModelInputError(f'Number of features ({len(features)}) does not match with '
+                                            f'number of terms in loss ({loss_elts_nb}).')
 
-        # in SimulationAlgorithm you may want to format a noise which is not compliant with the one from model so we don't rely on kwd
-        #if getattr(model, 'noise_model', None) == 'gaussian_diagonal':
-        if noise_elts_nb != 1:
-            if noise_elts_nb != model.dimension:
-                raise LeaspyModelInputError(f'Number of features ({model.dimension}) does not match with '
-                                            f'number of diagonal terms of noise ({noise_elts_nb}).')
-
-            noise_map = {ft_name: f'{ft_noise:{self.log_noise_fmt}}'
-                         for ft_name, ft_noise in zip(model.features, noise_elts)}
-            print_noise = repr(noise_map).replace("'", "").replace("{", "").replace("}", "")
-            print_noise = '\n- ' + '\n- '.join(print_noise.split(', '))
+            loss_map = {
+                ft_name: f'{ft_loss:{loss_scalar_fmt}}'
+                for ft_name, ft_loss in zip(features, loss_elts)
+            }
+            print_loss = repr(loss_map).replace("'", "").replace("{", "").replace("}", "")
+            print_loss = '\n- ' + '\n- '.join(print_loss.split(', '))
         else:
-            if hasattr(noise_std, 'item'):
-                noise_std = noise_std.item()
-            print_noise = f"{noise_std:{self.log_noise_fmt}}"
+            if hasattr(loss, 'item'):
+                loss = loss.item()
+            print_loss = f"{loss:{loss_scalar_fmt}}"
 
-        return print_noise
+        return print_loss
 
     @staticmethod
     def _duration_to_str(seconds: float, *, seconds_fmt='.0f') -> str:
@@ -391,9 +375,18 @@ class AbstractAlgo(ABC):
 
         return res
 
+    def _get_progress_str(self) -> Optional[str]:
+        # TODO in a special mixin for sequential algos with nb of iters (MCMC fit, MCMC personalize)
+        if not hasattr(self, 'current_iteration'):
+            return
+        return f"Iteration {self.current_iteration} / {self.algo_parameters['n_iter']}"
+
     def __str__(self):
         out = "=== ALGO ===\n"
         out += f"Instance of {self.name} algo"
         if hasattr(self, 'algorithm_device'):
             out += f" [{self.algorithm_device.upper()}]"
+        progress_str = self._get_progress_str()
+        if progress_str:
+            out += "\n" + progress_str
         return out

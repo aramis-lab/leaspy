@@ -9,7 +9,23 @@
   ],
   "dimension": 4,
   "source_dimension": 2,
-  "noise_model": "ordinal",
+  "fit_metrics": {
+    "nll_regul_tau": 54.97090148925781,
+    "nll_regul_xi": 10.921512603759766,
+    "nll_regul_sources": 50.211219787597656,
+    "nll_regul_tot": 116.10364532470703,
+    "nll_attach": 1153.13134765625,
+    "nll_tot": 1269.235107421875
+  },
+  "noise_model": {
+    "name": "ordinal",
+    "max_levels": {
+      "Y0": 3,
+      "Y1": 4,
+      "Y2": 6,
+      "Y3": 10
+    }
+  },
   "parameters": {
     "g": [
       -4.662928104400635,
@@ -89,7 +105,6 @@
         -2.1442248821258545
       ]
     ],
-    "log-likelihood": 1153.1314697265625,
     "mixing_matrix": [
       [
         -0.040506623685359955,

@@ -194,8 +194,6 @@ class LMEModelAPITest(LeaspyTestCase):
         self.assertEqual(lsp.model.with_random_slope_age, True)
         self.assertGreater(np.abs(lsp.model.parameters['cov_re'][0,1]), 0) # not forced independent
 
-        print(repr(lsp.model.parameters))
-
         # + test save/load
         model_path = self.get_test_tmp_path('lme_model_1.json')
         lsp.save(model_path)

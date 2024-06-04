@@ -13,12 +13,12 @@ Leaspy is a software package for the statistical analysis of **longitudinal data
 
 ### Installation
 
-1. Leaspy requires Python >= 3.7, < 3.10
+1. Leaspy requires Python >= 3.9, < 3.12
 2. Create a dedicated environment (optional):
 
    Using `conda`
    ```
-   conda create --name leaspy python=3.7
+   conda create --name leaspy python=3.10
    conda activate leaspy
    ```
 
@@ -46,7 +46,7 @@ You can find additional walkthroughs in:
 Leaspy is a software package for the statistical analysis of **longitudinal data**, particularly **medical** data that comes in a form of **repeated observations** of patients at different time-points.
 Considering these series of short-term data, the software aims at :
 - recombining them to reconstruct the long-term spatio-temporal trajectory of evolution
-- positioning each patient observations relatively to the group-average timeline, in term of both temporal differences (time shift and acceleration factor) and spatial differences (different sequences of events, spatial pattern of progression, ...)
+- positioning each patient observations relatively to the group-average timeline, in terms of both temporal differences (time shift and acceleration factor) and spatial differences (different sequences of events, spatial pattern of progression, ...)
 - quantifying impact of cofactors (gender, genetic mutation, environmental factors, ...) on the evolution of the signal
 - imputing missing values
 - predicting future observations

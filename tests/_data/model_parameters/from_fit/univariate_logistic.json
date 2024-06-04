@@ -1,18 +1,36 @@
 {
-  "leaspy_version": "1.2.1rc1",
+  "leaspy_version": "1.4.0",
   "name": "univariate_logistic",
   "features": [
     "Y0"
   ],
-  "noise_model": "gaussian_scalar",
+  "dimension": 1,
+  "source_dimension": 0,
+  "fit_metrics": {
+    "nll_regul_tau": 55.41047668457031,
+    "nll_regul_xi": 12.013656616210938,
+    "nll_regul_tot": 67.42413330078125,
+    "nll_attach": -194.07254028320312,
+    "nll_tot": -126.64840698242188
+  },
+  "noise_model": {
+    "name": "gaussian-scalar",
+    "scale": 0.0702829509973526
+  },
   "parameters": {
     "g": [
-      0.12141461670398712
+      0.11712858825922012
     ],
-    "tau_mean": 77.8262710571289,
-    "tau_std": 5.930052757263184,
-    "xi_mean": -2.1031999588012695,
-    "xi_std": 0.2059076875448227,
-    "noise_std": 0.08365406095981598
+    "v0": [
+      -3.384176731109619
+    ],
+    "betas": [],
+    "tau_mean": 78.34758758544922,
+    "tau_std": 6.294102191925049,
+    "xi_mean": 0.0,
+    "xi_std": 0.48932406306266785,
+    "sources_mean": 0.0,
+    "sources_std": 1.0,
+    "mixing_matrix": []
   }
 }

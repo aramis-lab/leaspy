@@ -24,7 +24,7 @@ class LogisticParallelAttributes(AbstractManifoldModelAttributes):
     source_dimension : int
     has_sources : bool
         Whether model has sources or not (source_dimension >= 1)
-    update_possibilities : tuple [str] (default ('all', 'g', 'deltas', 'betas') )
+    update_possibilities : set[str] (default {'all', 'g', 'deltas', 'betas'} )
         Contains the available parameters to update. Different models have different parameters.
     positions : :class:`torch.Tensor` (scalar) (default None)
         positions = exp(realizations['g']) such that "p0" = 1 / (1 + positions * exp(-deltas))
@@ -54,7 +54,9 @@ class LogisticParallelAttributes(AbstractManifoldModelAttributes):
             raise LeaspyModelInputError(f"`LogisticParallelAttributes` with dimension = {self.dimension} (< 2)")
 
         self.deltas: torch.FloatTensor = None  # deltas = [0, delta_2_realization, ..., delta_n_realization]
-        self.update_possibilities = ('all', 'g', 'betas', 'deltas')
+        self.update_possibilities = {'all', 'g', 'deltas'}
+        if self.has_sources:
+            self.update_possibilities.add('betas')
 
 
     def get_attributes(self):
@@ -75,8 +77,8 @@ class LogisticParallelAttributes(AbstractManifoldModelAttributes):
 
         Parameters
         ----------
-        names_of_changed_values : list [str]
-            Elements of list must be either:
+        names_of_changed_values : set[str]
+            Elements of set must be either:
                 * ``all`` (update everything)
                 * ``g`` correspond to the attribute :attr:`positions`.
                 * ``deltas`` correspond to the attribute :attr:`deltas`.

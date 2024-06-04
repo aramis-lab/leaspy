@@ -21,6 +21,7 @@ Welcome to Leaspy's documentation!
    api
    user_guide
    py-modindex
+   glossary
 
 LEArning Spatiotemporal Patterns in Python
 ==========================================
@@ -55,8 +56,8 @@ Information to install, test, and contribute to the package.
 `API Documentation <api.html>`_
 -------------------------------
 
-The exact API of all functions and classes, as given in the
-docstrings. The API documents expected types and allowed features for
+The exact :term:`API` of all functions and classes, as given in the docstrings.
+The :term:`API` documents expected types and allowed features for
 all functions, and all parameters available for the algorithms.
 
 `User Guide <user_guide.html>`_

@@ -17,4 +17,4 @@ ParamType = str
 FeatureType = str
 
 DictParams = Dict[ParamType, Any]
-DictParamsTorch = Dict[ParamType, torch.FloatTensor]
+DictParamsTorch = Dict[ParamType, torch.Tensor]

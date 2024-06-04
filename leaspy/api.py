@@ -2,10 +2,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pandas as pd
-import numpy as np
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.model_factory import ModelFactory
+from leaspy.models.factory import ModelFactory
 from leaspy.io.settings.model_settings import ModelSettings
 from leaspy.algo.algo_factory import AlgoFactory
 from leaspy.io.outputs.individual_parameters import IndividualParameters
@@ -50,7 +49,7 @@ class Leaspy:
                 * ``'gaussian_scalar'``: gaussian error, with same standard deviation for all features
                 * ``'gaussian_diagonal'``: gaussian error, with one standard deviation parameter per feature (default)
                 * ``'bernoulli'``: for binary data (Bernoulli realization)
-                * ``'ordinal'``: for ordinal data. WARNING : make sure your dataset only contains positive integers.
+                * ``'ordinal'`` or ``'ordinal_ranking'``: for ordinal data. WARNING : make sure your dataset only contains positive integers.
 
         source_dimension : int, optional
             `For multivariate models only`.
@@ -135,15 +134,14 @@ class Leaspy:
         noise_std : 0.021265486255288124
         """
         algorithm = AlgoFactory.algo("fit", settings)
-        dataset = Dataset(data, algo=algorithm, model=self.model)
+        dataset = Dataset(data)
+        self.model.validate_compatibility_of_dataset(dataset)
         if not self.model.is_initialized:
             # at this point randomness is not yet fixed even if seed was set in AlgoSettings
             # it will only be set at the beginning of `algorithm.run` just afterwards
             # so a `initialization_method='random'` won't be reproducible for now, TODO?
-            initialization_method = settings.model_initialization_method
-            self.model.initialize(dataset, initialization_method)
+            self.model.initialize(dataset, settings.model_initialization_method)
         algorithm.run(self.model, dataset)
-
 
     def calibrate(self, data: Data, settings: AlgorithmSettings) -> None:
         r"""
@@ -151,7 +149,7 @@ class Leaspy:
         """
         self.fit(data, settings)
 
-    def personalize(self, data: Data, settings: AlgorithmSettings, *, return_noise: bool = False):
+    def personalize(self, data: Data, settings: AlgorithmSettings, *, return_loss: bool = False):
         r"""
         From a model, estimate individual parameters for each `ID` of a given dataset.
         These individual parameters correspond to the random-effects :math:`(z_{i,j})` of the mixed-effects model.
@@ -163,17 +161,17 @@ class Leaspy:
             :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
         settings : :class:`.AlgorithmSettings`
             Contains the algorithm's settings.
-        return_noise : bool (default False)
-            Returns a tuple (individual_parameters, noise_std) if True
+        return_loss : bool (default False)
+            Returns a tuple (individual_parameters, loss) if True
 
         Returns
         -------
         ips : :class:`.IndividualParameters`
             Contains individual parameters
 
-        if return_noise is True : tuple
+        if return_loss is True : tuple
             * ips : :class:`.IndividualParameters`
-            * noise_std : :class:`torch.Tensor`
+            * loss : :class:`torch.Tensor`
 
         Raises
         ------
@@ -208,15 +206,16 @@ class Leaspy:
         self.check_if_initialized()
 
         algorithm = AlgoFactory.algo("personalize", settings)
-        dataset = Dataset(data, algo=algorithm, model=self.model)
+        dataset = Dataset(data)
+        self.model.validate_compatibility_of_dataset(dataset)
 
         # only do the following for proper type hints due to the fact that algorithm.run is improper (return type depends on algorithm class... TODO fix this)
-        if return_noise:
-            res: Tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(self.model, dataset, return_noise=True)
+        if return_loss:
+            res: Tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(self.model, dataset, return_loss=True)
             return res
         else:
             # default
-            res: IndividualParameters = algorithm.run(self.model, dataset, return_noise=False)
+            res: IndividualParameters = algorithm.run(self.model, dataset, return_loss=False)
             return res
 
     def estimate(self, timepoints: Union[pd.MultiIndex, Dict[IDType, List[float]]], individual_parameters: IndividualParameters, *,
@@ -356,6 +355,9 @@ class Leaspy:
         # check input
         model_features = self.model.features
 
+        if feature is None and len(model_features) == 1:
+            feature = model_features[0]
+
         if feature is not None:
             if not isinstance(feature, str):
                 raise LeaspyTypeError(f"The 'feature' parameter must be a string, not {type(feature)} !")
@@ -432,9 +434,8 @@ class Leaspy:
         reparametrized baseline ages. Then, we randomly pick a new point from this distribution, which define the
         individual parameters & baseline age of our new subjects. Then, we generate the timepoints
         following the baseline age. Then, from the model and the generated timepoints and individual parameters, we
-        compute the corresponding values estimations. Then, we add some gaussian noise to these estimations. The level
-        of noise is, by default, equal to the corresponding ``'noise_std'`` parameter of the model. You can choose
-        to set your own noise value.
+        compute the corresponding values estimations. Then, we add some noise to these estimations, which is the
+        same noise-model as the one from your model by default. But, you may customize it by setting the `noise` keyword.
 
         Examples
         --------
@@ -446,7 +447,7 @@ class Leaspy:
         >>> data = Data.from_dataframe(putamen_df.xs('train', level='SPLIT'))
         >>> leaspy_logistic = Loader.load_leaspy_instance('parkinson-putamen-train')
         >>> individual_parameters = Loader.load_individual_parameters('parkinson-putamen-train')
-        >>> simulation_settings = AlgorithmSettings('simulation', seed=0)
+        >>> simulation_settings = AlgorithmSettings('simulation', seed=0, noise='bernoulli')
         >>> simulated_data = leaspy_logistic.simulate(individual_parameters, data, simulation_settings)
          ==> Setting seed to 0
         >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
@@ -541,8 +542,7 @@ class Leaspy:
         noise_std : 0.021229960024356842
         """
         reader = ModelSettings(path_to_model_settings)
-        leaspy = cls(reader.name)
-        leaspy.model.load_hyperparameters(reader.hyperparameters)
+        leaspy = cls(reader.name, **reader.hyperparameters)
         leaspy.model.load_parameters(reader.parameters)
 
         leaspy.model.is_initialized = True

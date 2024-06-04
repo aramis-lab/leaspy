@@ -103,7 +103,8 @@ class LeaspyTestCase(TestCase):
     @classmethod
     def get_hardcoded_model(cls, model_name: str):
         """Load the Leaspy test model with provided name (models hardcoded)."""
-        return Leaspy.load(cls.hardcoded_model_path(model_name))
+        lsp = Leaspy.load(cls.hardcoded_model_path(model_name))
+        return lsp
 
     # models generated from fit functional tests, bad for most tests as it may change due to slights changes in fit
     from_fit_models_folder = os.path.join(_test_data_dir, "model_parameters", "from_fit")
@@ -111,12 +112,20 @@ class LeaspyTestCase(TestCase):
     @classmethod
     def from_fit_model_path(cls, model_name: str):
         """<!> `model_name` should have NO extension"""
-        return os.path.join(cls.from_fit_models_folder, model_name + '.json')
+        import os
+
+        from_fit_path = cls.from_fit_models_folder
+        if model_name.endswith('_gpu'):
+            from_fit_path += '/gpu'  # not tested in CI so probably out-of-date
+        if os.uname()[4][:3] == "arm":
+            model_name = f"{model_name}_arm"
+        return os.path.join(from_fit_path, model_name + '.json')
 
     @classmethod
     def get_from_fit_model(cls, model_name: str):
         """Load the Leaspy test model with provided name (models from test fit)."""
-        return Leaspy.load(cls.from_fit_model_path(model_name))
+        lsp = Leaspy.load(cls.from_fit_model_path(model_name))
+        return lsp
 
     # hardcoded individual parameters: good for unit tests & functional tests independent from personalize behavior
     hardcoded_ips_folder = os.path.join(_test_data_dir, "individual_parameters", "hardcoded")
@@ -242,9 +251,17 @@ class LeaspyTestCase(TestCase):
             return re.sub(r'^[^\(]+\((\[.+\])(?:, dtype=[^\)]+)?\)$', r'\1', obj_casted_repr)
 
     @classmethod
+    def get_shape(cls, a: Any) -> tuple:
+        """Get the shape of an input castable to a numpy array."""
+        if hasattr(a, 'shape'):
+            return tuple(a.shape)
+        return np.array(a).shape
+
+    @classmethod
     def is_equal_or_almost_equal(cls, left: Any, right: Any, *,
                                  allclose_kws: KwargsType = {},
                                  ineq_msg_template: str = 'Values are different{cmp_suffix}:\n`{left_desc}` -> {left_repr} != {right_repr} <- `{right_desc}`',
+                                 ineq_shapes_msg_template: str = 'Shapes are different:\n`{left_desc}` -> {left_shape} != {right_shape} <- `{right_desc}`',
                                  **vars_for_ineq_msg) -> Optional[str]:
         """
         Check for equality, or almost equality when relevant, of two objects.
@@ -259,8 +276,10 @@ class LeaspyTestCase(TestCase):
 
         ineq_msg_template : str
             Template used for the message returned in case of inequality.
+        ineq_shapes_msg_template : str
+            Template used for the message returned when shapes mismatch.
         **vars_for_ineq_msg
-            Keyword variables to be sent to `ineq_template`.
+            Keyword variables to be sent to `ineq_msg_template` and `ineq_shapes_msg_template`.
             Especially: `left_desc` and `right_desc` for default inequality template.
 
         Returns
@@ -268,13 +287,23 @@ class LeaspyTestCase(TestCase):
         str or None
             String summarizing the difference if objects are different, else None.
         """
+
+        # always check shapes first
+        left_shape, right_shape = cls.get_shape(left), cls.get_shape(right)
+        if left_shape != right_shape:
+            return ineq_shapes_msg_template.format(
+                left=left, left_shape=left_shape, right=right, right_shape=right_shape, **vars_for_ineq_msg
+            )
+
         cmp_details = ["numpy.allclose"]
         if allclose_kws:
             cmp_details.append(str(allclose_kws))
         cmp_suffix = f' ({", ".join(cmp_details)})'
 
         try:
+            # check content (<!> numpy.allclose does not care about shape as long as arrays are broadcastable)
             eq_or_almost_eq = np.allclose(left, right, **allclose_kws)
+
         except Exception as e:
             if 'got an unexpected keyword argument' in str(e):
                 # invalid argument send to `numpy.allclose`, raise for that!
@@ -325,7 +354,7 @@ class LeaspyTestCase(TestCase):
             * equal_nan: bool = False
         allclose_custom : dict[str, dict[str, Any]] (optional, default None)
             Custom keywords arguments to overwrite default ones, for a particular key (<!> last-level key only)
-            e.g. {'noise_std': dict(atol=1e-3), ...}
+            e.g. {'tau_mean': dict(atol=1e-3), ...}
             TODO? also nest keys in `allclose_custom`?
 
         Returns
@@ -334,13 +363,6 @@ class LeaspyTestCase(TestCase):
             Description of ALL reasons why dictionary are NOT equal.
             Empty if and only if ``left`` ~= ``right`` (up to customized tolerances)
         """
-        try:
-            if left == right:
-                return []
-        except Exception:
-            # in case comparison is not possible directly
-            pass
-
         if not isinstance(left, dict):
             return [f"`{left_desc}` should be a dictionary"]
         if not isinstance(right, dict):

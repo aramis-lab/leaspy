@@ -9,7 +9,15 @@
   ],
   "dimension": 4,
   "source_dimension": 0,
-  "noise_model": "ordinal",
+  "noise_model": {
+    "name": "ordinal",
+    "max_levels": {
+      "Y0": 3,
+      "Y1": 4,
+      "Y2": 6,
+      "Y3": 10
+    }
+  },
   "parameters": {
     "g": [
       -4.399458885192871,
@@ -75,8 +83,7 @@
         -0.24911825358867645,
         -2.241579532623291
       ]
-    ],
-    "log-likelihood": 1049.79638671875
+    ]
   },
   "batch_deltas_ordinal": true
 }
