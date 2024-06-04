@@ -194,6 +194,60 @@ class WeightedTensor(Generic[VT]):
     def requires_grad(self) -> bool:
         return self.value.requires_grad
 
+    def abs(self) -> WeightedTensor:
+        return self.__abs__()
+
+    def all(self) -> bool:
+        return self.value.all()
+
+    def __neg__(self) -> WeightedTensor:
+        return WeightedTensor(-1 * self.value, self.weight)
+
+    def __abs__(self) -> WeightedTensor:
+        return WeightedTensor(abs(self.value), self.weight)
+
+    def __add__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "add")
+
+    def __radd__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "add")
+
+    def __sub__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "sub")
+
+    def __rsub__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "sub", reverse=True)
+
+    def __mul__(self, other:  TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "mul")
+
+    def __rmul__(self, other:  TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "mul")
+
+    def __truediv__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "truediv")
+
+    def __rtruediv__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "truediv", reverse=True)
+
+    def __lt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "lt")
+
+    def __le__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "le")
+
+    def __eq__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "eq")
+
+    def __ne__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "ne")
+
+    def __gt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "gt")
+
+    def __ge__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        return _apply_operation(self, other, "ge")
+
     @staticmethod
     def get_filled_value_and_weight(
         t: TensorOrWeightedTensor[VT], *, fill_value: Optional[VT] = None
@@ -206,117 +260,54 @@ class WeightedTensor(Generic[VT]):
                 t = torch.tensor(t)
             return t, None
 
-    @classmethod
-    def _binary_op(
-        cls,
-        op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-        a: TensorOrWeightedTensor[VT],
-        b: TensorOrWeightedTensor[VT],
-        *,
-        same_weights_only: bool,
-        fill_value: Optional[VT],
-        **kws,
-    ) -> WeightedTensor[VT]:
-        """Binary operation between regular or weighted tensors (without shapes modifications)."""
-        a_value, a_weight = cls.get_filled_value_and_weight(a, fill_value=fill_value)
-        b_value, b_weight = cls.get_filled_value_and_weight(b, fill_value=fill_value)
-        if a_weight is None and b_weight is None:
-            result_weight = None
-        elif a_weight is not None and b_weight is not None:
-            if same_weights_only:
-                # <!> Addition (and comparisons) of weighted tensors with unequal weights would be strange
-                # We could allow it by weighting values at this stage but it seems a bit too implicit
-                # and we would lost the sum of weights that could be needed for weighted means...
-
-                # check strict identity of weights for efficiency first
-                if a_weight is not b_weight and (
-                    a_weight.shape != b_weight.shape
-                    or a_weight.dtype != b_weight.dtype
-                    or a_weight.device != b_weight.device
-                    or not torch.equal(a_weight, b_weight)
-                ):
-                    # return NotImplemented (not much debug info in stack trace...)
-                    raise NotImplementedError(
-                        f"Binary operation '{op.__name__}' on two weighted tensors is not implemented "
-                        "when their weights differ"
-                    )
-                result_weight = a_weight  # == b_weight
-            else:
-                # weights are multiplied (including broadcasting if needed)
-                result_weight = a_weight * b_weight
-        else:
-            result_shape = torch.broadcast_shapes(a_value.shape, b_value.shape)
-            if a_weight is not None:
-                result_weight = a_weight.expand(result_shape)
-            else:
-                result_weight = b_weight.expand(result_shape)
-        return WeightedTensor(op(a_value, b_value, **kws), result_weight)
-
 
 TensorOrWeightedTensor = Union[torch.Tensor, WeightedTensor[VT]]
 
 
-# Add unary operators
-def _factory_for_unary_operators(name_of_operator: str, *, fill_value: Optional[VT] = 0):
-    op = getattr(operator, name_of_operator)
+def _apply_operation(
+    a: WeightedTensor,
+    b: TensorOrWeightedTensor,
+    operator_name: str,
+    reverse: bool = False,
+) -> WeightedTensor:
+    operation = getattr(operator, operator_name)
+    if isinstance(b, WeightedTensor):
+        result_value = operation(b.value, a.value) if reverse else operation(a.value, b.value)
+        if a.weight is None:
+            if b.weight is None:
+                return WeightedTensor(result_value)
+            else:
+                return WeightedTensor(
+                    result_value,
+                    b.weight.expand(result_value.shape).clone() if b.weight.shape != result_value.shape else b.weight.clone(),
+                )
+        else:
+            if b.weight is None:
+                return WeightedTensor(
+                    result_value,
+                    a.weight.expand(result_value.shape).clone() if a.weight.shape != result_value.shape else a.weight.clone(),
+                )
+            else:
+                if not torch.equal(a.weight, b.weight):
+                    raise NotImplementedError(
+                        f"Binary operation '{operator_name}' on two weighted tensors is "
+                        "not implemented when their weights differ."
+                    )
+                return WeightedTensor(
+                    result_value,
+                    a.weight.expand(result_value.shape).clone() if a.weight.shape != result_value.shape else a.weight.clone(),
+                )
+    result_value = operation(b, a.value) if reverse else operation(a.value, b)
+    result_weight = None
+    if a.weight is not None:
+        return WeightedTensor(
+            result_value,
+            (
+                a.weight.expand(result_value.shape).clone()
+                if a.weight.shape != result_value.shape
+                else a.weight.clone()
+            )
+        )
 
-    def _unary_op(self: WeightedTensor[VT]) -> WeightedTensor[VT]:
-        return self.map(op, fill_value=fill_value)
+    return WeightedTensor(result_value)
 
-    return _unary_op
-
-
-for operator_name in ("neg", "abs"):
-    setattr(
-        WeightedTensor,
-        f"__{operator_name}__",
-        _factory_for_unary_operators(operator_name),
-    )
-
-
-# Add binary operators
-def _factory_for_binary_operator(
-    name_of_operator: str,
-    *,
-    fill_value: Optional[VT] = 0,
-    rev: bool = False,
-):
-    op = getattr(operator, name_of_operator)
-    kws = dict(
-        fill_value=fill_value,
-        same_weights_only=name_of_operator not in {"mul", "truediv"},
-    )
-    if rev:
-        def _binary_rop(
-            self: WeightedTensor[VT], other: TensorOrWeightedTensor[VT]
-        ) -> WeightedTensor[VT]:
-            return self._binary_op(op, other, self, **kws)
-
-        return _binary_rop
-    else:
-        def _binary_op(
-            self: WeightedTensor[VT], other: TensorOrWeightedTensor[VT]
-        ) -> WeightedTensor[VT]:
-            return self._binary_op(op, self, other, **kws)
-
-        return _binary_op
-
-
-for operator_name in ("add", "sub", "mul", "truediv"):
-    setattr(
-        WeightedTensor,
-        f"__{operator_name}__",
-        _factory_for_binary_operator(operator_name),
-    )
-    setattr(
-        WeightedTensor,
-        f"__r{operator_name}__",
-        _factory_for_binary_operator(operator_name, rev=True),
-    )
-
-for cmp_name in ("lt", "le", "eq", "ne", "gt", "ge"):
-    setattr(
-        WeightedTensor,
-        f"__{cmp_name}__",
-        _factory_for_binary_operator(cmp_name, fill_value=None),
-    )  # float('nan')
