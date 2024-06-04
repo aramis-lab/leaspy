@@ -9,7 +9,17 @@
   ],
   "dimension": 4,
   "source_dimension": 2,
-  "noise_model": "bernoulli",
+  "fit_metrics": {
+    "nll_regul_tau": 57.52207565307617,
+    "nll_regul_xi": -6.9838995933532715,
+    "nll_regul_sources": 55.504112243652344,
+    "nll_regul_tot": 106.04228210449219,
+    "nll_attach": 115.725341796875,
+    "nll_tot": 221.76763916015625
+  },
+  "noise_model": {
+    "name": "bernoulli"
+  },
   "parameters": {
     "g": [
       0.5065480470657349,
@@ -43,7 +53,6 @@
     "xi_std": 0.15936161577701569,
     "sources_mean": 0.0,
     "sources_std": 1.0,
-    "log-likelihood": 115.725341796875,
     "mixing_matrix": [
       [
         -0.04183715954422951,

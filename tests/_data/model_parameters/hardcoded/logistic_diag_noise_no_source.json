@@ -9,7 +9,15 @@
     ],
     "dimension": 4,
     "source_dimension": 0,
-    "noise_model": "gaussian_diagonal",
+    "noise_model": {
+      "name": "gaussian-diagonal",
+      "scale": [
+        0.10,
+        0.04,
+        0.07,
+        0.20
+      ]
+    },
     "parameters": {
       "g": [
         0.1,
@@ -28,12 +36,6 @@
       "xi_mean": 0.0,
       "xi_std": 0.5,
       "sources_mean": 0.0,
-      "sources_std": 1.0,
-      "noise_std": [
-        0.10,
-        0.04,
-        0.07,
-        0.20
-      ]
+      "sources_std": 1.0
     }
 }

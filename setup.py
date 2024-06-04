@@ -2,16 +2,19 @@ import os
 import ast
 from setuptools import setup
 
+
 def find_version(*py_file_with_version_paths):
-    with open(os.path.join(*py_file_with_version_paths), 'r') as f:
-        for line in f:
+    with open(os.path.join(*py_file_with_version_paths), 'r') as fp:
+        for line in fp:
             if line.startswith('__version__'):
-                return ast.parse(line).body[0].value.s # string
+                return ast.parse(line).body[0].value.s  # string
     raise RuntimeError("Unable to find version string.")
 
+
 def readme():
-    with open('README.md', 'r') as f:
-        return f.read()
+    with open('README.md', 'r') as fp:
+        return fp.read()
+
 
 version = find_version("leaspy", "__init__.py")
 
@@ -49,7 +52,7 @@ setup(name="leaspy",
       maintainer='Igor Koval',
       maintainer_email='igor.koval@inria.fr',
 
-      python_requires='>=3.7, <3.10',
+      python_requires='>=3.9, <3.12',
 
       keywords='leaspy longitudinal mixed-model',
 
@@ -93,9 +96,9 @@ setup(name="leaspy",
           "Development Status :: 5 - Production/Stable",
           "Intended Audience :: Science/Research",
           "Intended Audience :: Developers",
-          "Programming Language :: Python :: 3.7",
-          "Programming Language :: Python :: 3.8",
           "Programming Language :: Python :: 3.9",
+          "Programming Language :: Python :: 3.10",
+          "Programming Language :: Python :: 3.11",
           "License :: OSI Approved :: BSD License",
           "Operating System :: OS Independent",
       ],

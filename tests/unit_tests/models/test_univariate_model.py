@@ -1,5 +1,6 @@
 from leaspy.models.abstract_model import AbstractModel
-from leaspy.models.univariate_model import UnivariateModel
+from leaspy.models.univariate import UnivariateModel
+from leaspy.models.noise_models import NOISE_MODELS
 
 from tests import LeaspyTestCase
 
@@ -7,20 +8,21 @@ from tests import LeaspyTestCase
 class ManifoldModelTest_Mixin(LeaspyTestCase):
 
     def check_common_attrs(self, model):
-        self.assertTrue(issubclass(model.__class__, AbstractModel))
+        self.assertIsInstance(model, AbstractModel)
 
-        self.assertEqual(model.attributes, None)
-        self.assertEqual(model.bayesian_priors, None)
+        self.assertIsNone(model.attributes)
+        self.assertIsNone(model.bayesian_priors)
 
-        self.assertEqual(model.parameters['g'], None)
-        self.assertEqual(model.parameters['noise_std'], None)
-        self.assertEqual(model.parameters['tau_mean'], None)
-        self.assertEqual(model.parameters['tau_std'], None)
-        self.assertEqual(model.parameters['xi_mean'], None)
-        self.assertEqual(model.parameters['xi_std'], None)
+        self.assertIsNone(model.parameters['g'])
+        self.assertIsNone(model.parameters['tau_mean'])
+        self.assertIsNone(model.parameters['tau_std'])
+        self.assertIsNone(model.parameters['xi_mean'])
+        self.assertIsNone(model.parameters['xi_std'])
+        #self.assertIsNone(model.noise_model.parameters['scale'])
+        self.assertIsNone(model.noise_model.parameters)
 
-        self.assertEqual(model.MCMC_toolbox['attributes'], None)
-        self.assertEqual(model.MCMC_toolbox['priors']['g_std'], None)
+        self.assertIsNone(model.MCMC_toolbox['attributes'])
+        self.assertIsNone(model.MCMC_toolbox['priors']['g_std'])
 
 class UnivariateModelTest(ManifoldModelTest_Mixin):
 
@@ -35,7 +37,7 @@ class UnivariateModelTest(ManifoldModelTest_Mixin):
             self.assertEqual(model.name, name)
             self.assertEqual(model.dimension, 1)
             self.assertEqual(model.source_dimension, 0)
-            self.assertEqual(model.noise_model, 'gaussian_scalar')
+            self.assertIsInstance(model.noise_model, NOISE_MODELS['gaussian-scalar'])
 
             self.check_common_attrs(model)
 

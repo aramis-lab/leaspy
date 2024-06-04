@@ -1,0 +1,27 @@
+{
+  "leaspy_version": "1.4.0",
+  "name": "univariate_logistic",
+  "features": [
+    "Y0"
+  ],
+  "dimension": 1,
+  "source_dimension": 0,
+  "noise_model": "gaussian_scalar",
+  "parameters": {
+    "g": [
+      0.11712858825922012
+    ],
+    "v0": [
+      -3.384176731109619
+    ],
+    "betas": [],
+    "tau_mean": 78.34758758544922,
+    "tau_std": 6.294102191925049,
+    "xi_mean": 0.0,
+    "xi_std": 0.48932406306266785,
+    "sources_mean": 0.0,
+    "sources_std": 1.0,
+    "noise_std": 0.0702829509973526,
+    "mixing_matrix": []
+  }
+}

@@ -6,13 +6,13 @@ Installation
 Package installation
 --------------------
 
-1. Leaspy requires Python >= 3.7
+1. Leaspy requires Python >= 3.8
 
 2. Create a dedicated environment (optional):
 
 Using ``conda``::
 
-    conda create --name leaspy python=3.7
+    conda create --name leaspy python=3.9
     conda activate leaspy
 
 Or using ``pyenv``::

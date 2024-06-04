@@ -1,84 +1,130 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+
+import abc
+from typing import Tuple, Optional, TYPE_CHECKING
 
 import torch
 
-from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import ParamType, Tuple
+from leaspy.exceptions import LeaspyInputError
+from leaspy.utils.typing import ParamType, KwargsType
 
 if TYPE_CHECKING:
     from leaspy.models.abstract_model import AbstractModel
 
 
-class Realization:
+class AbstractRealization:
     """
-    Contains the realization of a given parameter.
+    Abstract class for Realization.
 
     Parameters
     ----------
-    name : str
-        Variable name
-    shape : tuple of int
-        Shape of variable (multiple dimensions allowed)
-    variable_type : str
-        ``'individual'`` or ``'population'`` variable?
+    name : ParamType
+        The name of the variable associated with the realization.
+    shape : Tuple[int, ...]
+        The shape of the tensor realization.
+    tensor : torch.Tensor, optional
+        If not None, the tensor realization to be stored.
+    tensor_copy : bool (default True)
+        Whether the `tensor` provided is copied or not.
+    **kwargs : dict
+        Additional parameters.
 
     Attributes
     ----------
-    name : str
-        Variable name
-    shape : tuple of int
-        Shape of variable (multiple dimensions allowed)
-    variable_type : str
-        ``'individual'`` or ``'population'`` variable?
-    tensor_realizations : :class:`torch.Tensor`
-        Actual realizations, whose shape is given by `shape`
+    name : ParamType
+        The name of the variable associated with the realization.
+    shape : Tuple[int, ...]
+        The shape of the tensor realization.
+    tensor : torch.Tensor
+        The tensor realization.
     """
-    def __init__(self, name: ParamType, shape: Tuple[int, ...], variable_type: str):
+    def __init__(
+        self,
+        name: ParamType,
+        shape: Tuple[int, ...],
+        *,
+        tensor: Optional[torch.Tensor] = None,
+        tensor_copy: bool = True,
+        **kwargs
+    ):
         self.name = name
         self.shape = shape
-        self.variable_type = variable_type
-        self._tensor_realizations: torch.FloatTensor = None
+        self._tensor_realizations: Optional[torch.Tensor] = None
 
-    @classmethod
-    def from_tensor(cls, name: str, shape: Tuple[int, ...], variable_type: str, tensor_realization: torch.FloatTensor):
+        if tensor is not None:
+            if tensor_copy:
+                tensor = tensor.clone().detach()
+            self.tensor = tensor
+
+    def to_dict(self) -> KwargsType:
+        """Return a serialized dictionary of realization attributes."""
+        return dict(
+            name=self.name,
+            shape=self.shape,
+            tensor=self.tensor,
+        )
+
+    def __deepcopy__(self, memo):
         """
-        Create realization from variable infos and torch tensor object
+        Deep-copy the Realization object (magic method invoked with using copy.deepcopy)
 
-        Parameters
-        ----------
-        name : str
-            Variable name
-        shape : tuple of int
-            Shape of variable (multiple dimensions allowed)
-        variable_type : str
-            ``'individual'`` or ``'population'`` variable?
-        tensor_realization : :class:`torch.Tensor`
-            Actual realizations, whose shape is given by `shape`
+        It clones the underlying tensor and detach it from the computational graph
 
         Returns
         -------
-        :class:`.Realization`
+        A new instance from self class.
         """
-        # TODO : a check of shapes
-        realization = cls(name, shape, variable_type)
-        realization.tensor_realizations = tensor_realization.clone().detach()
-        return realization
+        return self.__class__(**self.to_dict(), tensor_copy=True)
 
-    def initialize(self, n_individuals: int, model: AbstractModel, *, individual_variable_init_at_mean: bool = False):
+    @property
+    def tensor(self) -> torch.Tensor:
+        if self._tensor_realizations is None:
+            raise LeaspyInputError(
+                f"You can not access tensor realization for {self.name} until properly initialized."
+            )
+        return self._tensor_realizations
+
+    @tensor.setter
+    def tensor(self, tensor: torch.Tensor):
+        if not isinstance(tensor, torch.Tensor):
+            raise TypeError(
+                f"Expected a torch tensor object but received a {type(tensor)} instead."
+            )
+        # <!> no copy of provided tensor
+        self._tensor_realizations = tensor
+
+    def set_tensor_realizations_element(self, element: torch.Tensor, dim: tuple[int, ...]) -> None:
+        """
+        Manually change the value (in-place) of `tensor_realizations` at dimension `dim`.
+
+        Parameters
+        ----------
+        element : torch.Tensor
+            The element to put in the tensor realization.
+        dim : Tuple[int, ...]
+            The dimension where to put the element.
+        """
+        if not isinstance(element, torch.Tensor):
+            raise TypeError(
+                f"Expected a torch tensor object but received a {type(element)} instead."
+            )
+        self.tensor[dim] = element
+
+    @abc.abstractmethod
+    def initialize(
+        self,
+        model: AbstractModel,
+        **kwargs: KwargsType,
+    ):
         """
         Initialize realization from a given model.
 
         Parameters
         ----------
-        n_individuals : int > 0
-            Number of individuals
         model : :class:`.AbstractModel`
             The model you want realizations for.
-        individual_variable_init_at_mean : bool (default False)
-            If True: individual variable will be initialized at its mean (from model parameters)
-            Otherwise: individual variable will be a random draw from a Gaussian distribution
-            with loc and scale parameter from model parameters.
+        **kwargs : KwargsType
+            Additional parameters for initialization.
 
         Raises
         ------
@@ -86,43 +132,9 @@ class Realization:
             if unknown variable type
         """
 
-        if self.variable_type == "population":
-            self._tensor_realizations = model.parameters[self.name].reshape(self.shape) # avoid 0D / 1D tensors mix
-        elif self.variable_type == 'individual':
-            if individual_variable_init_at_mean:
-                self._tensor_realizations = model.parameters[f"{self.name}_mean"] * torch.ones((n_individuals, *self.shape))
-            else:
-                distribution = torch.distributions.normal.Normal(loc=model.parameters[f"{self.name}_mean"],
-                                                                scale=model.parameters[f"{self.name}_std"])
-                self._tensor_realizations = distribution.sample(sample_shape=(n_individuals, *self.shape))
-        else:
-            raise LeaspyModelInputError(f"Unknown variable type '{self.variable_type}'.")
-
-    @property
-    def tensor_realizations(self) -> torch.FloatTensor:
-        return self._tensor_realizations
-
-    @tensor_realizations.setter
-    def tensor_realizations(self, tensor_realizations: torch.FloatTensor):
-        # TODO, check that it is a torch tensor (not variable for example)
-        self._tensor_realizations = tensor_realizations
-
-    def set_tensor_realizations_element(self, element: torch.FloatTensor, dim: tuple[int, ...]):
+    def set_autograd(self) -> None:
         """
-        Manually change the value (in-place) of `tensor_realizations` at dimension `dim`.
-        """
-        # TODO, check that it is a torch tensor (not variable for example) when assigning
-        self._tensor_realizations[dim] = element
-
-    def __str__(self):
-        s = f"Realization of {self.name}\n"
-        s += f"Shape : {self.shape}\n"
-        s += f"Variable type : {self.variable_type}"
-        return s
-
-    def set_autograd(self):
-        """
-        Set autograd for tensor of realizations
+        Set autograd for tensor of realizations.
 
         TODO remove? only in legacy code
 
@@ -135,12 +147,11 @@ class Realization:
         --------
         torch.Tensor.requires_grad_
         """
-        if not self._tensor_realizations.requires_grad:
-            self._tensor_realizations.requires_grad_(True) # in-place
-        else:
+        if self.tensor.requires_grad:
             raise ValueError("Realizations are already using autograd")
+        self.tensor.requires_grad_(True)
 
-    def unset_autograd(self):
+    def unset_autograd(self) -> None:
         """
         Unset autograd for tensor of realizations
 
@@ -155,20 +166,150 @@ class Realization:
         --------
         torch.Tensor.requires_grad_
         """
-        if self._tensor_realizations.requires_grad_:
-            #self._tensor_realizations = self._tensor_realizations.detach()
-            self._tensor_realizations.requires_grad_(False) # in-place (or `detach_()` )
-        else:
+        if not self.tensor.requires_grad:
             raise ValueError("Realizations are already detached")
+        self.tensor.requires_grad_(False)
 
-    def __deepcopy__(self, memo) -> Realization:
+    def __str__(self):
+        s = f"Realization of {self.name}\n"
+        s += f"Shape : {self.shape}\n"
+        return s
+
+
+class IndividualRealization(AbstractRealization):
+    """
+    Class for realizations of individual variables.
+
+    Parameters
+    ----------
+    name : ParamType
+        The name of the variable associated with the realization.
+    shape : Tuple[int, ...]
+        The shape of the tensor realization.
+    n_individuals : int
+        The number of individuals related to this realization.
+    **kwargs : dict
+        Additional parameters (including `tensor` and `tensor_copy`).
+    """
+    def __init__(
+        self,
+        name: ParamType,
+        shape: Tuple[int, ...],
+        *,
+        n_individuals: int,
+        **kwargs
+    ):
+        super().__init__(name, shape, **kwargs)
+        self.n_individuals = n_individuals
+        self.distribution_factory = torch.distributions.Normal
+
+    def to_dict(self):
+        """Return a serialized dictionary of realization attributes."""
+        return dict(super().to_dict(), n_individuals=self.n_individuals)
+
+    def initialize(
+        self,
+        model: AbstractModel,
+        *,
+        init_at_mean: bool = False,
+        **kwargs: KwargsType,
+    ):
         """
-        Deep-copy the Realization object (magic method invoked with using copy.deepcopy)
+        Initialize the realization from a model instance.
 
-        It clones the underlying tensor and detach it from the computational graph
-
-        Returns
-        -------
-        `Realization`
+        Parameters
+        ----------
+        model : AbstractModel
+            The model from which to initialize the realization.
+        init_at_mean : bool, optional
+            If True, the realization is initialized at the corresponding
+            variable mean value, otherwise it the initial value is sampled
+            around its mean value with a normal distribution.
+        **kwargs : KwargsType
+            Additional parameters for initialization.
         """
-        return Realization.from_tensor(self.name, self.shape, self.variable_type, self.tensor_realizations)
+        if init_at_mean:
+            self.initialize_at_mean(model.parameters[f"{self.name}_mean"])
+        else:
+            self.initialize_around_mean(
+                model.parameters[f"{self.name}_mean"],
+                model.parameters[f"{self.name}_std"],
+            )
+
+    def initialize_at_mean(self, mean: torch.Tensor) -> None:
+        """
+        Initialize the realization at provided mean value.
+
+        Parameters
+        ----------
+        mean : torch.Tensor
+            The mean at which to initialize the realization.
+        """
+        self.tensor = mean * torch.ones((self.n_individuals, *self.shape))
+
+    def initialize_around_mean(self, mean: torch.Tensor, std: torch.Tensor) -> None:
+        """
+        Initialize the realization around the provided mean value.
+
+        The initial value is sampled according to a normal distribution with
+        provided mean and std parameters.
+
+        Parameters
+        ----------
+        mean : torch.Tensor
+            Mean value around which to sample the initial value.
+        std : torch.Tensor
+            Standard deviation for the normal distribution used to
+            sample the initial value.
+        """
+        distribution = self.distribution_factory(loc=mean, scale=std)
+        self.tensor = distribution.sample(
+            sample_shape=(self.n_individuals, *self.shape)
+        )
+
+    def __str__(self):
+        s = super().__str__()
+        s += f"Variable type : individual"
+        return s
+
+
+
+class PopulationRealization(AbstractRealization):
+    """
+    Class for realizations of population variables.
+
+    Parameters
+    ----------
+    name : ParamType
+        The name of the variable associated with the realization.
+    shape : Tuple[int, ...]
+        The shape of the tensor realization.
+    tensor : torch.Tensor, optional
+        If not None, the tensor realization to be stored.
+    tensor_copy : bool (default True)
+        Whether the `tensor` provided is copied or not.
+    **kwargs : dict
+        Additional parameters.
+    """
+
+    def initialize(
+        self,
+        model: AbstractModel,
+        **kwargs: KwargsType,
+    ) -> None:
+        """
+        Initialize the realization from a model instance.
+
+        Parameters
+        ----------
+        model : AbstractModel
+            The model from which to initialize the realization.
+        **kwargs : KwargsType
+            Additional parameters for initialization.
+        """
+        self.tensor = model.parameters[self.name].reshape(self.shape)
+
+    def __str__(self):
+        s = super().__str__()
+        s += f"Variable type : population"
+        return s

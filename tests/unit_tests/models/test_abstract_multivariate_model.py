@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List
 
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
+from leaspy.models.noise_models import NOISE_MODELS
 
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
 from tests.unit_tests.models.test_univariate_model import ManifoldModelTest_Mixin
@@ -38,21 +39,12 @@ class AbstractMultivariateModelTest(ManifoldModelTest_Mixin):
         # Test specific multivariate initialization
         self.assertEqual(model.dimension, None)
         self.assertEqual(model.source_dimension, None)
-        self.assertEqual(model.noise_model, 'gaussian_diagonal')
+        self.assertIsInstance(model.noise_model, NOISE_MODELS['gaussian-diagonal'])
 
         self.assertEqual(model.parameters['betas'], None)
         self.assertEqual(model.parameters['sources_mean'], None)
         self.assertEqual(model.parameters['sources_std'], None)
         self.assertEqual(model.MCMC_toolbox['priors']['betas_std'], None)
-
-    def test_bad_initialize_univariate(self):
-
-        m = AbstractMultivariateModel('dummy')
-
-        mock_dataset = MockDataset(['ft_1'])
-        with self.assertRaisesRegex(ValueError, 'at least 2 features'):
-            # should not univariate
-            m.initialize(mock_dataset)
 
     def test_bad_initialize_features_dimension_inconsistent(self):
 
@@ -77,7 +69,7 @@ class AbstractMultivariateModelTest(ManifoldModelTest_Mixin):
 
         m = AbstractMultivariateModel('logistic')  # should be a valid name for Attributes
         with patch('leaspy.models.abstract_multivariate_model.initialize_parameters') as MockInitParams:
-            MockInitParams.return_value = {}
+            MockInitParams.return_value = {}, {}
             with self.assertWarnsRegex(UserWarning, 'source_dimension'):
                 m.initialize(mock_dataset)
         self.assertEqual(m.source_dimension, 1)  # int(sqrt(3))

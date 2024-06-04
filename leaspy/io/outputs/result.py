@@ -618,7 +618,7 @@ class Result:
 
         Returns
         -------
-        residuals_dataframe : :class:`pandas.DataFrame`
+        residuals_dataframe : :class:`pandas.DataFrame` with index ['ID', 'TIME']
 
         Examples
         --------
@@ -632,13 +632,14 @@ class Result:
         >>> settings = AlgorithmSettings("mode_real", seed=0)
         >>> results = leaspy_logistic.personalize(data, settings)
         >>> residuals_dataframe = results.get_error_distribution_dataframe(model)
-        >>> residuals_dataframe[results.data.headers].abs().mean()
+        >>> residuals_dataframe.abs().mean()
         """
         residuals_dataset = Dataset(self.data)
-        residuals_dataset.values = model.compute_individual_tensorized(residuals_dataset.timepoints,
-                                                                       self.individual_parameters) \
-                                   - residuals_dataset.values
-        residuals_dataframe = residuals_dataset.to_pandas().set_index('ID')
+        residuals_dataset.values = (
+            model.compute_individual_tensorized(residuals_dataset.timepoints, self.individual_parameters)
+            - residuals_dataset.values
+        )
+        residuals_dataframe = residuals_dataset.to_pandas()
 
         if cofactors is not None:
             if isinstance(cofactors, str):

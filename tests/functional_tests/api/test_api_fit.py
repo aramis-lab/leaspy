@@ -106,9 +106,23 @@ class LeaspyFitTest(LeaspyFitTest_Mixin):
     # Test MCMC-SAEM (1 noise per feature)
     def test_fit_logistic_diag_noise(self):
 
+        # some noticeable reproducibility errors btw MacOS and Linux here...
+        allclose_custom = dict(
+            nll_regul_tau=dict(atol=2),
+            nll_regul_xi=dict(atol=2),
+            nll_regul_sources=dict(atol=3),
+            nll_regul_tot=dict(atol=5),
+            nll_attach=dict(atol=10),
+            nll_tot=dict(atol=15),
+            tau_mean=dict(atol=0.2),
+            tau_std=dict(atol=0.2),
+        )
+
         leaspy, _ = self.generic_fit('logistic', 'logistic_diag_noise', noise_model='gaussian_diagonal', source_dimension=2,
                                      algo_params=dict(n_iter=100, seed=0),
-                                     check_model=True)
+                                     check_model=True,
+                                     check_kws=dict(atol=0.1, rtol=1e-2, allclose_custom=allclose_custom),
+                                    )
 
     def test_fit_logistic_diag_noise_fast_gibbs(self):
 

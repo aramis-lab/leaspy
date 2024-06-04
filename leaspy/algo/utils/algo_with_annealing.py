@@ -49,8 +49,9 @@ class AlgoWithAnnealingMixin:
 
         if self.algo_parameters['annealing'].get('n_iter', None) is None:
             if annealing_n_iter_frac is None:
-                raise ValueError("You should NOT have both `annealing.n_iter_frac` and `annealing.n_iter` None."
-                                 "\nPlease set a value for at least one of those settings.")
+                raise LeaspyAlgoInputError(
+                    "You should NOT have both `annealing.n_iter_frac` and `annealing.n_iter` None."
+                    "\nPlease set a value for at least one of those settings.")
 
             self.algo_parameters['annealing']['n_iter'] = int(annealing_n_iter_frac * self.algo_parameters['n_iter'])
 

@@ -9,19 +9,23 @@ import pandas as pd
 # <!> circular imports
 import leaspy
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
+from leaspy.models.noise_models import (
+    AbstractGaussianNoiseModel,
+    GaussianScalarNoiseModel,
+)
 
-#from joblib import Parallel, delayed
+XI_STD = .5
+TAU_STD = 5.
+NOISE_STD = .1
+SOURCES_STD = 1.
 
-xi_std = .5
-tau_std = 5.
-noise_std = .1
-sources_std = 1.
 
 def _torch_round(t: torch.FloatTensor, *, tol: float = 1 << 16) -> torch.FloatTensor:
     # Round values to ~ 10**-4.8
     return (t * tol).round() * (1./tol)
 
-def initialize_parameters(model, dataset, method="default"):
+
+def initialize_parameters(model, dataset, method="default") -> tuple:
     """
     Initialize the model's group parameters given its name & the scores of all subjects.
 
@@ -55,13 +59,14 @@ def initialize_parameters(model, dataset, method="default"):
     """
 
     # we convert once for all dataset to pandas dataframe for convenience
-    df = dataset.to_pandas().dropna(how='all').set_index(['ID', 'TIME']).sort_index()
+    df = dataset.to_pandas().dropna(how='all').sort_index()
     assert df.index.is_unique
     assert df.index.to_frame().notnull().all(axis=None)
     if model.features != df.columns.tolist():
         raise LeaspyInputError(f"Features mismatch between model and dataset: {model.features} != {df.columns}")
 
     if method == 'lme':
+        raise NotImplementedError("legacy")
         return lme_init(model, df) # support kwargs?
 
     name = model.name
@@ -71,11 +76,8 @@ def initialize_parameters(model, dataset, method="default"):
         parameters = initialize_logistic_parallel(model, df, method)
     elif name in ['linear', 'univariate_linear']:
         parameters = initialize_linear(model, df, method)
-    #elif name == 'univariate':
-    #    parameters = initialize_univariate(df, method)
     elif name == 'mixed_linear-logistic':
-        raise NotImplementedError
-        #parameters = initialize_logistic(model, df, method)
+        raise NotImplementedError("legacy")
     else:
         raise LeaspyInputError(f"There is no initialization method for the parameters of the model '{name}'")
 
@@ -85,7 +87,13 @@ def initialize_parameters(model, dataset, method="default"):
         for p, v in parameters.items()
     }
 
-    return rounded_parameters
+    # for noise model
+    noise_model_params = None
+    if isinstance(model.noise_model, AbstractGaussianNoiseModel):
+        #noise_scale = NOISE_STD if isinstance(model.noise_model, GaussianScalarNoiseModel) else [NOISE_STD]*model.dimension
+        noise_model_params = {"scale": NOISE_STD}
+
+    return rounded_parameters, noise_model_params
 
 
 def get_lme_results(df: pd.DataFrame, n_jobs=-1, *,
@@ -139,6 +147,7 @@ def get_lme_results(df: pd.DataFrame, n_jobs=-1, *,
         for param_name in param_names
     }
 
+
 def lme_init(model, df: pd.DataFrame, fact_std=1., **kwargs):
     """
     Initialize the model's group parameters.
@@ -164,12 +173,13 @@ def lme_init(model, df: pd.DataFrame, fact_std=1., **kwargs):
     :exc:`.LeaspyInputError`
         If model is not supported for this initialization
     """
-
     name = model.name
     noise_model = model.noise_model # has to be set directly at model init and not in algo settings step to be available here
 
-    if not noise_model.startswith('gaussian_'):
-        raise LeaspyModelInputError(f'`lme` initialization is only compatible with Gaussian noise models, not {noise_model}.')
+    if not isinstance(noise_model, AbstractGaussianNoiseModel):
+        raise LeaspyModelInputError(
+            f'`lme` initialization is only compatible with Gaussian noise models, not {noise_model}.'
+        )
 
     multiv = 'univariate' not in name
 
@@ -232,9 +242,9 @@ def lme_init(model, df: pd.DataFrame, fact_std=1., **kwargs):
     params['xi_std'] = fact_std * (1/xi_var_ft).mean() ** -.5
 
     # Residual gaussian noise
-    if 'scalar' in noise_model:
+    if isinstance(noise_model, GaussianScalarNoiseModel):
         # arithmetic mean on variances
-        params['noise_std'] = fact_std * (lme['noise_std'] ** 2).mean().reshape((1,)) ** .5 # 1D tensor
+        params['noise_std'] = fact_std * (lme['noise_std'] ** 2).mean().reshape((1,)) ** .5  # 1D tensor
     else:
         # one noise-std per feature
         params['noise_std'] = fact_std * lme['noise_std']
@@ -246,13 +256,14 @@ def lme_init(model, df: pd.DataFrame, fact_std=1., **kwargs):
     if multiv: # including logistic_parallel
         params['betas'] = torch.zeros((model.dimension - 1, model.source_dimension))
         params['sources_mean'] = torch.tensor(0.)
-        params['sources_std'] = torch.tensor(sources_std)
+        params['sources_std'] = torch.tensor(SOURCES_STD)
 
     return params
 
-def initialize_deltas_ordinal(model, df: pd.DataFrame, parameters):
+
+def initialize_deltas_ordinal(model, df: pd.DataFrame, parameters: dict) -> None:
     """
-    Find an initial value the deltas for an ordinal model and initializes ordinal_infos attribute.
+    Updates in-place initial values for the ordinal deltas parameters and initializes ordinal noise_model attributes.
 
     Parameters
     ----------
@@ -269,10 +280,12 @@ def initialize_deltas_ordinal(model, df: pd.DataFrame, parameters):
         The updated parameters initialization, with new parameter deltas
     """
 
+    max_levels = {}
+
     deltas = {}
     for ft, s in df.items():  # preserve feature order
         max_lvl = int(s.max())  # possible levels not observed in calibration data do not exist for us
-        model.ordinal_infos["features"].append({"name":ft, "max_level":max_lvl})
+        max_levels[ft] = max_lvl
         # we do not model P >= 0 (since constant = 1)
         # we compute stats on P(Y >= k) in our data
         first_age_gte = {}
@@ -285,28 +298,23 @@ def initialize_deltas_ordinal(model, df: pd.DataFrame, parameters):
                   for k in range(2, max_lvl + 1)]
         deltas[ft] = torch.log(torch.clamp(torch.tensor(delays), min=0.1))
 
-    # Changes the meaning of v0 # How do we initialize this ?
-    #parameters['v0'] = torch.zeros_like(parameters['v0'])
-    max_level = max([feat["max_level"] for feat in model.ordinal_infos['features']])
-    if model.ordinal_infos["batch_deltas"]:
+    # We store the properties of levels (per feature) directly in the noise-model
+    # It will compute the max-level and mask automatically
+    model.noise_model.max_levels = max_levels
+
+    if model.batch_deltas:
         # we set the undefined deltas to be infinity to extend validity of formulas for them as well (and to avoid computations)
-        deltas_ = float('inf') * torch.ones((len(deltas), max_level - 1))
+        deltas_ = float('inf') * torch.ones((len(deltas), model.noise_model.max_level - 1))
         for i, name in enumerate(deltas):
             deltas_[i, :len(deltas[name])] = deltas[name]
         parameters["deltas"] = deltas_
     else:
-        for col in model.features:
-            parameters["deltas_" + col] = deltas[col]
-    model.ordinal_infos["max_level"] = max_level
-    # Mask for setting values > max_level per item to zero
-    model.ordinal_infos["mask"] = torch.cat([
-        torch.cat([
-            torch.ones((1, 1, 1, feat['max_level'])),
-            torch.zeros((1, 1, 1, max_level - feat['max_level'])),
-        ], dim=-1) for feat in model.ordinal_infos['features']
-    ], dim=2)
+        for ft in model.features:
+            parameters["deltas_" + ft] = deltas[ft]
 
-    return parameters
+    # Changes the meaning of v0 # How do we initialize this ?
+    #parameters['v0'] = torch.zeros_like(parameters['v0'])
+
 
 def linregress_against_time(s: pd.Series) -> Dict[str, float]:
     """Return intercept & slope of a linear regression of series values against time (present in series index)."""
@@ -316,6 +324,7 @@ def linregress_against_time(s: pd.Series) -> Dict[str, float]:
     slope, intercept, r_value, p_value, std_err = stats.linregress(t, y)
     return {'intercept': intercept, 'slope': slope}
 
+
 def get_log_velocities(velocities: torch.Tensor, features: List[str], *, min: float = 1e-2) -> torch.Tensor:
     """Warn if some negative velocities are provided, clamp them to `min` and return their log."""
     neg_velocities = velocities <= 0
@@ -323,6 +332,7 @@ def get_log_velocities(velocities: torch.Tensor, features: List[str], *, min: fl
         warnings.warn(f"Mean slope of individual linear regressions made at initialization is negative for "
                       f"{[f for f, vel in zip(features, velocities) if vel <= 0]}: not properly handled in model...")
     return velocities.clamp(min=min).log()
+
 
 def initialize_logistic(model, df: pd.DataFrame, method):
     """
@@ -344,7 +354,7 @@ def initialize_logistic(model, df: pd.DataFrame, method):
     parameters : dict [str, `torch.Tensor`]
         Contains the initialized model's group parameters.
         The parameters' keys are 'g', 'v0', 'betas', 'tau_mean',
-        'tau_std', 'xi_mean', 'xi_std', 'sources_mean', 'sources_std' and 'noise_std'.
+        'tau_std', 'xi_mean', 'xi_std', 'sources_mean', 'sources_std'.
 
     Raises
     ------
@@ -376,37 +386,23 @@ def initialize_logistic(model, df: pd.DataFrame, method):
 
     # Do transformations
     v0_array = get_log_velocities(slopes, model.features)
-    g_array = torch.log(1. / values - 1.) # cf. Igor thesis; <!> exp is done in Attributes class for logistic models
+    g_array = torch.log(1. / values - 1.)  # cf. Igor thesis; <!> exp is done in Attributes class for logistic models
 
     # Create smart initialization dictionary
-    if 'univariate' in model.name:
-        xi_mean = v0_array.squeeze() # already log'ed
-        parameters = {
-            'g': g_array.squeeze(),
-            'tau_mean': t0,
-            'tau_std': torch.tensor(tau_std),
-            'xi_mean': xi_mean,
-            'xi_std': torch.tensor(xi_std),
-        }
-    else:
-        parameters = {
-            'g': g_array,
-            'v0': v0_array,
-            'betas': betas,
-            'tau_mean': t0,
-            'tau_std': torch.tensor(tau_std),
-            'xi_mean': torch.tensor(0.),
-            'xi_std': torch.tensor(xi_std),
-            'sources_mean': torch.tensor(0.),
-            'sources_std': torch.tensor(sources_std),
-        }
+    parameters = {
+        "g": g_array,
+        "v0": v0_array,
+        "betas": betas,
+        "tau_mean": t0,
+        "tau_std": torch.tensor(TAU_STD),
+        "xi_mean": torch.tensor(0.),
+        "xi_std": torch.tensor(XI_STD),
+        "sources_mean": torch.tensor(0.),
+        "sources_std": torch.tensor(SOURCES_STD),
+    }
 
     if model.is_ordinal:
-        parameters = initialize_deltas_ordinal(model, df, parameters)
-
-    if not (model.is_ordinal or model.noise_model == 'bernoulli'):
-        # do not initialize `noise_std` unless needed
-        parameters['noise_std'] = torch.tensor(noise_std) if 'univariate' in model.name else torch.tensor([noise_std])
+        initialize_deltas_ordinal(model, df, parameters)
 
     return parameters
 
@@ -430,7 +426,7 @@ def initialize_logistic_parallel(model, df, method):
     -------
     parameters : dict [str, `torch.Tensor`]
         Contains the initialized model's group parameters. The parameters' keys are 'g',  'tau_mean',
-        'tau_std', 'xi_mean', 'xi_std', 'sources_mean', 'sources_std', 'noise_std', 'deltas' and 'betas'.
+        'tau_std', 'xi_mean', 'xi_std', 'sources_mean', 'sources_std', 'deltas' and 'betas'.
 
     Raises
     ------
@@ -467,18 +463,20 @@ def initialize_logistic_parallel(model, df, method):
     g = torch.log(1. / values - 1.).mean() # cf. Igor thesis; <!> exp is done in Attributes class for logistic models
     #g = torch.log(1. / values.mean() - 1.) # mean before transfo
 
-    return {
+    parameters = {
         'g': g,
         'deltas': torch.zeros((model.dimension - 1,)),
         'betas': betas,
         'tau_mean': t0,
-        'tau_std': torch.tensor(tau_std),
+        'tau_std': torch.tensor(TAU_STD),
         'xi_mean': v0,
-        'xi_std': torch.tensor(xi_std),
+        'xi_std': torch.tensor(XI_STD),
         'sources_mean': torch.tensor(0.),
-        'sources_std': torch.tensor(sources_std),
-        'noise_std': torch.tensor([noise_std]),
+        'sources_std': torch.tensor(SOURCES_STD),
     }
+
+    return parameters
+
 
 def initialize_linear(model, df: pd.DataFrame, method):
     """
@@ -497,7 +495,7 @@ def initialize_linear(model, df: pd.DataFrame, method):
     -------
     parameters : dict [str, `torch.Tensor`]
         Contains the initialized model's group parameters. The parameters' keys are 'g', 'v0', 'betas', 'tau_mean',
-        'tau_std', 'xi_mean', 'xi_std', 'sources_mean', 'sources_std' and 'noise_std'.
+        'tau_std', 'xi_mean', 'xi_std', 'sources_mean', 'sources_std'.
     """
     times = df.index.get_level_values('TIME').values
     t0 = times.mean()
@@ -513,37 +511,20 @@ def initialize_linear(model, df: pd.DataFrame, method):
     # always take the log (even in non univariate model!)
     velocities = get_log_velocities(velocities, model.features)
 
-    if 'univariate' in model.name:
-        xi_mean = velocities.squeeze()
-
-        parameters = {
-            'g': positions.squeeze(),
-            'tau_mean': torch.tensor(t0),
-            'tau_std': torch.tensor(tau_std),
-            'xi_mean': xi_mean,
-            'xi_std': torch.tensor(xi_std),
-            'noise_std': torch.tensor(noise_std)
-        }
-    else:
-        parameters = {
-            'g': positions,
-            'v0': velocities,
-            'betas': torch.zeros((model.dimension - 1, model.source_dimension)),
-            'tau_mean': torch.tensor(t0),
-            'tau_std': torch.tensor(tau_std),
-            'xi_mean': torch.tensor(0.),
-            'xi_std': torch.tensor(xi_std),
-            'sources_mean': torch.tensor(0.),
-            'sources_std': torch.tensor(sources_std),
-            'noise_std': torch.tensor([noise_std])
-        }
+    parameters = {
+        "g": positions,
+        "v0": velocities,
+        "betas": torch.zeros((model.dimension - 1, model.source_dimension)),
+        "tau_mean": torch.tensor(t0),
+        "tau_std": torch.tensor(TAU_STD),
+        "xi_mean": torch.tensor(0.),
+        "xi_std": torch.tensor(XI_STD),
+        "sources_mean": torch.tensor(0.),
+        "sources_std": torch.tensor(SOURCES_STD),
+    }
 
     return parameters
 
-
-#def initialize_univariate(df, method):
-#    # TODO?
-#    return 0
 
 def compute_linregress_subjects(df: pd.DataFrame, *, max_inds: int = None) -> Dict[str, pd.DataFrame]:
     """

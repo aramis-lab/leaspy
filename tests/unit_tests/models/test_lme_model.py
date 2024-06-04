@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from leaspy.models.lme_model import LMEModel
+from leaspy.models.lme import LMEModel
 
 from tests import LeaspyTestCase
 
@@ -20,7 +20,7 @@ class LMEModelTest(LeaspyTestCase):
         self.assertEqual(model.name, 'lme')
         self.assertFalse(model.is_initialized)  # new: more coherent (needs a fit)
         self.assertEqual(model.features, None)
-        self.assertEqual(model.dimension, None)
+        self.assertEqual(model.dimension, 1)
 
     def test_str_repr(self):
         model = LMEModel('lme')
@@ -40,7 +40,6 @@ class LMEModelTest(LeaspyTestCase):
         mock_dataset = MockDataset(['ft_1'])
         model.initialize(mock_dataset)
 
-        print(model.get_hyperparameters())
         self.assertTrue(model.hyperparameters_ok())
 
         mock_dataset_new = MockDataset(['ft_other'])

@@ -6,7 +6,8 @@ Leaspy in a nutshell
 Comprehensive example
 ---------------------
 
-We first load synthetic data from the `leaspy.datasets` to get of a grasp of longitudinal data.
+We first load synthetic data, using a :class:`.Loader` object,
+to get of a grasp of longitudinal data.
 
 
     >>> from leaspy import AlgorithmSettings, Data, Leaspy
@@ -26,7 +27,7 @@ We first load synthetic data from the `leaspy.datasets` to get of a grasp of lon
             75.973183  0.203874  0.612311  0.320484  0.634809
 
 The data correspond to repeated visits (`TIME` index) of different participants (`ID` index).
-Each visit corresponds to the measurement of 4 different variables : the MMSE, the RAVLT, the FAQ and the FDG PET.
+Each visit corresponds to the measurement of 4 different variables : the :term:`MMSE`, the RAVLT, the FAQ and the FDG PET.
 
 If plotted, the data would look like the following:
 
@@ -36,12 +37,15 @@ If plotted, the data would look like the following:
 where each color corresponds to a variable, and the connected dots corresponds
 to the repeated visits of a single participant.
 
-Not very engaging, right ? To go a step further, let's first encapsulate the data into the main `leaspy Data container`.
+Not very engaging, right ? To go a step further, let's first encapsulate the data
+into the main :class:`.Data` container.
 
     >>> data = Data.from_dataframe(alzheimer_df)
 
 Leaspy core functionality is to estimate the group-average trajectory
-of the different variables that are measured in a population. Let's initialize the leaspy object
+of the different variables that are measured in a population.
+
+Let's initialize the :class:`.Leaspy` object:
 
     >>> leaspy_logistic = Leaspy('logistic', source_dimension=2)
 
@@ -49,7 +53,7 @@ as well as the algorithm needed to estimate the group-average trajectory:
 
     >>> fit_settings = AlgorithmSettings('mcmc_saem', seed=0, n_iter=8000)
 
-We then use the `Leaspy.fit` method to estimate the group average trajectory:
+We then use the :meth:`.Leaspy.fit` method to estimate the group average trajectory:
 
     >>> leaspy_logistic.fit(data, fit_settings)
     ==> Setting seed to 0
@@ -68,8 +72,10 @@ it would look like the following
     .. figure::  _static/images/alzheimer-model.png
       :align:   center
 
-We can also derive the individual trajectory of each subject. To do this,
-we use the `Leaspy.personalize` method, again by providing the proper settings.
+We can also derive the individual trajectory of each subject.
+
+To do this, we use the :meth:`.Leaspy.personalize` method, again by providing
+the proper :class:`.AlgorithmSettings`.
 
     >>> personalize_settings = AlgorithmSettings('scipy_minimize', seed=0)
     >>> individual_parameters = leaspy_logistic.personalize(data, personalize_settings)
@@ -95,8 +101,8 @@ Data format
 ^^^^^^^^^^^
 
 `Leaspy` uses its own data container. To use it properly, you need to provide a
-`csv` file or a `pandas.DataFrame` in the right format. Let's have a look at
-the data used in the previous example:
+`csv` file or a :class:`pandas.DataFrame` in the right format.
+Let's have a look at the data used in the previous example:
 
     >>> print(alzheimer_df.head())
                        MMSE      RAVLT     FAQ       FDG PET
@@ -121,7 +127,7 @@ Missing data
 ^^^^^^^^^^^^
 
 `Leaspy` automatically handles missing data as long as they are encoded as ``nan``
-in your `pandas.DataFrame`, or as empty values in your `csv` file.
+in your :class:`pandas.DataFrame`, or as empty values in your `csv` file.
 
 Going further
 -------------

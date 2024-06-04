@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, List
 from pprint import pformat
 import warnings
 
@@ -5,21 +7,15 @@ import torch
 from joblib import Parallel, delayed
 from scipy.optimize import minimize
 
+from leaspy.io.data.data import Data
+from leaspy.io.data.dataset import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.algo.personalize.abstract_personalize_algo import AbstractPersonalizeAlgo
+from leaspy.utils.typing import DictParamsTorch
 
-from leaspy.exceptions import LeaspyAlgoInputError
+if TYPE_CHECKING:
+    from leaspy.models.abstract_model import AbstractModel
 
-if hasattr(torch, 'nanmean'):
-    # torch.nanmean was only introduced in torch 1.10
-    torch_nanmean = torch.nanmean
-else:
-    def torch_nanmean(t, *args, **kwargs):
-        """Replacement for future torch.nanmean (source: https://github.com/pytorch/pytorch/issues/21987)"""
-        is_nan = torch.isnan(t)
-        t = t.clone()
-        t[is_nan] = 0
-        return t.sum(*args, **kwargs) / (~is_nan).float().sum(*args, **kwargs)
 
 class ScipyMinimize(AbstractPersonalizeAlgo):
     """
@@ -36,7 +32,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
     Attributes
     ----------
     scipy_minimize_params : dict
-        Keyword arguments to be passed to :func:`scipy.optimize.minize`.
+        Keyword arguments to be passed to :func:`scipy.optimize.minimize`.
         A default setting depending on whether using jacobian or not is applied
         (cf. `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN`
          and `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
@@ -52,7 +48,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         You may customize it by setting the `custom_format_convergence_issues` algorithm parameter.
 
     logger : None or callable str -> None
-        The function used to display convergence issues returned by :func:`scipy.optimize.minize`.
+        The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
         By default we print the convergences issues if and only if we do not use BFGS optimization method.
         You can customize it at initialization by defining a `logger` attribute to your `AlgorithmSettings` instance.
     """
@@ -103,7 +99,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         if not self.scipy_minimize_params.get('method', 'BFGS').upper() == 'BFGS':
             print('\n' + msg + '\n')
 
-    def _initialize_parameters(self, model):
+    def _initialize_parameters(self, model: AbstractModel) -> List[torch.FloatTensor]:
         """
         Initialize individual parameters of one patient with group average parameter.
 
@@ -127,7 +123,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
                   for _ in range(model.source_dimension)]
         return x
 
-    def _pull_individual_parameters(self, x, model):
+    def _pull_individual_parameters(self, x: list, model: AbstractModel) -> DictParamsTorch:
         """
         Get individual parameters as a dict[param_name: str, :class:`torch.Tensor` [1,n_dims_param]]
         from a condensed array-like version of it
@@ -146,7 +142,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         return individual_parameters
 
-    def _get_normalized_grad_tensor_from_grad_dict(self, dict_grad_tensors, model):
+    def _get_normalized_grad_tensor_from_grad_dict(self, dict_grad_tensors: DictParamsTorch, model: AbstractModel):
         """
         From a dict of gradient tensors per param (without normalization),
         returns the full tensor of gradients (= for all params, consecutively):
@@ -160,39 +156,11 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         if 'univariate' not in model.name and model.source_dimension > 0:
             to_cat.append( dict_grad_tensors['sources'] * model.parameters['sources_std'] )
 
-        return torch.cat(to_cat, dim=-1).squeeze(0) # 1 individual at a time
+        return torch.cat(to_cat, dim=-1) # 1 individual at a time
 
-    def _get_reconstruction_error(self, model, times, values, individual_parameters):
+    def _get_regularity(self, model: AbstractModel, individual_parameters: DictParamsTorch):
         """
-        Compute model values minus real values of a patient for a given model, timepoints, real values & individual parameters.
-
-        Parameters
-        ----------
-        model : :class:`.AbstractModel`
-            Model used to compute the group average parameters.
-        times : :class:`torch.Tensor` [n_tpts]
-            Contains the individual ages corresponding to the given ``values``.
-        values : :class:`torch.Tensor` [n_tpts, n_fts [, extra_dim_for_ordinal_model]]
-            Contains the individual true scores corresponding to the given ``times``.
-        individual_parameters : dict[str, :class:`torch.Tensor` [1,n_dims_param]]
-            Individual parameters as a dict
-
-        Returns
-        -------
-        :class:`torch.Tensor` [n_tpts,n_fts]
-            Model values minus real values (with nans).
-        """
-        # for ordinal model the "reconstruction error" has not much sense (as for binary...)
-        if model.is_ordinal:
-            return float('nan') * torch.ones((len(times), model.dimension))
-
-        # computation for 1 individual (level dropped after computation)
-        predicted = model.compute_individual_tensorized(times.unsqueeze(0), individual_parameters).squeeze(0)
-        return predicted - values
-
-    def _get_regularity(self, model, individual_parameters):
-        """
-        Compute the regularity of a patient given his individual parameters for a given model.
+        Compute the regularity term (and its gradient) of a patient given his individual parameters for a given model.
 
         Parameters
         ----------
@@ -211,51 +179,33 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         regularity_grads : dict[param_name: str, :class:`torch.Tensor` [n_individuals, n_dims_param]]
             Gradient of regularity term with respect to individual parameters.
         """
+        d_regularity, d_regularity_grads = model.compute_regularity_individual_parameters(individual_parameters)
+        tot_regularity = sum(d_regularity.values(), 0.)
 
-        regularity = 0
-        regularity_grads = {}
+        return tot_regularity, d_regularity_grads
 
-        for param_name, param_val in individual_parameters.items():
-            # priors on this parameter
-            priors = dict(
-                mean = model.parameters[param_name+"_mean"],
-                std = model.parameters[param_name+"_std"]
-            )
-
-            # summation term
-            regularity += model.compute_regularity_variable(param_val, **priors, include_constant=False).sum(dim=1)
-
-            # derivatives: <!> formula below is for Normal parameters priors only
-            # TODO? create a more generic method in model `compute_regularity_variable_gradient`? but to do so we should probably wait to have some more generic `compute_regularity_variable` as well (at least pass the parameter name to this method to compute regularity term)
-            regularity_grads[param_name] = (param_val - priors['mean']) / (priors['std']**2)
-
-        return (regularity, regularity_grads)
-
-    def obj(self, x, *args):
+    def obj(self, x: list, model: AbstractModel, dataset: Dataset, with_gradient: bool):
         """
         Objective loss function to minimize in order to get patient's individual parameters
 
         Parameters
         ----------
-        x : array-like [float]
+        x : list[torch.tensors]
             Individual **standardized** parameters
             At initialization ``x = [xi_mean/xi_std, tau_mean/tau_std] (+ [0.] * n_sources if multivariate model)``
 
-        *args
-            * model : :class:`.AbstractModel`
-                Model used to compute the group average parameters.
-            * timepoints : :class:`torch.Tensor` [1,n_tpts]
-                Contains the individual ages corresponding to the given ``values``
-            * values : :class:`torch.Tensor` [n_tpts, n_fts [, extra_dim_for_ordinal_model]]
-                Contains the individual true scores corresponding to the given ``times``, with nans.
-            * with_gradient : bool
-                * If True: return (objective, gradient_objective)
-                * Else: simply return objective
+        model : :class:`.AbstractModel`
+            Model used to compute the group average parameters.
+        dataset : :class:`.Dataset`
+            A dataset instance for the single patient being optimized.
+        with_gradient : bool
+            If True: return (objective, gradient_objective)
+            Else: simply return objective
 
         Returns
         -------
         objective : float
-            Value of the loss function (opposite of log-likelihood).
+            Value of the loss function (negative log-likelihood).
 
         if `with_gradient` is True:
             2-tuple (as expected by :func:`scipy.optimize.minimize` when ``jac=True``)
@@ -266,112 +216,37 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         ------
         :exc:`.LeaspyAlgoInputError`
             if noise model is not currently supported by algorithm.
-            TODO: everything that is not generic here concerning noise structure should be handle by model/NoiseModel directly!!!!
         """
 
-        # Extra arguments passed by scipy minimize
-        model, times, values, with_gradient = args
-        nans = torch.isnan(values)
-
-        ## Attachment term
         individual_parameters = self._pull_individual_parameters(x, model)
+        predictions = model.compute_individual_tensorized(dataset.timepoints, individual_parameters)
 
-        # compute 1 individual at a time (1st dimension is squeezed)
-        predicted = model.compute_individual_tensorized(times, individual_parameters).squeeze(0)
-
-        # we clamp the predictions for log-based losses (safety before taking the log)
-        # cf. torch.finfo(torch.float32).eps ~= 1.19e-7
-        # (and we do it before computing `diff` unlike before for bernoulli model)
-        if model.is_ordinal or model.noise_model == 'bernoulli':
-            predicted = torch.clamp(predicted, 1e-7, 1. - 1e-7)
-
-        diff = None
-        if model.noise_model != 'ordinal':
-            diff = predicted - values # tensor j,k[,l] (j=visits, k=features [, l=ordinal_ranking_level])
-            diff[nans] = 0.  # set nans to zero, not to count in the sum
-
-        # compute gradient of model with respect to individual parameters
-        grads = None
+        nll_regul, d_nll_regul_grads = self._get_regularity(model, individual_parameters)
+        nll_attach = model.noise_model.compute_nll(dataset, predictions, with_gradient=with_gradient)
         if with_gradient:
-            grads = model.compute_jacobian_tensorized(times, individual_parameters)
-            # put derivatives consecutively in the right order and drop ind level
-            # --> output shape [n_tpts, n_fts [, n_ordinal_lvls], n_dims_params]
-            grads = self._get_normalized_grad_tensor_from_grad_dict(grads, model)
+            nll_attach, nll_attach_grads_fact = nll_attach
 
-        # Placeholder for result (objective and, if needed, gradient)
-        res = {}
+        # we must sum separately the terms due to implicit broadcasting
+        nll = nll_attach.squeeze(0).sum() + nll_regul.squeeze(0)
 
-        # Loss is based on log-likelihood for model, which ultimately depends on noise structure
-        # TODO: should be directly handled in model or NoiseModel (probably in NoiseModel)
-        if 'gaussian' in model.noise_model:
-            noise_var = model.parameters['noise_std'] * model.parameters['noise_std']
-            noise_var = noise_var.expand((1, model.dimension)) # tensor 1,n_fts (works with diagonal noise or scalar noise)
-            res['objective'] = torch.sum((0.5 / noise_var) @ (diff * diff).t()) # <!> noise per feature
+        if not with_gradient:
+            return nll.item()
 
-            if with_gradient:
-                res['gradient'] = torch.sum((diff / noise_var).unsqueeze(-1) * grads, dim=(0,1))
+        nll_regul_grads = self._get_normalized_grad_tensor_from_grad_dict(d_nll_regul_grads, model).squeeze(0)
 
-        elif model.noise_model == 'bernoulli':
-            neg_crossentropy = values * torch.log(predicted) + (1. - values) * torch.log(1. - predicted)
-            neg_crossentropy[nans] = 0. # set nans to zero, not to count in the sum
-            res['objective'] = -torch.sum(neg_crossentropy)
+        d_preds_grads = model.compute_jacobian_tensorized(dataset.timepoints, individual_parameters)
+        # put derivatives consecutively in the right order
+        # --> output shape [1, n_tpts, n_fts [, n_ordinal_lvls], n_dims_params]
+        preds_grads = self._get_normalized_grad_tensor_from_grad_dict(d_preds_grads, model).squeeze(0)
 
-            if with_gradient:
-                crossentropy_fact = diff / (predicted * (1. - predicted))
-                res['gradient'] = torch.sum(crossentropy_fact.unsqueeze(-1) * grads, dim=(0,1))
+        grad_dims_to_sum = tuple(range(0, preds_grads.ndim - 1))
+        nll_attach_grads = (preds_grads * nll_attach_grads_fact.squeeze(0).unsqueeze(-1)).sum(dim=grad_dims_to_sum)
 
-        elif model.is_ordinal:
+        nll_grads = nll_attach_grads + nll_regul_grads
 
-            LL_grad_fact = None # init to avoid linter warning...
+        return nll.item(), nll_grads
 
-            if model.noise_model == 'ordinal':
-                # Compute the simple multinomial loss
-                LL = torch.log((predicted * values).sum(dim=-1))
-
-                if with_gradient:
-                    LL_grad_fact = values / predicted
-                    LL_grad_fact[nans] = 0.
-            else:
-                # Compute the cross-entropy for each P(X>=k)
-                # values (`sf`) are already masked for impossible ordinal levels but not `cdf`
-                mask_ordinal_lvls = model.ordinal_infos['mask'].squeeze(0) # squeeze individual dimension to preserve shape
-                cdf = (1. - values) * mask_ordinal_lvls
-                LL = (values * torch.log(predicted) + cdf * torch.log(1. - predicted)).sum(dim=-1)
-
-                if with_gradient:
-                    # diff (= predicted - values) is already 0 where nans
-                    # we explicitely set LL_grad_fact to 0 outside possible ordinal levels
-                    LL_grad_fact = -diff * mask_ordinal_lvls / (predicted * (1. - predicted))
-
-            # we squeeze the last dimension of nans (raw int value is nan <=> all the ordinal levels are nan)
-            LL[nans[..., 0]] = 0.
-            res['objective'] = -torch.sum(LL)
-
-            if with_gradient:
-                grad = torch.sum(LL_grad_fact.unsqueeze(-1) * grads, dim=2)
-                res['gradient'] = -grad.sum(dim=(0,1))
-
-        else:
-            raise LeaspyAlgoInputError(f"'{model.noise_model}' noise is currently not implemented in 'scipy_minimize' algorithm. "
-                                       f"Please open an issue on Gitlab if needed.")
-
-        ## Regularity term
-        regularity, regularity_grads = self._get_regularity(model, individual_parameters)
-
-        res['objective'] += regularity.squeeze(0)
-
-        if with_gradient:
-            # add regularity term, shape (n_dims_params, )
-            res['gradient'] += self._get_normalized_grad_tensor_from_grad_dict(regularity_grads, model)
-
-            # result tuple (objective, jacobian)
-            return (res['objective'].item(), res['gradient'].detach())
-
-        else:
-            # result is objective only
-            return res['objective'].item()
-
-    def _get_individual_parameters_patient(self, model, times, values, *, with_jac: bool, patient_id=None):
+    def _get_individual_parameters_patient(self, model: AbstractModel, patient_dataset: Dataset, *, with_jac: bool, patient_id: str = None):
         """
         Compute the individual parameter by minimizing the objective loss function with scipy solver.
 
@@ -379,10 +254,8 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         ----------
         model : :class:`.AbstractModel`
             Model used to compute the group average parameters.
-        times : :class:`torch.Tensor` [n_tpts]
-            Contains the individual ages corresponding to the given ``values``.
-        values : :class:`torch.Tensor` [n_tpts, n_fts [, extra_dim_for_ordinal_model]]
-            Contains the individual true scores corresponding to the given ``times``, with nans.
+        patient_dataset : :class:`.Dataset`
+            Contains the individual ages and true scores.
         with_jac : bool
             Should we speed-up the minimization by sending exact gradient of optimized function?
         patient_id : str (or None)
@@ -392,27 +265,26 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         -------
         individual parameters : dict[str, :class:`torch.Tensor` [1,n_dims_param]]
             Individual parameters as a dict of tensors.
-        reconstruction error : :class:`torch.Tensor` [n_tpts, n_features]
-            Model values minus real values (with nans).
+        reconstruction loss : :class:`torch.Tensor`
+            Model canonical loss (content & shape depend on noise model).
         """
 
         initial_value = self._initialize_parameters(model)
         res = minimize(self.obj,
                        jac=with_jac,
                        x0=initial_value,
-                       args=(model, times.unsqueeze(0), values, with_jac),
+                       args=(model, patient_dataset, with_jac),
                        **self.scipy_minimize_params
                        )
 
-        individual_params_f = self._pull_individual_parameters(res.x, model)
-        err_f = self._get_reconstruction_error(model, times, values, individual_params_f)
+        pyt_individual_params = self._pull_individual_parameters(res.x, model)
+        loss = model.compute_canonical_loss_tensorized(patient_dataset, pyt_individual_params)
 
         if not res.success and self.logger:
             # log full results if optimization failed
-            # including mean of reconstruction error for this suject on all his personalization visits, but per feature
-            res['reconstruction_mae'] = torch_nanmean(err_f.abs(), dim=0)
-            res['reconstruction_rmse'] = torch_nanmean(err_f ** 2, dim=0) ** .5
-            res['individual_parameters'] = individual_params_f
+            # including mean of reconstruction loss for this subject on all his personalization visits, but per feature
+            res['reconstruction_loss'] = loss
+            res['individual_parameters'] = pyt_individual_params
 
             cvg_issue = self.format_convergence_issues.format(
                 patient_id=patient_id,
@@ -421,20 +293,26 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             )
             self.logger(cvg_issue)
 
-        return individual_params_f, err_f
+        return pyt_individual_params, loss
 
-    def _get_individual_parameters_patient_master(self, it, data, model, *, with_jac: bool, patient_id=None):
+    def _get_individual_parameters_patient_master(
+        self,
+        model: AbstractModel,
+        patient_dataset: Dataset,
+        *,
+        progress: tuple,
+        with_jac: bool,
+        patient_id: str = None
+    ):
         """
         Compute individual parameters of all patients given a leaspy model & a leaspy dataset.
 
         Parameters
         ----------
-        it : int
-            The iteration number.
-        data : :class:`.Dataset`
-            Contains the individual scores.
         model : :class:`.AbstractModel`
             Model used to compute the group average parameters.
+        patient_dataset : :class:`.Dataset`
+            Contains the individual times and scores.
         with_jac : bool
             Should we speed-up the minimization by sending exact gradient of optimized function?
         patient_id : str (or None)
@@ -445,21 +323,20 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         :class:`.IndividualParameters`
             Contains the individual parameters of all patients.
         """
-        times = data.get_times_patient(it)  # torch.Tensor[n_tpts]
-        # torch.Tensor[n_tpts, n_fts [, extra_dim_for_ordinal_model]] with nans (to avoid re-doing one-hot-encoding)
-        values = data.get_values_patient(it, adapt_for_model=model)
-
-        individual_params_tensorized, _ = self._get_individual_parameters_patient(model, times, values,
-                                                                                  with_jac=with_jac, patient_id=patient_id)
+        individual_params_tensorized, _ = self._get_individual_parameters_patient(
+            model, patient_dataset, with_jac=with_jac, patient_id=patient_id
+        )
 
         if self.algo_parameters.get('progress_bar', True):
-            self._display_progress_bar(it, data.n_individuals, suffix='subjects')
+            self._display_progress_bar(*progress, suffix='subjects')
 
         # transformation is needed because of IndividualParameters expectations...
-        return {k: v.item() if k != 'sources' else v.detach().squeeze(0).tolist()
-                for k,v in individual_params_tensorized.items()}
+        return {
+            k: v.item() if k != 'sources' else v.detach().squeeze(0).tolist()
+            for k,v in individual_params_tensorized.items()
+        }
 
-    def is_jacobian_implemented(self, model) -> bool:
+    def is_jacobian_implemented(self, model: AbstractModel) -> bool:
         """Check that the jacobian of model is implemented."""
         default_individual_params = self._pull_individual_parameters(self._initialize_parameters(model), model)
         empty_tpts = torch.tensor([[]], dtype=torch.float32)
@@ -469,7 +346,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         except NotImplementedError:
             return False
 
-    def _get_individual_parameters(self, model, dataset):
+    def _get_individual_parameters(self, model, dataset: Dataset):
         """
         Compute individual parameters of all patients given a leaspy model & a leaspy dataset.
 
@@ -488,6 +365,14 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         individual_parameters = IndividualParameters()
 
+        # Easier to pass a Dataset with 1 individual rather than individual times, values
+        # to avoid duplicating code in noise model especially
+        data = Data.from_dataframe(dataset.to_pandas(), drop_full_nan=False, warn_empty_column=False)
+        datasets = {
+            idx: Dataset(data[[idx]], no_warning=True)
+            for idx in dataset.indices
+        }
+
         if self.algo_parameters.get('progress_bar', True):
             self._display_progress_bar(-1, dataset.n_individuals, suffix='subjects')
 
@@ -503,12 +388,18 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             # TODO? change default logger as well?
 
         ind_p_all = Parallel(n_jobs=self.algo_parameters['n_jobs'])(
-            delayed(self._get_individual_parameters_patient_master)(it_pat, dataset, model, with_jac=with_jac, patient_id=id_pat)
-            for it_pat, id_pat in enumerate(dataset.indices)
+            delayed(self._get_individual_parameters_patient_master)(
+                model,
+                dataset_pat,
+                progress=(it_pat, dataset.n_individuals),
+                with_jac=with_jac,
+                patient_id=id_pat
+            )
+            # TODO use Parallel + tqdm instead of custom progress bar...
+            for it_pat, (id_pat, dataset_pat) in enumerate(datasets.items())
         )
 
-        for it_pat, ind_params_pat in enumerate(ind_p_all):
-            id_pat = dataset.indices[it_pat]
+        for id_pat, ind_params_pat in zip(dataset.indices, ind_p_all):
             individual_parameters.add_individual_parameters(str(id_pat), ind_params_pat)
 
         return individual_parameters

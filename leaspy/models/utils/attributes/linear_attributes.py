@@ -25,7 +25,7 @@ class LinearAttributes(AbstractManifoldModelAttributes):
         Whether model is univariate or not (i.e. dimension == 1)
     has_sources : bool
         Whether model has sources or not (not univariate and source_dimension >= 1)
-    update_possibilities : tuple [str] (default ('all', 'g', 'v0', 'betas') )
+    update_possibilities : set[str] (default {'all', 'g', 'v0', 'betas'} )
         Contains the available parameters to update. Different models have different parameters.
     positions : :class:`torch.Tensor` [dimension] (default None)
         positions = realizations['g'] such that "p0" = positions
@@ -43,12 +43,7 @@ class LinearAttributes(AbstractManifoldModelAttributes):
     """
 
     def __init__(self, name, dimension, source_dimension):
-
         super().__init__(name, dimension, source_dimension)
-
-        if not self.univariate:
-            self.velocities: torch.FloatTensor = None
-
 
     def update(self, names_of_changed_values, values):
         """
@@ -56,8 +51,8 @@ class LinearAttributes(AbstractManifoldModelAttributes):
 
         Parameters
         ----------
-        names_of_changed_values : list [str]
-            Elements of list must be either:
+        names_of_changed_values : set[str]
+            Elements of set must be either:
                 * ``all`` (update everything)
                 * ``g`` correspond to the attribute :attr:`positions`.
                 * ``v0`` (only for multivariate models) correspond to the attribute :attr:`velocities`.
@@ -124,7 +119,6 @@ class LinearAttributes(AbstractManifoldModelAttributes):
         values : dict [str, `torch.Tensor`]
         """
         self.positions = values['g'].clone()
-
 
     def _compute_orthonormal_basis(self):
         """

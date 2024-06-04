@@ -5,7 +5,7 @@ import statsmodels.api as sm
 
 from leaspy.algo.abstract_algo import AbstractAlgo
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models.lme_model import LMEModel
+from leaspy.models.lme import LMEModel
 
 
 class LMEPersonalizeAlgorithm(AbstractAlgo):

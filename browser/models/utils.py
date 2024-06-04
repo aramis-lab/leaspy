@@ -14,5 +14,7 @@ def get_model_derived_parameters(model: dict):
     # currently we only return the mixing-matrix
     if getattr(lsp.model, "source_dimension", 0):
         derived_params['mixing_matrix'] = lsp.model.attributes.mixing_matrix.tolist()
+    else:
+        derived_params['mixing_matrix'] = None
 
     return derived_params

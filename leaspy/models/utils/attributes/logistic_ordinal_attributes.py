@@ -27,7 +27,7 @@ class LogisticOrdinalAttributes(LogisticAttributes):
         Whether model is univariate or not (i.e. dimension == 1)
     has_sources : bool
         Whether model has sources or not (not univariate and source_dimension >= 1)
-    update_possibilities : tuple [str] (default ('all', 'g', 'v0', 'betas') )
+    update_possibilities : set[str] (default {'all', 'g', 'v0', 'betas'} )
         Contains the available parameters to update. Different models have different parameters.
     max_level: int
         Maximum level of ordinal features
@@ -58,12 +58,12 @@ class LogisticOrdinalAttributes(LogisticAttributes):
         self.batched_deltas = ordinal_infos['batch_deltas']
         if self.batched_deltas:
             self.deltas = None
-            self.update_possibilities = self.update_possibilities + ("deltas",)
+            self.update_possibilities.add('deltas')
         else:
-            self.deltas = {"deltas_" + feat["name"]: None for feat in ordinal_infos["features"]}
+            self.deltas = {"deltas_" + ft: None for ft in ordinal_infos["max_levels"]}
             self.max_level = ordinal_infos["max_level"]
-            for feat in ordinal_infos["features"]:
-                self.update_possibilities = self.update_possibilities + ("deltas_" + feat["name"],)
+            for ft in ordinal_infos["max_levels"]:
+                self.update_possibilities.add("deltas_" + ft)
 
     def get_deltas(self):
         '''
@@ -90,14 +90,14 @@ class LogisticOrdinalAttributes(LogisticAttributes):
         t0 = torch.zeros((self.dimension, 1))
         return torch.cat((t0, all_deltas_but_first), dim=-1)
 
-    def update(self, names_of_changed_values: list, values: dict):
+    def update(self, names_of_changed_values: set, values: dict):
         """
         Update model group average parameter(s).
 
         Parameters
         ----------
-        names_of_changed_values : list[str]
-            Elements of list must be either:
+        names_of_changed_values : set[str]
+            Elements of set must be either:
                 * ``all`` (update everything)
                 * ``g`` correspond to the attribute :attr:`positions`.
                 * ``v0`` (only for multivariate models) correspond to the attribute :attr:`velocities`.
@@ -108,7 +108,7 @@ class LogisticOrdinalAttributes(LogisticAttributes):
                   (no need to perform the verification it is - would not be really efficient)
                 * ``betas`` correspond to the linear combination of columns from the orthonormal basis so
                   to derive the :attr:`mixing_matrix`.
-                * ``deltas`` correspong to the attribute :attr: `deltas`.
+                * ``deltas`` correspond to the attribute :attr: `deltas`.
         values : dict [str, `torch.Tensor`]
             New values used to update the model's group average parameters
 

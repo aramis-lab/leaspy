@@ -1,8 +1,15 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Tuple
 from abc import abstractmethod
 
+import torch
+
 from leaspy.algo.abstract_algo import AbstractAlgo
-from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models.utils.noise_model import NoiseModel
+
+if TYPE_CHECKING:
+    from leaspy.io.data.dataset import Dataset
+    from leaspy.models.abstract_model import AbstractModel
+    from leaspy.io.outputs.individual_parameters import IndividualParameters
 
 
 class AbstractPersonalizeAlgo(AbstractAlgo):
@@ -32,7 +39,7 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
 
     family = 'personalize'
 
-    def run_impl(self, model, dataset):
+    def run_impl(self, model: AbstractModel, dataset: Dataset) -> Tuple[IndividualParameters, torch.Tensor]:
         r"""
         Main personalize function, wraps the abstract :meth:`._get_individual_parameters` method.
 
@@ -60,17 +67,14 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
         # Estimate individual parameters
         individual_parameters = self._get_individual_parameters(model, dataset)
 
-        # Compute the noise with the estimated individual parameters (per feature or not, depending on model noise)
-        _, individual_params_torch = individual_parameters.to_pytorch()
-        if 'gaussian' in model.noise_model:
-            loss = NoiseModel.rmse_model(model, dataset, individual_params_torch)
-        else:
-            loss = model.compute_individual_attachment_tensorized(dataset, individual_params_torch, attribute_type=None).sum()
+        # Compute the loss with these estimated individual parameters (RMSE or NLL depending on noise models)
+        _, pyt_individual_params = individual_parameters.to_pytorch()
+        loss = model.compute_canonical_loss_tensorized(dataset, pyt_individual_params)
 
         return individual_parameters, loss
 
     @abstractmethod
-    def _get_individual_parameters(self, model, dataset) -> IndividualParameters:
+    def _get_individual_parameters(self, model: AbstractModel, data: Dataset) -> IndividualParameters:
         """
         Estimate individual parameters from a `Dataset`.
 

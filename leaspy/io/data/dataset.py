@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, List, Dict
 
 import numpy as np
 import pandas as pd
@@ -7,13 +7,11 @@ import torch
 import warnings
 
 from leaspy.exceptions import LeaspyInputError
-from leaspy.utils.typing import KwargsType, List, Dict
-from leaspy.models.utils.ordinal import OrdinalModelMixin
+from leaspy.utils.distributions import discrete_sf_from_pdf
+from leaspy.utils.typing import KwargsType
 
 if TYPE_CHECKING:
     from leaspy.io.data.data import Data
-    from leaspy.models.abstract_model import AbstractModel
-    from leaspy.algo.abstract_algo import AbstractAlgo
 
 
 class Dataset:
@@ -24,10 +22,10 @@ class Dataset:
     ----------
     data : :class:`.Data`
         Create `Dataset` from `Data` object
-    model : :class:`.AbstractModel` (optional)
-        If not None, will check compatibility of model and data
-    algo : :class:`.AbstractAlgo` (optional)
-        If not None, will check compatibility of algo and data
+    no_warning : bool (default False)
+        Whether to deactivate warnings that are emitted by methods of this dataset instance.
+        We may want to deactivate them because we rebuild a dataset per individual in scipy minimize.
+        Indeed, all relevant warnings certainly occurred for the overall dataset.
 
     Attributes
     ----------
@@ -39,21 +37,18 @@ class Dataset:
         Number of individuals
     indices : list[ID]
         Order of patients
-
     n_visits_per_individual : list[int]
         Number of visits per individual
     n_visits_max : int
         Maximum number of visits for one individual
     n_visits : int
         Total number of visits
-
     n_observations_per_ind_per_ft : :class:`torch.LongTensor`, shape (n_individuals, dimension)
         Number of observations (not taking into account missing values) per individual per feature
     n_observations_per_ft : :class:`torch.LongTensor`, shape (dimension,)
         Total number of observations per feature
     n_observations : int
         Total number of observations
-
     timepoints : :class:`torch.FloatTensor`, shape (n_individuals, n_visits_max)
         Ages of patients at their different visits
     values : :class:`torch.FloatTensor`, shape (n_individuals, n_visits_max, dimension)
@@ -62,11 +57,14 @@ class Dataset:
         Binary mask associated to values.
         If 1: value is meaningful
         If 0: value is meaningless (either was nan or does not correspond to a real visit - only here for padding)
-
     L2_norm_per_ft : :class:`torch.FloatTensor`, shape (dimension,)
         Sum of all non-nan squared values, feature per feature
     L2_norm : scalar :class:`torch.FloatTensor`
         Sum of all non-nan squared values
+    no_warning : bool (default False)
+        Whether to deactivate warnings that are emitted by methods of this dataset instance.
+        We may want to deactivate them because we rebuild a dataset per individual in scipy minimize.
+        Indeed, all relevant warnings certainly occurred for the overall dataset.
 
     _one_hot_encoding : Dict[sf: bool, :class:`torch.LongTensor`]
         Values of patients for each visit for each feature, but tensorized into a one-hot encoding (pdf or sf)
@@ -78,7 +76,7 @@ class Dataset:
         if data, model or algo are not compatible together.
     """
 
-    def __init__(self, data: Data, model: AbstractModel = None, algo: AbstractAlgo = None):
+    def __init__(self, data: Data, *, no_warning: bool = False):
 
         self.headers = data.headers
         self.dimension = data.dimension
@@ -86,31 +84,28 @@ class Dataset:
         self.n_visits = data.n_visits
         self.indices = list(data.individuals.keys())
 
-        self.timepoints: torch.FloatTensor = None
-        self.values: torch.FloatTensor = None
-        self.mask: torch.FloatTensor = None
+        self.timepoints: Optional[torch.FloatTensor] = None
+        self.values: Optional[torch.FloatTensor] = None
+        self.mask: Optional[torch.FloatTensor] = None
 
-        self.n_observations: int = None
-        self.n_observations_per_ft: torch.LongTensor = None
-        self.n_observations_per_ind_per_ft: torch.LongTensor = None
+        self.n_observations: Optional[int] = None
+        self.n_observations_per_ft: Optional[torch.LongTensor] = None
+        self.n_observations_per_ind_per_ft: Optional[torch.LongTensor] = None
 
-        self.n_visits_per_individual: List[int] = None
-        self.n_visits_max: int = None
+        self.n_visits_per_individual: Optional[List[int]] = None
+        self.n_visits_max: Optional[int] = None
 
-        self.L2_norm_per_ft: torch.FloatTensor = None
-        self.L2_norm: torch.FloatTensor = None
+        # internally used by ordinal models only (cache)
+        self._one_hot_encoding: Optional[Dict[bool, torch.LongTensor]] = None
 
-        # internally used by ordinal models only
-        self._one_hot_encoding: Dict[bool, torch.LongTensor] = None
-
-        if model is not None:
-            self._check_model_compatibility(data, model)
-        if algo is not None:
-            self._check_algo_compatibility(data, algo)
+        self.L2_norm_per_ft: Optional[torch.FloatTensor] = None
+        self.L2_norm: Optional[torch.FloatTensor] = None
 
         self._construct_values(data)
         self._construct_timepoints(data)
         self._compute_L2_norm()
+
+        self.no_warning = no_warning
 
     def _construct_values(self, data: Data):
 
@@ -152,7 +147,7 @@ class Dataset:
             self.timepoints[i, 0:nb_vis] = torch.tensor(data[i].timepoints)
 
     def _compute_L2_norm(self):
-        self.L2_norm_per_ft = torch.sum(self.mask.float() * self.values * self.values, dim=(0,1)) # 1D tensor of shape (dimension,)
+        self.L2_norm_per_ft = torch.sum(self.mask.float() * self.values * self.values, dim=(0, 1))  # 1D tensor of shape (dimension,)
         self.L2_norm = self.L2_norm_per_ft.sum() # sum on all features
 
     def get_times_patient(self, i: int) -> torch.FloatTensor:
@@ -199,8 +194,10 @@ class Dataset:
         # customization when ordinal model
         if adapt_for_model is not None and getattr(adapt_for_model, 'is_ordinal', False):
             # we directly fetch the one-hot encoded values (pdf or sf depending on precise `noise_model`)
-            values_to_pick_from = self.get_one_hot_encoding(sf=adapt_for_model.noise_model == 'ordinal_ranking',
-                                                            ordinal_infos=adapt_for_model.ordinal_infos).float()
+            values_to_pick_from = self.get_one_hot_encoding(
+                sf=adapt_for_model.is_ordinal_ranking,
+                ordinal_infos=adapt_for_model.ordinal_infos
+            ).float()
 
         # we restrict to the right individual and mask the irrelevant data
         values_with_nans = values_to_pick_from[i, :self.n_visits_per_individual[i], ...].clone().detach()
@@ -208,44 +205,21 @@ class Dataset:
 
         return values_with_nans
 
-    @staticmethod
-    def _check_model_compatibility(data: Data, model: AbstractModel):
-        if model.dimension is not None and data.dimension != model.dimension:
-            raise LeaspyInputError(f"Unmatched dimensions: {model.dimension} (model) ≠ {data.dimension} (data).")
-
-        if model.features is not None and data.headers != model.features:
-            raise LeaspyInputError(f"Unmatched features: {model.features} (model) ≠ {data.headers} (data).")
-
-    @staticmethod
-    def _check_algo_compatibility(data: Data, algo: AbstractAlgo):
-        return
-
     def to_pandas(self) -> pd.DataFrame:
         """
-        Convert dataset to a `DataFrame`.
+        Convert dataset to a `DataFrame` with ['ID', 'TIME'] index.
 
         Returns
         -------
         :class:`pandas.DataFrame`
         """
-
-        # TODO : @Raphael : On est oblige de garder une dependance pandas ? Je crois que c'est utilise juste pour l'initialisation
-        # TODO : Si fait comme ca, il faut preallouer la memoire du dataframe a l'avance!
-        # du modele multivarie. On peut peut-etre s'en passer?
-        df = pd.DataFrame()
-
+        to_concat = {}
         for i, idx in enumerate(self.indices):
             times = self.get_times_patient(i).cpu().numpy()
             x = self.get_values_patient(i).cpu().numpy()
-            df_patient = pd.DataFrame(data=x, index=times.reshape(-1), columns=self.headers)
-            df_patient.index.name = 'TIME'
-            df_patient['ID'] = idx
-            df = pd.concat([df, df_patient])
+            to_concat[idx] = pd.DataFrame(data=x, index=times.reshape(-1), columns=self.headers)
 
-        # df.columns = ['ID', 'TIME'] + self.headers
-        df.reset_index(inplace=True)
-
-        return df
+        return pd.concat(to_concat, names=['ID', 'TIME'])
 
     def move_to_device(self, device: torch.device) -> None:
         """
@@ -285,55 +259,59 @@ class Dataset:
         -------
         One-hot encoding of data values.
         """
+        if self._one_hot_encoding is not None:
+            return self._one_hot_encoding[sf]
 
-        if self._one_hot_encoding is None:
-            ## Check the data & construct the one-hot encodings once for all for fast look-up afterwards
+        ## Check the data & construct the one-hot encodings once for all for fast look-up afterwards
 
-            # Check for values different than integers
-            if (self.values != self.values.round()).any():
-                raise LeaspyInputError("Please make sure your data contains only integers when using ordinal noise modelling.")
+        # Check for values different than non-negative integers
+        if (self.values != self.values.round()).any() or (self.values < 0).any():
+            raise LeaspyInputError("Please make sure your data contains only integers >= 0 when using ordinal noise modelling.")
 
-            # First of all check consistency of features given in ordinal_infos compared to the ones in the dataset (names & order!)
-            ordinal_feat_names = [d['name'] for d in ordinal_infos['features']]
-            if ordinal_feat_names != self.headers:
-                raise LeaspyInputError(f"Features stored in ordinal model ({ordinal_feat_names}) are not consistent with features in data ({self.headers})")
+        # First of all check consistency of features given in ordinal_infos compared to the ones in the dataset (names & order!)
+        ordinal_feat_names = list(ordinal_infos['max_levels'])
+        if ordinal_feat_names != self.headers:
+            raise LeaspyInputError(f"Features stored in ordinal model ({ordinal_feat_names}) are not consistent with features in data ({self.headers})")
 
-            # Now check that integers are within the expected range, per feature [0, max_level_ft]
-            vals = self.values.long()
-            vals_issues = {
-                'unexpected': [],
-                'missing': [],
-            }
-            for ft_i, d_ordinal_ft in enumerate(ordinal_infos['features']):
-                ft = d_ordinal_ft['name']
-                max_level_ft = d_ordinal_ft['max_level']  # included
-                expected_codes = set(range(0, max_level_ft + 1))
+        # Now check that integers are within the expected range, per feature [0, max_level_ft]
+        # (masked values are encoded by 0 at this point)
+        vals = self.values.long()
+        vals_issues = {
+            'unexpected': [],
+            'missing': [],
+        }
+        for ft_i, (ft, max_level_ft) in enumerate(ordinal_infos['max_levels'].items()):
+            expected_codes = set(range(0, max_level_ft + 1)) # max level is included
 
-                vals_ft = vals[:, :, ft_i]
-                actual_codes = set(vals_ft.unique().tolist())
+            vals_ft = vals[:, :, ft_i]
+
+            if not self.no_warning:
+                # replacing masked values by -1 (which was guaranteed not to be part of input from first check, all >= 0)
+                actual_vals_ft = vals_ft.where(self.mask[:, :, ft_i].bool(), torch.tensor(-1))
+                actual_codes = set(actual_vals_ft.unique().tolist()).difference({-1})
                 unexpected_codes = sorted(actual_codes.difference(expected_codes))
                 missing_codes = sorted(expected_codes.difference(actual_codes))
-                if len(unexpected_codes) > 0:
+                if len(unexpected_codes):
                     vals_issues['unexpected'].append(f"- {ft} [[0..{max_level_ft}]]: {unexpected_codes} were unexpected")
-                if len(missing_codes) > 0:
-                    # nota: nans are encoded with 0 in values so if the level 0 is missing but they are nans we'll never catch it... TODO fix?
+                if len(missing_codes):
                     vals_issues['missing'].append(f"- {ft} [[0..{max_level_ft}]]: {missing_codes} are missing")
 
-                # clip the values (per feature)
-                vals[:, :, ft_i] = vals_ft.clamp(0, max_level_ft)
+            # clip the values (per feature)
+            # we must keep this even if no_warning enabled
+            vals[:, :, ft_i] = vals_ft.clamp(0, max_level_ft)
 
-            if len(vals_issues['unexpected']):
-                warnings.warn(f"Some features have unexpected codes (they were clipped to the maximum known level):\n"
-                              + '\n'.join(vals_issues['unexpected']))
-            if len(vals_issues['missing']):
-                warnings.warn(f"Some features have missing codes:\n"
-                              + '\n'.join(vals_issues['missing']))
+        if not self.no_warning and len(vals_issues['unexpected']):
+            warnings.warn(f"Some features have unexpected codes (they were clipped to the maximum known level):\n"
+                          + '\n'.join(vals_issues['unexpected']))
+        if not self.no_warning and len(vals_issues['missing']):
+            warnings.warn(f"Some features have missing codes:\n"
+                          + '\n'.join(vals_issues['missing']))
 
-            # one-hot encode all the values after the checks & clipping
-            vals_pdf = torch.nn.functional.one_hot(vals, num_classes=ordinal_infos['max_level'] + 1)
-            # build the survival function by simple (1 - cumsum) and remove the useless P(X >= 0) = 1
-            vals_sf = OrdinalModelMixin.compute_ordinal_sf_from_ordinal_pdf(vals_pdf)
-            # cache the values to retrive them fast afterwards
-            self._one_hot_encoding = {False: vals_pdf, True: vals_sf}
+        # one-hot encode all the values after the checks & clipping
+        vals_pdf = torch.nn.functional.one_hot(vals, num_classes=ordinal_infos['max_level'] + 1)
+        # build the survival function by simple (1 - cumsum) and remove the useless P(X >= 0) = 1
+        vals_sf = discrete_sf_from_pdf(vals_pdf)
+        # cache the values to retrieve them fast afterwards
+        self._one_hot_encoding = {False: vals_pdf, True: vals_sf}
 
         return self._one_hot_encoding[sf]

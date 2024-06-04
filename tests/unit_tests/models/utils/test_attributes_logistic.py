@@ -11,11 +11,12 @@ class AttributesLogisticTest(LeaspyTestCase):
         attributes = LogisticAttributes('logistic', 6, 2)
         self.assertEqual(attributes.dimension, 6)
         self.assertEqual(attributes.source_dimension, 2)
-        self.assertEqual(attributes.positions, None)
+        for attr_name in ('positions', 'velocities', 'mixing_matrix'):
+            self.assertTrue(isinstance(getattr(attributes, attr_name), torch.FloatTensor))
+            self.assertEqual(len(getattr(attributes, attr_name)), 0)
         self.assertEqual(attributes.orthonormal_basis, None)
-        self.assertEqual(attributes.mixing_matrix, None)
         self.assertEqual(attributes.name, 'logistic')
-        self.assertEqual(attributes.update_possibilities, ('all', 'g', 'v0', 'v0_collinear', 'betas'))
+        self.assertEqual(attributes.update_possibilities, {'all', 'g', 'v0', 'v0_collinear', 'betas'})
         self.assertRaises(ValueError, LogisticAttributes, 'name', '4', 3.2)  # with bad type arguments
         self.assertRaises(TypeError, LogisticAttributes)  # without argument
 
@@ -41,7 +42,7 @@ class AttributesLogisticTest(LeaspyTestCase):
             LogisticAttributes(name='logistic', dimension=2, source_dimension=-1)
 
     def test_compute_orthonormal_basis(self, tol=5e-5):
-        names = ['all']
+        names = {'all'}
         values = {
             'g': torch.tensor([-3, 2, 0, 3], dtype=torch.float32),
             'betas': torch.tensor([[1, 2, 3], [-0.1, 0.2, 0.3], [-1, 2, -3]], dtype=torch.float32),
@@ -71,7 +72,7 @@ class AttributesLogisticTest(LeaspyTestCase):
                                                  orthonormal_basis[:, j]).item(), 0, delta=tol) # / sqrt_metric_norm
 
     def test_mixing_matrix_utils(self, tol=5e-5):
-        names = ['all']
+        names = {'all'}
         values = {
             'g': torch.tensor([-3., 2., 0., 1.], dtype=torch.float32),
             'betas': torch.tensor([[1, 2, 3], [-0.1, 0.2, 0.3], [-1, 2, -3]], dtype=torch.float32),
@@ -102,7 +103,7 @@ class AttributesLogisticTest(LeaspyTestCase):
         dimension, source_dimension = self.check_values_and_get_dimensions(values)
 
         attributes = LogisticAttributes('logistic', dimension, source_dimension)
-        attributes.update(['all'], values)
+        attributes.update({'all'}, values)
         old_velocities = attributes.velocities
         old_BON = attributes.orthonormal_basis
         old_A = attributes.mixing_matrix
@@ -114,7 +115,7 @@ class AttributesLogisticTest(LeaspyTestCase):
         # shift v0 (log of velocities), so the resulting v0 should be collinear to previous one
         # and so the orthonormal basis should be the same!
         new_v0 = values['v0'] - 0.2
-        attributes.update(['v0'], {'v0': new_v0})
+        attributes.update({'v0'}, {'v0': new_v0})
         new_velocities = attributes.velocities
         new_BON = attributes.orthonormal_basis
         new_A = attributes.mixing_matrix
@@ -143,7 +144,7 @@ class AttributesLogisticTest(LeaspyTestCase):
         dimension, source_dimension = self.check_values_and_get_dimensions(values)
 
         attributes = LogisticAttributes('logistic', dimension, source_dimension)
-        attributes.update(['all'], values)
+        attributes.update({'all'}, values)
         old_velocities = attributes.velocities
         old_BON = attributes.orthonormal_basis
         old_A = attributes.mixing_matrix
@@ -151,7 +152,7 @@ class AttributesLogisticTest(LeaspyTestCase):
         # shift v0 (log of velocities), so the resulting v0 should be collinear to previous one
         # and so the orthonormal basis should be the same!
         new_v0 = values['v0'] - 0.2
-        attributes.update(['v0_collinear'], {'v0': new_v0})
+        attributes.update({'v0_collinear'}, {'v0': new_v0})
         new_velocities = attributes.velocities
         new_BON = attributes.orthonormal_basis
         new_A = attributes.mixing_matrix
@@ -165,6 +166,6 @@ class AttributesLogisticTest(LeaspyTestCase):
         self.assertEqual(id(old_A), id(new_A))
 
         # consistency when changing betas
-        attributes.update(['betas'], {'betas': values['betas']+0.1})
+        attributes.update({'betas'}, {'betas': values['betas']+0.1})
         self.assertEqual(id(old_BON), id(attributes.orthonormal_basis))  # not recomputed BON
         self.assertFalse(torch.allclose(old_A, attributes.mixing_matrix))

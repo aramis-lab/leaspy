@@ -1,11 +1,16 @@
 from glob import glob
+from unittest import skip
 
 import pandas as pd
 import torch
 
 from leaspy.api import Leaspy
-from leaspy.models.model_factory import ModelFactory
-from leaspy.models.utils.noise_model import NoiseModel
+from leaspy.models.factory import ModelFactory
+from leaspy.models.noise_models import (
+    NOISE_MODELS,
+    GaussianScalarNoiseModel,
+    GaussianDiagonalNoiseModel,
+)
 
 # backward-compat test
 from leaspy.io.data.data import Data
@@ -25,39 +30,46 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
         for name in ['univariate_logistic', 'univariate_linear', 'linear', 'logistic', 'logistic_parallel',
                      'mixed_linear-logistic']:
 
-            default_noise = 'gaussian_scalar' if 'univariate' in name else 'gaussian_diagonal'
+            default_noise = GaussianScalarNoiseModel if 'univariate' in name else GaussianDiagonalNoiseModel
             leaspy = Leaspy(name)
             self.assertEqual(leaspy.type, name)
-            self.assertEqual(leaspy.model.noise_model, default_noise)
+            self.assertIsInstance(leaspy.model.noise_model, default_noise)
             self.assertEqual(type(leaspy.model), type(ModelFactory.model(name)))
             self.check_model_factory_constructor(leaspy.model)
 
             with self.assertRaisesRegex(ValueError, 'not been initialized'):
                 leaspy.check_if_initialized()
 
-        for noise_model in NoiseModel.VALID_NOISE_STRUCTS:
-            leaspy = Leaspy('logistic', noise_model=noise_model)
+        for noise_model_name, noise_model in NOISE_MODELS.items():
+            leaspy = Leaspy('logistic', noise_model=noise_model_name)
             self.assertEqual(leaspy.type, 'logistic')
-            self.assertEqual(leaspy.model.noise_model, noise_model)
+            self.assertIsInstance(leaspy.model.noise_model, noise_model)
 
         for name in ['linear', 'logistic', 'logistic_parallel', 'mixed_linear-logistic']:
             leaspy = Leaspy(name, source_dimension=2)
             self.assertEqual(leaspy.model.source_dimension, 2)
 
-        with self.assertRaises(ValueError):
-            Leaspy('univariate_logistic', source_dimension=2)
-        with self.assertRaises(ValueError):
-            Leaspy('univariate_linear', source_dimension=1)
+        for name in ['linear', 'logistic']:
+            leaspy = Leaspy(f"univariate_{name}")
+            self.assertEqual(leaspy.model.source_dimension, 0)
+            self.assertEqual(leaspy.model.dimension, 1)
+
+            with self.assertRaisesRegex(ValueError, r"`dimension`.+univariate model"):
+                Leaspy(f"univariate_{name}", dimension=42)
+            with self.assertRaisesRegex(ValueError, r"`source_dimension`.+univariate model"):
+                Leaspy(f"univariate_{name}", source_dimension=1)
+
         with self.assertRaises(ValueError):
             Leaspy('univariate') # old name
 
     def test_load_hyperparameters(self):
 
         leaspy = self.get_hardcoded_model('logistic_diag_noise')
-        leaspy.model.load_hyperparameters({'source_dimension': 3, 'noise_model': 'bernoulli'})
+        leaspy.model.load_hyperparameters({'source_dimension': 3})
+        leaspy.model.noise_model = 'bernoulli'
 
         self.assertEqual(leaspy.model.source_dimension, 3)
-        self.assertEqual(leaspy.model.noise_model, 'bernoulli')
+        self.assertIsInstance(leaspy.model.noise_model, NOISE_MODELS['bernoulli'])
 
     def test_load_logistic_scalar_noise(self):
         """
@@ -73,7 +85,7 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
         self.assertEqual(leaspy.model.dimension, 4)
         self.assertEqual(leaspy.model.features, ['Y0', 'Y1', 'Y2', 'Y3'])
         self.assertEqual(leaspy.model.source_dimension, 2)
-        self.assertEqual(leaspy.model.noise_model, 'gaussian_scalar')
+        self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
         parameters = {
@@ -86,11 +98,10 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
             "xi_std": 0.2,
             "sources_mean": 0.0,
             "sources_std": 1.0,
-            "noise_std": 0.2
         }
-        for k, v in parameters.items():
-            equality = torch.eq(leaspy.model.parameters[k], torch.tensor(v)).all()
-            self.assertTrue(equality)
+
+        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
+        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.2})
 
         # Test the initialization
         self.assertEqual(leaspy.model.is_initialized, True)
@@ -116,7 +127,7 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
         self.assertEqual(leaspy.model.dimension, 4)
         self.assertEqual(leaspy.model.features, ['Y0', 'Y1', 'Y2', 'Y3'])
         self.assertEqual(leaspy.model.source_dimension, 2)
-        self.assertEqual(leaspy.model.noise_model, 'gaussian_scalar')
+        self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
         parameters = {
@@ -127,13 +138,12 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
             "xi_std": 1.0,
             "sources_mean": 0.0,
             "sources_std": 1.0,
-            "noise_std": 0.1,
             "deltas": [-3, -2.5, -1.0],
             "betas": [[0.1, -0.1], [0.5, -0.3], [0.3, 0.4]],
         }
-        for k, v in parameters.items():
-            equality = torch.eq(leaspy.model.parameters[k], torch.tensor(v)).all()
-            self.assertTrue(equality)
+
+        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
+        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.1})
 
         # Test the initialization
         self.assertEqual(leaspy.model.is_initialized, True)
@@ -159,7 +169,7 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
         self.assertEqual(leaspy.model.dimension, 4)
         self.assertEqual(leaspy.model.features, ['Y0', 'Y1', 'Y2', 'Y3'])
         self.assertEqual(leaspy.model.source_dimension, 2)
-        self.assertEqual(leaspy.model.noise_model, 'gaussian_scalar')
+        self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
         parameters = {
@@ -172,11 +182,10 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
             "xi_std": 0.3,
             "sources_mean": 0.0,
             "sources_std": 1.0,
-            "noise_std": 0.1,
         }
-        for k, v in parameters.items():
-            equality = torch.eq(leaspy.model.parameters[k], torch.tensor(v)).all()
-            self.assertTrue(equality)
+
+        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
+        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.1})
 
         # Test the initialization
         self.assertEqual(leaspy.model.is_initialized, True)
@@ -200,27 +209,31 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
 
         # Test the hyperparameters
         self.assertEqual(leaspy.model.features, ['Y0'])
-        self.assertEqual(leaspy.model.noise_model, 'gaussian_scalar')
+        self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
         parameters = {
-            "g": 1.0,
+            "g": [1.0],
+            "v0": [-2.6265233750364456],
             "tau_mean": 70.0,
             "tau_std": 2.5,
-            "xi_mean": -1.0,
+            "xi_mean": 0.0,
             "xi_std": 0.01,
-            "noise_std": 0.2
+            # never used parameters
+            "betas": [],
+            "sources_mean": 0,
+            "sources_std": 1,
         }
 
-        for k, v in parameters.items():
-            equality = torch.eq(leaspy.model.parameters[k], torch.tensor(v)).all()
-            self.assertTrue(equality)
+        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
+        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.2})
 
         # Test the initialization
         self.assertEqual(leaspy.model.is_initialized, True)
 
         # Test that the model attributes were initialized
-        self.assertIsInstance(leaspy.model._get_attributes(None), torch.Tensor)
+        for attribute in leaspy.model._get_attributes(None):
+            self.assertIsInstance(attribute, torch.FloatTensor)
 
     def test_load_univariate_linear(self):
         """
@@ -234,27 +247,31 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
 
         # Test the hyperparameters
         self.assertEqual(leaspy.model.features, ['Y0'])
-        self.assertEqual(leaspy.model.noise_model, 'gaussian_scalar')
+        self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
         parameters = {
-            "g": 0.5,
+            "g": [0.5],
+            "v0": [-4.0],
             "tau_mean": 78.0,
             "tau_std": 5.0,
-            "xi_mean": -4.0,
+            "xi_mean": 0.0,
             "xi_std": 0.5,
-            "noise_std": 0.15
+            # never used parameters
+            "betas": [],
+            "sources_mean": 0,
+            "sources_std": 1,
         }
 
-        for k, v in parameters.items():
-            equality = torch.eq(leaspy.model.parameters[k], torch.tensor(v)).all()
-            self.assertTrue(equality)
+        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
+        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.15})
 
         # Test the initialization
         self.assertEqual(leaspy.model.is_initialized, True)
 
         # Test that the model attributes were initialized
-        self.assertIsInstance(leaspy.model._get_attributes(None), torch.Tensor)
+        for attribute in leaspy.model._get_attributes(None):
+            self.assertIsInstance(attribute, torch.FloatTensor)
 
     def test_load_save_load(self, *, atol=1e-4):
         """
@@ -271,14 +288,15 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
             with self.subTest(model_path=model_path):
                 self.check_model_consistency(Leaspy.load(model_path), model_path, atol=atol)
 
+    @skip("Backward compatibility with version <= 1.2.0 is not ensured anymore.")
     def test_api_backward_compat_models_saved_before_120_release(self):
 
         data_full = Data.from_csv_file(self.example_data_path)
         data_bin = Data.from_dataframe(round(pd.read_csv(self.example_data_path, index_col=[0,1])))
 
         for model_name, (new_noise_model_kwd, data) in {
-            'logistic_scal_noise': ('gaussian_scalar', data_full),
-            'logistic_diag_noise': ('gaussian_diagonal', data_full),
+            'logistic_scal_noise': (GaussianScalarNoiseModel, data_full),
+            'logistic_diag_noise': (GaussianDiagonalNoiseModel, data_full),
             'logistic_bin': ('bernoulli', data_bin),
         }.items():
 
@@ -289,7 +307,7 @@ class LeaspyTest(LeaspyFitTest_Mixin, ModelFactoryTest_Mixin):
 
                 self.assertFalse(hasattr(lsp.model, 'loss'))
                 self.assertTrue(hasattr(lsp.model, 'noise_model'))
-                self.assertEqual(lsp.model.noise_model, new_noise_model_kwd)
+                self.assertIsInstance(lsp.model.noise_model, new_noise_model_kwd)
 
                 # test api main functions when fitting
 

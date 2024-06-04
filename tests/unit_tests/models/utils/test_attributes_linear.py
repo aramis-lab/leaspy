@@ -12,22 +12,22 @@ class AttributesLinearTest(LeaspyTestCase):
         attributes = LinearAttributes('linear', 5, 1)
         self.assertEqual(attributes.dimension, 5)
         self.assertEqual(attributes.source_dimension, 1)
-        self.assertEqual(attributes.positions, None)
-        self.assertEqual(attributes.velocities, None)
+        for attr_name in ('positions', 'velocities', 'mixing_matrix'):
+            self.assertTrue(isinstance(getattr(attributes, attr_name), torch.FloatTensor))
+            self.assertEqual(len(getattr(attributes, attr_name)), 0)
         self.assertEqual(attributes.orthonormal_basis, None)
-        self.assertEqual(attributes.mixing_matrix, None)
         self.assertEqual(attributes.name, 'linear')
-        self.assertEqual(attributes.update_possibilities, ('all', 'g', 'v0', 'v0_collinear', 'betas'))
+        self.assertEqual(attributes.update_possibilities, {'all', 'g', 'v0', 'v0_collinear', 'betas'})
         self.assertRaises(ValueError, LinearAttributes, 'name', '4', 3.2)  # with bad type arguments
         self.assertRaises(TypeError, LinearAttributes)  # without argument
 
     def test_check_names(self):
         """Test if raise a ValueError if wrong arg"""
-        wrong_arg_exemples = ['blabla1', 3.8, None]
-        # for wrong_arg in wrong_arg_exemples:
-        #     self.assertRaises(ValueError, attributes._check_names, wrong_arg)
+        wrong_arg_examples = {'blabla1', 3.8, None}
         attributes = LinearAttributes('linear', 4, 2)
-        self.assertRaises(ValueError, attributes._check_names, wrong_arg_exemples)
+        for wrong_arg in wrong_arg_examples:
+            self.assertRaises(ValueError, attributes._check_names, {wrong_arg})
+        self.assertRaises(ValueError, attributes._check_names, wrong_arg_examples)
 
     def check_values_and_get_dimensions(self, values):
         dimension = len(values['g'])
@@ -39,7 +39,7 @@ class AttributesLinearTest(LeaspyTestCase):
 
     def test_compute_orthonormal_basis(self):
         """Test the orthonormality condition"""
-        names = ['all']
+        names = {'all'}
         values = {
             'g': torch.tensor([0.]*4),
             'v0': torch.tensor([-3., 1, 0, -1]), # as for logistic (too high v0values [exp'd] implies a precision a bit coarser)
@@ -65,7 +65,7 @@ class AttributesLinearTest(LeaspyTestCase):
 
     def test_mixing_matrix_utils(self):
         """Test the orthogonality condition"""
-        names = ['all']
+        names = {'all'}
         values = {
             'g': torch.tensor([0.]*4),
             'v0': torch.tensor([-3., 1, 0, -1]),
@@ -94,7 +94,7 @@ class AttributesLinearTest(LeaspyTestCase):
         dimension, source_dimension = self.check_values_and_get_dimensions(values)
 
         attributes = LinearAttributes('linear', dimension, source_dimension)
-        attributes.update(['all'], values)
+        attributes.update({'all'}, values)
 
         old_velocities = attributes.velocities
         old_BON = attributes.orthonormal_basis
@@ -107,7 +107,7 @@ class AttributesLinearTest(LeaspyTestCase):
         # shift v0 (log of velocities), so the resulting v0 should be collinear to previous one
         # and so the orthonormal basis should be the same!
         new_v0 = values['v0'] - 0.3
-        attributes.update(['v0'], {'v0': new_v0})
+        attributes.update({'v0'}, {'v0': new_v0})
         new_velocities = attributes.velocities
         new_BON = attributes.orthonormal_basis
         new_A = attributes.mixing_matrix
@@ -135,7 +135,7 @@ class AttributesLinearTest(LeaspyTestCase):
         dimension, source_dimension = self.check_values_and_get_dimensions(values)
 
         attributes = LinearAttributes('linear', dimension, source_dimension)
-        attributes.update(['all'], values)
+        attributes.update({'all'}, values)
 
         old_velocities = attributes.velocities
         old_BON = attributes.orthonormal_basis
@@ -144,7 +144,7 @@ class AttributesLinearTest(LeaspyTestCase):
         # shift v0 (log of velocities), so the resulting v0 should be collinear to previous one
         # and so the orthonormal basis should be the same!
         new_v0 = values['v0'] - 0.3
-        attributes.update(['v0_collinear'], {'v0': new_v0})
+        attributes.update({'v0_collinear'}, {'v0': new_v0})
         new_velocities = attributes.velocities
         new_BON = attributes.orthonormal_basis
         new_A = attributes.mixing_matrix
@@ -158,6 +158,6 @@ class AttributesLinearTest(LeaspyTestCase):
         self.assertEqual(id(old_A), id(new_A))
 
         # consistency when changing betas
-        attributes.update(['betas'], {'betas': values['betas']+0.1})
+        attributes.update({'betas'}, {'betas': values['betas']+0.1})
         self.assertEqual(id(old_BON), id(attributes.orthonormal_basis))  # not recomputed BON
         self.assertFalse(torch.allclose(old_A, attributes.mixing_matrix))

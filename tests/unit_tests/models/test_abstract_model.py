@@ -3,7 +3,7 @@ import torch
 
 from leaspy import AlgorithmSettings, Leaspy
 from leaspy.models.abstract_model import AbstractModel
-from leaspy.models.model_factory import ModelFactory
+from leaspy.models.factory import ModelFactory
 
 from tests import LeaspyTestCase
 
@@ -15,20 +15,25 @@ class AbstractModelTest(LeaspyTestCase):
         """
         Test initialization of abstract model class object.
         """
-        model = AbstractModel("dummy_abstractmodel")
+        model = AbstractModel("dummy_abstractmodel", noise_model='gaussian-scalar')
         self.assertFalse(model.is_initialized)
         self.assertEqual(model.name, "dummy_abstractmodel")
         self.assertEqual(model.parameters, None)
         #self.assertIs(model.regularization_distribution_factory, torch.distributions.normal.Normal)  # removed
 
         # Test the presence of all these essential methods
-        main_methods = ['load_parameters', 'compute_sum_squared_tensorized',
-                        'compute_individual_attachment_tensorized',
-                        'update_model_parameters_burn_in', 'update_model_parameters_normal',
-                        'get_population_realization_names', 'get_individual_realization_names',
-                        'compute_regularity_realization', 'compute_regularity_variable', 'initialize_realizations_for_model',
-                        'compute_individual_ages_from_biomarker_values',
-                        'compute_individual_ages_from_biomarker_values_tensorized']
+        main_methods = (
+            "load_parameters",
+            "compute_individual_attachment_tensorized",
+            "update_model_parameters_burn_in",
+            "update_model_parameters_normal",
+            "get_population_variable_names",
+            "get_individual_variable_names",
+            "compute_regularity_realization",
+            "compute_regularity_variable",
+            "compute_individual_ages_from_biomarker_values",
+            "compute_individual_ages_from_biomarker_values_tensorized",
+        )
 
         present_attributes = [_ for _ in dir(model) if _[:2] != '__']  # Get the present method
 
@@ -43,23 +48,23 @@ class AbstractModelTest(LeaspyTestCase):
         """
         leaspy_object = self.get_hardcoded_model('logistic_scalar_noise')
 
-        abstract_model = AbstractModel("dummy_model")
+        abstract_model = AbstractModel("dummy_model", noise_model='gaussian-scalar')
 
         abstract_model.load_parameters(leaspy_object.model.parameters)
 
-        self.assertTrue(torch.equal(abstract_model.parameters['g'],
-                                    torch.tensor([0.5, 1.5, 1.0, 2.0])))
-        self.assertTrue(torch.equal(abstract_model.parameters['v0'],
-                                    torch.tensor([-2.0, -3.5, -3.0, -2.5])))
-        self.assertTrue(torch.equal(abstract_model.parameters['betas'],
-                                    torch.tensor([[0.1, 0.6], [-0.1, 0.4], [0.3, 0.8]])))
-        self.assertTrue(torch.equal(abstract_model.parameters['tau_mean'], torch.tensor(75.2)))
-        self.assertTrue(torch.equal(abstract_model.parameters['tau_std'], torch.tensor(7.1)))
-        self.assertTrue(torch.equal(abstract_model.parameters['xi_mean'], torch.tensor(0.0)))
-        self.assertTrue(torch.equal(abstract_model.parameters['xi_std'], torch.tensor(0.2)))
-        self.assertTrue(torch.equal(abstract_model.parameters['sources_mean'], torch.tensor(0.0)))
-        self.assertTrue(torch.equal(abstract_model.parameters['sources_std'], torch.tensor(1.0)))
-        self.assertTrue(torch.equal(abstract_model.parameters['noise_std'], torch.tensor(0.2)))
+        expected_parameters = {
+            'g': [0.5, 1.5, 1.0, 2.0],
+            'v0': [-2.0, -3.5, -3.0, -2.5],
+            'betas': [[0.1, 0.6], [-0.1, 0.4], [0.3, 0.8]],
+            'tau_mean': 75.2,
+            'tau_std': 7.1,
+            'xi_mean': 0.0,
+            'xi_std': 0.2,
+            'sources_mean': 0.0,
+            'sources_std': 1.0,
+        }
+
+        self.assertDictAlmostEqual(abstract_model.parameters, expected_parameters)
 
     def test_all_model_run(self):
         """

@@ -9,7 +9,15 @@
   ],
   "dimension": 4,
   "source_dimension": 2,
-  "noise_model": "ordinal_ranking",
+  "noise_model": {
+    "name": "ordinal-ranking",
+    "max_levels": {
+      "Y0": 3,
+      "Y1": 4,
+      "Y2": 6,
+      "Y3": 10
+    }
+  },
   "parameters": {
     "g": [
       -3.486751079559326,
@@ -70,7 +78,6 @@
       -0.31743025169964195,
       -13.887484043191488
     ],
-    "log-likelihood": 3157.67529296875,
     "mixing_matrix": [
       [
         0.13247241079807281,

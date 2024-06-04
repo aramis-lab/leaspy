@@ -48,17 +48,17 @@ class Data(Iterable):
         if self.headers is None:
             return None
         return len(self.headers)
-    
+
     @property
     def n_individuals(self) -> int:
         """Number of individuals"""
         return len(self.individuals)
-    
+
     @property
     def n_visits(self) -> int:
         """Total number of visits"""
         return sum(len(indiv.timepoints) for indiv in self.individuals.values())
-    
+
     @property
     def cofactors(self) -> List[FeatureType]:
         """Feature names corresponding to cofactors"""
@@ -68,7 +68,7 @@ class Data(Iterable):
         # for all individuals, so they can be retrieved from any one
         indiv = next(x for x in self.individuals.values())
         return list(indiv.cofactors.keys())
-    
+
     def __getitem__(self, key: Union[int, IDType, slice, List[int], List[IDType]]) -> Union[IndividualData, Data]:
         if isinstance(key, int):
             return self.individuals[self.iter_to_idx[key]]
@@ -128,41 +128,32 @@ class Data(Iterable):
         ------
         :exc:`.LeaspyDataInputError`
         """
-
-        if not (
-            isinstance(df, pd.DataFrame)
-            and isinstance(df.index, pd.Index)
-            and df.index.names == ["ID"]
-            and df.index.notnull().all()
-            and df.index.is_unique
-        ):
-            raise LeaspyDataInputError("You should pass a dataframe whose index ('ID') should "
-                                       "not contain any NaN nor any duplicate.")
-
-        internal_dtype_indices = pd.api.types.infer_dtype(self.iter_to_idx.values())
-        cofactors_dtype_indices = pd.api.types.infer_dtype(df.index)
-        if cofactors_dtype_indices != internal_dtype_indices:
-            raise LeaspyDataInputError(f"The ID type in your cofactors ({cofactors_dtype_indices}) "
-                                       f"is inconsistent with the ID type in Data ({internal_dtype_indices}):\n{df.index}")
-
+        _check_cofactor_index(df)
+        self._check_cofactor_index_is_consistent_with_data_index(df)
+        self._check_no_individual_missing(df)
         internal_indices = pd.Index(self.iter_to_idx.values())
-        missing_individuals = internal_indices.difference(df.index)
-        unknown_individuals = df.index.difference(internal_indices)
-
-        if len(missing_individuals):
-            raise LeaspyDataInputError(f"These individuals are missing: {missing_individuals}")
-        if len(unknown_individuals):
-            warnings.warn(f"These individuals with cofactors are not part of your Data: {unknown_individuals}")
-
         if cofactors is None:
             cofactors = df.columns.tolist()
+        cofactors_dict = df.loc[internal_indices, cofactors].to_dict(orient='index')
+        for subject_name, subject_cofactors in cofactors_dict.items():
+            self.individuals[subject_name].add_cofactors(subject_cofactors)
 
-        # sub-select the individuals & cofactors to look for
-        d_cofactors = df.loc[internal_indices, cofactors].to_dict(orient='index')
+    def _check_cofactor_index_is_consistent_with_data_index(self, df: pd.DataFrame):
+        if (
+            (cofactors_dtype_indices := pd.api.types.infer_dtype(df.index)) !=
+            (internal_dtype_indices := pd.api.types.infer_dtype(self.iter_to_idx.values()))
+        ):
+            raise LeaspyDataInputError(
+                f"The ID type in your cofactors ({cofactors_dtype_indices}) "
+                f"is inconsistent with the ID type in Data ({internal_dtype_indices}):\n{df.index}"
+            )
 
-        # Loop per individual
-        for idx_subj, d_cofactors_subj in d_cofactors.items():
-            self.individuals[idx_subj].add_cofactors(d_cofactors_subj)
+    def _check_no_individual_missing(self, df: pd.DataFrame):
+        internal_indices = pd.Index(self.iter_to_idx.values())
+        if len(missing_individuals := internal_indices.difference(df.index)):
+            raise LeaspyDataInputError(f"These individuals are missing: {missing_individuals}")
+        if len(unknown_individuals := df.index.difference(internal_indices)):
+            warnings.warn(f"These individuals with cofactors are not part of your Data: {unknown_individuals}")
 
     @staticmethod
     def from_csv_file(path: str, **kws) -> Data:
@@ -183,7 +174,12 @@ class Data(Iterable):
         reader = CSVDataReader(path, **kws)
         return Data._from_reader(reader)
 
-    def to_dataframe(self, *, cofactors: Union[List[FeatureType], str, None] = None) -> pd.DataFrame:
+    def to_dataframe(
+        self,
+        *,
+        cofactors: Optional[Union[List[FeatureType], str]] = None,
+        reset_index: bool = True,
+    ) -> pd.DataFrame:
         """
         Convert the Data object to a :class:`pandas.DataFrame`
 
@@ -193,6 +189,8 @@ class Data(Iterable):
             Cofactors to include in the DataFrame.
             If None (default), no cofactors are included.
             If "all", all the available cofactors are included.
+        reset_index : bool (default True)
+            Whether to reset index levels in output.
 
         Returns
         -------
@@ -205,52 +203,45 @@ class Data(Iterable):
         :exc:`.LeaspyDataInputError`
         :exc:`.LeaspyTypeError`
         """
+        cofactors_list = self._validate_cofactors_input(cofactors)
+
+        def get_individual_df(individual_data: IndividualData):
+            ix_tpts = pd.Index(individual_data.timepoints, name='TIME')
+            return pd.DataFrame(individual_data.observations, columns=self.headers, index=ix_tpts)
+
+        df = pd.concat(
+            {
+                individual_data.idx: get_individual_df(individual_data)
+                for individual_data in self.individuals.values()
+            },
+            names=['ID']
+        )
+        for cofactor in cofactors_list:
+            for i in self.individuals.values():
+                individual_slice = pd.IndexSlice[i.idx, :]
+                df.loc[individual_slice, cofactor] = i.cofactors[cofactor]
+        if reset_index:
+            df = df.reset_index()
+
+        return df
+
+    def _validate_cofactors_input(self, cofactors: Optional[Union[List[FeatureType], str]] = None) -> List[FeatureType]:
         if cofactors is None:
-            cofactors_list = []
-        elif isinstance(cofactors, str):
+            return []
+        if isinstance(cofactors, str):
             if cofactors == "all":
-                cofactors_list = self.cofactors
-            else:
-                raise LeaspyDataInputError("Invalid `cofactors` argument value")
-        elif (
+                return self.cofactors
+            raise LeaspyDataInputError("Invalid `cofactors` argument value")
+        if not (
             isinstance(cofactors, list)
             and all(isinstance(c, str) for c in cofactors)
         ):
-            cofactors_list = cofactors
-        else:
             raise LeaspyTypeError("Invalid `cofactors` argument type")
-
-        unknown_cofactors = list(set(cofactors_list) - set(self.cofactors))
-        if len(unknown_cofactors):
-            raise LeaspyDataInputError(f'These cofactors are not part of '
-                                       f'your Data: {unknown_cofactors}')
-
-        # Build the dataframe, one individual at a time
-        def get_individual_block(individual: IndividualData):
-            individual_product = [[individual.idx], individual.timepoints]
-            individual_index = pd.MultiIndex.from_product(individual_product)
-            individual_values = individual.observations
-            return individual_index, individual_values
-
-        index = None
-        values = None
-        for i in self.individuals.values():
-            if index is None:
-                index, values = get_individual_block(i)
-            else:
-                index_i, values_i = get_individual_block(i)
-                index = index.union(index_i, sort=False)
-                values = np.concatenate([values, values_i], axis=0)
-
-        df = pd.DataFrame(data=values, index=index, columns=self.headers)
-        df.index.names = ['ID', 'TIME']
-
-        for cofactor in cofactors_list:
-            for i in self.individuals.values():
-                indiv_slice = pd.IndexSlice[i.idx, :]
-                df.loc[indiv_slice, cofactor] = i.cofactors[cofactor]
-
-        return df.reset_index()
+        if len(unknown_cofactors := list(set(cofactors) - set(self.cofactors))):
+            raise LeaspyDataInputError(
+                f"These cofactors are not part of your Data: {unknown_cofactors}"
+            )
+        return cofactors
 
     @staticmethod
     def from_dataframe(df: pd.DataFrame, **kws) -> Data:
@@ -348,3 +339,17 @@ class Data(Iterable):
             data.iter_to_idx[data.n_individuals - 1] = idx
 
         return data
+
+
+def _check_cofactor_index(df: pd.DataFrame):
+    if not (
+        isinstance(df, pd.DataFrame)
+        and isinstance(df.index, pd.Index)
+        and df.index.names == ["ID"]
+        and df.index.notnull().all()
+        and df.index.is_unique
+    ):
+        raise LeaspyDataInputError(
+            "You should pass a dataframe whose index ('ID') should "
+            "not contain any NaN nor any duplicate."
+        )

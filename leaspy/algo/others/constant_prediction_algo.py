@@ -10,7 +10,7 @@ from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.utils.typing import FeatureType, List
 
 if TYPE_CHECKING:
-    from leaspy.models.constant_model import ConstantModel
+    from leaspy.models.constant import ConstantModel
     from leaspy.io.data.dataset import Dataset
 
 

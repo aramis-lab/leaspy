@@ -2,7 +2,6 @@ import os
 import warnings
 
 import matplotlib as mpl
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 # import matplotlib.backends.backend_pdf
 import numpy as np
@@ -70,7 +69,7 @@ class Plotting:
                 if self.model.dimension is not None:
                     raise LeaspyInputError("Initialize model first please, with a not None dimension")
                 max_colors = self.model.dimension
-            self.color_palette = cm.get_cmap(palette, max_colors)
+            self.color_palette = mpl.colormaps[palette].resampled(max_colors)
 
     def colors(self, at=None):
         """
@@ -96,6 +95,7 @@ class Plotting:
             raise LeaspyInputError("Please initialize the model before plotting")
 
     def _handle_kwargs_begin(self, kwargs, all_features_list = None):
+        """Extract kwargs corresponding to plot information and remove associated keys (in-place)."""
 
         # get features from initialized model if not set
         if all_features_list is None:
@@ -103,24 +103,24 @@ class Plotting:
             all_features_list = self.model.features
 
         # ---- Get requested features (may be a subset)
-        features = kwargs.get('features', all_features_list)
+        features = kwargs.pop('features', all_features_list)
         features_ix = list(map(all_features_list.index, features))
 
         # ---- Colors
-        colors = kwargs.get('color', self.colors(features_ix))
+        colors = kwargs.pop('color', self.colors(features_ix))
         if len(colors) < len(features):
             raise LeaspyInputError(f'Please choose a palette with at least {len(features)} colors.')
         # TODO: reindex default colors if subset of features?
 
         # ---- Labels
-        labels = kwargs.get('labels', features)
+        labels = kwargs.pop('labels', features)
         if len(labels) != len(features):
             raise LeaspyInputError(f'Dimensions mismatch between features ({len(features)}) and labels ({len(labels)}.')
 
         # ---- Ax
-        ax = kwargs.get('ax', None)
+        ax = kwargs.pop('ax', None)
         if ax is None:
-            fig, ax = plt.subplots(1, 1, figsize=kwargs.get('figsize', self.standard_size))
+            fig, ax = plt.subplots(1, 1, figsize=kwargs.pop('figsize', self.standard_size))
 
         # ---- Handle ylim
         if 'logistic' in self.model.name:

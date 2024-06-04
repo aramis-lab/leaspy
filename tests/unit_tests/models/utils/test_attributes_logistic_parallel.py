@@ -11,19 +11,20 @@ class AttributesLogisticParallelTest(LeaspyTestCase):
         attributes = LogisticParallelAttributes('logistic_parallel', 6, 2)
         self.assertEqual(attributes.dimension, 6)
         self.assertEqual(attributes.source_dimension, 2)
-        self.assertEqual(attributes.positions, None)
+        self.assertTrue(hasattr(attributes, 'velocities'))
+        for attr_name in ('positions', 'velocities', 'mixing_matrix'):
+            self.assertTrue(isinstance(getattr(attributes, attr_name), torch.FloatTensor))
+            self.assertEqual(len(getattr(attributes, attr_name)), 0)
         self.assertEqual(attributes.deltas, None)
         self.assertEqual(attributes.orthonormal_basis, None)
-        self.assertEqual(attributes.mixing_matrix, None)
         self.assertEqual(attributes.name, 'logistic_parallel')
-        self.assertEqual(attributes.update_possibilities, ('all', 'g', 'betas', 'deltas'))
-        self.assertFalse(hasattr(attributes, 'velocities'))
+        self.assertEqual(attributes.update_possibilities, {'all', 'g', 'betas', 'deltas'})
         self.assertRaises(ValueError, LogisticParallelAttributes, 'name', '4', 3.2)  # with bad type arguments
         self.assertRaises(TypeError, LogisticParallelAttributes)  # without argument
 
-        self.assertRaises(ValueError, attributes._check_names, ['xi_mean']) # was USELESS so removed
-        self.assertRaises(ValueError, attributes._check_names, ['v0']) # only for multivariate not parallel
-        self.assertRaises(ValueError, attributes._check_names, ['v0_collinear']) # only for multivariate not parallel
+        self.assertRaises(ValueError, attributes._check_names, {'xi_mean'}) # was USELESS so removed
+        self.assertRaises(ValueError, attributes._check_names, {'v0'}) # only for multivariate not parallel
+        self.assertRaises(ValueError, attributes._check_names, {'v0_collinear'}) # only for multivariate not parallel
 
     def check_values_and_get_dimensions(self, values):
         dimension = 1 + len(values['deltas'])
@@ -35,7 +36,7 @@ class AttributesLogisticParallelTest(LeaspyTestCase):
         return dimension, source_dimension
 
     def compute_instance_and_variables(self):
-        names = ['all']
+        names = {'all'}
         values = {
             'g': torch.tensor([0.]),
             'deltas': torch.tensor([-1., 0., 2.]),
@@ -96,7 +97,7 @@ class AttributesLogisticParallelTest(LeaspyTestCase):
         dimension, source_dimension = self.check_values_and_get_dimensions(values)
 
         attributes = LogisticParallelAttributes('logistic_parallel', dimension, source_dimension)
-        attributes.update(['all'], values)
+        attributes.update({'all'}, values)
 
         # shift all possible parameters and check consistence of impact on orthonormal basis / mixing matrix!
         for param, attr_name in (('g','positions'),
@@ -112,7 +113,7 @@ class AttributesLogisticParallelTest(LeaspyTestCase):
             self.assertEqual(old_A.shape, (dimension, source_dimension))
 
             new_v = values[param] + 0.1
-            attributes.update([param], {param: new_v})
+            attributes.update({param}, {param: new_v})
             new_attr = getattr(attributes, attr_name)
             new_BON = attributes.orthonormal_basis
             new_A = attributes.mixing_matrix

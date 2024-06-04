@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from leaspy.io.settings.algorithm_settings import AlgorithmSettings
-from leaspy.models.lme_model import LMEModel
+from leaspy.models.lme import LMEModel
 from leaspy.algo.others.lme_fit import LMEFitAlgorithm
 from leaspy.io.data.data import Data
 from leaspy.io.data.dataset import Dataset
