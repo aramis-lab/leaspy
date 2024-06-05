@@ -7,6 +7,7 @@ default:
     - linux  # arbitrary choice (needs `leaspy_deploy` conda env)
   before_script:
     # <!> do not delete the corresponding env in linux CI machine
+    - source /opt/conda/etc/profile.d/conda.sh
     - conda activate leaspy_deploy
 
 stages:
