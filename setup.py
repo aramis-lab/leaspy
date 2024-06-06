@@ -64,7 +64,6 @@ setup(name="leaspy",
                 'leaspy.algo.simulate',
                 'leaspy.algo.others',
                 'leaspy.algo.utils',
-                'leaspy.algo.utils.samplers',
 
                 'leaspy.datasets',
 
@@ -77,9 +76,12 @@ setup(name="leaspy",
                 'leaspy.io.logs.visualization',
 
                 'leaspy.models',
+                'leaspy.models.noise_models',
                 'leaspy.models.utils',
                 'leaspy.models.utils.attributes',
                 'leaspy.models.utils.initialization',
+
+                'leaspy.samplers',
 
                 'leaspy.utils',
                 ],
