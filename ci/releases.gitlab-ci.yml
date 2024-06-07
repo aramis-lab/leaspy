@@ -9,6 +9,7 @@ default:
     # <!> do not delete the corresponding env in linux CI machine
     - source /opt/conda/etc/profile.d/conda.sh
     - conda activate leaspy_deploy
+    - pip install twine
 
 stages:
   - check           # sanity checks before any release even for dev
