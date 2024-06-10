@@ -11,7 +11,7 @@ password = ${CI_JOB_TOKEN}
 
 [pypi]
 username = __token__
-password = ${PYPI_TOKEN}
+password = ${PYPI_TOKEN_2}
 
 [testpypi]
 username = __token__
