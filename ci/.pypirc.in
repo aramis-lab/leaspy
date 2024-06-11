@@ -15,4 +15,4 @@ password = ${PYPI_TOKEN_2}
 
 [testpypi]
 username = __token__
-password = ${TESTPYPI_TOKEN}
+password = ${TESTPYPI_TOKEN_2}
