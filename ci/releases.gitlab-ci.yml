@@ -13,7 +13,6 @@ default:
 
 stages:
   - check           # sanity checks before any release even for dev
-  - release-dev     # automatic job when relevant (dev / pre public release or check before public release)
   - release-public  # manual job when relevant
   - release-gitlab  # automatic upon completion of previous manual step
 
