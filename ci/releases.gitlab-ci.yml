@@ -13,6 +13,7 @@ default:
 
 stages:
   - check           # sanity checks before any release even for dev
+  - release-dev     # automatic job when relevant (dev / pre public release or check before public release)
   - release-public  # manual job when relevant
   - release-gitlab  # automatic upon completion of previous manual step
 
@@ -89,6 +90,15 @@ prepare_changelog:
     - python setup.py sdist bdist_wheel
     # push on registries thanks to `twine` (installed in `leaspy_deploy` environment)
     - for pypi_repo in $PYPI_REPOSITORIES; do python -m twine upload --verbose --config-file .pypirc --repository $pypi_repo dist/*; done
+
+# When tagged: automatically publish package in Gitlab Package Registry & TestPyPI (for dev pkg & test before official)
+pypi_dev:
+  stage: release-dev
+  extends:
+    - .pypi_publish
+    - .dev_release_condition
+  variables:
+    PYPI_REPOSITORIES: $PYPI_REPOSITORIES_DEV
 
 # Manually publish on official PyPI index
 pypi_public:
