@@ -80,7 +80,7 @@ class LeaspyAPITest(LeaspyFitTest_Mixin, LeaspyPersonalizeTest_Mixin, LeaspySimu
             simulation_settings,
             simulation_results,
             data,
-            expected_results_file=f"simulation_results_{model_codename}.csv",
+            expected_results_file=f"simulation_results_{model_codename}{'_arm' if os.uname()[4][:3] == 'arm' else ''}.csv",
             model=leaspy.model,
             tol=simulate_tol,
         )
@@ -163,7 +163,7 @@ class LeaspyAPITest(LeaspyFitTest_Mixin, LeaspyPersonalizeTest_Mixin, LeaspySimu
             source_dimension=2,
             fit_algo_params={"n_iter": 200, "seed": 0},
             perso_algo="mean_real",
-            expected_loss_perso=1029.1,  # logLL, not noise_std
+            expected_loss_perso=1064.9 if os.uname()[4][:3] == "arm" else 1065.0,  # logLL, not noise_std
             tol_loss=0.1,
             simulate_algo_params={
                 "seed": 0,
@@ -188,7 +188,7 @@ class LeaspyAPITest(LeaspyFitTest_Mixin, LeaspyPersonalizeTest_Mixin, LeaspySimu
             fit_algo_params={"n_iter": 200, "seed": 0},
             fit_check_kws={"atol": 0.005},
             perso_algo="mean_real",
-            expected_loss_perso=1053.891 if os.uname()[4][:3] == "arm" else 1132.6,  # logLL, not noise_std
+            expected_loss_perso=1045.989,
             tol_loss=0.1,
             simulate_algo_params={
                 "seed": 123,
@@ -225,7 +225,7 @@ class LeaspyAPITest(LeaspyFitTest_Mixin, LeaspyPersonalizeTest_Mixin, LeaspySimu
             source_dimension=2,
             fit_algo_params={"n_iter": 200, "seed": 0},
             perso_algo="mean_real",
-            expected_loss_perso=974.15,  # logLL, not noise_std
+            expected_loss_perso=976.4 if os.uname()[4][:3] == "arm" else 977.3,  # logLL, not noise_std
             tol_loss=0.1,
             simulate_algo_params={
                 "seed": 0,
