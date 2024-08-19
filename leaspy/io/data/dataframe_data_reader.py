@@ -89,14 +89,16 @@ class DataframeDataReader:
     def _check_TIME(cls, s: pd.Series) -> None:
         """Check requirements on timepoints."""
         if not cls._check_numeric_type(s):
-            raise LeaspyDataInputError(f'The `TIME` column should contain numeric values (not {s.dtype}).')
+            raise LeaspyDataInputError(f"The `TIME` column should contain numeric values (not {s.dtype}).")
 
-        with pd.option_context('mode.use_inf_as_null', True):
-            if s.isna().any():
-                individuals_with_at_least_1_bad_tpt = s.isna().groupby('ID').any()
-                individuals_with_at_least_1_bad_tpt = individuals_with_at_least_1_bad_tpt[individuals_with_at_least_1_bad_tpt].index.tolist()
-                raise LeaspyDataInputError('The `TIME` column should NOT contain any nan nor inf, '
-                                           f'please double check these individuals:\n{individuals_with_at_least_1_bad_tpt}.')
+        s.replace([np.inf, -np.inf], np.nan, inplace=True)
+        if s.isna().any():
+            individuals_with_at_least_1_bad_tpt = s.isna().groupby("ID").any()
+            individuals_with_at_least_1_bad_tpt = individuals_with_at_least_1_bad_tpt[individuals_with_at_least_1_bad_tpt].index.tolist()
+            raise LeaspyDataInputError(
+                "The `TIME` column should NOT contain any nan nor inf, "
+                f"please double check these individuals:\n{individuals_with_at_least_1_bad_tpt}."
+            )
 
     @classmethod
     def _check_features(cls, df: pd.DataFrame, *, warn_empty_column: bool) -> pd.DataFrame:
