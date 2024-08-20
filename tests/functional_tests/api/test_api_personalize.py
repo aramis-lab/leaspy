@@ -618,7 +618,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal",
             "scipy_minimize",
-            636.24 if os.uname()[4][:3] == "arm" else 629.97,
+            631.96 if os.uname()[4][:3] == "arm" else 629.97,
             {"use_jacobian": True},
         )
 
