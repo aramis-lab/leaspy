@@ -492,7 +492,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         # TODO/WIP: change this really dirty stuff (hardcoded...)
         # transformation is needed because of current `IndividualParameters` expectations... --> change them
         return {
-            k: v.item() if k != 'sources' else v.detach().squeeze(0).tolist()
+            k: v.detach().squeeze(0).tolist()
             for k, v in individual_params_tensorized.items()
         }
 
@@ -530,11 +530,19 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         import pandas as pd
         assert pd.api.types.is_string_dtype(df.index.dtypes["ID"]), "Individuals ID should be strings"
 
+        if "joint" in model.name:
+            data_type = 'joint'
+            factory_kws = {'nb_events': model.nb_events}
+        else:
+            data_type = 'visit'
+            factory_kws = {}
+
         data = Data.from_dataframe(
             df,
             drop_full_nan=False,
             warn_empty_column=False,
-            data_type="joint" if "joint" in model.name else "visit",
+            data_type=data_type,
+            factory_kws = factory_kws,
         )
 
         datasets = {

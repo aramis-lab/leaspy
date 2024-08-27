@@ -7,12 +7,14 @@ from .lme import LMEModel
 from .multivariate import MultivariateModel, LogisticMultivariateModel, LinearMultivariateModel
 from .multivariate_parallel import MultivariateParallelModel
 from .univariate_joint import UnivariateJointModel
+from .joint import JointModel
 from .univariate import LinearUnivariateModel, LogisticUnivariateModel
 
 
 # flexible dictionary to have a simpler and more maintainable ModelFactory
 ALL_MODELS = {
     "univariate_joint": UnivariateJointModel,
+    "joint": JointModel,
     "univariate_logistic": LogisticUnivariateModel,
     "univariate_linear": LinearUnivariateModel,
     "logistic": LogisticMultivariateModel,
@@ -45,4 +47,5 @@ __all__ = [
     "LinearUnivariateModel",
     "LogisticUnivariateModel",
     "UnivariateJointModel",
+    "JointModel",
 ]

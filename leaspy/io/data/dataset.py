@@ -9,6 +9,7 @@ import warnings
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import discrete_sf_from_pdf
 from leaspy.utils.typing import KwargsType
+from leaspy.io.data.individual_data import IndividualData
 
 if TYPE_CHECKING:
     from leaspy.io.data.data import Data
@@ -165,8 +166,8 @@ class Dataset:
             self.timepoints[i, 0:nb_vis] = torch.tensor(data[i].timepoints)
 
     def _construct_events(self, data: Data):
-        self.event_time = torch.tensor([_.event_time for _ in data], dtype=torch.double)
-        self.event_bool = torch.tensor([bool(_.event_bool) for _ in data], dtype=torch.int)
+        self.event_time = torch.tensor(np.array([_.event_time for _ in data]), dtype=torch.double)
+        self.event_bool = torch.tensor(np.array([_.event_bool for _ in data]), dtype=torch.bool)
 
     def _compute_L2_norm(self):
         self.L2_norm_per_ft = torch.sum(self.mask.float() * self.values * self.values,
@@ -254,32 +255,26 @@ class Dataset:
         -------
         :class:`pandas.DataFrame`
         """
-        type_to_concat = []
-        if self.event_time != None:
-            to_concat = []
-            for i, idx in enumerate(self.indices):
-                pat_event_time, pat_event_bool = self.get_event_patient(i)
-                df_event = pd.DataFrame(data=[[pat_event_time.cpu().numpy(), pat_event_bool.cpu().numpy()]],
-                                              index=[idx], columns=[self.event_time_name, self.event_bool_name])
-                df_event[self.event_time_name] = df_event[self.event_time_name].astype(float)
-                df_event[self.event_bool_name] = df_event[self.event_bool_name].astype(int)
-                to_concat.append(df_event)
-            df_event = pd.concat(to_concat, names=['ID'])
-            df_event.index.name = "ID"
-            type_to_concat.append(df_event)
+        to_concat = []
 
-        if self.values != None:
-            to_concat = {}
-            for i, idx in enumerate(self.indices):
+        for i, idx in enumerate(self.indices):
+
+            ind_pat = IndividualData(idx)
+
+            if self.event_time != None:
+                pat_event_time, pat_event_bool = self.get_event_patient(i)
+                ind_pat.add_event(pat_event_time.cpu().tolist(),
+                                  pat_event_bool.cpu().tolist())
+
+            if self.values != None:
                 times = self.get_times_patient(i).cpu().numpy()
                 x = self.get_values_patient(i).cpu().numpy()
-                to_concat[idx] = pd.DataFrame(data=x, index=times.reshape(-1), columns=self.headers)
-            type_to_concat.append(pd.concat(to_concat, names=['ID', 'TIME']))
+                ind_pat.add_observations(times, x)
 
-        if len(type_to_concat) == 1:
-            return type_to_concat[0]
-        else:
-            return type_to_concat[1].join(type_to_concat[0])
+            to_concat.append(ind_pat.to_frame(self.headers,
+                                      self.event_time_name,
+                                      self.event_bool_name))
+        return pd.concat(to_concat)
 
     def move_to_device(self, device: torch.device) -> None:
         """

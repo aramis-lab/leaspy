@@ -56,7 +56,7 @@ class MultivariateModel(AbstractMultivariateModel):
     def __init__(self, name: str, variables_to_track: Optional[Iterable[str]] = None, **kwargs):
         super().__init__(name, **kwargs)
 
-        variables_to_track = variables_to_track or (
+        default_variables_to_track = [
             "g",
             "v0",
             "noise_std",
@@ -68,8 +68,15 @@ class MultivariateModel(AbstractMultivariateModel):
             "nll_regul_log_g",
             "nll_regul_log_v0",
             "xi",
-            "tau"
-        )
+            "tau",
+            "nll_regul_pop_sum",
+            "nll_regul_all_sum",
+            "nll_tot"]
+
+        if self.source_dimension:
+            default_variables_to_track += ['sources', 'betas', 'mixing_matrix', 'space_shifts']
+
+        variables_to_track = variables_to_track or default_variables_to_track
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
     """

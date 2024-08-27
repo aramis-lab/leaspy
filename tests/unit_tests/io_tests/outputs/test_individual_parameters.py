@@ -19,10 +19,10 @@ class IndividualParametersTest(LeaspyTestCase):
         super().setUpClass()
 
         cls.indices = ['idx1', 'idx2', 'idx3']
-        cls.p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
-        cls.p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
-        cls.p3 = {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]}
-        cls.parameters_shape = {"xi": (), "tau": (), "sources": (2,)}
+        cls.p1 = {"xi": [0.1], "tau": [70], "sources": [0.1, -0.3]}
+        cls.p2 = {"xi": [0.2], "tau": [73], "sources": [-0.4, 0.1]}
+        cls.p3 = {"xi": [0.3], "tau": [58], "sources": [-0.6, 0.2]}
+        cls.parameters_shape = {"xi": (1,), "tau": (1,), "sources": (2,)}
         cls.individual_parameters = {"idx1": cls.p1, "idx2": cls.p2, "idx3": cls.p3}
 
         ip = IndividualParameters()
@@ -55,9 +55,9 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_individual_parameters(self):
 
         ip = IndividualParameters()
-        p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
-        p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
-        p3 = {"xi": 0.3, "tau": 58, "sources": [-0.6, 0.2]}
+        p1 = {"xi": [0.1], "tau": [70], "sources": [0.1, -0.3]}
+        p2 = {"xi": [0.2], "tau": [73], "sources": [-0.4, 0.1]}
+        p3 = {"xi": [0.3], "tau": [58], "sources": [-0.6, 0.2]}
 
         ip.add_individual_parameters("idx1", p1)
         ip.add_individual_parameters("idx2", p2)
@@ -71,26 +71,26 @@ class IndividualParametersTest(LeaspyTestCase):
             ip.add_individual_parameters(1, p1)
         ## test fail expect scalar
         with self.assertRaises(ValueError):
-            ip.add_individual_parameters('tau_list', {'tau': [0.2], 'xi': .1, 'sources': [0,0]})
+            ip.add_individual_parameters('tau_not_list', {'tau': 0.2, 'xi': [.1], 'sources': [0,0]})
         ## test fail missing key
         with self.assertRaises(ValueError):
-            ip.add_individual_parameters('no_xi', {'tau': 0.2, 'sources': [0,0]})
+            ip.add_individual_parameters('no_xi', {'tau': [0.2], 'sources': [0,0]})
 
         self.assertEqual(ip._indices, ["idx1", "idx2", "idx3"])
         self.assertEqual(ip._indices, list(ip._individual_parameters.keys())) # TODO: delete indices? as they should be dict keys
         self.assertEqual(ip._individual_parameters, {"idx1": p1, "idx2": p2, "idx3": p3})
-        self.assertEqual(ip._parameters_shape, {"xi": (), "tau": (), "sources": (2,)})
+        self.assertEqual(ip._parameters_shape, {"xi": (1,), "tau": (1,), "sources": (2,)})
         self.assertEqual(ip._parameters_size, {"xi": 1, "tau": 1, "sources": 2})
 
         ### test with 1 source only (previous bug)
         ip1 = IndividualParameters()
 
-        src1 = {'tau': 73, 'xi': .1, 'sources': [0.14]}
+        src1 = {'tau': [73], 'xi': [.1], 'sources': [0.14]}
 
         ip1.add_individual_parameters('id1', src1)
         ip1.add_individual_parameters('id2', src1)
 
-        self.assertEqual(ip1._parameters_shape, {"xi": (), "tau": (), "sources": (1,)})
+        self.assertEqual(ip1._parameters_shape, {"xi": (1,), "tau": (1,), "sources": (1,)})
         self.assertEqual(ip1._parameters_size, {"xi": 1, "tau": 1, "sources": 1})
 
         ## test fail compat nb sources 1 != 2
@@ -106,8 +106,8 @@ class IndividualParametersTest(LeaspyTestCase):
     def test_get_item(self):
         ip = IndividualParameters()
 
-        p1 = {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}
-        p2 = {"xi": 0.2, "tau": 73, "sources": [-0.4, 0.1]}
+        p1 = {"xi": [0.1], "tau": [70], "sources": [0.1, -0.3]}
+        p2 = {"xi": [0.2], "tau": [73], "sources": [-0.4, 0.1]}
 
         ip.add_individual_parameters("idx1", p1)
         ip.add_individual_parameters("idx2", p2)
@@ -129,8 +129,8 @@ class IndividualParametersTest(LeaspyTestCase):
 
         ip = self.ip
 
-        self.assertAlmostEqual(ip.get_mean('xi'), 0.2, delta=10e-10)
-        self.assertAlmostEqual(ip.get_mean('tau'), 67., delta=10e-10)
+        self.assertAlmostEqual(ip.get_mean('xi')[0], 0.2, delta=10e-10)
+        self.assertAlmostEqual(ip.get_mean('tau')[0], 67., delta=10e-10)
         ss = ip.get_mean('sources')
         self.assertEqual(len(ss), 2)
         self.assertEqual(type(ss), list)
@@ -141,8 +141,8 @@ class IndividualParametersTest(LeaspyTestCase):
 
         ip = self.ip
 
-        self.assertAlmostEqual(ip.get_std('xi'), 0.0816496580927726, delta=10e-10)
-        self.assertAlmostEqual(ip.get_std('tau'), 6.48074069840786, delta=10e-10)
+        self.assertAlmostEqual(ip.get_std('xi')[0], 0.0816496580927726, delta=10e-10)
+        self.assertAlmostEqual(ip.get_std('tau')[0], 6.48074069840786, delta=10e-10)
         ss = ip.get_std('sources')
         self.assertEqual(len(ss), 2)
         self.assertEqual(type(ss), list)
@@ -164,7 +164,9 @@ class IndividualParametersTest(LeaspyTestCase):
         ip = IndividualParameters.from_dataframe(self.ip_df)
 
         self.assertEqual(ip._indices, self.indices)
+        print(ip._individual_parameters)
         self.assertEqual(ip._individual_parameters, self.individual_parameters)
+
         self.assertEqual(ip._parameters_shape, self.parameters_shape)
 
     def test_to_from_dataframe(self):
@@ -203,6 +205,7 @@ class IndividualParametersTest(LeaspyTestCase):
 
         self.assertEqual(ip._indices, self.indices)
         self.assertEqual(ip._individual_parameters.keys(), self.individual_parameters.keys())
+        print(ip._parameters_shape)
         self.assertDictEqual(ip._parameters_shape, self.parameters_shape)
         for k, v in self.individual_parameters.items():
             for kk, vv in self.individual_parameters[k].items():

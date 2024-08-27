@@ -313,7 +313,7 @@ class IndividualParameters:
         # Get the column names
         final_names = ['ID']
         for p_name, p_shape in self._parameters_shape.items():
-            if p_shape == ():
+            if p_shape == (1,) and "source" not in p_name:
                 final_names.append(p_name)
             else:
                 final_names += [p_name+'_'+str(i) for i in range(p_shape[0])] # 1D array only...
@@ -354,7 +354,7 @@ class IndividualParameters:
         ip = IndividualParameters()
 
         for idx, row in df.iterrows():
-            i_d = {param: row[col].tolist() if isinstance(col, list) else row[col]
+            i_d = {param: np.array(row[col].tolist()) if isinstance(col, list) else np.array([row[col]])
                    for param, col in final_names.items()}
             ip.add_individual_parameters(idx, i_d)
 
@@ -402,7 +402,6 @@ class IndividualParameters:
 
         for i, idx in enumerate(indices):
             p = {k: dict_pytorch[k][i].tolist() for k in keys}
-            p = {k: v[0] if len(v) == 1 and k != 'sources' else v for k, v in p.items()}
 
             ip.add_individual_parameters(idx, p)
 

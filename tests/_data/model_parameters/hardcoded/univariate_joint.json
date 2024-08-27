@@ -43,5 +43,6 @@
     "nll_regul_ind_sum": 86.71553702360309,
     "nll_tot": 135.28891325574773
   },
-  "source_dimension": 0
+  "source_dimension": 0,
+  "nb_events": 1
 }

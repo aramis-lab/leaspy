@@ -1,8 +1,8 @@
 from bisect import bisect
 
 import numpy as np
-
-from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
+import pandas as pd
+from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError, LeaspyInputError
 from leaspy.utils.typing import Any, Dict, FeatureType, IDType, List
 
 
@@ -36,8 +36,8 @@ class IndividualData:
         self.idx: IDType = idx
         self.timepoints: np.ndarray = None
         self.observations: np.ndarray = None
-        self.event_time: float = None
-        self.event_bool: Optional[int] = None
+        self.event_time: Optional[np.ndarray] = None
+        self.event_bool: Optional[np.ndarray] = None
         self.cofactors: Dict[FeatureType, Any] = {}
 
     def add_observations(self, timepoints: List[float], observations: List[List[float]]) -> None:
@@ -75,7 +75,7 @@ class IndividualData:
                     self.observations[index:]
                 ])
 
-    def add_event(self, event_time: float, event_bool: bool) -> None:
+    def add_event(self, event_time: List[float], event_bool: List[bool]) -> None:
         """
         Include event time and associated censoring bool
 
@@ -87,8 +87,8 @@ class IndividualData:
             0 if censored (not observed) and 1 if observed
 
         """
-        self.event_time = event_time
-        self.event_bool = event_bool
+        self.event_time = np.array(event_time)
+        self.event_bool = np.array(event_bool)
 
     def add_cofactors(self, cofactors: Dict[FeatureType, Any]) -> None:
         """
@@ -118,3 +118,46 @@ class IndividualData:
                     f"{cofactor_value} that you are trying to set."
                 )
             self.cofactors[cofactor_name] = cofactor_value
+
+    def to_frame(self, headers: list, event_time_name: str, event_bool_name: str) -> pd.DataFrame:
+        type_to_concat = []
+        if self.observations is not None:
+            ix_tpts = pd.MultiIndex.from_product([[self.idx], self.timepoints],
+                                                 names=["ID", "TIME"])
+            type_to_concat.append(pd.DataFrame(self.observations,
+                                               columns=headers,
+                                               index=ix_tpts))
+        if self.event_time is not None:
+            df_event = self._event_to_frame(event_time_name, event_bool_name)
+            type_to_concat.append(df_event)
+
+        # TODO: add cofactors
+
+        if len(type_to_concat) == 1:
+            return type_to_concat[0]
+        else:
+            return type_to_concat[1].join(type_to_concat[0])
+
+    def _event_to_frame(self, event_time_name: str, event_bool_name: str) -> pd.DataFrame:
+        ix_tpts = pd.Index([self.idx], name='ID')
+        if len(np.unique(self.event_time)) != 1:
+            raise LeaspyInputError(
+                f"Individual {self.idx} has multiple time at event only one is accepted")
+
+        if self.event_bool.sum() == 1:
+            event_coded = np.where(self.event_bool == True)[0][0]
+            event_bool = event_coded + 1
+        elif self.event_bool.sum() == 0:
+            event_bool = 0
+        else:
+            raise LeaspyInputError(
+                f"Individual {self.idx} should contain maximum one observed event")
+
+        df_event = pd.DataFrame(data=[[self.event_time[0], event_bool]],
+                                index=ix_tpts,
+                                columns=[event_time_name, event_bool_name])
+        df_event[event_time_name] = df_event[event_time_name].astype(float)
+        df_event[event_bool_name] = df_event[event_bool_name].astype(int)
+        return df_event
+
+

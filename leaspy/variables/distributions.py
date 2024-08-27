@@ -359,6 +359,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
+    precision = 0.0001
 
     @classmethod
     def validate_parameters(cls, *params: Any) -> Tuple[torch.Tensor, ...]:
@@ -430,11 +431,11 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         torch.Tensor :
             The value of the distribution's mean.
         """
-        return cls.dist_weibull(cls._get_reparametrized_nu(nu, xi), rho).mean + tau
+        return cls.dist_weibull(cls._extract_reparametrized_nu(nu, xi), rho).mean + tau
 
     @staticmethod
     @abstractmethod
-    def _get_reparametrized_nu(nu: torch.Tensor, xi: torch.Tensor) -> torch.Tensor:
+    def _extract_reparametrized_nu(nu: torch.Tensor, xi: torch.Tensor) -> torch.Tensor:
         """Reparametrization of nu using individual parameter xi."""
 
     @classmethod
@@ -460,7 +461,23 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         torch.Tensor :
             The value of the distribution's standard deviation.
         """
-        return cls.dist_weibull(cls._get_reparametrized_nu(nu, xi), rho).stddev
+        return cls.dist_weibull(cls._extract_reparametrized_nu(nu,rho,xi,tau), rho).stddev
+
+    @classmethod
+    def _extract_reparametrized_parameters(
+            cls,
+            x: WeightedTensor,
+            nu: torch.Tensor,
+            rho: torch.Tensor,
+            xi: torch.Tensor,
+            tau: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        
+        # Construct reparametrized variables
+        event_reparametrized_time = cls._extract_reparametrized_event(x.value, tau)
+        nu_reparametrized = cls._extract_reparametrized_nu(nu,rho,xi,tau, *params)
+        return event_reparametrized_time, x.weight, nu_reparametrized
 
     @classmethod
     def compute_log_likelihood_hazard(
@@ -470,10 +487,9 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
+        *params: torch.Tensor,
     ) -> torch.Tensor:
-        event_reparametrized_time, event_bool, nu_reparametrized = cls._extract_reparametrized_parameters(
-            x, nu, xi, tau,
-        )
+        event_reparametrized_time, event_bool, nu_reparametrized = cls._extract_reparametrized_parameters(x, nu, rho, xi, tau, *params)
         # Hazard neg log-likelihood only for patient with event not censored
         hazard = torch.where(
             event_reparametrized_time > 0,
@@ -481,51 +497,116 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
             -constants.INFINITY
         )
         log_hazard = torch.where(hazard > 0, torch.log(hazard), hazard)
-        log_hazard = torch.where(event_bool != 0, log_hazard, torch.tensor(0., dtype=torch.double))
+        log_hazard = torch.where(event_bool != 0, log_hazard, 0.)
         return log_hazard
 
     @classmethod
-    def _extract_reparametrized_parameters(
-        cls,
-        x: WeightedTensor,
-        nu: torch.Tensor,
-        xi: torch.Tensor,
-        tau: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        event_reparametrized_time = cls._get_reparametrized_event(x.value, tau[:, 0])
-        nu_reparametrized = cls._get_reparametrized_nu(nu, xi[:, 0])
-        return event_reparametrized_time, x.weight, nu_reparametrized
-
-    @staticmethod
-    def _get_reparametrized_event(event_time: torch.Tensor, tau: torch.Tensor) -> torch.Tensor:
-        return event_time - tau
+    def compute_hazard(
+            cls,
+            x: WeightedTensor,
+            nu: torch.Tensor,
+            rho: torch.Tensor,
+            xi: torch.Tensor,
+            tau: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> torch.Tensor:
+        event_reparametrized_time, _, nu_reparametrized = cls._extract_reparametrized_parameters(x, nu, rho, xi, tau, *params)
+        # Hazard neg log-likelihood only for patient with event not censored
+        hazard = torch.where(
+            event_reparametrized_time > 0,
+            (rho / nu_reparametrized) * ((event_reparametrized_time / nu_reparametrized) ** (rho - 1.)),
+            0.
+        )
+        return hazard
 
     @classmethod
     def compute_log_survival(
-        cls,
-        x: WeightedTensor,
-        nu: torch.Tensor,
-        rho: torch.Tensor,
-        xi: torch.Tensor,
-        tau: torch.Tensor,
+            cls,
+            x: torch.Tensor,
+            nu: torch.Tensor,
+            rho: torch.Tensor,
+            xi: torch.Tensor,
+            tau: torch.Tensor,
+            *params: torch.Tensor,
     ) -> torch.Tensor:
-        event_reparametrized_time, _, nu_reparametrized = cls._extract_reparametrized_parameters(x, nu, xi, tau)
+        event_reparametrized_time, _, nu_reparametrized = cls._extract_reparametrized_parameters(x, nu, rho, xi, tau, *params)
         return -(torch.clamp(event_reparametrized_time, min=0.) / nu_reparametrized) ** rho
 
     @classmethod
-    def _nll(
-        cls,
-        x: WeightedTensor,
+    def compute_predictions(
+            cls,
+            x: torch.Tensor,
+            nu: torch.Tensor,
+            rho: torch.Tensor,
+            xi: torch.Tensor,
+            tau: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> torch.Tensor:
+        nb_events = nu.shape[0]
+
+        # consider that the first time to predict was the last visit and is a reference point
+        # and compute the survival S0
+        init_log_survival = cls.compute_log_survival(WeightedTensor(x.value.min()), nu, rho, xi, tau, *params)
+        init_survival = torch.exp(init_log_survival.sum(axis=1).expand(nb_events, -1).T)
+
+        if nb_events == 1:
+            # when there is only one event, we are interested in the corrected survival S/S0 (Rizopoulos, 2012, p173)
+            return torch.exp(cls.compute_log_survival(x, nu, rho, xi, tau, *params)) / init_survival
+        else:
+            # When there are multiple event we are interested in the cumulative incidence corrected: CIF/S0
+            # see (Andrinopoulou, 2015)
+            # Compute for all the possible points till the max
+            time = WeightedTensor(
+                torch.arange(float(tau), max(float(tau) + cls.precision, x.value.max()), cls.precision,
+                             dtype=float).expand(nb_events, -1).T)
+            log_survival = cls.compute_log_survival(time, nu, rho, xi, tau, *params)
+            hazard = cls.compute_hazard(time, nu, rho, xi, tau, *params)
+            total_survival = torch.exp(log_survival.sum(axis=1).expand(nb_events, -1).T)
+            incidence = total_survival * hazard
+
+            def get_cum_incidence(t, time_ix, incidence_ix):
+                # t<tau then the result is 0 as survival is defined to be 1
+                index = (time_ix * (time_ix <= t)).argmax() + 1
+                return torch.trapezoid(incidence_ix[:index], time_ix[:index])
+
+            list_to_cat = [
+                torch.clone(x.value).apply_(lambda t: get_cum_incidence(t, time.value.T[i], incidence.T[i])).T for i in
+                range(nb_events)]
+            res = torch.cat(list_to_cat).T
+            return res / init_survival
+
+
+    @staticmethod
+    def _extract_reparametrized_event(event_time: torch.Tensor, tau: torch.Tensor) -> torch.Tensor:
+        return event_time - tau
+
+    @staticmethod
+    @abstractmethod
+    def _extract_reparametrized_nu(
         nu: torch.Tensor,
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
+        *params: torch.Tensor,
+    ) -> torch.Tensor:
+        """Reparametrization of nu using individual parameter xi"""
+
+    @classmethod
+    def _nll(
+        cls, 
+        x: torch.Tensor,
+        nu: torch.Tensor, 
+        rho: torch.Tensor, 
+        xi: torch.Tensor,
+        tau: torch.Tensor, 
+        *params: torch.Tensor, 
     ) -> WeightedTensor:
         """Compute survival neg log-likelihood."""
-        log_survival = cls.compute_log_survival(x, nu, rho, xi, tau)
-        log_hazard = cls.compute_log_likelihood_hazard(x, nu, rho, xi, tau)
+        log_survival = cls.compute_log_survival(x, nu, rho, xi, tau, *params)
+        log_hazard = cls.compute_log_likelihood_hazard(x, nu, rho, xi, tau, *params)
 
         return WeightedTensor(-1 * (log_survival + log_hazard))
+
 
     @classmethod
     def _nll_and_jacobian(
@@ -550,7 +631,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         pass  # WIP
         # Get inputs
         xi_format = xi[:, 0]
-        event_rep_time, event_bool, nu_rep = self._extract_reparametrised_parameters(x, nu, rho, xi, tau)
+        event_rep_time, event_bool, nu_rep = self._extract_reparametrized_parameters(x, nu, rho, xi, tau)
 
         # Survival
         log_survival = cls.compute_log_survival(x, nu, rho, xi, tau)
@@ -575,8 +656,19 @@ class WeibullRightCensoredFamily(AbstractWeibullRightCensoredFamily):
     parameters: ClassVar = ("nu", "rho", 'xi', 'tau')
 
     @staticmethod
-    def _get_reparametrized_nu(nu: torch.Tensor, xi: torch.Tensor) -> torch.Tensor:
+    def _extract_reparametrized_nu(nu: torch.Tensor,
+                               rho: torch.Tensor,
+                               xi: torch.Tensor,
+                               tau: torch.Tensor,
+                               *params:torch.Tensor, ) -> torch.Tensor:
         return torch.exp(-xi) * nu
+
+class WeibullRightCensoredWithSourcesFamily(AbstractWeibullRightCensoredFamily):
+    parameters: ClassVar = ("nu", "rho", 'xi', 'tau', "survival_shifts")
+
+    @staticmethod
+    def _extract_reparametrized_nu(nu, rho, xi, tau, survival_shifts):
+        return nu * torch.exp(-(xi + (1 / rho) * (survival_shifts)))
 
 
 @dataclass(frozen=True)
@@ -762,6 +854,7 @@ Normal = SymbolicDistribution.bound_to(NormalFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
+WeibullRightCensoredWithSources = SymbolicDistribution.bound_to(WeibullRightCensoredWithSourcesFamily)
 
 # INLINE UNIT TESTS
 if __name__ == "__main__":
