@@ -7,24 +7,24 @@
   ],
   "individual_parameters": {
     "idx1": {
-      "xi": 1.1,
-      "tau": 70
+      "xi": [1.1],
+      "tau": [70]
     },
     "idx2": {
-      "xi": 1.2,
-      "tau": 73
+      "xi": [1.2],
+      "tau": [73]
     },
     "idx3": {
-      "xi": 1.3,
-      "tau": 58
+      "xi": [1.3],
+      "tau": [58]
     },
     "idx4": {
-      "xi": -2.5,
-      "tau": 80
+      "xi": [-2.5],
+      "tau": [80]
     }
   },
   "parameters_shape": {
-    "xi": [],
-    "tau": []
+    "xi": [1],
+    "tau": [1]
   }
 }

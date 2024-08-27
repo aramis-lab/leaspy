@@ -1,6 +1,6 @@
 import torch
 
-from leaspy.variables.distributions import WeibullRightCensored
+from leaspy.variables.distributions import WeibullRightCensored, WeibullRightCensoredWithSources
 from leaspy.variables.specs import VariableInterface
 from leaspy.utils.weighted_tensor import WeightedTensor
 from leaspy.utils.weighted_tensor import WeightedTensor, sum_dim
@@ -28,23 +28,7 @@ from leaspy.utils.functional import SumDim
 
 
 
-class WeibullRightCensoredObservationModel(ObservationModel):
-    string_for_json = "weibull-right-censored"
-
-    def __init__(
-            self,
-            nu: VarName,
-            rho: VarName,
-            xi: VarName,
-            tau: VarName,
-            **extra_vars: VariableInterface,
-    ):
-        super().__init__(
-            name="event",
-            getter=self.getter,
-            dist=WeibullRightCensored(nu, rho, xi, tau),
-            extra_vars=extra_vars,
-        )
+class AbstractWeibullRightCensoredObservationModel(ObservationModel):
 
     @staticmethod
     def getter(dataset: Dataset) -> WeightedTensor:
@@ -63,16 +47,30 @@ class WeibullRightCensoredObservationModel(ObservationModel):
 
         specs = super().get_variables_specs(named_attach_vars)
 
-        nll_attach_var = self.get_nll_attach_var_name(
-            named_attach_vars
+        specs[f"predictions_{self.name}"] = LinkedVariable(
+            self.dist.get_func("compute_predictions", self.name)
         )
-        specs[f"{nll_attach_var}_ind"] = LinkedVariable(
-            self.dist.get_func_nll(self.name)
-        )
-        specs[f"survival_{self.name}"] = LinkedVariable(
-            self.dist.get_func("compute_log_survival", self.name)
-        )
+
         return specs
+
+
+class WeibullRightCensoredObservationModel(AbstractWeibullRightCensoredObservationModel):
+    string_for_json = "weibull-right-censored"
+
+    def __init__(
+            self,
+            nu: VarName,
+            rho: VarName,
+            xi: VarName,
+            tau: VarName,
+            **extra_vars: VariableInterface,
+    ):
+        super().__init__(
+            name="event",
+            getter=self.getter,
+            dist=WeibullRightCensored(nu, rho, xi, tau),
+            extra_vars=extra_vars,
+        )
 
     @classmethod
     def default_init(self, **kwargs):
@@ -80,3 +78,30 @@ class WeibullRightCensoredObservationModel(ObservationModel):
                     rho = kwargs.pop("rho", "rho"),
                     xi = kwargs.pop("xi", "xi"),
                     tau = kwargs.pop("tau", "tau"))
+
+class WeibullRightCensoredWithSourcesObservationModel(AbstractWeibullRightCensoredObservationModel):
+    string_for_json = ("weibull-right-censored-with-sources")
+
+    def __init__(
+            self,
+            nu: VarName,
+            rho: VarName,
+            xi: VarName,
+            tau: VarName,
+            survival_shifts: VarName,
+            **extra_vars: VariableInterface,
+    ):
+        super().__init__(
+            name="event",
+            getter=self.getter,
+            dist=WeibullRightCensoredWithSources(nu, rho, xi, tau, survival_shifts),
+            extra_vars=extra_vars,
+        )
+
+    @classmethod
+    def default_init(self, **kwargs):
+        return self(nu = kwargs.pop("nu", "nu"),
+                    rho = kwargs.pop("rho", "rho"),
+                    xi = kwargs.pop("xi", "xi"),
+                    tau = kwargs.pop("tau", "tau"),
+                    survival_shifts=kwargs.pop("survival_shifts", "survival_shifts"))

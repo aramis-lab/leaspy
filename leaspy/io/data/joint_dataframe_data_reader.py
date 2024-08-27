@@ -32,13 +32,17 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
 
     def __init__(self, *,
                  event_time_name: str = 'EVENT_TIME',
-                 event_bool_name: str = 'EVENT_BOOL'):
+                 event_bool_name: str = 'EVENT_BOOL',
+                 nb_events: Optional[int] = None):
 
         super().__init__()
 
         self.visit_reader = VisitDataframeDataReader()
         self.event_reader = EventDataframeDataReader(
-            event_time_name=event_time_name, event_bool_name=event_bool_name)
+            event_time_name=event_time_name,
+            event_bool_name=event_bool_name,
+            nb_events=nb_events,
+    )
 
     ######################################################
     #               JOINT METHODS

@@ -373,7 +373,15 @@ class State(MutableMapping):
 
         if df is not None:
             for ip in vars_order:
-                self[ip] = torch.tensor(df[[ip]].values)
+                if ip in ['tau', 'xi']:
+                    self[ip] = torch.tensor(df[[ip]].values, dtype=torch.double)
+                else:
+                    nb_sources = len(df.columns)-2
+                    list_sources_name = [f"sources_{i}" for i in range(nb_sources)]
+                    if not set(list_sources_name)<=set(df.columns):
+                        raise LeaspyInputError("Please provide only individual parameters columns with sources stored as "
+                                               f"{list_sources_name}")
+                    self['sources'] = torch.tensor(df[list_sources_name].values, dtype=torch.double).float()
         else:
             # for ip, var in self.dag.sorted_variables_by_type[IndividualLatentVariable].items():
             for ip in vars_order:

@@ -301,6 +301,33 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             check_model = True
         )
 
+    def test_fit_joint_no_sources(self):
+        self.generic_fit(
+            "joint",
+            "joint_no_sources",
+            check_kws=DEFAULT_CHECK_KWS,
+            check_model = True
+        )
+
+    def test_fit_joint_diagonal(self):
+        self.generic_fit(
+            "joint",
+            "joint_diagonal",
+            check_kws=DEFAULT_CHECK_KWS,
+            check_model = True,
+            obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
+            source_dimension=2,
+        )
+
+    def test_fit_joint_scalar(self):
+        self.generic_fit(
+            "joint",
+            "joint_scalar",
+            check_kws=DEFAULT_CHECK_KWS,
+            check_model=True,
+            source_dimension = 0
+        )
+
     #@skip("Linear models are currently broken.")
     def test_fit_univariate_linear(self):
         self.generic_fit("univariate_linear", "univariate_linear")

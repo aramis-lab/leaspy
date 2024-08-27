@@ -224,27 +224,10 @@ class Data(Iterable):
         :exc:`.LeaspyTypeError`
         """
         cofactors_list = self._validate_cofactors_input(cofactors)
-
-        def get_individual_df(individual_data: IndividualData):
-            type_to_concat = []
-            if self.dimension:
-                ix_tpts = pd.MultiIndex.from_product([[individual_data.idx], individual_data.timepoints],
-                                                     names=["ID", "TIME"])
-                type_to_concat.append(pd.DataFrame(individual_data.observations,
-                                                   columns=self.headers,
-                                                   index=ix_tpts))
-            if self.event_time_name:
-                ix_tpts = pd.Index([individual_data.idx], name='ID')
-                type_to_concat.append(pd.DataFrame([[individual_data.event_time, individual_data.event_bool]],
-                                                   columns=[self.event_time_name, self.event_bool_name],
-                                                   index=ix_tpts))
-            if len(type_to_concat) == 1:
-                return type_to_concat[0]
-            else:
-                return type_to_concat[1].join(type_to_concat[0])
-
         df = pd.concat(
-            [get_individual_df(individual_data) for individual_data in self.individuals.values()]
+            [individual_data.to_frame(self.headers,
+                                      self.event_time_name,
+                                      self.event_bool_name) for individual_data in self.individuals.values()]
         )
         for cofactor in cofactors_list:
             for i in self.individuals.values():
@@ -408,6 +391,19 @@ class Data(Iterable):
             data.iter_to_idx[data.n_individuals - 1] = idx
 
         return data
+
+    def extract_longitudinal_only(self) -> Data:
+
+        if not self.headers:
+            raise LeaspyDataInputError("You can't extract longitudinal data from data that have none")
+
+        individuals = []
+        for id, individual_data in self.individuals.items():
+            indiv = IndividualData(id)
+            indiv.add_observations(individual_data.timepoints, individual_data.observations)
+            individuals.append(indiv)
+        return Data.from_individuals(individuals, self.headers)
+
 
 
 def _check_cofactor_index(df: pd.DataFrame):

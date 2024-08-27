@@ -86,8 +86,8 @@ class DatasetTest(LeaspyTestCase):
                         [[1.], [1.], [0.], [0.]],
                         [[1.], [1.], [1.], [1.]]])
 
-        event_time = torch.tensor([4., 3., 6.], dtype = torch.double)
-        event_bool = torch.tensor([0, 1, 0], dtype = torch.int)
+        event_time = torch.tensor([[4.], [3.], [6.]], dtype = torch.double)
+        event_bool = torch.tensor([[0], [1],[ 0]], dtype = torch.int)
 
         self.assertTrue(torch.equal(dataset.values, values))
         self.assertTrue(torch.equal(dataset.mask, mask))

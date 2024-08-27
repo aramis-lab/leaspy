@@ -86,10 +86,10 @@ class LoaderTest(LeaspyTestCase):
         individual_parameters = Loader.load_individual_parameters("alzheimer-multivariate")
 
         self.assertAlmostEqual(
-            individual_parameters.get_mean("tau"), 76.9612, delta=1e-4
+            individual_parameters.get_mean("tau")[0], 76.9612, delta=1e-4
         )
         self.assertAlmostEqual(
-            individual_parameters.get_mean("xi"), 0.0629, delta=1e-4
+            individual_parameters.get_mean("xi")[0], 0.0629, delta=1e-4
         )
         self.assertAllClose(
             individual_parameters.get_mean("sources"),

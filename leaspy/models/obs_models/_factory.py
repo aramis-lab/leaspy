@@ -9,7 +9,7 @@ from ._base import ObservationModel
 from ._gaussian import FullGaussianObservationModel
 from ._bernoulli import BernoulliObservationModel
 from ._ordinal import OrdinalObservationModel
-from ._weibull import WeibullRightCensoredObservationModel
+from ._weibull import WeibullRightCensoredObservationModel, WeibullRightCensoredWithSourcesObservationModel
 
 
 class ObservationModelNames(Enum):
@@ -19,6 +19,7 @@ class ObservationModelNames(Enum):
     BERNOULLI = "bernoulli"
     ORDINAL = "ordinal"
     WEIBULL_RIGHT_CENSORED = "weibull-right-censored"
+    WEIBULL_RIGHT_CENSORED_WITH_SOURCES = "weibull-right-censored-with-sources"
 
     @classmethod
     def from_string(cls, model_name: str):
@@ -39,6 +40,7 @@ OBSERVATION_MODELS: Dict[ObservationModelNames, Type[ObservationModel]] = {
     ObservationModelNames.BERNOULLI: BernoulliObservationModel,
     ObservationModelNames.ORDINAL: OrdinalObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED: WeibullRightCensoredObservationModel,
+    ObservationModelNames.WEIBULL_RIGHT_CENSORED_WITH_SOURCES: WeibullRightCensoredWithSourcesObservationModel,
 }
 
 
@@ -82,6 +84,8 @@ def observation_model_factory(model: ObservationModelFactoryInput, **kwargs) -> 
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(1)
         if model == ObservationModelNames.WEIBULL_RIGHT_CENSORED:
             return WeibullRightCensoredObservationModel.default_init(kwargs = kwargs)
+        if model == ObservationModelNames.WEIBULL_RIGHT_CENSORED_WITH_SOURCES:
+            return WeibullRightCensoredWithSourcesObservationModel.default_init(kwargs = kwargs)
         return OBSERVATION_MODELS[model](**kwargs)
     raise LeaspyModelInputError(
         "The provided `model` should be a valid instance of `ObservationModel`, "
