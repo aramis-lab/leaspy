@@ -252,7 +252,7 @@ class JointModel(LogisticMultivariateModel):
         approx_tau = torch.tensor(df_ind['TIME'].values) - self.init_tolerance
 
         for i in range(self.nb_events):
-            wbf = WeibullFitter().fit(dataset.event_time[:, i], # - approx_tau,
+            wbf = WeibullFitter().fit(dataset.event_time[:, i] - approx_tau,
                                       dataset.event_bool[:,i])
             log_rho_mean[i] = torch.log(torch.tensor(wbf.rho_))
             n_log_nu_mean[i] = -torch.log(torch.tensor(wbf.lambda_))

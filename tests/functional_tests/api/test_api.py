@@ -151,7 +151,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             fit_check_kws={"atol": 1e-2, "rtol": 1e-2},
             personalization_algo="mode_real",
             personalization_algo_params={"n_iter": 200, "seed": 0},
-            expected_loss_personalization=0.2589380145072937,  # scalar RMSE
+            expected_loss_personalization=0.08366094529628754,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
