@@ -307,7 +307,7 @@ class PopulationRealization(AbstractRealization):
         **kwargs : KwargsType
             Additional parameters for initialization.
         """
-        self.tensor = model.parameters[self.name].reshape(self.shape)
+        self.tensor = model.parameters[self.name].reshape(self.shape).clone().detach()
 
     def __str__(self):
         s = super().__str__()
