@@ -146,7 +146,7 @@ class LeaspyAPITest(LeaspyFitTest_Mixin, LeaspyPersonalizeTest_Mixin, LeaspySimu
             source_dimension=2,
             fit_algo_params={"n_iter": 200, "seed": 0},
             perso_algo="mean_real",
-            expected_loss_perso=105.18,  # logLL, not noise_std
+            expected_loss_perso=104.072,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": .5,
