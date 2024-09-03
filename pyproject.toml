@@ -71,3 +71,30 @@ path = "leaspy/__init__.py"
 include = [
     "/leaspy",
 ]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+indent-width = 4
+src = ["leaspy", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "I001",
+]
+ignore = ["E203", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["leaspy"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+

@@ -1,0 +1,42 @@
+[[envs.all.matrix]]
+python = ["3.9", "3.10", "3.11"]
+
+[envs.test]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+
+[envs.test.scripts]
+test = "pytest -vv {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report --show-missing",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+
+[envs.lint]
+detached = true
+dependencies = [
+  "ruff>=0.0.166",
+]
+
+[envs.lint.scripts]
+fmt = [
+  "ruff --fix {args:.}",
+]
+
+[envs.docs]
+features = [
+  "docs",
+]
+python = "3.11"
+
+[envs.docs.scripts]
+clean = "rm -rf docs/_build"
+build = "sphinx-build docs/ docs/_build/html {args}"
+serve = "sphinx-autobuild docs/ docs/_build/html {args}"
