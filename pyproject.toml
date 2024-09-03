@@ -10,23 +10,10 @@ readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.9, <3.12"
 authors = [
-    { name = "Igor Koval", email = "igor.koval@inria.fr" },
-    { name = "Raphael Couronne" },
-    { name = "Etienne Maheux" },
-    { name = "Arnaud Valladier" },
-    { name = "Benoit Martin" },
-    { name = "Pierre-Emmanuel Poulet" },
-    { name = "Samuel Gruffaz" },
-    { name = "Cecile Di Folco" },
-    { name = "Juliette Ortholand" },
-    { name = "Mkrtich Vatinyan" },
-    { name = "Benoit Sauty De Chalon" },
-    { name = "Nemo Fournier" },
-    { name = "Quentin Madura" },
-    { name = "Stanley Durrleman" },
+    { name = "AramisLab Research Team" },
 ]
 maintainers = [
-    { name = "Igor Koval", email = "igor.koval@inria.fr" },
+    { name = "Nicolas Gensollen", email = "nicolas.gensollen@inria.fr" },
 ]
 keywords = [
     "leaspy",
@@ -52,7 +39,7 @@ dependencies = [
     "scikit-learn>=1.2.2,<2",
     "scipy>=1.13.1",
     "statsmodels>=0.13.5,<1",
-    "torch>=2.4.0",
+    "torch>=2.2.0",
 ]
 
 [project.optional-dependencies]
@@ -79,11 +66,6 @@ Source = "https://gitlab.com/icm-institute/aramislab/leaspy"
 
 [tool.hatch.version]
 path = "leaspy/__init__.py"
-
-[tool.hatch.build.targets.wheel.shared-data]
-"requirements.txt" = "requirements/requirements.txt"
-"requirements_dev.txt" = "requirements/requirements_dev.txt"
-"docs/requirements.txt" = "requirements/requirements.txt"
 
 [tool.hatch.build.targets.sdist]
 include = [
