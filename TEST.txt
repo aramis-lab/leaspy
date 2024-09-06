@@ -1,1 +1,7 @@
-TEST
+TEST
+
+write down a multivariate mixture model
+
+implement a mixture for all the individual parameters
+
+-- add the omegas in PES's version
