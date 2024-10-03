@@ -356,6 +356,32 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     # def sample(cls, loc, scale, *, sample_shape = ()):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
+class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """Normal / Gaussian family (stateless)."""
+
+    parameters: ClassVar = ("alpha", "beta")
+    dist_factory: ClassVar = torch.distributions.Beta
+
+    @classmethod
+    def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        """
+        Return the mode of the distribution given the distribution's loc and scale parameters.
+
+        Parameters
+        ----------
+        loc : torch.Tensor
+            The distribution loc.
+
+        scale : torch.Tensor
+            The distribution scale.
+
+        Returns
+        -------
+        torch.Tensor :
+            The value of the distribution's mode.
+        """
+        # `loc`, but with possible broadcasting of shape
+        return (alpha - 1)/(alpha + beta -2)
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
