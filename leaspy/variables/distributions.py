@@ -359,11 +359,16 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Normal / Gaussian family (stateless)."""
 
-    parameters: ClassVar = ("alpha", "beta")
+    parameters: ClassVar = ("model", "scale")
     dist_factory: ClassVar = torch.distributions.Beta
 
     @classmethod
-    def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    def get_params(self, model, scale):
+
+        return model.clip(min=0.001, max=0.99)*scale**2, (1-model.clip(min=0.001, max=0.99))*scale**2
+
+    @classmethod
+    def mode(cls, model, scale) -> torch.Tensor:
         """
         Return the mode of the distribution given the distribution's loc and scale parameters.
 
@@ -381,7 +386,95 @@ class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
             The value of the distribution's mode.
         """
         # `loc`, but with possible broadcasting of shape
+        alpha, beta = cls.get_params(model, scale)
         return (alpha - 1)/(alpha + beta -2)
+
+    @classmethod
+    def validate_parameters(cls, model, scale) -> Tuple[torch.Tensor, ...]:
+        """
+        Validate consistency of distribution parameters,
+        returning them with out-of-place modifications if needed.
+
+        Parameters
+        ----------
+        params : Any
+            The parameters to pass to the distribution factory.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, ...] :
+            The validated parameters.
+        """
+        alpha, beta = cls.get_params(model, scale)
+        distribution = cls.dist_factory(alpha, beta, validate_args=True)
+        return tuple(getattr(distribution, parameter) for parameter in [alpha, beta])
+
+    @classmethod
+    def sample(
+            cls,
+            model, scale,
+            sample_shape: Tuple[int, ...] = (),
+    ) -> torch.Tensor:
+        alpha, beta = cls.get_params(model, scale)
+        return cls.dist_factory(alpha, beta).sample(sample_shape)
+
+    @classmethod
+    def mean(cls, model, scale) -> torch.Tensor:
+        """
+        Mean of distribution (if defined), given distribution parameters.
+
+        Parameters
+        ----------
+        params : torch.Tensor
+            The distribution parameters.
+
+        Returns
+        -------
+        torch.Tensor :
+            The value of the distribution's mean.
+        """
+        alpha, beta = cls.get_params(model, scale)
+        return cls.dist_factory(alpha, beta).mean
+
+    @classmethod
+    def stddev(cls, model, scale) -> torch.Tensor:
+        """
+        Return the standard-deviation of the distribution, given distribution parameters.
+
+        Parameters
+        ----------
+        params : torch.Tensor
+            The distribution parameters.
+
+        Returns
+        -------
+        torch.Tensor :
+            The value of the distribution's standard deviation.
+        """
+        alpha, beta = cls.get_params(model, scale)
+        return cls.dist_factory(alpha, beta).stddev
+
+    @classmethod
+    def _nll(cls, x: WeightedTensor, model, scale) -> WeightedTensor:
+        alpha, beta = cls.get_params(model, scale)
+        return WeightedTensor(-cls.dist_factory(alpha, beta).log_prob(x.value), x.weight)
+
+    @classmethod
+    def _nll_and_jacobian(
+            cls,
+            x: WeightedTensor,
+            model, scale,
+    ) -> Tuple[WeightedTensor, WeightedTensor]:
+        alpha, beta = cls.get_params(model, scale)
+        nll = cls._nll(x, alpha, beta)
+        (nll_grad_value,) = grad(nll.value, (x.value,), create_graph=x.requires_grad)
+        return nll, WeightedTensor(nll_grad_value, x.weight)
+
+    @classmethod
+    def _nll_jacobian(cls, x: WeightedTensor, model, scale) -> WeightedTensor:
+        alpha, beta = cls.get_params(model, scale)
+        return cls._nll_and_jacobian(x, alpha, beta)[1]
+
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
@@ -877,6 +970,7 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
+Beta = SymbolicDistribution.bound_to(BetaFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)

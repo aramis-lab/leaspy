@@ -24,7 +24,7 @@ from leaspy.variables.distributions import Normal
 from leaspy.utils.functional import Exp, Sqr, OrthoBasis
 from leaspy.utils.weighted_tensor import unsqueeze_right
 
-from leaspy.models.obs_models import FullGaussianObservationModel
+from leaspy.models.obs_models import FullGaussianObservationModel, FullBetaObservationModel
 
 
 # TODO refact? implement a single function
@@ -666,6 +666,11 @@ class LogisticMultivariateInitializationMixin:
             rounded_parameters["noise_std"] = self.noise_std.expand(
                 obs_model.extra_vars['noise_std'].shape
             )
+        if isinstance(obs_model, FullBetaObservationModel):
+            rounded_parameters["noise_std"] = self.noise_std.expand(
+                obs_model.extra_vars['noise_std'].shape
+            )*20
+            print(rounded_parameters["noise_std"])
         return rounded_parameters
 
 
