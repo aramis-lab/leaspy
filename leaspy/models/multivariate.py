@@ -58,7 +58,9 @@ class MultivariateModel(AbstractMultivariateModel):
 
         default_variables_to_track = [
             "g",
+            "log_g_mean",
             "v0",
+            "log_v0_mean",
             "noise_std",
             "tau_mean",
             "tau_std",
