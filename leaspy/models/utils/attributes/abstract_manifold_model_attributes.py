@@ -65,7 +65,7 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
         if self.has_sources:
             self.update_possibilities.add('betas')
 
-    def get_attributes(self) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+    def get_attributes(self) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """
         Returns the attributes of the model, which is a tuple of three torch tensors.
 
@@ -77,8 +77,9 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
         positions: `torch.Tensor`
         velocities: `torch.Tensor`
         mixing_matrix: `torch.Tensor`
+        orthonormal_basis: `torch.Tensor`
         """
-        return self.positions, self.velocities, self.mixing_matrix
+        return self.positions, self.velocities, self.mixing_matrix, self.orthonormal_basis
 
     def _compute_velocities(self, values: DictParamsTorch):
         """
@@ -199,6 +200,19 @@ class AbstractManifoldModelAttributes(AbstractAttributes):
             q_matrix[:, :strip_col],
             q_matrix[:, strip_col+1:]
         ), dim=1)
+
+    def _compute_orthonormal_basis(self):
+        """
+        Compute the attribute ``orthonormal_basis`` which is an orthonormal basis, w.r.t the canonical inner product,
+        of the sub-space orthogonal, w.r.t the inner product implied by the metric, to the time-derivative of the geodesic at initial time.
+        """
+        # Compute the diagonal of metric matrix (cf. `_compute_Q`)
+        G_metric = (1 + self.positions).pow(4) / self.positions.pow(2) # = "1/(p0 * (1-p0))**2"
+
+        dgamma_t0 = self.velocities
+
+        # Householder decomposition in non-Euclidean case, updates `orthonormal_basis` in-place
+        self.orthonormal_basis = self._compute_Q(dgamma_t0, G_metric)
 
     @staticmethod
     def _mixing_matrix_utils(linear_combination_values: torch.FloatTensor, matrix: torch.FloatTensor) -> torch.FloatTensor:

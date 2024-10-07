@@ -81,7 +81,8 @@ class MultivariateModel(AbstractMultivariateModel):
         attribute_type=None,
     ) -> torch.Tensor:
         # Population parameters
-        positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
+        #positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
+        positions, velocities, orthonormal_basis = self._get_attributes(attribute_type)
         xi, tau = individual_parameters['xi'], individual_parameters['tau']
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
@@ -93,6 +94,8 @@ class MultivariateModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            mixing_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(mixing_matrix.t())
             model += wi.unsqueeze(-2)
 
@@ -106,7 +109,8 @@ class MultivariateModel(AbstractMultivariateModel):
         attribute_type=None,
     ) -> torch.Tensor:
         # Population parameters
-        g, v0, a_matrix = self._get_attributes(attribute_type)
+        #g, v0, a_matrix = self._get_attributes(attribute_type)
+        g, v0, orthonormal_basis = self._get_attributes(attribute_type)
         g_plus_1 = 1. + g
         b = g_plus_1 * g_plus_1 / g
 
@@ -132,6 +136,8 @@ class MultivariateModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
             if self.is_ordinal:
                 wi = wi.unsqueeze(-1)
@@ -173,10 +179,13 @@ class MultivariateModel(AbstractMultivariateModel):
         value = value.masked_fill((value == 0) | (value == 1), float('nan'))
 
         # 1/ get attributes
-        g, v0, a_matrix = self._get_attributes(None)
+        #g, v0, a_matrix = self._get_attributes(None)
+        g, v0, orthonormal_basis = self._get_attributes(None)
         xi, tau = individual_parameters['xi'], individual_parameters['tau']
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t())
         else:
             wi = 0
@@ -234,10 +243,13 @@ class MultivariateModel(AbstractMultivariateModel):
             If computation is tried on more than 1 individual.
         """
         # 1/ get attributes
-        g, v0, a_matrix = self._get_attributes(None)
+        #g, v0, a_matrix = self._get_attributes(None)
+        g, v0, orthonormal_basis = self._get_attributes(None)
         xi, tau = individual_parameters['xi'], individual_parameters['tau']
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t())
         else:
             wi = 0
@@ -344,8 +356,9 @@ class MultivariateModel(AbstractMultivariateModel):
             LL = v0 * reparametrized_time
 
         if self.source_dimension != 0:
-            sources = individual_parameters['sources']
-            wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
+            #sources = individual_parameters['sources']
+            #wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
+            wi = individual_parameters['wi']
             if self.is_ordinal:
                 wi = wi.unsqueeze(-1)
             LL += wi
@@ -446,6 +459,19 @@ class MultivariateModel(AbstractMultivariateModel):
         realizations["v0"].tensor = realizations["v0"].tensor + mean_xi
         self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
+    def _center_wi_realizations(self, realizations: CollectionRealization) -> None:
+        """
+        Center the ``wi`` realizations in place.
+
+        Parameters
+        ----------
+        realizations : :class:`.CollectionRealization`
+            The realizations to use for updating the :term:`MCMC` toolbox.
+        """
+        mean_wi = torch.mean(realizations['wi'].tensor)
+        realizations["wi"].tensor = realizations["wi"].tensor - mean_wi
+        self.update_MCMC_toolbox(realizations)
+
     def compute_model_sufficient_statistics(
         self,
         data: Dataset,
@@ -468,12 +494,14 @@ class MultivariateModel(AbstractMultivariateModel):
         """
         # modify realizations in-place
         self._center_xi_realizations(realizations)
+        self._center_wi_realizations(realizations)
 
         # unlink all sufficient statistics from updates in realizations!
         realizations = realizations.clone()
         sufficient_statistics = realizations[["g", "v0", "tau", "xi"]].tensors_dict
         if self.source_dimension != 0:
-            sufficient_statistics['betas'] = realizations["betas"].tensor
+            #sufficient_statistics['betas'] = realizations["betas"].tensor
+            sufficient_statistics["wi"] = realizations["wi"].tensor
         for param in ("tau", "xi"):
             sufficient_statistics[f"{param}_sqrd"] = torch.pow(realizations[param].tensor, 2)
 
@@ -517,6 +545,8 @@ class MultivariateModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             self.parameters['betas'] = sufficient_statistics['betas']
+            self.parameters['wi_mean'] = torch.mean(sufficient_statistics['wi'])
+            self.parameters['wi_std'] = torch.std(sufficient_statistics['wi'])
 
         self.parameters['xi_std'] = torch.std(sufficient_statistics['xi'])
         self.parameters['tau_mean'] = torch.mean(sufficient_statistics['tau'])
@@ -555,6 +585,18 @@ class MultivariateModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             self.parameters['betas'] = sufficient_statistics['betas']
+            if param == 'wi':
+                param_old_mean = self.parameters[f"{param}_mean"]
+                param_cur_mean = torch.mean(sufficient_statistics[param])
+                param_variance_update = (
+                        torch.mean(sufficient_statistics[f"{param}_sqrd"]) -
+                        2. * param_old_mean * param_cur_mean
+                )
+                param_variance = param_variance_update + param_old_mean ** 2
+                self.parameters[f"{param}_std"] = compute_std_from_variance(
+                    param_variance, varname=f"{param}_std"
+                )
+                #self.parameters[f"{param}_mean"] = param_cur_mean #fix it to zeros for now
 
         for param in ("tau", "xi"):
             param_old_mean = self.parameters[f"{param}_mean"]
@@ -638,12 +680,21 @@ class MultivariateModel(AbstractMultivariateModel):
             "shape": torch.Size([self.source_dimension]),
             "rv_type": "gaussian"
         }
+
+        wi_info = {
+            "name": "wi",
+            "shape": torch.Size([self.dimension]),  # or torch.Size([nb_clusters])
+            "type": "individual",
+            "rv_type": "gaussian"
+        }
+
         variables_info = {
             "tau": tau_info,
             "xi": xi_info,
         }
         if self.source_dimension != 0:
             variables_info['sources'] = sources_info
+            variables_info['wi'] = wi_info
 
         return variables_info
 

@@ -109,7 +109,8 @@ class LogisticAttributes(AbstractManifoldModelAttributes):
         if recompute_ortho_basis:
             self._compute_orthonormal_basis()
         if recompute_ortho_basis or compute_betas:
-            self._compute_mixing_matrix()
+            #self._compute_mixing_matrix()
+            self._compute_orthonormal_basis()
 
     def _compute_positions(self, values):
         """

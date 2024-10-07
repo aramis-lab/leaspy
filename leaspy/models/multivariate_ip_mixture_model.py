@@ -1,7 +1,9 @@
+import numpy as np
 import torch
 from math import log
 
-from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
+from leaspy.io.outputs import individual_parameters
+from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel, AbstractMultivariateMixtureModel
 from leaspy.models.utils.attributes import AttributesFactory
 from leaspy.io.data.dataset import Dataset
 from leaspy.io.realizations import CollectionRealization
@@ -27,7 +29,7 @@ from leaspy.io.realizations import (
 
 
 @doc_with_super()
-class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
+class MultivariateIndividualParametersMixtureModel(AbstractMultivariateMixtureModel):
     """
     Manifold model for multiple variables of interest (logistic or linear formulation).
 
@@ -70,6 +72,12 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             self.parameters[f'tau_xi_{k}_std'] = None
             self._auxiliary[f'tau_xi_{k}_std_inv'] = None
         self.parameters["pi"] = None
+
+        # initialize means for spatial parameters for each cluster
+        for k in range(self.nb_clusters):
+                self.parameters[f'wi_{k}_mean'] = None
+                self.parameters[f'wi_{k}_std'] = None
+
 
         self._subtype_suffix = self._check_subtype()
 
@@ -114,7 +122,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         attribute_type=None,
     ) -> torch.Tensor:
         # Population parameters
-        positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
+        #positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
+        positions, velocities, orthonormal_basis = self._get_attributes(attribute_type)
         tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
@@ -126,6 +135,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            mixing_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(mixing_matrix.t())
             model += wi.unsqueeze(-2)
 
@@ -139,7 +150,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         attribute_type=None,
     ) -> torch.Tensor:
         # Population parameters
-        g, v0, a_matrix = self._get_attributes(attribute_type)
+        #g, v0, a_matrix = self._get_attributes(attribute_type)
+        g, v0, orthonormal_basis = self._get_attributes(attribute_type)
         g_plus_1 = 1. + g
         b = g_plus_1 * g_plus_1 / g
 
@@ -165,6 +177,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
             if self.is_ordinal:
                 wi = wi.unsqueeze(-1)
@@ -206,10 +220,13 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         value = value.masked_fill((value == 0) | (value == 1), float('nan'))
 
         # 1/ get attributes
-        g, v0, a_matrix = self._get_attributes(None)
+        #g, v0, a_matrix = self._get_attributes(None)
+        g, v0, orthonormal_basis = self._get_attributes(None)
         xi, tau = self.get_tau_xi(individual_parameters)
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t())
         else:
             wi = 0
@@ -264,10 +281,13 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             if computation is tried on more than 1 individual
         """
         # 1/ get attributes
-        g, v0, a_matrix = self._get_attributes(None)
+        #g, v0, a_matrix = self._get_attributes(None)
+        g, v0, orthonormal_basis = self._get_attributes(None)
         xi, tau = self.get_tau_xi(individual_parameters)
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t())
         else:
             wi = 0
@@ -348,7 +368,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         # TODO: refact highly inefficient (many duplicated code from `compute_individual_tensorized_logistic`)
 
         # Population parameters
-        g, v0, a_matrix = self._get_attributes(attribute_type)
+        #g, v0, a_matrix = self._get_attributes(attribute_type)
+        g, v0, orthonormal_basis = self._get_attributes(attribute_type)
         g_plus_1 = 1. + g
         b = g_plus_1 * g_plus_1 / g
 
@@ -375,6 +396,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
             wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
             if self.is_ordinal:
                 wi = wi.unsqueeze(-1)
@@ -465,6 +488,16 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
                                                                     ) for k in range(self.nb_clusters)])
                 reg = (regs * proba_clusters.unsqueeze(-1)).sum(dim=0)
                 return reg
+            if name == 'wi' :
+                proba_clusters = realizations["proba_clusters"].tensor
+                regs = torch.stack([self.compute_regularity_multivariate_variable(
+                    realization.tensor,
+                    self.parameters[f"wi{k}_mean"],
+                    self.parameters[f"wi{k}_std"],
+                    include_constant=False,
+                ) for k in range(self.nb_clusters)])
+                reg = (regs * proba_clusters.unsqueeze(-1)).sum(dim=0)
+                return reg
             return self.compute_regularity_individual_realization(realization)
         raise LeaspyModelInputError(
             f"Realization {realization} not known, should be 'population' or 'individual'."
@@ -494,7 +527,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         """
         individual_parameters = {
             'tau_xi': self.parameters[f'tau_xi_{0}_mean'].clone(),
-            'sources': torch.zeros(self.source_dimension)
+            #'sources': torch.zeros(self.source_dimension)
+            'wi' : self.parameters[f'wi_{0}_mean'].clone()
         }
 
         return self.compute_individual_tensorized(
@@ -571,6 +605,21 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         realizations["v0"].tensor = realizations["v0"].tensor + mean_xi
         self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
+    def _center_wi_realizations(self, realizations: CollectionRealization) -> None:
+        """
+        Center the wi realizations in place.
+        
+        Parameters
+        ----------
+        realizations : CollectionRealization
+            The realizations to use for updating the MCMC toolbox.
+
+        """
+        wi = individual_parameters["wi"]
+        mean_wi = torch.mean(wi)
+        realizations["wi"].tensor = realizations["wi"].tensor - mean_wi
+        self.update_MCMC_toolbox(realizations)
+
     def compute_cluster_probabilities(self, data, realizations):
         individual_attachments = torch.zeros((self.nb_clusters, data.n_individuals))
         for i in range(self.nb_clusters):
@@ -578,6 +627,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
                 realizations["tau_xi"].tensor,
                 self.parameters[f"tau_xi_{i}_mean"],
                 self._auxiliary[f"tau_xi_{i}_std_inv"],
+                realizations["wi"],
+                self.parameters[f"wi_{i}_mean"],
                 include_constant=True,
             ).sum(
                 dim=1).reshape(data.n_individuals)
@@ -615,6 +666,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         """
         # modify realizations in-place
         self._center_xi_realizations(realizations)
+        self._center_wi_realizations(realizations)
 
         clusters = realizations["proba_clusters"].tensor
 
@@ -624,6 +676,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
         sufficient_statistics["proba_clusters"] = clusters
         if self.source_dimension != 0:
             sufficient_statistics['betas'] = realizations["betas"].tensor
+            sufficient_statistics['wi'] = realizations["wi"].tensor
 
         sufficient_statistics.update(
             self.compute_ordinal_model_sufficient_statistics(realizations)
@@ -664,6 +717,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             self.parameters['betas'] = sufficient_statistics['betas']
+            wi = sufficient_statistics['wi']
 
         tau_xi = sufficient_statistics['tau_xi']
         clusters = sufficient_statistics["proba_clusters"]
@@ -678,6 +732,12 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
                 tau_xi_std = S_inv * err2
                 self.parameters[f'tau_xi_{k}_std'] = tau_xi_std
                 self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'] + 1e-8 * torch.eye(2))
+                if self.source_dimension != 0:
+                    self.parameters[f'wi_{k}_mean'] =S_inv * (cluster * wi).sum(dim=0)
+                    err = wi - self.parameters[f'wi_{k}_mean'].unsqueeze(0)
+                    err2 = (cluster * err).T @ err
+                    wi_std = S_inv * err2
+                    self.parameters[f'wi_{k}_std'] = wi_std
 
         self.parameters['pi'] = clusters.sum(dim=1) / clusters.sum()
 
@@ -714,6 +774,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             self.parameters['betas'] = sufficient_statistics['betas']
+            wi = sufficient_statistics['wi']
 
         clusters = sufficient_statistics["proba_clusters"]
 
@@ -730,7 +791,12 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
                 tau_xi_std = S_inv * err2
                 self.parameters[f'tau_xi_{k}_std'] = tau_xi_std
                 self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'] + 1e-8 * torch.eye(2))
-
+                if self.source_dimension != 0:
+                    self.parameters[f'wi_{k}_mean'] =S_inv * (cluster * wi).sum(dim=0)
+                    err = wi - self.parameters[f'wi_{k}_mean'].unsqueeze(0)
+                    err2 = (cluster * err).T @ err
+                    wi_std = S_inv * err2
+                    self.parameters[f'wi_{k}_std'] = wi_std
         self.parameters["pi"] = clusters.sum(dim=1) / clusters.sum()
 
         self.parameters.update(
@@ -800,12 +866,20 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateModel):
             "type": "individual",
             "rv_type": "gaussian"
         }
+
+        wi_info = {
+            "name": "wi",
+            "shape": torch.Size([self.dimension]), #or torch.Size([nb_clusters])
+            "type": "individual",
+            "rv_type": "gaussian"
+        }
+
         variables_info = {
             "tau_xi": tau_xi_info,
         }
         if self.source_dimension != 0:
             variables_info['sources'] = sources_info
-
+            variables_info['wi'] = wi_info
         return variables_info
 
     def get_deterministic_variable_information(self) -> DictParams:
