@@ -103,13 +103,16 @@ class FullBetaObservationModel(BetaObservationModel):
         optimizer = optim.Adam([variance], lr=0.1)
 
         # Number of iterations for optimization
-        num_iterations = 10
 
-        for i in range(num_iterations):
+        noise_last_it = None
+
+        while not noise_last_it or abs(noise_last_it - torch.nn.functional.softplus(variance))>0.01 :
+
             optimizer.zero_grad()
 
             # We use the softplus to ensure alpha and beta are positive
             variance_pos = torch.nn.functional.softplus(variance)
+            noise_last_it = variance_pos
 
             # Define the beta distribution with current alpha and beta
             variance_dist = torch.distributions.Beta(state["model"].clip(min=0.001, max=0.99) * variance_pos,
