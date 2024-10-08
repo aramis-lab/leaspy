@@ -10,6 +10,7 @@ Subpackages
    leaspy.algo.utils.algo_with_annealing
    leaspy.algo.utils.algo_with_device
    leaspy.algo.utils.algo_with_samplers
+   leaspy.algo.utils.samplers
 
 Module contents
 ---------------
