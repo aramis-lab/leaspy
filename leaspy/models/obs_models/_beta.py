@@ -97,7 +97,7 @@ class FullBetaObservationModel(BetaObservationModel):
         # We initialize them randomly, and make sure they're positive using softplus
 
         # We initialize beta randomly, and make sure they're positive using softplus
-        variance = torch.tensor([state["noise_std"]**2], requires_grad=True) # TODO: use the past noise_std
+        variance = torch.tensor([state["noise_std"]], requires_grad=True) # TODO: use the past noise_std
 
         # Optimizer (you can use any optimizer, Adam is often a good choice)
         optimizer = optim.Adam([variance], lr=0.1)
@@ -126,8 +126,7 @@ class FullBetaObservationModel(BetaObservationModel):
 
         # Final optimized parameters
         variance_optimized = torch.nn.functional.softplus(variance)
-        noise_std = torch.sqrt(variance_optimized)
-        return noise_std.detach()
+        return variance_optimized.detach()
 
     @classmethod
     def diagonal_noise_std_update(
