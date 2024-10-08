@@ -116,7 +116,7 @@ class FullBetaObservationModel(BetaObservationModel):
                                                      (1 - state["model"].clip(min=0.001, max=0.99)) * variance_pos)
 
             # Compute the negative log-likelihood of the data under this beta distribution
-            nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value),state["y"].weight).weighted_value.mean()
+            nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value.clip(min=0.001, max=0.99)),state["y"].weight).weighted_value.mean()
 
             # Backpropagate to compute gradients
             nll.backward()
