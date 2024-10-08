@@ -103,7 +103,7 @@ class FullBetaObservationModel(BetaObservationModel):
         optimizer = optim.Adam([variance], lr=0.1)
 
         # Number of iterations for optimization
-        num_iterations = 100
+        num_iterations = 10
 
         for i in range(num_iterations):
             optimizer.zero_grad()
