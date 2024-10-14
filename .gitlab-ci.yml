@@ -66,7 +66,7 @@ check_repo:
         CI_RUNNER_TAG: ['arm', 'linux']
         PKG_REQS_MODE: ['oldest']
   variables:
-    CONDA_ENV_NAME: 'leaspy_env_${PYTHON_VERSION}_${PKG_REQS_MODE}_reqs_${CI_COMMIT_BRANCH}'
+    CONDA_ENV_NAME: 'leaspy_env_${PYTHON_VERSION}_${PKG_REQS_MODE}_reqs'
     SUFFIX_ARTIFACTS: '_${CI_RUNNER_TAG}_${PYTHON_VERSION}_${PKG_REQS_MODE}_reqs'
   tags:
     - $CI_RUNNER_TAG  # new possibility since Gitlab Runner 14.1
@@ -111,11 +111,13 @@ tests:
   script:
     - python --version
     - pip freeze
+    - echo $PRIMARY_SUFFIX_ARTIFACTS
+    - echo $CI_COMMIT_BRANCH
     # Customize the title of code coverage HTML report
-    - sed -i.bak -E "$COVERAGE_HTML_REPORT_TITLE_SUB" .coveragerc
+    #- sed -i.bak -E "$COVERAGE_HTML_REPORT_TITLE_SUB" .coveragerc
     - pytest --cov --cov-context=test --cov-report=html:htmlcov${SUFFIX_ARTIFACTS} --cov-report=xml:coverage${SUFFIX_ARTIFACTS}.xml --cov-report=term --junitxml=tests${SUFFIX_ARTIFACTS}.xml tests/
     # Restore back coverage config for chaining jobs if needed
-    - mv .coveragerc{.bak,}
+    #- mv .coveragerc{.bak,}
   coverage: '/^TOTAL(?:\s+.*){2}\s+(\d+(?:\.\d+)?\%)$/'
   artifacts:
     when: always  # to import reports even if failed
