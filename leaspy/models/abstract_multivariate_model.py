@@ -317,7 +317,6 @@ class AbstractMultivariateMixtureModel(OrdinalModelMixin, AbstractModel):
 
         self.source_dimension: int = None
         self.dimension: int = None
-        self.features = None
         self.bayesian_priors = None
         self.attributes: AbstractManifoldModelAttributes = None
 
