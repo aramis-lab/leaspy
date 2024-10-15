@@ -55,6 +55,7 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateMixtureMo
     def __init__(self, name: str, nb_clusters: int = 1, **kwargs):
         super().__init__(name, **kwargs)
         self.nb_clusters = nb_clusters
+        self.features = None
         self.parameters["v0"] = None
         self.MCMC_toolbox['priors']['v0_std'] = None  # Value, Coef
 
