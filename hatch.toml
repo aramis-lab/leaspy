@@ -1,21 +1,27 @@
-[[envs.all.matrix]]
-python = ["3.9", "3.10", "3.11"]
-
 [envs.test]
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
+  "pytest-cov",
 ]
+extra-args = ["-vv"]
+randomize = true
+parallel = true
+
+[[envs.test.matrix]]
+python = ["3.9", "3.10", "3.11"]
 
 [envs.test.scripts]
-test = "pytest -vv {args:tests}"
-test-cov = "coverage run -m pytest {args:tests}"
+unit = "pytest tests/unittests"
+integration = "pytest tests/integration"
+all = "pytest tests"
+cov-test = "coverage run -m pytest tests"
 cov-report = [
-  "- coverage combine",
-  "coverage report --show-missing",
+  #"coverage combine",
+  "coverage report",
 ]
 cov = [
-  "test-cov",
+  "cov-test",
   "cov-report",
 ]
 
