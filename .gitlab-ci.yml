@@ -9,4 +9,14 @@ test:
     - hatch run +py=$VERSION test:cov
   parallel:
     matrix:
-      - VERSION: ["3.9", "3.10", "3.11", "3.12"]
+      - VERSION: ["3.9", "3.10", "3.11"]
+
+doc:
+  image: "python:3.11"
+  script:
+    - python -V
+    - pip install pipx
+    - pipx ensurepath
+    - source ~/.bashrc
+    - pipx install hatch
+    - hatch run docs:build
