@@ -840,8 +840,8 @@ class MultivariateIndividualParametersMixtureModel(AbstractMultivariateMixtureMo
         if self.source_dimension != 0:
             variables_info['betas'] = betas_info
 
-        variables_info.update(self.get_ordinal_random_variable_information())
-        variables_info = self.update_ordinal_random_variable_information(variables_info)
+        #variables_info.update(self.get_ordinal_random_variable_information())
+        #variables_info = self.update_ordinal_random_variable_information(variables_info)
 
         return variables_info
 
