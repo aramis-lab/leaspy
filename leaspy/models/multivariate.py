@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.utils.attributes import AttributesFactory
