@@ -316,7 +316,6 @@ class AbstractMultivariateMixtureModel(OrdinalModelMixin, AbstractModel):
     def __init__(self, name: str, **kwargs):
 
         self.source_dimension: int = None
-        self.dimension: int = None
         self.bayesian_priors = None
         self.attributes: AbstractManifoldModelAttributes = None
 
