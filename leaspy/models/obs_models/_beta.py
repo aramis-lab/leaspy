@@ -104,15 +104,12 @@ class FullBetaObservationModel(BetaObservationModel):
 
         # Number of iterations for optimization
 
-        noise_last_it = None
-
-        while not noise_last_it or abs(noise_last_it - torch.nn.functional.softplus(variance))>0.01 :
+        for k in range(10):
 
             optimizer.zero_grad()
 
             # We use the softplus to ensure alpha and beta are positive
             variance_pos = torch.nn.functional.softplus(variance)
-            noise_last_it = variance_pos
 
             # Define the beta distribution with current alpha and beta
             variance_dist = torch.distributions.Beta(state["model"].clip(min=0.001, max=0.99) * variance_pos,
