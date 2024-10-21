@@ -62,6 +62,7 @@ class FullBetaObservationModel(BetaObservationModel):
     """
 
     tol_noise_variance = 1e-5
+    backward_iterations = 2
 
     def __init__(self, noise_std: VariableInterface,
                  model:VarName, **extra_vars: VariableInterface):
@@ -104,7 +105,7 @@ class FullBetaObservationModel(BetaObservationModel):
 
         # Number of iterations for optimization
 
-        for k in range(10):
+        for k in range(cls.backward_iterations):
 
             optimizer.zero_grad()
 
@@ -149,14 +150,11 @@ class FullBetaObservationModel(BetaObservationModel):
 
         # Number of iterations for optimization
 
-        noise_last_it = None
-
-        while (noise_last_it is None) or (abs(noise_last_it - torch.nn.functional.softplus(variance)) > 0.01).all():
+        for k in range(cls.backward_iterations):
             optimizer.zero_grad()
 
             # We use the softplus to ensure alpha and beta are positive
             variance_pos = torch.nn.functional.softplus(variance)
-            noise_last_it = variance_pos
 
             # Define the beta distribution with current alpha and beta
             variance_dist = torch.distributions.Beta(state["model"].clip(min=0.001, max=0.99) * variance_pos,
