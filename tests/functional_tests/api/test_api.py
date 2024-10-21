@@ -215,7 +215,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             },
         )
 
-    @skip("Ordinal observation models not implemented")
+    @skip("Not batched deltas for ordinal model not implemented")
     def test_usecase_logistic_ordinal(self):
         self.generic_usecase(
             "logistic",
@@ -234,8 +234,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             },
         )
 
-    @skip("Ordinal observation models not implemented")
-    def test_usecase_logistic_ordinal_batched(self):
+    def test_usecase_logistic_ordinal(self):
         """
         Ordinal simulation may not be fully reproducible on different machines
         due to rounding errors when computing MultinomialDistribution.cdf that
@@ -243,13 +242,13 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         (changing seed, reducing subjects & increasing tol to avoid the problem).
         """
         self.generic_usecase(
-            "logistic",
+            "logistic_ordinal",
             model_codename="logistic_ordinal_b",
             obs_models="ordinal",
             source_dimension=2,
             fit_check_kws={"atol": 0.005},
             personalization_algo="mean_real",
-            expected_loss_perso=1045.989,
+            expected_loss_personalization=1045.989,
             tol_loss=0.1,
             simulate_algo_params={
                 "seed": 123,
@@ -258,10 +257,9 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
                 "reparametrized_age_bounds": (50, 85),
             },
             simulate_tol=5e-2,
-            batch_deltas_ordinal=True,
         )
 
-    @skip("Ordinal observation models not implemented")
+    @skip("Ordinal univariate model not implemented")
     def test_usecase_univariate_logistic_ordinal(self):
         self.generic_usecase(
             "univariate_logistic",
@@ -278,7 +276,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             },
         )
 
-    @skip("Ordinal observation models not implemented")
+    @skip("Ordinal ranking observation models not implemented")
     def test_usecase_logistic_ordinal_ranking(self):
         self.generic_usecase(
             "logistic",

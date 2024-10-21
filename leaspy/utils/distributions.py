@@ -25,8 +25,81 @@ def discrete_sf_from_pdf(pdf: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
     """
     return (1 - pdf.cumsum(-1))[..., :-1]
 
+def compute_ordinal_pdf_from_ordinal_sf(
+    ordinal_sf: torch.Tensor,
+    dim_ordinal_levels: int = 3,
+) -> torch.Tensor:
+    """
+    Computes the probability density (or its jacobian) of an ordinal
+    model [P(X = l), l=0..L] from `ordinal_sf` which are the survival
+    function probabilities [P(X > l), i.e. P(X >= l+1), l=0..L-1] (or its jacobian).
 
-class MultinomialDistribution(torch.distributions.Distribution):
+    Parameters
+    ----------
+    ordinal_sf : `torch.FloatTensor`
+        Survival function values : ordinal_sf[..., l] is the proba to be superior or equal to l+1
+        Dimensions are:
+        * 0=individual
+        * 1=visit
+        * 2=feature
+        * 3=ordinal_level [l=0..L-1]
+        * [4=individual_parameter_dim_when_gradient]
+    dim_ordinal_levels : int, default = 3
+        The dimension of the tensor where the ordinal levels are.
+
+    Returns
+    -------
+    ordinal_pdf : `torch.FloatTensor` (same shape as input, except for dimension 3 which has one more element)
+        ordinal_pdf[..., l] is the proba to be equal to l (l=0..L)
+    """
+    # nota: torch.diff was introduced in v1.8 but would not highly improve performance of this routine anyway
+    s = list(ordinal_sf.shape)
+    s[dim_ordinal_levels] = 1
+    last_row = torch.zeros(size=tuple(s))
+    if len(s) == 5:  # in the case of gradient we added a dimension
+        first_row = last_row  # gradient(P>=0) = 0
+    else:
+        first_row = torch.ones(size=tuple(s))  # (P>=0) = 1
+    sf_sup = torch.cat([first_row, ordinal_sf], dim=dim_ordinal_levels)
+    sf_inf = torch.cat([ordinal_sf, last_row], dim=dim_ordinal_levels)
+    pdf = sf_sup - sf_inf
+    return pdf
+
+class MultinomialDistribution(torch.distributions.Multinomial):
+    """
+    Class for a multinomial distribution with only one sample based on the Multinomial torch distrib.
+
+    Parameters
+    ----------
+    probs : torch.Tensor
+        The pdf of the multinomial distribution.
+
+    Attributes
+    ----------
+    """
+
+    arg_constraints: ClassVar = {}
+
+    def __init__(self, probs, **kwargs):
+        super().__init__(total_count=1, probs=probs, **kwargs)
+
+    @classmethod
+    def from_sf(cls, sf: torch.Tensor, **kws):
+        """
+        Generate a new MultinomialDistribution from its survival
+        function instead of its probability density function.
+
+        Parameters
+        ----------
+        pdf : :class:`torch.Tensor`
+            The input probability density function.
+        **kws
+            Additional keyword arguments to be passed for instance initialization.
+        """
+        return cls(compute_ordinal_pdf_from_ordinal_sf(sf, dim_ordinal_levels=-1), **kws)
+
+
+class MultinomialCdfDistribution(torch.distributions.Distribution):
     """
     Class for a multinomial distribution with only sample method.
 

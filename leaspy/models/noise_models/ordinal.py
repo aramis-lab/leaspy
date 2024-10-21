@@ -35,7 +35,7 @@ class OrdinalFamily(DistributionFamily):
     factory : None or function(free parameters values) -> :class:`torch.distributions.distribution.Distribution`
         The factory for the distribution family.
     """
-    factory = MultinomialDistribution.from_pdf
+    factory = MultinomialDistribution.from_sf
     free_parameters = frozenset()
 
 

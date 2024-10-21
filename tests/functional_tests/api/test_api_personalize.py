@@ -635,10 +635,10 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             120.16 if os.uname()[4][:3] == "arm" else 120.06,
         )
 
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
+    #@skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
     def test_multivariate_ordinal_scipy_minimize(self):
         self._personalize_generic(
-            "logistic_ordinal",
+            "logistic_ordinal_b",
             "scipy_minimize",
             700.55,
             {"use_jacobian": False},

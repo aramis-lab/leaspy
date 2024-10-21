@@ -377,17 +377,17 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             source_dimension=2,
         )
 
-    @skip("Ordinal observation models are not implemented yet.")
+    #@skip("Ordinal observation models are not implemented yet.")
     def test_fit_logistic_ordinal_batched(self):
         self.generic_fit(
-            "logistic",
+            "logistic_ordinal",
             "logistic_ordinal_b",
             obs_models=observation_model_factory("ordinal"),
             source_dimension=2,
-            batch_deltas_ordinal=True,  # test if batch sampling of deltas works
+            #batch_deltas_ordinal=True,  # No more batch option, default
         )
 
-    @skip("Ordinal observation models are not implemented yet.")
+    @skip("Ordinal ranking observation models are not implemented yet.")
     def test_fit_logistic_ordinal_ranking(self):
         self.generic_fit(
             "logistic",

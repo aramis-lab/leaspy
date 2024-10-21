@@ -36,6 +36,7 @@ class Leaspy:
             * ``'linear'`` - suppose that every modality follow a linear curve across time.
             * ``'univariate_logistic'`` - a 'logistic' model for a single modality.
             * ``'univariate_linear'`` - idem with a 'linear' model.
+            * ``'logistic_ordinal'`` - a cumulative logit model for ordinal features
             * ``'constant'`` - benchmark model for constant predictions.
             * ``'lme'`` - benchmark model for classical linear mixed-effects model.
 

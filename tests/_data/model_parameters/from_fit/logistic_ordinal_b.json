@@ -58,7 +58,8 @@
     "xi_std": 0.5276779532432556,
     "sources_mean": 0.0,
     "sources_std": 1.0,
-    "deltas": [
+    "log_deltas_std": 0.1,
+    "log_deltas_mean": [
       [
         0.9658617973327637,
         1.716657042503357,
@@ -123,6 +124,5 @@
       ]
     ]
   },
-  "source_dimension": 2,
-  "batch_deltas_ordinal": true
+  "source_dimension": 2
 }
