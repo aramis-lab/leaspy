@@ -6,6 +6,7 @@ from .generic import GenericModel
 from .lme import LMEModel
 from .multivariate import MultivariateModel, LogisticMultivariateModel, LinearMultivariateModel
 from .multivariate_parallel import MultivariateParallelModel
+from .ordinal_multivariate_model import OrdinalMultivariateModel
 from .univariate_joint import UnivariateJointModel
 from .joint import JointModel
 from .univariate import LinearUnivariateModel, LogisticUnivariateModel
@@ -18,6 +19,7 @@ ALL_MODELS = {
     "univariate_logistic": LogisticUnivariateModel,
     "univariate_linear": LinearUnivariateModel,
     "logistic": LogisticMultivariateModel,
+    "logistic_ordinal": OrdinalMultivariateModel,
     "linear": LinearMultivariateModel,
     # 'mixed_linear-logistic': MultivariateModel,
     "logistic_parallel": MultivariateParallelModel,
@@ -48,4 +50,5 @@ __all__ = [
     "LogisticUnivariateModel",
     "UnivariateJointModel",
     "JointModel",
+    "OrdinalMultivariateModel",
 ]

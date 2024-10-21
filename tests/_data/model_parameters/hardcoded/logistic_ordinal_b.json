@@ -1,6 +1,6 @@
 {
-  "leaspy_version": "1.3.1",
-  "name": "logistic",
+  "leaspy_version": "2.0.0",
+  "name": "logistic_ordinal",
   "features": [
     "Y0",
     "Y1",
@@ -9,14 +9,8 @@
   ],
   "dimension": 4,
   "source_dimension": 0,
-  "noise_model": {
-    "name": "ordinal",
-    "max_levels": {
-      "Y0": 3,
-      "Y1": 4,
-      "Y2": 6,
-      "Y3": 10
-    }
+  "obs_models": {
+    "y": "ordinal"
   },
   "parameters": {
     "g": [
@@ -38,7 +32,8 @@
     "xi_std": 0.4730721116065979,
     "sources_mean": 0.0,
     "sources_std": 1.0,
-    "deltas": [
+    "log_deltas_std": 0.1,
+    "log_deltas_mean": [
       [
         0.9678827524185181,
         1.7345789670944214,
@@ -84,6 +79,5 @@
         -2.241579532623291
       ]
     ]
-  },
-  "batch_deltas_ordinal": true
+  }
 }

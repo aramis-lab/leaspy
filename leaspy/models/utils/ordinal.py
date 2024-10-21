@@ -4,14 +4,13 @@ import numpy as np
 import torch
 
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
-from leaspy.models.noise_models import (
-    BaseNoiseModel,
-    AbstractOrdinalNoiseModel,
-    OrdinalRankingNoiseModel,
+from leaspy.models.obs_models import (
+    ObservationModel,
+    OrdinalObservationModel
 )
 from leaspy.variables.state import State
 from leaspy.utils.typing import DictParamsTorch, DictParams
-
+from leaspy.io.data.dataset import Dataset
 
 class OrdinalModelMixin:
     """
@@ -24,35 +23,61 @@ class OrdinalModelMixin:
     @property
     def is_ordinal(self) -> bool:
         """Property to check if the model is of ordinal sub-type."""
-        return isinstance(self.noise_model, AbstractOrdinalNoiseModel)
+        return isinstance(self.obs_models[0], OrdinalObservationModel)
 
-    @property
-    def is_ordinal_ranking(self) -> bool:
-        """Property to check if the model is of ordinal-ranking sub-type (working with survival functions)."""
-        return isinstance(self.noise_model, OrdinalRankingNoiseModel)
+    #@property
+    #def is_ordinal_ranking(self) -> bool:
+    #    """Property to check if the model is of ordinal-ranking sub-type (working with survival functions)."""
+    #    return isinstance(self.obs_models[0], OrdinalRankingNoiseModel)
 
     @property
     def ordinal_infos(self) -> Optional[dict]:
         """Property to return the ordinal info dictionary."""
         if not self.is_ordinal:
             return None
+
+        # Maybe not put all ordinal infos in the ObservationModel but in the model itself
         return dict(
-            self.noise_model.ordinal_infos,
+            self.obs_models[0].ordinal_infos,
             batch_deltas=self.batch_deltas,
         )
 
-    def check_noise_model_compatibility(self, model: BaseNoiseModel) -> None:
+    def check_obs_models_compatibility(self, model: ObservationModel) -> None:
         """Check compatibility between the model instance and provided noise model."""
-        super().check_noise_model_compatibility(model)
+        super().check_obs_models_compatibility(model)
 
-        if isinstance(model, AbstractOrdinalNoiseModel) and self.name not in {
-            "logistic",
-            "univariate_logistic",
+        if isinstance(model, OrdinalObservationModel) and self.name not in {
+            "logistic_ordinal",
+ #           "univariate_logistic",
         }:
             raise LeaspyModelInputError(
-                "Ordinal noise model is only compatible with 'logistic' and "
-                f"'univariate_logistic' models, not {self.name}"
+                "Ordinal noise model is only compatible with 'logistic_ordinal'"
+                f"not {self.name}"
             )
+
+    def compute_ordinal_infos(self, dataset:Dataset) -> None:
+        max_levels = {}
+        df = dataset.to_pandas().dropna(how='all').sort_index()[dataset.headers]
+        for ft, s in df.items():  # preserve feature order
+            max_lvl = int(s.max())  # possible levels not observed in calibration data do not exist for us
+            max_levels[ft] = max_lvl
+
+        # We store the properties of levels (per feature) directly in the noise-model
+        # It will compute the max-level and mask automatically
+        self.obs_models[0].max_levels = max_levels
+        self.obs_models[0].max_level = max(max_levels.values())
+        self.obs_models[0]._mask = torch.stack(
+            [
+                torch.cat(
+                    [
+                        torch.ones(ft_max_level),
+                        torch.zeros(self.obs_models[0].max_level - ft_max_level),
+                    ],
+                    dim=-1,
+                )
+                for ft_max_level in self.obs_models[0].max_levels.values()
+            ],
+        )
 
     def postprocess_model_estimation(
         self,
@@ -88,12 +113,12 @@ class OrdinalModelMixin:
         if not self.is_ordinal:
             return estimation
 
-        if self.is_ordinal_ranking:
-            estimation = (
-                self.compute_ordinal_pdf_from_ordinal_sf(torch.tensor(estimation))
-                .cpu()
-                .numpy()
-            )
+        #if self.is_ordinal_ranking:
+         #   estimation = (
+          #      self.compute_ordinal_pdf_from_ordinal_sf(torch.tensor(estimation))
+           #     .cpu()
+            #    .numpy()
+            #)
 
         if ordinal_method in {"MLE", "maximum_likelihood"}:
             return estimation.argmax(axis=-1)
@@ -102,7 +127,7 @@ class OrdinalModelMixin:
         if ordinal_method in {"P", "probabilities"}:
             d_ests = {}
             for ft_i, (ft, ft_max_level) in enumerate(
-                self.noise_model.max_levels.items()
+                self.obs_models[0].max_levels.items()
             ):
                 for ft_lvl in range(ft_max_level + 1):
                     d_ests[(ft, ft_lvl)] = estimation[..., ft_i, ft_lvl]
@@ -138,12 +163,13 @@ class OrdinalModelMixin:
         self, model_or_model_grad: torch.Tensor
     ) -> torch.Tensor:
         """Post-process model values (or their gradient) if needed."""
-        if not self.is_ordinal or self.is_ordinal_ranking:
+        if not self.is_ordinal: #or self.is_ordinal_ranking:
             return model_or_model_grad
         return self.compute_ordinal_pdf_from_ordinal_sf(model_or_model_grad)
 
     ## PRIVATE
 
+    # Not working anymore
     def _ordinal_grid_search_value(
         self,
         grid_timepoints: torch.Tensor,
@@ -188,6 +214,7 @@ class OrdinalModelMixin:
 
         return ("batch_deltas_ordinal",)
 
+    # Not good anymore
     def _check_ordinal_parameters_consistency(self) -> None:
         """Check consistency of ordinal model parameters."""
         if not self.is_ordinal:
@@ -202,18 +229,18 @@ class OrdinalModelMixin:
             raise LeaspyModelInputError(
                 f"Unexpected delta parameters. Expected {expected} but got {deltas_p.keys()}"
             )
-        if self.noise_model.max_levels is None:
+        if self.obs_models[0].max_levels is None:
             raise LeaspyModelInputError(
                 "Your ordinal noise model is incomplete (missing `max_levels`)."
             )
         if self.batch_deltas:
             deltas = self.parameters["deltas"]
-            if deltas.shape != (self.dimension, self.noise_model.max_level - 1):
+            if deltas.shape != (self.dimension, self.obs_models[0].max_level - 1):
                 raise LeaspyModelInputError(
                     "Shape of deltas is inconsistent with noise model."
                 )
             mask_ok = torch.equal(
-                torch.isinf(self.parameters["deltas"]), ~self.noise_model.mask[:, 1:].bool()
+                torch.isinf(self.parameters["deltas"]), ~self.obs_models[0].mask[:, 1:].bool()
             )
             if not mask_ok:
                 raise LeaspyModelInputError(
@@ -222,7 +249,7 @@ class OrdinalModelMixin:
         else:
             bad_fts = [
                 ft
-                for ft, ft_max_level in self.noise_model.max_levels.items()
+                for ft, ft_max_level in self.obs_models[0].max_levels.items()
                 if self.parameters[f"deltas_{ft}"].shape != (ft_max_level - 1,)
             ]
             if len(bad_fts):
@@ -250,9 +277,9 @@ class OrdinalModelMixin:
             return {
                 "deltas": {
                     "name": "deltas",
-                    "shape": torch.Size([self.dimension, self.noise_model.max_level - 1]),
+                    "shape": torch.Size([self.dimension, self.obs_models[0].max_level - 1]),
                     "rv_type": "multigaussian",
-                    "mask": self.noise_model.mask[:, 1:],
+                    "mask": self.obs_models[0].mask[:, 1:],
                     "scale": 0.5,
                 }
             }
@@ -263,7 +290,7 @@ class OrdinalModelMixin:
                 "rv_type": "gaussian",
                 "scale": 0.5,
             }
-            for ft, ft_max_level in self.noise_model.max_levels.items()
+            for ft, ft_max_level in self.obs_models[0].max_levels.items()
         }
 
     def update_ordinal_population_random_variable_information(self, variables_info: DictParams) -> None:

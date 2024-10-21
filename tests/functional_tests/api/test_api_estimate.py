@@ -40,7 +40,7 @@ class LeaspyEstimateTestMixin(LeaspyTestCase):
 class LeaspyEstimateTest(LeaspyEstimateTestMixin):
 
     logistic_models = ("logistic_scalar_noise", "logistic_diag_noise_id", "logistic_diag_noise")
-    ordinal_models = ("logistic_ordinal", "logistic_ordinal_ranking_same",)
+    ordinal_models = ("logistic_ordinal_b",) # "logistic_ordinal_ranking_same",) # not implemented anymore
 
     @property
     def individual_parameters(self):
@@ -67,7 +67,6 @@ class LeaspyEstimateTest(LeaspyEstimateTestMixin):
 
         # TODO linear model?
 
-    @skip("Broken: Ordinal models are broken")
     def test_estimate_ordinal_mle(self):
         """Loss is not involved in estimation so all expected outputs are the same
         for the 2 ordinal models.
