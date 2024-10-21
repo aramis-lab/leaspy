@@ -133,14 +133,48 @@ class FullBetaObservationModel(BetaObservationModel):
         cls,
         *,
         state: State,
-        y_x_model: WeightedTensor[float],
-        model_x_model: WeightedTensor[float],
     ) -> torch.Tensor:
         """
         Update rule for feature-wise `noise_std` (when directly a model parameter),
         from state & sufficient statistics.
         """
-        raise(NotImplementedError)
+        # Parameters we want to optimize: alpha and beta
+        # We initialize them randomly, and make sure they're positive using softplus
+
+        # We initialize beta randomly, and make sure they're positive using softplus
+        variance = torch.tensor(state["noise_std"], requires_grad=True)  # TODO: use the past noise_std
+
+        # Optimizer (you can use any optimizer, Adam is often a good choice)
+        optimizer = optim.Adam([variance], lr=0.1)
+
+        # Number of iterations for optimization
+
+        noise_last_it = None
+
+        while (noise_last_it is None) or (abs(noise_last_it - torch.nn.functional.softplus(variance)) > 0.01).all():
+            optimizer.zero_grad()
+
+            # We use the softplus to ensure alpha and beta are positive
+            variance_pos = torch.nn.functional.softplus(variance)
+            noise_last_it = variance_pos
+
+            # Define the beta distribution with current alpha and beta
+            variance_dist = torch.distributions.Beta(state["model"].clip(min=0.001, max=0.99) * variance_pos,
+                                                     (1 - state["model"].clip(min=0.001, max=0.99)) * variance_pos)
+
+            # Compute the negative log-likelihood of the data under this beta distribution
+            nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value.clip(min=0.001, max=0.99)),
+                                 state["y"].weight).weighted_value.mean()
+
+            # Backpropagate to compute gradients
+            nll.backward()
+
+            # Take an optimization step
+            optimizer.step()
+
+        # Final optimized parameters
+        variance_optimized = torch.nn.functional.softplus(variance)
+        return variance_optimized.detach()
 
     @classmethod
     def noise_std_specs(cls, dimension: int) -> ModelParameter:

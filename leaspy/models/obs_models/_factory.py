@@ -18,6 +18,7 @@ class ObservationModelNames(Enum):
     GAUSSIAN_DIAGONAL = "gaussian-diagonal"
     GAUSSIAN_SCALAR = "gaussian-scalar"
     BETA_SCALAR = "beta-scalar"
+    BETA_DIAGONAL = "beta-diagonal"
     BERNOULLI = "bernoulli"
     ORDINAL = "ordinal"
     WEIBULL_RIGHT_CENSORED = "weibull-right-censored"
@@ -40,6 +41,7 @@ OBSERVATION_MODELS: Dict[ObservationModelNames, Type[ObservationModel]] = {
     ObservationModelNames.GAUSSIAN_DIAGONAL: FullGaussianObservationModel,
     ObservationModelNames.GAUSSIAN_SCALAR: FullGaussianObservationModel,
     ObservationModelNames.BETA_SCALAR: FullBetaObservationModel,
+    ObservationModelNames.BETA_DIAGONAL: FullBetaObservationModel,
     ObservationModelNames.BERNOULLI: BernoulliObservationModel,
     ObservationModelNames.ORDINAL: OrdinalObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED: WeibullRightCensoredObservationModel,
@@ -83,6 +85,13 @@ def observation_model_factory(model: ObservationModelFactoryInput, **kwargs) -> 
                     f"init the obs_model = {ObservationModelNames.GAUSSIAN_DIAGONAL}."
                 )
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(dimension)
+        if model == ObservationModelNames.BETA_DIAGONAL:
+            if dimension is None:
+                raise NotImplementedError(
+                    "WIP: dimension / features should be provided to "
+                    f"init the obs_model = {ObservationModelNames.BETA_DIAGONAL}."
+                )
+            return FullBetaObservationModel.with_noise_std_as_model_parameter(dimension)
         if model == ObservationModelNames.GAUSSIAN_SCALAR:
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(1)
         if model == ObservationModelNames.BETA_SCALAR:
