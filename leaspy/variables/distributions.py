@@ -457,7 +457,7 @@ class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
     @classmethod
     def _nll(cls, x: WeightedTensor, model, scale) -> WeightedTensor:
         alpha, beta = cls.get_params(model, scale)
-        return WeightedTensor(-cls.dist_factory(alpha, beta).log_prob(x.value), x.weight)
+        return WeightedTensor(-cls.dist_factory(alpha, beta).log_prob(x.value.clip(min=0.001, max=0.99)), x.weight)
 
     @classmethod
     def _nll_and_jacobian(
