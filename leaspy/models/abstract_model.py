@@ -199,7 +199,6 @@ class AbstractModel(BaseModel):
             for p in self.hyperparameters_names + self.parameters_names
         }
 
-    @abstractmethod
     def to_dict(self) -> KwargsType:
         """
         Export model as a dictionary ready for export.

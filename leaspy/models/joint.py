@@ -19,6 +19,7 @@ from leaspy.utils.functional import Exp, Sum, MatMul
 from leaspy.utils.typing import KwargsType
 from leaspy.models.obs_models import observation_model_factory
 import pandas as pd
+import warnings
 from leaspy.utils.typing import DictParams, Optional
 from leaspy.exceptions import LeaspyInputError
 

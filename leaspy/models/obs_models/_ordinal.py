@@ -9,25 +9,9 @@ from ._base import ObservationModel
 
 
 class OrdinalObservationModel(ObservationModel):
-    max_level: int
-    max_levels: dict[str, int]
-    _mask: torch.Tensor
-    string_for_json = 'ordinal'
+    string_for_json: str = "ordinal"
 
-    @property
-    def ordinal_infos(self) -> dict:
-        """Property to return the ordinal info dictionary."""
-        # Maybe not put all ordinal infos in the ObservationModel but in the model itself
-        return dict(
-            max_level= self.max_level,
-            max_levels= self.max_levels,
-            mask= self._mask,
-        )
-
-    def __init__(
-        self,
-        **extra_vars: VariableInterface,
-    ):
+    def __init__(self, **extra_vars: VariableInterface):
         super().__init__(
             name="y",
             getter=self.y_getter,
@@ -41,7 +25,8 @@ class OrdinalObservationModel(ObservationModel):
                 "Provided dataset is not valid. "
                 "Both values and mask should be not None."
             )
-        pdf = dataset.get_one_hot_encoding(sf=False, ordinal_infos=self.ordinal_infos)
-        mask = torch.ones_like(pdf)
-        mask[..., 1:] = self._mask #Add +1 on last dimension for level 0
-        return WeightedTensor(pdf, weight=dataset.mask.to(torch.bool).unsqueeze(-1) * mask)
+        pdf = dataset.get_one_hot_encoding(sf=False)
+        mask_ = torch.ones_like(pdf)
+        mask_[..., 1:] = dataset.get_mask()  # Add +1 on last dimension for level 0
+        return WeightedTensor(pdf, weight=dataset.mask.to(torch.bool).unsqueeze(-1) * mask_)
+
