@@ -401,6 +401,8 @@ def initialize_logistic(model, df: pd.DataFrame, method):
         "xi_std": torch.tensor(XI_STD),
         "sources_mean": torch.tensor(0.),
         "sources_std": torch.tensor(SOURCES_STD),
+        "wi_mean": torch.zeros(model.dimension),
+        "wi_std": torch.ones(model.dimension),
     }
 
     if model.is_ordinal:
@@ -537,6 +539,8 @@ def initialize_mixture(model, dataset, method):
     # for initialization of IP realizations only, not used after
     parameters["tau_xi_mean"] = torch.tensor([parameters['tau_mean'], parameters['xi_mean']])
     parameters["tau_xi_std"] = torch.tensor(0.05)
+    parameters["wi_mean"] = torch.tensor(parameters['wi_mean']) 
+    parameters["wi_std"] = torch.tensor(parameters['wi_std'])
 
     for k in range(model.nb_clusters):
         parameters[f'tau_xi_{k}_mean'] = torch.tensor([torch.normal(parameters['tau_mean'], parameters['tau_std']),
@@ -547,12 +551,16 @@ def initialize_mixture(model, dataset, method):
         model._auxiliary[f'tau_xi_{k}_std_inv'] = torch.tensor([[1., 0.],
                                                        [0., 20.]],
                                                       )
+        parameters[f'wi_{k}_mean'] = torch.tensor(torch.normal(parameters['wi_mean']))
+        parameters[f'wi_{k}_std'] = torch.tensor(torch.normal(parameters['wi_std']))
 
     # Remove useless params for the model
     del parameters["tau_mean"]
     del parameters["tau_std"]
     del parameters["xi_mean"]
     del parameters["xi_std"]
+    del parameters["wi_mean"]
+    del parameters["wi_std"]
 
     parameters["pi"] = 1./model.nb_clusters * torch.ones(model.nb_clusters)
 
