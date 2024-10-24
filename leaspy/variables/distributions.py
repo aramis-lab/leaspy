@@ -365,7 +365,7 @@ class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
     @classmethod
     def get_params(self, model, scale):
 
-        return model.clip(min=0.001, max=0.99)*scale**2, (1-model.clip(min=0.001, max=0.99))*scale**2
+        return model.clip(min=0.001, max=0.99)*scale, (1-model.clip(min=0.001, max=0.99))*scale
 
     @classmethod
     def mode(cls, model, scale) -> torch.Tensor:
@@ -474,7 +474,6 @@ class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
     def _nll_jacobian(cls, x: WeightedTensor, model, scale) -> WeightedTensor:
         alpha, beta = cls.get_params(model, scale)
         return cls._nll_and_jacobian(x, alpha, beta)[1]
-
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
@@ -769,7 +768,6 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         grads = torch.cat(to_cat, dim=-1).squeeze(0)
 
         return grads
-
 
 class WeibullRightCensoredFamily(AbstractWeibullRightCensoredFamily):
     parameters: ClassVar = ("nu", "rho", 'xi', 'tau')
