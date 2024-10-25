@@ -249,6 +249,12 @@ class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     parameters: ClassVar = ("loc",)
     dist_factory: ClassVar = torch.distributions.Bernoulli
 
+class LaplaceFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """Log Normal family (stateless)."""
+    parameters: ClassVar = ("loc","scale")
+    dist_factory: ClassVar = torch.distributions.laplace.Laplace
+
+
 
 class OrdinalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Ordinal family (stateless)."""
@@ -859,6 +865,7 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
+Laplace = SymbolicDistribution.bound_to(LaplaceFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
