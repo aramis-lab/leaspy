@@ -22,13 +22,12 @@ from leaspy.variables.distributions import Normal
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, Sqr, Orthobasis, MatMul
 from leaspy.utils.typing import KwargsType, DictParams, Optional
-from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, unsqueeze_rig
-ht
+from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, unsqueeze_right
 
 from leaspy.exceptions import LeaspyInputError
 
 @doc_with_super()
-class MixtureModel(LogisticMultivariateModel):
+class MixtureLogisticModel(LogisticMultivariateModel):
    """
    Manifold model for multiple variables of interest
 
@@ -49,6 +48,31 @@ class MixtureModel(LogisticMultivariateModel):
    Raises
    ------
    :exc `.LeaspyModelInputError`
-      * If `name` is not one of the allowed sub-type 'mixture_linear' or 'mixture_logistic'
+      * If `name` is not the allowed sub-type 'mixture_logistic'
+      * If hyperparameters are inconsistent
+   """
+
+class MixtureLinearModel(LinearMultivariateModel):
+   """
+   Linear formulation of the manifold model for multiple variables
+
+   Parameters
+   ----------
+   name : :obj: `str`
+      The name of the model
+   base_model: str
+      The base model for the mixture
+   n_clusters : int
+      The number of models in the mixture
+   **kwargs
+      Hyperparameters of the model
+
+   Attributes
+   ----------
+
+   Raises
+   ------
+   :exc `.LeaspyModelInputError`
+      * If `name` is not the allowed sub-type 'mixture_linear'
       * If hyperparameters are inconsistent
    """
