@@ -37,12 +37,12 @@ class BetaObservationModel(ObservationModel):
         self,
         name: VarName,
         getter: Callable[[Dataset], WeightedTensor],
-        model: VarName,
+        loc: VarName,
         scale: VarName,
         **extra_vars: VariableInterface,
     ):
 
-        super().__init__(name, getter, Beta(model, scale),
+        super().__init__(name, getter, Beta(loc, scale),
                                             extra_vars=extra_vars)
 
 
@@ -63,13 +63,13 @@ class FullBetaObservationModel(BetaObservationModel):
 
     tol_noise_variance = 1e-5
     backward_iterations = 2
-
+    tol_to_one = 1e-5
     def __init__(self, noise_std: VariableInterface,
-                 model:VarName, **extra_vars: VariableInterface):
+                  **extra_vars: VariableInterface):
         super().__init__(
             name="y",
             getter=self.y_getter,
-            model = model,
+            loc = "model",
             scale = "noise_std",
             noise_std= noise_std,
             **extra_vars,
@@ -113,11 +113,11 @@ class FullBetaObservationModel(BetaObservationModel):
             variance_pos = torch.nn.functional.softplus(variance)
 
             # Define the beta distribution with current alpha and beta
-            variance_dist = torch.distributions.Beta(state["model"].clip(min=0.001, max=0.99) * variance_pos,
-                                                     (1 - state["model"].clip(min=0.001, max=0.99)) * variance_pos)
+            variance_dist = torch.distributions.Beta(state["model"].clip(min = cls.tol_to_one, max = 1-cls.tol_to_one) * (variance_pos - 2 ) + 1,
+                                                     (1 - state["model"].clip(min = cls.tol_to_one, max = 1-cls.tol_to_one))  * (variance_pos - 2 ) + 1)
 
             # Compute the negative log-likelihood of the data under this beta distribution
-            nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value.clip(min=0.001, max=0.99)),state["y"].weight).weighted_value.mean()
+            nll = WeightedTensor(-variance_dist.log_prob(state["y"].value.clip(min = cls.tol_to_one, max = 1-cls.tol_to_one)),state["y"].weight).weighted_value.sum()
 
             # Backpropagate to compute gradients
             nll.backward()
@@ -157,11 +157,11 @@ class FullBetaObservationModel(BetaObservationModel):
             variance_pos = torch.nn.functional.softplus(variance)
 
             # Define the beta distribution with current alpha and beta
-            variance_dist = torch.distributions.Beta(state["model"].clip(min=0.001, max=0.99) * variance_pos,
-                                                     (1 - state["model"].clip(min=0.001, max=0.99)) * variance_pos)
+            variance_dist = torch.distributions.Beta(state["model"].clip(min=cls.tol_to_one, max=1 - cls.tol_to_one) * (variance_pos - 2) + 1,
+                                                     (1 - state["model"].clip(min=cls.tol_to_one, max=1 - cls.tol_to_one)) * (variance_pos - 2) + 1)
 
             # Compute the negative log-likelihood of the data under this beta distribution
-            nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value.clip(min=0.001, max=0.99)),
+            nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value.clip(min=cls.tol_to_one, max=1 - cls.tol_to_one)),
                                  state["y"].weight).weighted_value.mean()
 
             # Backpropagate to compute gradients
@@ -196,8 +196,7 @@ class FullBetaObservationModel(BetaObservationModel):
         if not isinstance(dimension, int) or dimension < 1:
             raise ValueError(f"Dimension should be an integer >= 1. You provided {dimension}.")
 
-        return cls(noise_std=cls.noise_std_specs(dimension),
-                   model = kwargs.pop("model", "model"))
+        return cls(noise_std=cls.noise_std_specs(dimension))
 
     def to_string(self) -> str:
         """method for parameter saving"""

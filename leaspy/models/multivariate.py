@@ -475,6 +475,7 @@ class MultivariateModel(AbstractMultivariateModel):
             ),
             metric=LinkedVariable(self.metric),  # for linear model: metric & metric_sqr are fixed = 1.
         )
+
         if self.source_dimension >= 1:
             d.update(
                 model=LinkedVariable(self.model_with_sources),
@@ -673,7 +674,7 @@ class LogisticMultivariateInitializationMixin:
         if isinstance(obs_model, FullBetaObservationModel):
             rounded_parameters["noise_std"] = self.noise_std.expand(
                 obs_model.extra_vars['noise_std'].shape
-            )*20
+            )*100
             print(rounded_parameters["noise_std"])
         return rounded_parameters
 
