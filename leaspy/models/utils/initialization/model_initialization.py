@@ -76,6 +76,8 @@ def initialize_parameters(model, dataset, method="default") -> tuple:
         parameters = initialize_logistic_parallel(model, df, method)
     elif name in ['linear', 'univariate_linear']:
         parameters = initialize_linear(model, df, method)
+    elif 'mixture' in name:
+        parameters = initialize_mixture(model, df, method)
     elif name == 'mixed_linear-logistic':
         raise NotImplementedError("legacy")
     else:
@@ -399,6 +401,8 @@ def initialize_logistic(model, df: pd.DataFrame, method):
         "xi_std": torch.tensor(XI_STD),
         "sources_mean": torch.tensor(0.),
         "sources_std": torch.tensor(SOURCES_STD),
+        "wi_mean": torch.zeros(model.dimension),
+        "wi_std": torch.ones(model.dimension),
     }
 
     if model.is_ordinal:
@@ -524,6 +528,44 @@ def initialize_linear(model, df: pd.DataFrame, method):
     }
 
     return parameters
+
+def initialize_mixture(model, dataset, method):
+
+    if model.name == "mixture_logistic":
+        parameters = initialize_logistic(model, dataset, method)
+    elif model.name == "mixture_linear":
+        parameters = initialize_linear(model, dataset, method)
+
+    # for initialization of IP realizations only, not used after
+    parameters["tau_xi_mean"] = torch.tensor([parameters['tau_mean'], parameters['xi_mean']])
+    parameters["tau_xi_std"] = torch.tensor(0.05)
+    parameters["wi_mean"] = torch.tensor(parameters['wi_mean']) 
+    parameters["wi_std"] = torch.tensor(parameters['wi_std'])
+
+    for k in range(model.nb_clusters):
+        parameters[f'tau_xi_{k}_mean'] = torch.tensor([torch.normal(parameters['tau_mean'], parameters['tau_std']),
+                                                    torch.normal(parameters['xi_mean'], parameters['xi_std'])])
+        parameters[f'tau_xi_{k}_std'] = torch.tensor([[1., 0.],
+                                                   [0., 0.05]],
+                                                  )
+        model._auxiliary[f'tau_xi_{k}_std_inv'] = torch.tensor([[1., 0.],
+                                                       [0., 20.]],
+                                                      )
+        parameters[f'wi_{k}_mean'] = torch.tensor(torch.normal(parameters['wi_mean']))
+        parameters[f'wi_{k}_std'] = torch.tensor(torch.normal(parameters['wi_std']))
+
+    # Remove useless params for the model
+    del parameters["tau_mean"]
+    del parameters["tau_std"]
+    del parameters["xi_mean"]
+    del parameters["xi_std"]
+    del parameters["wi_mean"]
+    del parameters["wi_std"]
+
+    parameters["pi"] = 1./model.nb_clusters * torch.ones(model.nb_clusters)
+
+    return parameters
+
 
 
 def compute_linregress_subjects(df: pd.DataFrame, *, max_inds: int = None) -> Dict[str, pd.DataFrame]:

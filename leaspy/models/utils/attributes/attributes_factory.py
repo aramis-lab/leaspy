@@ -11,11 +11,13 @@ class AttributesFactory:
 
     _attributes = {
         'logistic': LogisticAttributes,
+        'mixture_logistic': LogisticAttributes,
         'univariate_logistic': LogisticAttributes,
 
         'logistic_parallel': LogisticParallelAttributes,
 
         'linear': LinearAttributes,
+        'mixture_linear': LinearAttributes,
         'univariate_linear': LinearAttributes,
 
         #'mixed_linear-logistic': ... # TODO
@@ -56,7 +58,7 @@ class AttributesFactory:
             raise LeaspyModelInputError(f"Name `{name}` should contain 'univariate', if and only if `dimension` equals 1.")
 
         if ordinal_infos is not None:
-            # only for logistic and univariate_logistic models for now
+            # only for logistic and univariate_logistic models
             return LogisticOrdinalAttributes(name, dimension, source_dimension, ordinal_infos)
 
         return cls._attributes[name](name, dimension, source_dimension)

@@ -313,17 +313,27 @@ class Plotter:
         model_values_np = self._compute_individual_tensorized_postprocessed(
             model, dataset.timepoints, results.individual_parameters
         )
+
+        if "tau_mean" in model.parameters:
+            tau_mean = model.parameters['tau_mean']
+            xi_mean = model.parameters['xi_mean']
+            tau_std = model.parameters['tau_std']
+            xi = results.individual_parameters['xi']
+            tau = results.individual_parameters['tau']
+        elif "tau_xi_0_mean" in model.parameters:
+            tau_mean = model.parameters['tau_xi_0_mean'][0]
+            xi_mean = model.parameters['tau_xi_0_mean'][1]
+            tau_std = model.parameters['tau_xi_0_std'][0, 0]
+            tau, xi = model.get_tau_xi(results)
         timepoints = np.linspace(
-            model.parameters['tau_mean'] - n_std_left * model.parameters['tau_std'],
-            model.parameters['tau_mean'] + n_std_right * model.parameters['tau_std'],
+            tau_mean - n_std_left * tau_std,
+            tau_mean + n_std_right * tau_std,
             n_pts
         )
         timepoints = torch.tensor(timepoints).unsqueeze(0)
-        xi = results.individual_parameters['xi']
-        tau = results.individual_parameters['tau']
 
         reparametrized_time = model.time_reparametrization(dataset.timepoints, xi, tau) / torch.exp(
-            model.parameters['xi_mean']) + model.parameters['tau_mean']
+            xi_mean) + tau_mean
 
         for i in range(dataset.values.shape[-1]):
             fig, ax = plt.subplots(1, 1)
@@ -472,6 +482,9 @@ class Plotter:
         if getattr(model, 'is_ordinal', False):
             to_skip_1.append('deltas')
         params_to_plot_1 = [p for p in model.parameters.keys() if p not in to_skip_1]
+        if "tau_xi_mean" in model.parameters:
+            to_skip_2  = [f'tau_xi_{k}_std' for k in range(model.nb_clusters)]
+            params_to_plot_1 = [p for p in params_to_plot_1 if p not in to_skip_2]
 
         n_plots_1 = len(params_to_plot_1)
         n_rows_1 = math.ceil(n_plots_1 / 2)
@@ -558,6 +571,9 @@ class Plotter:
         for i, key in enumerate(reals_ind_name):
 
             if skip_sources and key in ['sources']:
+                continue
+
+            if key in ["tau_xi"]:
                 continue
 
             import_path_mean = os.path.join(path, f"{key}_mean.csv")

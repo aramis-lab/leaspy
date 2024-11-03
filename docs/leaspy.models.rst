@@ -18,6 +18,7 @@ Submodules
    leaspy.models.abstract_model
    leaspy.models.abstract_multivariate_model
    leaspy.models.model_factory
+   leaspy.models.multivariate_ip_mixture_model
    leaspy.models.multivariate_model
    leaspy.models.multivariate_parallel_model
    leaspy.models.univariate_model

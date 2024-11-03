@@ -99,6 +99,10 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
         for key in vars_order:
             self.samplers[key].sample(dataset, model, realizations, self.temperature_inv)
 
+        for key in realizations.deterministic.names:
+            new_val = realizations[key].update_function(dataset, realizations)
+            realizations[key].tensor = new_val
+
         # Maximization step
         self._maximization_step(dataset, model, realizations)
 

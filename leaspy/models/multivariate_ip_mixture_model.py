@@ -1,7 +1,9 @@
-import torch
 import numpy as np
+import torch
+from math import log
 
-from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
+from leaspy.io.outputs import individual_parameters
+from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel, AbstractMultivariateMixtureModel
 from leaspy.models.utils.attributes import AttributesFactory
 from leaspy.io.data.dataset import Dataset
 from leaspy.io.realizations import CollectionRealization
@@ -9,7 +11,14 @@ from leaspy.io.realizations import CollectionRealization
 from leaspy.utils.docs import doc_with_super, doc_with_
 from leaspy.utils.subtypes import suffixed_method
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import DictParamsTorch, DictParams
+from leaspy.utils.typing import DictParamsTorch, DictParams, Optional
+
+from leaspy.io.realizations import (
+    AbstractRealization,
+    PopulationRealization,
+    IndividualRealization,
+    CollectionRealization,
+)
 
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
@@ -20,14 +29,14 @@ from leaspy.utils.typing import DictParamsTorch, DictParams
 
 
 @doc_with_super()
-class MultivariateModel(AbstractMultivariateModel):
+class MultivariateIndividualParametersMixtureModel(AbstractMultivariateMixtureModel):
     """
     Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters
     ----------
-    name : :obj:`str`
-        The name of the model.
+    name : str
+        Name of the model
     **kwargs
         Hyperparameters of the model (including `noise_model`)
 
@@ -39,21 +48,52 @@ class MultivariateModel(AbstractMultivariateModel):
     """
 
     SUBTYPES_SUFFIXES = {
-        'linear': '_linear',
-        'logistic': '_logistic',
-        'mixed_linear-logistic': '_mixed',
+        'mixture_linear': '_linear',
+        'mixture_logistic': '_logistic'
     }
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, nb_clusters: int = 1, **kwargs):
         super().__init__(name, **kwargs)
-
+        self.nb_clusters = nb_clusters
         self.parameters["v0"] = None
         self.MCMC_toolbox['priors']['v0_std'] = None  # Value, Coef
+
+        # adapt parameters
+        self._auxiliary = {}
+        self.parameters = {
+            "g": None,
+            "betas": None,
+            "sources_mean": None, "sources_std": None,
+        }
+
+        # initialize means for temporal parameters for each cluster
+        for k in range(self.nb_clusters):
+            self.parameters[f'tau_xi_{k}_mean'] = None
+            self.parameters[f'tau_xi_{k}_std'] = None
+            self._auxiliary[f'tau_xi_{k}_std_inv'] = None
+        self.parameters["pi"] = None
+
+        # initialize means for spatial parameters for each cluster
+        for k in range(self.nb_clusters):
+                self.parameters[f'wi_{k}_mean'] = None
+                self.parameters[f'wi_{k}_std'] = None
+
 
         self._subtype_suffix = self._check_subtype()
 
         # enforce a prior for v0_mean --> legacy / never used in practice
         self._set_v0_prior = False
+
+    @staticmethod
+    def get_tau_xi(individual_parameters):
+        if (isinstance(individual_parameters, CollectionRealization) and 'tau_xi' in individual_parameters.names) or 'tau_xi' in individual_parameters:
+            tau_xi = individual_parameters['tau_xi']
+            if isinstance(tau_xi, IndividualRealization):
+                tau_xi = tau_xi.tensor
+            tau, xi = tau_xi[..., :1], tau_xi[..., 1:]
+        else:
+            tau, xi = individual_parameters['tau'], individual_parameters['xi']
+        return tau, xi
 
     def _check_subtype(self) -> str:
         if self.name not in self.SUBTYPES_SUFFIXES.keys():
@@ -84,7 +124,7 @@ class MultivariateModel(AbstractMultivariateModel):
         # Population parameters
         #positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
         positions, velocities, orthonormal_basis = self._get_attributes(attribute_type)
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -116,7 +156,7 @@ class MultivariateModel(AbstractMultivariateModel):
         b = g_plus_1 * g_plus_1 / g
 
         # Individual parameters
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -182,7 +222,7 @@ class MultivariateModel(AbstractMultivariateModel):
         # 1/ get attributes
         #g, v0, a_matrix = self._get_attributes(None)
         g, v0, orthonormal_basis = self._get_attributes(None)
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
+        xi, tau = self.get_tau_xi(individual_parameters)
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
             betas = self.parameters['betas']
@@ -214,39 +254,36 @@ class MultivariateModel(AbstractMultivariateModel):
         For one individual, compute age(s) breakpoints at which the given features
         levels are the most likely (given the subject's individual parameters).
 
-        Consistency checks are done in the main :term:`API` layer.
+        Consistency checks are done in the main API layer.
 
         Parameters
         ----------
         value : :class:`torch.Tensor`
-            Contains the :term:`biomarker` level value(s) of the subject.
+            Contains the biomarker level value(s) of the subject.
 
-        individual_parameters : :obj:`dict`
+        individual_parameters : dict
             Contains the individual parameters.
-            Each individual parameter should be a scalar or array_like.
+            Each individual parameter should be a scalar or array_like
 
-        feature : :obj:`str`
-            Name of the considered :term:`biomarker`
-
-            .. note::
-                Optional for :class:`.UnivariateModel`, compulsory
-                for :class:`.MultivariateModel`.
+        feature : str
+            Name of the considered biomarker (optional for univariate models,
+            compulsory for multivariate models).
 
         Returns
         -------
         :class:`torch.Tensor`
             Contains the subject's ages computed at the given values(s)
-            Shape of tensor is ``(1, n_values)``.
+            Shape of tensor is (1, n_values)
 
         Raises
         ------
         :exc:`.LeaspyModelInputError`
-            If computation is tried on more than 1 individual.
+            if computation is tried on more than 1 individual
         """
         # 1/ get attributes
         #g, v0, a_matrix = self._get_attributes(None)
         g, v0, orthonormal_basis = self._get_attributes(None)
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
+        xi, tau = self.get_tau_xi(individual_parameters)
         if self.source_dimension != 0:
             sources = individual_parameters['sources']
             betas = self.parameters['betas']
@@ -298,7 +335,7 @@ class MultivariateModel(AbstractMultivariateModel):
         _, v0, mixing_matrix = self._get_attributes(attribute_type)
 
         # Individual parameters
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -331,12 +368,13 @@ class MultivariateModel(AbstractMultivariateModel):
         # TODO: refact highly inefficient (many duplicated code from `compute_individual_tensorized_logistic`)
 
         # Population parameters
-        g, v0, a_matrix = self._get_attributes(attribute_type)
+        #g, v0, a_matrix = self._get_attributes(attribute_type)
+        g, v0, orthonormal_basis = self._get_attributes(attribute_type)
         g_plus_1 = 1. + g
         b = g_plus_1 * g_plus_1 / g
 
         # Individual parameters
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
+        tau, xi = self.get_tau_xi(individual_parameters)
         reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
 
         # Reshaping
@@ -357,9 +395,10 @@ class MultivariateModel(AbstractMultivariateModel):
             LL = v0 * reparametrized_time
 
         if self.source_dimension != 0:
-            #sources = individual_parameters['sources']
-            #wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
-            wi = individual_parameters['wi']
+            sources = individual_parameters['sources']
+            betas = self.parameters['betas']
+            a_matrix = np.matmul(orthonormal_basis, betas)
+            wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
             if self.is_ordinal:
                 wi = wi.unsqueeze(-1)
             LL += wi
@@ -390,13 +429,119 @@ class MultivariateModel(AbstractMultivariateModel):
         # dict[param_name: str, torch.Tensor of shape(n_ind, n_tpts, n_fts [, extra_dim_ordinal_models], n_dims_param)]
         return derivatives
 
+    def compute_regularity_multivariate_variable(
+        self,
+        value: torch.Tensor,
+        mean: torch.Tensor,
+        precision_matrix: torch.Tensor,
+        *,
+        include_constant: bool = True,
+        with_gradient: bool = False,
+    ):
+        """
+        Compute regularity term (Gaussian distribution) and optionally its gradient wrt value.
+
+        TODO: should be encapsulated in a RandomVariableSpecification class together with other specs of RV.
+
+        Parameters
+        ----------
+        value, mean: :class:`torch.Tensor` of same shape (...,n)
+        precision_matrix: :class:`torch.Tensor` of shape (n, n)
+        include_constant : bool (default True)
+            Whether we include or not additional terms constant with respect to `value`.
+        with_gradient : bool (default False)
+            Whether we also return the gradient of regularity term with respect to `value`.
+
+        Returns
+        -------
+        :class:`torch.Tensor` of same shape than input
+        """
+        # This is really slow when repeated on tiny tensors (~3x slower than direct formula!)
+        #return -self.regularization_distribution_factory(mean, std).log_prob(value)
+
+        y = (value - mean)
+        p = (y @ precision_matrix)
+        neg_loglike = 0.5 * (p * y).sum(dim=-1, keepdims=True)
+        if include_constant:
+            neg_loglike += 0.5 * precision_matrix.shape[0] * torch.log(2 * torch.tensor(torch.pi)) - 0.5 * torch.log(torch.det(precision_matrix))
+        if not with_gradient:
+            return neg_loglike
+        nll_grad = p
+        return neg_loglike, nll_grad
+
+    # Override
+    def compute_regularity_realization(self, realizations, name):
+        # Instantiate torch distribution
+        realization = realizations[name]
+        if isinstance(realization, PopulationRealization):
+            return self.compute_regularity_population_realization(realization)
+        if isinstance(realization, IndividualRealization):
+            name = realization.name
+            # separate treatment for tau_xi which is multivariate
+            if name == 'tau_xi':
+                proba_clusters = realizations["proba_clusters"].tensor
+                regs = torch.stack([self.compute_regularity_multivariate_variable(
+                                                                    realization.tensor,
+                                                                    self.parameters[f"tau_xi_{k}_mean"],
+                                                                    self._auxiliary[f"tau_xi_{k}_std_inv"],
+                                                                    include_constant=False,
+                                                                    ) for k in range(self.nb_clusters)])
+                reg = (regs * proba_clusters.unsqueeze(-1)).sum(dim=0)
+                return reg
+            if name == 'wi' :
+                proba_clusters = realizations["proba_clusters"].tensor
+                regs = torch.stack([self.compute_regularity_multivariate_variable(
+                    realization.tensor,
+                    self.parameters[f"wi{k}_mean"],
+                    self.parameters[f"wi{k}_std"],
+                    include_constant=False,
+                ) for k in range(self.nb_clusters)])
+                reg = (regs * proba_clusters.unsqueeze(-1)).sum(dim=0)
+                return reg
+            return self.compute_regularity_individual_realization(realization)
+        raise LeaspyModelInputError(
+            f"Realization {realization} not known, should be 'population' or 'individual'."
+        )
+
+    # overwrite
+    def compute_mean_traj(
+        self,
+        timepoints: torch.Tensor,
+        *,
+        attribute_type: Optional[str] = None,
+    ) -> torch.Tensor:
+        """
+        Compute trajectory of the model with individual parameters being the group-average ones.
+
+        TODO check dimensions of io?
+
+        Parameters
+        ----------
+        timepoints : :class:`torch.Tensor` [1, n_timepoints]
+        attribute_type : 'MCMC' or None
+
+        Returns
+        -------
+        :class:`torch.Tensor` [1, n_timepoints, dimension]
+            The group-average values at given timepoints
+        """
+        individual_parameters = {
+            'tau_xi': self.parameters[f'tau_xi_{0}_mean'].clone(),
+            #'sources': torch.zeros(self.source_dimension)
+            'wi' : self.parameters[f'wi_{0}_mean'].clone()
+        }
+
+        return self.compute_individual_tensorized(
+            timepoints, individual_parameters, attribute_type=attribute_type
+        )
+
     ##############################
     ### MCMC-related functions ###
     ##############################
 
     def initialize_MCMC_toolbox(self) -> None:
         """
-        Initialize the model's :term:`MCMC` toolbox attribute.
+        Initialize the model's MCMC toolbox attribute.
         """
         self.MCMC_toolbox = {
             'priors': {'g_std': 0.01, 'v0_std': 0.01, 'betas_std': 0.01},  # population parameters
@@ -419,14 +564,14 @@ class MultivariateModel(AbstractMultivariateModel):
 
     def update_MCMC_toolbox(self, vars_to_update: set, realizations: CollectionRealization) -> None:
         """
-        Update the model's :term:`MCMC` toolbox attribute with the provided ``vars_to_update``.
+        Update the model's MCMC toolbox attribute with the provided vars_to_update.
 
         Parameters
         ----------
-        vars_to_update : :obj:`set` of :obj:`str`
+        vars_to_update : set
             The set of variable names to be updated.
-        realizations : :class:`.CollectionRealization`
-            The realizations to use for updating the :term:`MCMC` toolbox.
+        realizations : CollectionRealization
+            The realizations to use for updating the MCMC toolbox.
         """
         values = {}
         update_all = "all" in vars_to_update
@@ -441,37 +586,63 @@ class MultivariateModel(AbstractMultivariateModel):
 
     def _center_xi_realizations(self, realizations: CollectionRealization) -> None:
         """
-        Center the ``xi`` realizations in place.
+        Center the xi realizations in place.
 
-        .. note::
-            This operation does not change the orthonormal basis
-            (since the resulting ``v0`` is collinear to the previous one)
-            Nor all model computations (only ``v0 * exp(xi_i)`` matters),
-            it is only intended for model identifiability / ``xi_i`` regularization
-            <!> all operations are performed in "log" space (``v0`` is log'ed)
+        This operation does not change the orthonormal basis
+        (since the resulting v0 is collinear to the previous one)
+        Nor all model computations (only v0 * exp(xi_i) matters),
+        it is only intended for model identifiability / `xi_i` regularization
+        <!> all operations are performed in "log" space (v0 is log'ed)
 
         Parameters
         ----------
-        realizations : :class:`.CollectionRealization`
-            The realizations to use for updating the :term:`MCMC` toolbox.
+        realizations : CollectionRealization
+            The realizations to use for updating the MCMC toolbox.
         """
-        mean_xi = torch.mean(realizations['xi'].tensor)
-        realizations["xi"].tensor = realizations["xi"].tensor - mean_xi
+        tau, xi = self.get_tau_xi(realizations)
+        mean_xi = torch.mean(xi)
+        realizations["tau_xi"].tensor[...,1] = realizations["tau_xi"].tensor[...,1] - mean_xi
         realizations["v0"].tensor = realizations["v0"].tensor + mean_xi
         self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
     def _center_wi_realizations(self, realizations: CollectionRealization) -> None:
         """
-        Center the ``wi`` realizations in place.
-
+        Center the wi realizations in place.
+        
         Parameters
         ----------
-        realizations : :class:`.CollectionRealization`
-            The realizations to use for updating the :term:`MCMC` toolbox.
+        realizations : CollectionRealization
+            The realizations to use for updating the MCMC toolbox.
+
         """
-        mean_wi = torch.mean(realizations['wi'].tensor)
+        wi = individual_parameters["wi"]
+        mean_wi = torch.mean(wi)
         realizations["wi"].tensor = realizations["wi"].tensor - mean_wi
         self.update_MCMC_toolbox(realizations)
+
+    def compute_cluster_probabilities(self, data, realizations):
+        individual_attachments = torch.zeros((self.nb_clusters, data.n_individuals))
+        for i in range(self.nb_clusters):
+            individual_attachments[i] -= self.compute_regularity_multivariate_variable(
+                realizations["tau_xi"].tensor,
+                self.parameters[f"tau_xi_{i}_mean"],
+                self._auxiliary[f"tau_xi_{i}_std_inv"],
+                realizations["wi"],
+                self.parameters[f"wi_{i}_mean"],
+                include_constant=True,
+            ).sum(
+                dim=1).reshape(data.n_individuals)
+        proba_clusters = torch.nn.Softmax(dim=0)(torch.clamp(individual_attachments, -100.))
+        return proba_clusters
+
+    @staticmethod
+    def initialize_cluster_probabilities(n_individuals, model, **kwargs):
+        initial_clusters = kwargs.get("initial_clusters", None)
+        if initial_clusters is None:
+            # Initialize random clusters
+            initial_clusters = torch.exp(torch.normal(0., 1., size=(n_individuals, model.nb_clusters))).T
+            initial_clusters = initial_clusters / initial_clusters.sum(axis=0, keepdims=True)
+        return initial_clusters
 
     def compute_model_sufficient_statistics(
         self,
@@ -479,32 +650,33 @@ class MultivariateModel(AbstractMultivariateModel):
         realizations: CollectionRealization,
     ) -> DictParamsTorch:
         """
-        Compute the model's :term:`sufficient statistics`.
+        Compute the model's sufficient statistics.
 
         Parameters
         ----------
         data : :class:`.Dataset`
             The input dataset.
-        realizations : :class:`.CollectionRealization`
-            The realizations from which to compute the model's :term:`sufficient statistics`.
+        realizations : CollectionRealization
+            The realizations from which to compute the model's sufficient statistics.
 
         Returns
         -------
         DictParamsTorch :
-            The computed :term:`sufficient statistics`.
+            The computed sufficient statistics.
         """
         # modify realizations in-place
         self._center_xi_realizations(realizations)
         self._center_wi_realizations(realizations)
 
+        clusters = realizations["proba_clusters"].tensor
+
         # unlink all sufficient statistics from updates in realizations!
         realizations = realizations.clone()
-        sufficient_statistics = realizations[["g", "v0", "tau", "xi"]].tensors_dict
+        sufficient_statistics = realizations[["g", "v0", "tau_xi"]].tensors_dict
+        sufficient_statistics["proba_clusters"] = clusters
         if self.source_dimension != 0:
-            #sufficient_statistics['betas'] = realizations["betas"].tensor
-            sufficient_statistics["wi"] = realizations["wi"].tensor
-        for param in ("tau", "xi"):
-            sufficient_statistics[f"{param}_sqrd"] = torch.pow(realizations[param].tensor, 2)
+            sufficient_statistics['betas'] = realizations["betas"].tensor
+            sufficient_statistics['wi'] = realizations["wi"].tensor
 
         sufficient_statistics.update(
             self.compute_ordinal_model_sufficient_statistics(realizations)
@@ -517,18 +689,17 @@ class MultivariateModel(AbstractMultivariateModel):
         Update the model's parameters during the burn in phase.
 
         During the burn-in phase, we only need to store the following parameters (cf. !66 and #60)
-            - ``noise_std``
-            - *_mean/std for :term:`regularization` of individual variables
-            - others population parameters for :term:`regularization` of population variables
-
-        We don't need to update the model "attributes" (never used during burn-in!).
+            - noise_std
+            - *_mean/std for regularization of individual variables
+            - others population parameters for regularization of population variables
+        We don't need to update the model "attributes" (never used during burn-in!)
 
         Parameters
         ----------
         data : :class:`.Dataset`
             The input dataset.
         sufficient_statistics : DictParamsTorch
-            The :term:`sufficient statistics` to use for parameter update.
+            The sufficient statistics to use for parameter update.
         """
         # Memoryless part of the algorithm
         self.parameters['g'] = sufficient_statistics['g']
@@ -546,12 +717,29 @@ class MultivariateModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             self.parameters['betas'] = sufficient_statistics['betas']
-            self.parameters['wi_mean'] = torch.mean(sufficient_statistics['wi'])
-            self.parameters['wi_std'] = torch.std(sufficient_statistics['wi'])
+            wi = sufficient_statistics['wi']
 
-        self.parameters['xi_std'] = torch.std(sufficient_statistics['xi'])
-        self.parameters['tau_mean'] = torch.mean(sufficient_statistics['tau'])
-        self.parameters['tau_std'] = torch.std(sufficient_statistics['tau'])
+        tau_xi = sufficient_statistics['tau_xi']
+        clusters = sufficient_statistics["proba_clusters"]
+        for k in range(self.nb_clusters):
+            cluster = clusters[k]
+            if cluster.sum() != 0.:
+                S_inv = 1. / cluster.sum()
+                cluster = cluster.unsqueeze(-1)
+                self.parameters[f'tau_xi_{k}_mean'] = S_inv * (cluster * tau_xi).sum(dim=0)
+                err = tau_xi - self.parameters[f'tau_xi_{k}_mean'].unsqueeze(0)
+                err2 = (cluster * err).T @ err
+                tau_xi_std = S_inv * err2
+                self.parameters[f'tau_xi_{k}_std'] = tau_xi_std
+                self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'] + 1e-8 * torch.eye(2))
+                if self.source_dimension != 0:
+                    self.parameters[f'wi_{k}_mean'] =S_inv * (cluster * wi).sum(dim=0)
+                    err = wi - self.parameters[f'wi_{k}_mean'].unsqueeze(0)
+                    err2 = (cluster * err).T @ err
+                    wi_std = S_inv * err2
+                    self.parameters[f'wi_{k}_std'] = wi_std
+
+        self.parameters['pi'] = clusters.sum(dim=1) / clusters.sum()
 
         self.parameters.update(
             self.get_ordinal_parameters_updates_from_sufficient_statistics(
@@ -561,23 +749,23 @@ class MultivariateModel(AbstractMultivariateModel):
 
     def update_model_parameters_normal(self, data: Dataset, sufficient_statistics: DictParamsTorch) -> None:
         """
-        Stochastic :term:`sufficient statistics` used to update the parameters of the model.
+        Stochastic sufficient statistics used to update the parameters of the model.
 
-        .. note::
-            TODOs:
-                - factorize ``update_model_parameters_***`` methods?
-                - add a true, configurable, validation for all parameters?
-                  (e.g.: bounds on tau_var/std but also on tau_mean, ...)
-                - check the SS, especially the issue with mean(xi) and v_k
-                - Learn the mean of xi and v_k
-                - Set the mean of xi to 0 and add it to the mean of V_k
+        TODO? factorize `update_model_parameters_***` methods?
+
+        TODOs:
+            - add a true, configurable, validation for all parameters?
+              (e.g.: bounds on tau_var/std but also on tau_mean, ...)
+            - check the SS, especially the issue with mean(xi) and v_k
+            - Learn the mean of xi and v_k
+            - Set the mean of xi to 0 and add it to the mean of V_k
 
         Parameters
         ----------
         data : :class:`.Dataset`
             The input dataset.
         sufficient_statistics : DictParamsTorch
-            The :term:`sufficient statistics` to use for parameter update.
+            The sufficient statistics to use for parameter update.
         """
         from .utilities import compute_std_from_variance
 
@@ -586,33 +774,30 @@ class MultivariateModel(AbstractMultivariateModel):
 
         if self.source_dimension != 0:
             self.parameters['betas'] = sufficient_statistics['betas']
-            if param == 'wi':
-                param_old_mean = self.parameters[f"{param}_mean"]
-                param_cur_mean = torch.mean(sufficient_statistics[param])
-                param_variance_update = (
-                        torch.mean(sufficient_statistics[f"{param}_sqrd"]) -
-                        2. * param_old_mean * param_cur_mean
-                )
-                param_variance = param_variance_update + param_old_mean ** 2
-                self.parameters[f"{param}_std"] = compute_std_from_variance(
-                    param_variance, varname=f"{param}_std"
-                )
-                #self.parameters[f"{param}_mean"] = param_cur_mean #fix it to zeros for now
+            wi = sufficient_statistics['wi']
 
-        for param in ("tau", "xi"):
-            param_old_mean = self.parameters[f"{param}_mean"]
-            param_cur_mean = torch.mean(sufficient_statistics[param])
-            param_variance_update = (
-                torch.mean(sufficient_statistics[f"{param}_sqrd"]) -
-                2. * param_old_mean * param_cur_mean
-            )
-            param_variance = param_variance_update + param_old_mean ** 2
-            self.parameters[f"{param}_std"] = compute_std_from_variance(
-                param_variance, varname=f"{param}_std"
-            )
-            if param != 'xi':
-                # xi-mean is fixed to 0 by design
-                self.parameters[f"{param}_mean"] = param_cur_mean
+        clusters = sufficient_statistics["proba_clusters"]
+
+        for k in range(self.nb_clusters):
+            cluster = clusters[k]
+            if cluster.sum() != 0.:
+                S_inv = 1. / cluster.sum()
+                cluster = cluster.unsqueeze(-1)
+
+                tau_xi = sufficient_statistics["tau_xi"]
+                self.parameters[f'tau_xi_{k}_mean'] = S_inv * (cluster * tau_xi).sum(dim=0)
+                err = tau_xi - self.parameters[f'tau_xi_{k}_mean'].unsqueeze(0)
+                err2 = (cluster * err).T @ err
+                tau_xi_std = S_inv * err2
+                self.parameters[f'tau_xi_{k}_std'] = tau_xi_std
+                self._auxiliary[f'tau_xi_{k}_std_inv'] = torch.linalg.inv(self.parameters[f'tau_xi_{k}_std'] + 1e-8 * torch.eye(2))
+                if self.source_dimension != 0:
+                    self.parameters[f'wi_{k}_mean'] =S_inv * (cluster * wi).sum(dim=0)
+                    err = wi - self.parameters[f'wi_{k}_mean'].unsqueeze(0)
+                    err2 = (cluster * err).T @ err
+                    wi_std = S_inv * err2
+                    self.parameters[f'wi_{k}_std'] = wi_std
+        self.parameters["pi"] = clusters.sum(dim=1) / clusters.sum()
 
         self.parameters.update(
             self.get_ordinal_parameters_updates_from_sufficient_statistics(
@@ -632,16 +817,19 @@ class MultivariateModel(AbstractMultivariateModel):
         g_info = {
             "name": "g",
             "shape": torch.Size([self.dimension]),
+            "type": "population",
             "rv_type": "multigaussian"
         }
         v0_info = {
             "name": "v0",
             "shape": torch.Size([self.dimension]),
+            "type": "population",
             "rv_type": "multigaussian"
         }
         betas_info = {
             "name": "betas",
             "shape": torch.Size([self.dimension - 1, self.source_dimension]),
+            "type": "population",
             "rv_type": "multigaussian",
             "scale": .5  # cf. GibbsSampler
         }
@@ -652,8 +840,8 @@ class MultivariateModel(AbstractMultivariateModel):
         if self.source_dimension != 0:
             variables_info['betas'] = betas_info
 
-        variables_info.update(self.get_additional_ordinal_population_random_variable_information())
-        self.update_ordinal_population_random_variable_information(variables_info)
+        #variables_info.update(self.get_ordinal_random_variable_information())
+        #variables_info = self.update_ordinal_random_variable_information(variables_info)
 
         return variables_info
 
@@ -666,69 +854,77 @@ class MultivariateModel(AbstractMultivariateModel):
         DictParams :
             The information on the individual random variables.
         """
-        tau_info = {
-            "name": "tau",
-            "shape": torch.Size([1]),
-            "rv_type": "gaussian"
-        }
-        xi_info = {
-            "name": "xi",
-            "shape": torch.Size([1]),
+        tau_xi_info = {
+            "name": "tau_xi",
+            "shape": torch.Size([2]),
+            "type": "individual",
             "rv_type": "gaussian"
         }
         sources_info = {
             "name": "sources",
             "shape": torch.Size([self.source_dimension]),
+            "type": "individual",
             "rv_type": "gaussian"
         }
 
         wi_info = {
             "name": "wi",
-            "shape": torch.Size([self.dimension]),  # or torch.Size([nb_clusters])
+            "shape": torch.Size([self.dimension]), #or torch.Size([nb_clusters])
             "type": "individual",
             "rv_type": "gaussian"
         }
 
         variables_info = {
-            "tau": tau_info,
-            "xi": xi_info,
+            "tau_xi": tau_xi_info,
         }
         if self.source_dimension != 0:
             variables_info['sources'] = sources_info
             variables_info['wi'] = wi_info
-
         return variables_info
+
+    def get_deterministic_variable_information(self) -> DictParams:
+
+        probas_info = {
+            "name": "proba_clusters",
+            "shape": torch.Size([self.nb_clusters]),
+            "init_function": self.initialize_cluster_probabilities,
+            "update_function": self.compute_cluster_probabilities,
+        }
+
+        variable_info = {"proba_clusters":probas_info}
+
+        return variable_info
 
 
 # document some methods (we cannot decorate them at method creation since they are
 # not yet decorated from `doc_with_super`)
-doc_with_(MultivariateModel.compute_individual_tensorized_linear,
-          MultivariateModel.compute_individual_tensorized,
+doc_with_(MultivariateIndividualParametersMixtureModel.compute_individual_tensorized_linear,
+          MultivariateIndividualParametersMixtureModel.compute_individual_tensorized,
           mapping={'the model': 'the model (linear)'})
-doc_with_(MultivariateModel.compute_individual_tensorized_logistic,
-          MultivariateModel.compute_individual_tensorized,
+doc_with_(MultivariateIndividualParametersMixtureModel.compute_individual_tensorized_logistic,
+          MultivariateIndividualParametersMixtureModel.compute_individual_tensorized,
           mapping={'the model': 'the model (logistic)'})
 
-# doc_with_(MultivariateModel.compute_individual_tensorized_mixed,
-#          MultivariateModel.compute_individual_tensorized,
+# doc_with_(MultivariateIndividualParametersMixtureModel.compute_individual_tensorized_mixed,
+#          MultivariateIndividualParametersMixtureModel.compute_individual_tensorized,
 #          mapping={'the model': 'the model (mixed logistic-linear)'})
 
-doc_with_(MultivariateModel.compute_jacobian_tensorized_linear,
-          MultivariateModel.compute_jacobian_tensorized,
+doc_with_(MultivariateIndividualParametersMixtureModel.compute_jacobian_tensorized_linear,
+          MultivariateIndividualParametersMixtureModel.compute_jacobian_tensorized,
           mapping={'the model': 'the model (linear)'})
-doc_with_(MultivariateModel.compute_jacobian_tensorized_logistic,
-          MultivariateModel.compute_jacobian_tensorized,
+doc_with_(MultivariateIndividualParametersMixtureModel.compute_jacobian_tensorized_logistic,
+          MultivariateIndividualParametersMixtureModel.compute_jacobian_tensorized,
           mapping={'the model': 'the model (logistic)'})
-# doc_with_(MultivariateModel.compute_jacobian_tensorized_mixed,
-#          MultivariateModel.compute_jacobian_tensorized,
+# doc_with_(MultivariateIndividualParametersMixtureModel.compute_jacobian_tensorized_mixed,
+#          MultivariateIndividualParametersMixtureModel.compute_jacobian_tensorized,
 #          mapping={'the model': 'the model (mixed logistic-linear)'})
 
-# doc_with_(MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized_linear,
-#          MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized,
+# doc_with_(MultivariateIndividualParametersMixtureModel.compute_individual_ages_from_biomarker_values_tensorized_linear,
+#          MultivariateIndividualParametersMixtureModel.compute_individual_ages_from_biomarker_values_tensorized,
 #          mapping={'the model': 'the model (linear)'})
-doc_with_(MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized_logistic,
-          MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized,
+doc_with_(MultivariateIndividualParametersMixtureModel.compute_individual_ages_from_biomarker_values_tensorized_logistic,
+          MultivariateIndividualParametersMixtureModel.compute_individual_ages_from_biomarker_values_tensorized,
           mapping={'the model': 'the model (logistic)'})
-# doc_with_(MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized_mixed,
-#          MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized,
+# doc_with_(MultivariateIndividualParametersMixtureModel.compute_individual_ages_from_biomarker_values_tensorized_mixed,
+#          MultivariateIndividualParametersMixtureModel.compute_individual_ages_from_biomarker_values_tensorized,
 #          mapping={'the model': 'the model (mixed logistic-linear)'})

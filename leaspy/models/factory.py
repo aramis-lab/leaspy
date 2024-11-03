@@ -1,5 +1,5 @@
-from leaspy.models import ALL_MODELS, BaseModel
-
+from leaspy.models import ALL_MODELS
+from leaspy.models.base import BaseModel
 from leaspy.exceptions import LeaspyModelInputError
 
 

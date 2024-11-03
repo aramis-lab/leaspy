@@ -90,7 +90,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         with self._device_manager(model, dataset):
             realizations = CollectionRealization()
-            realizations.initialize(model, n_individuals=dataset.n_individuals)
+            realizations.initialize(model, n_individuals=dataset.n_individuals, **self.algo_parameters.get('init_params', {}))
             self._initialize_algo(dataset, model)
 
             if self.algo_parameters['progress_bar']:

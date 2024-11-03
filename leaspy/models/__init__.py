@@ -7,7 +7,7 @@ from .lme import LMEModel
 from .multivariate import MultivariateModel
 from .multivariate_parallel import MultivariateParallelModel
 from .univariate import UnivariateModel
-
+from .multivariate_ip_mixture_model import MultivariateIndividualParametersMixtureModel
 
 # flexible dictionary to have a simpler and more maintainable ModelFactory
 ALL_MODELS = {
@@ -20,6 +20,10 @@ ALL_MODELS = {
     'linear': MultivariateModel,
     'mixed_linear-logistic': MultivariateModel,
     'logistic_parallel': MultivariateParallelModel,
+
+    # mixture models
+    'mixture_logistic': MultivariateIndividualParametersMixtureModel,
+    'mixture_linear': MultivariateIndividualParametersMixtureModel,
 
     # naive models (for benchmarks)
     'lme': LMEModel,

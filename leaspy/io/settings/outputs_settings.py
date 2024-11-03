@@ -51,11 +51,13 @@ class OutputsSettings:
         self.parameter_convergence_path = None
         self.plot_path = None
         self.patients_plot_path = None
+        self.output_function = None
 
         self._set_console_print_periodicity(settings)
         self._set_save_periodicity(settings)
         self._set_plot_periodicity(settings)
         self._set_save_last_n_realizations(settings)
+        self._set_output_function(settings)
 
         # only create folders if the user want to save data or plots and provided a valid path!
         self._create_root_folder(settings)
@@ -98,6 +100,9 @@ class OutputsSettings:
 
             if self.plot_periodicity % self.save_periodicity != 0:
                 raise LeaspyAlgoInputError('The `plot_periodicity` should be a multiple of `save_periodicity`.')
+
+    def _set_output_function(self, settings):
+        self.output_function = settings.get("output_function", None)
 
     def _create_root_folder(self, settings):
 

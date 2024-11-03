@@ -5,6 +5,7 @@ from .realization import (
     AbstractRealization,
     IndividualRealization,
     PopulationRealization,
+    DeterministicRealization,
 )
 from .dict_realizations import DictRealizations
 from leaspy.exceptions import LeaspyInputError
@@ -29,13 +30,17 @@ class CollectionRealization(DictRealizations):
         *,
         population: Optional[DictRealizationsType] = None,
         individual: Optional[DictRealizationsType] = None,
+        deterministic: Optional[DictRealizationsType] = None,
     ):
         self._population = DictRealizations()
         self._individual = DictRealizations()
+        self._deterministic = DictRealizations()
         if population:
             self.population = population
         if individual:
             self.individual = individual
+        if deterministic:
+            self.deterministic = deterministic
 
     @property
     def realizations_dict(self) -> Dict[str, AbstractRealization]:
@@ -43,6 +48,7 @@ class CollectionRealization(DictRealizations):
         return dict(
             **self.population.realizations_dict,
             **self.individual.realizations_dict,
+            **self.deterministic.realizations_dict,
         )
 
     def __setitem__(self, variable_name: str, v) -> NoReturn:
@@ -71,6 +77,17 @@ class CollectionRealization(DictRealizations):
         else:
             self._individual = individual
         self._check_unicity_of_variable_names()
+
+    @property
+    def deterministic(self) -> DictRealizations:
+        return self._deterministic
+
+    @deterministic.setter
+    def deterministic(self, deterministic: DictRealizationsType):
+        if isinstance(deterministic, dict):
+            self._deterministic = DictRealizations(deterministic)
+        else:
+            self._deterministic = deterministic
 
     def _check_unicity_of_variable_names(self):
         variable_names_intersection = set(self.population.names).intersection(set(self.individual.names))
@@ -104,6 +121,7 @@ class CollectionRealization(DictRealizations):
         """
         self.initialize_population(model, skip_variable=skip_variable, **realization_init_kws)
         self.initialize_individuals(model, n_individuals=n_individuals, skip_variable=skip_variable, **realization_init_kws)
+        self.initialize_deterministic(model, n_individuals=n_individuals, skip_variable=skip_variable, **realization_init_kws)
 
     def initialize_population(
         self,
@@ -168,6 +186,42 @@ class CollectionRealization(DictRealizations):
             realization.initialize(model, **realization_init_kws)
             self.individual[name] = realization
 
+    def initialize_deterministic(
+        self,
+        model: AbstractModel,
+        *,
+        n_individuals: int,
+        skip_variable: Optional[Callable[[dict], bool]] = None,
+        **realization_init_kws,
+    ) -> None:
+        """
+        Initialize the deterministic part of the CollectionRealization instance from a Model instance.
+
+        Parameters
+        ----------
+        model : AbstractModel
+            The model from which to initialize the collection of realizations.
+        n_individuals : int
+            The number of individuals in the data.
+        skip_variable : Callable or bool, optional
+            Whether some variables should be skipped or not.
+        **realization_init_kws : dict
+            Kwargs for initializing the Realizations.
+        """
+        info = model.get_deterministic_variable_information()
+        for info_variable in info.values():
+            if skip_variable is not None and skip_variable(info_variable):
+                continue
+            name = info_variable["name"]
+            realization = DeterministicRealization(
+                name, info_variable["shape"],
+                n_individuals=n_individuals,
+                init_function=info_variable["init_function"],
+                update_function=info_variable["update_function"],
+            )
+            realization.initialize(model, **realization_init_kws)
+            self.deterministic[name] = realization
+
     def clone(self) -> CollectionRealization:
         """
         Deep-copy of the CollectionRealization instance.
@@ -182,4 +236,5 @@ class CollectionRealization(DictRealizations):
         return CollectionRealization(
             population=self.population.clone(),
             individual=self.individual.clone(),
+            deterministic=self.deterministic.clone(),
         )
