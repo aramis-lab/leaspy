@@ -10,6 +10,10 @@ test:
   parallel:
     matrix:
       - VERSION: ["3.9", "3.10", "3.11"]
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
 
 docs-build:
   image: "python:3.11"

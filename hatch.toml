@@ -24,7 +24,7 @@ python = ["3.9", "3.10", "3.11"]
 unit = "pytest tests/unittests"
 integration = "pytest tests/integration"
 all = "pytest tests"
-cov-test = "coverage run -m pytest tests"
+cov-test = "coverage run -m pytest tests --junitxml=report.xml"
 cov-report = [
   #"coverage combine",
   "coverage report",
