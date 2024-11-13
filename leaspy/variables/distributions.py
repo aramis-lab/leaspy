@@ -365,7 +365,7 @@ class BetaFamily(StatelessDistributionFamilyFromTorchDistribution):
     @classmethod
     def get_params(self, loc, scale):
 
-        return loc.clip(min=self.tol_to_one, max = 1 -self.tol_to_one)*(scale - 2) + 1, (1-loc.clip(min=self.tol_to_one, max=1 - self.tol_to_one))*(scale - 2) + 1
+        return loc.clip(min=self.tol_to_one, max = 1 -self.tol_to_one)*scale, (1-loc.clip(min=self.tol_to_one, max=1 - self.tol_to_one))*scale
 
     @classmethod
     def mode(cls, loc, scale) -> torch.Tensor:

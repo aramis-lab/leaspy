@@ -113,8 +113,8 @@ class FullBetaObservationModel(BetaObservationModel):
             variance_pos = torch.nn.functional.softplus(variance)
 
             # Define the beta distribution with current alpha and beta
-            variance_dist = torch.distributions.Beta(state["model"].clip(min = cls.tol_to_one, max = 1-cls.tol_to_one) * (variance_pos - 2 ) + 1,
-                                                     (1 - state["model"].clip(min = cls.tol_to_one, max = 1-cls.tol_to_one))  * (variance_pos - 2 ) + 1)
+            variance_dist = torch.distributions.Beta(state["model"].clip(min = cls.tol_to_one, max = 1-cls.tol_to_one) * variance_pos,
+                                                     (1 - state["model"].clip(min = cls.tol_to_one, max = 1-cls.tol_to_one))  * variance_pos)
 
             # Compute the negative log-likelihood of the data under this beta distribution
             nll = WeightedTensor(-variance_dist.log_prob(state["y"].value.clip(min = cls.tol_to_one, max = 1-cls.tol_to_one)),state["y"].weight).weighted_value.sum()
@@ -157,8 +157,8 @@ class FullBetaObservationModel(BetaObservationModel):
             variance_pos = torch.nn.functional.softplus(variance)
 
             # Define the beta distribution with current alpha and beta
-            variance_dist = torch.distributions.Beta(state["model"].clip(min=cls.tol_to_one, max=1 - cls.tol_to_one) * (variance_pos - 2) + 1,
-                                                     (1 - state["model"].clip(min=cls.tol_to_one, max=1 - cls.tol_to_one)) * (variance_pos - 2) + 1)
+            variance_dist = torch.distributions.Beta(state["model"].clip(min=cls.tol_to_one, max=1 - cls.tol_to_one) * variance_pos,
+                                                     (1 - state["model"].clip(min=cls.tol_to_one, max=1 - cls.tol_to_one)) * variance_pos)
 
             # Compute the negative log-likelihood of the data under this beta distribution
             nll = WeightedTensor(-variance_dist.log_prob(state["y"].weighted_value.clip(min=cls.tol_to_one, max=1 - cls.tol_to_one)),
