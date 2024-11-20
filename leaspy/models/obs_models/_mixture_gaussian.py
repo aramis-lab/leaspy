@@ -59,15 +59,15 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
 
     tol_noise_variance = 1e-5
 
-    def __init__(self, noise_std: VariableInterface, n_clusters: VariableInterface, probs: VariableInterface,  **extra_vars: VariableInterface):
+    def __init__(self, n_clusters: VariableInterface, probs: VariableInterface, noise_std: VariableInterface,  **extra_vars: VariableInterface):
         super().__init__(
             name="y",
             getter=self.y_getter,
             loc="model",
             scale="noise_std",
-            noise_std=noise_std,
-            n_clusters=n_clusters,  
+            n_clusters=n_clusters,
             probs=probs,
+            noise_std=noise_std,
             **extra_vars,
         )
 
@@ -76,6 +76,55 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         assert dataset.values is not None
         assert dataset.mask is not None
         return WeightedTensor(dataset.values, weight=dataset.mask.to(torch.bool))
+
+    @classmethod
+    def probs_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
+        """Dictionary of sufficient statistics needed for 'probs'."""
+        return dict(
+            a=,
+            b=,
+        )
+
+    @classmethod
+    def probs_update(
+        cls,
+        *,
+        state: State,
+        a: WeightedTensor[float],
+        b: WeightedTensor[float],
+    ) -> torch.Tensor:
+        """Update rule for 'probs' from state & sufficient statistics."""
+
+    @classmethod
+    def probs_specs(cls, n_clusters: int) -> ModelParameter:
+        """
+        Default specifications of 'probs'.
+        """
+        update_rule = cls.probs_update
+        return ModelParameter(
+            shape=(n_clusters,),
+            suff_stats=Collect(**cls.noise_std_suff_stats()),
+            update_rule=update_rule,
+        )
+
+    @classmethod
+    def with_probs_as_model_parameter(cls, n_clusters: int):
+        """
+        Default instance
+        """
+        if not isinstance(n_clusters, int) or n_clusters < 1:
+            raise ValueError(f"Number of clusters shouls be an integer >=1. You provided {n_clusters}.")
+        if n_clusters == 1:
+            extra_vars = {
+                "y_L2": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only)),
+                "n_obs": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only)),
+            }
+        else:
+            extra_vars = {
+                "y_L2_per_cluster": LinkedVariable(),
+                "n_obs_per_cluster": LinkedVariable()
+            }
+        return cls(probs=cls.probs_specs(n_clusters, **extra_vars)
 
     @classmethod
     def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
