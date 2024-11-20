@@ -81,8 +81,8 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
     def probs_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
         """Dictionary of sufficient statistics needed for 'probs'."""
         return dict(
-            a=,
-            b=,
+            y_x_model=LinkedVariable(Prod("y", "model")),
+            model_x_model=LinkedVariable(Sqr("model")),
         )
 
     @classmethod
@@ -90,8 +90,8 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         cls,
         *,
         state: State,
-        a: WeightedTensor[float],
-        b: WeightedTensor[float],
+        y_x_model: WeightedTensor[float],
+        model_x_model: WeightedTensor[float],
     ) -> torch.Tensor:
         """Update rule for 'probs' from state & sufficient statistics."""
 
@@ -121,10 +121,11 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             }
         else:
             extra_vars = {
-                "y_L2_per_cluster": LinkedVariable(),
-                "n_obs_per_cluster": LinkedVariable()
+                "y_L2_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=n_clusters)),
+                "n_obs_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=n_clusters)),
+                #fix dim to lvl_clusters
             }
-        return cls(probs=cls.probs_specs(n_clusters, **extra_vars)
+        return cls(probs=cls.probs_specs(n_clusters, **extra_vars))
 
     @classmethod
     def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
