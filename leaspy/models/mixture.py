@@ -52,27 +52,27 @@ class MixtureLogisticModel(LogisticMultivariateModel):
       * If hyperparameters are inconsistent
    """
 
-class MixtureLinearModel(LinearMultivariateModel):
-   """
-   Linear formulation of the manifold model for multiple variables
-
-   Parameters
-   ----------
-   name : :obj: `str`
-      The name of the model
-   base_model: str
-      The base model for the mixture
-   n_clusters : int
-      The number of models in the mixture
-   **kwargs
-      Hyperparameters of the model
-
-   Attributes
-   ----------
-
-   Raises
-   ------
-   :exc `.LeaspyModelInputError`
-      * If `name` is not the allowed sub-type 'mixture_linear'
-      * If hyperparameters are inconsistent
-   """
+#class MixtureLinearModel(LinearMultivariateModel):
+#   """
+#   Linear formulation of the manifold model for multiple variables
+#
+#   Parameters
+#   ----------
+#   name : :obj: `str`
+#      The name of the model
+#   base_model: str
+#      The base model for the mixture
+#   n_clusters : int
+#      The number of models in the mixture
+#   **kwargs
+#      Hyperparameters of the model
+#
+#   Attributes
+#   ----------
+#
+#   Raises
+#   ------
+#   :exc `.LeaspyModelInputError`
+#      * If `name` is not the allowed sub-type 'mixture_linear'
+#      * If hyperparameters are inconsistent
+#   """

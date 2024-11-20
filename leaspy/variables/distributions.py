@@ -364,6 +364,106 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     # def sample(cls, loc, scale, *, sample_shape = ()):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
+class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """
+    Mixture normal family (stateless).
+    Same functionality with the normal family but we have a set of parameters for every cluster c.
+    Each cluster is associated with a probability.
+    """
+
+    parameters: ClassVar = ("loc", "scale", "n_clusters", "probs")
+    dist_factory: ClassVar = torch.distributions.Multinomial
+    nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
+
+    @classmethod
+    def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        """
+        Return the mode of the distribution given the distribution's loc and scale parameters.
+
+        Parameters
+        ----------
+        loc : torch.Tensor
+            The distribution loc.
+
+        scale : torch.Tensor
+            The distribution scale.
+
+        Returns
+        -------
+        torch.Tensor :
+            The value of the distribution's mode.
+        """
+        # `loc`, but with possible broadcasting of shape
+        return torch.broadcast_tensors(loc, scale)[0]
+
+    @classmethod
+    def mean(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        """
+        Return the mean of the distribution, given the distribution loc and scale parameters.
+
+        Parameters
+        ----------
+        loc : torch.Tensor
+            The distribution loc parameters.
+        scale : torch.Tensor
+            The distribution scale parameters.
+
+        Returns
+        -------
+        torch.Tensor :
+            The value of the distribution's mean.
+        """
+        # Hardcode method for efficiency
+        # `loc`, but with possible broadcasting of shape
+        return torch.broadcast_tensors(loc, scale)[0]
+
+    @classmethod
+    def stddev(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        """
+        Return the standard-deviation of the distribution, given loc and scale of the distribution.
+
+        Parameters
+        ----------
+        loc : torch.Tensor
+            The distribution loc parameter.
+        scale : torch.Tensor
+            The distribution scale parameter.
+
+        Returns
+        -------
+        torch.Tensor :
+            The value of the distribution's standard deviation.
+        """
+        # Hardcode method for efficiency
+        # `scale`, but with possible broadcasting of shape
+        return torch.broadcast_tensors(loc, scale)[1]
+
+    @classmethod
+    def _nll(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> WeightedTensor:
+        # Hardcode method for efficiency
+        return WeightedTensor((
+                0.5 * ((x.value - loc) / scale) ** 2
+                + torch.log(scale)
+                + cls.nll_constant_standard
+        ), x.weight)
+
+    @classmethod
+    def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor) -> WeightedTensor:
+        # Hardcode method for efficiency
+        return WeightedTensor((x.value - loc) / scale ** 2, x.weight)
+
+    @classmethod
+    def _nll_and_jacobian(
+            cls,
+            x: WeightedTensor,
+            loc: torch.Tensor,
+            scale: torch.Tensor,
+    ) -> Tuple[WeightedTensor, WeightedTensor]:
+        # Hardcode method for efficiency
+        z = (x.value - loc) / scale
+        nll = 0.5 * z ** 2 + torch.log(scale) + cls.nll_constant_standard
+        return WeightedTensor(nll, x.weight), WeightedTensor(z / scale, x.weight)
+
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
