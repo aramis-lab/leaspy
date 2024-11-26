@@ -6,7 +6,7 @@ test:
     - pipx ensurepath
     - source ~/.bashrc
     - pipx install poetry
-    - poetry install
+    - poetry install --with dev
     - coverage run -m pytest tests --junitxml=report.xml
     - coverage report
   parallel:
