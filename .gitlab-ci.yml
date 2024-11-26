@@ -8,6 +8,7 @@ test:
     - pipx install poetry
     - which poetry
     - poetry install --with dev
+    - source `poetry env info --path`/bin/activate
     - pip freeze
     - pytest tests
     - coverage run -m pytest tests --junitxml=report.xml
