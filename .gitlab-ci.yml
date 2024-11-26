@@ -6,7 +6,9 @@ test:
     - pipx ensurepath
     - source ~/.bashrc
     - pipx install poetry
+    - which poetry
     - poetry install --with dev
+    - pip freeze
     - pytest tests
     - coverage run -m pytest tests --junitxml=report.xml
     - coverage report
