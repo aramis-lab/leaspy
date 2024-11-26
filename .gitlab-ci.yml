@@ -5,8 +5,10 @@ test:
     - pip install pipx
     - pipx ensurepath
     - source ~/.bashrc
-    - pipx install hatch
-    - hatch run +py=$VERSION test:cov
+    - pipx install poetry
+    - poetry install
+    - coverage run -m pytest tests --junitxml=report.xml
+    - coverage report
   parallel:
     matrix:
       - VERSION: ["3.9", "3.10", "3.11"]
@@ -22,8 +24,9 @@ docs-build:
     - pip install pipx
     - pipx ensurepath
     - source ~/.bashrc
-    - pipx install hatch
-    - hatch run docs:build
+    - pipx install poetry
+    - poetry install --with docs
+    - sphinx-build docs/ docs/_build/html
 
 release-pypi:
   image: "python:3.11"
