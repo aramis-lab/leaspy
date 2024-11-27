@@ -10,8 +10,7 @@ test:
     - poetry install --with dev
     - source `poetry env info --path`/bin/activate
     - pip freeze
-    - coverage run -m pytest tests --junitxml=report.xml
-    - coverage report
+    - make cov
   parallel:
     matrix:
       - VERSION: ["3.9", "3.10", "3.11"]
@@ -31,7 +30,7 @@ docs-build:
     - poetry install --with docs
     - source `poetry env info --path`/bin/activate
     - pip freeze
-    - sphinx-build docs/ docs/_build/html
+    - make doc
 
 release-pypi:
   image: "python:3.11"

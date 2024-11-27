@@ -7,31 +7,58 @@
 [![PyPI - versions](https://img.shields.io/pypi/pyversions/leaspy)](https://pypi.org/project/leaspy/)
 
 # Leaspy - LEArning Spatiotemporal Patterns in Python
+
 Leaspy is a software package for the statistical analysis of **longitudinal data**, particularly **medical** data that comes in a form of **repeated observations** of patients at different time-points.
 
 ## Get started Leaspy
 
 ### Installation
 
-1. Leaspy requires Python >= 3.9, < 3.12
-2. Create a dedicated environment (optional):
+Leaspy requires Python >= 3.9, < 3.12.
 
-   Using `conda`
-   ```
-   conda create --name leaspy python=3.10
-   conda activate leaspy
-   ```
+It is **highly recommended** to use a virtual environment to install Leaspy and its dependencies.
 
-   Or using `pyenv`
-   ```
-   pyenv virtualenv leaspy
-   pyenv local leaspy
-   ```
+There exists multiple solutions for that, the most common option is to use `conda`:
 
-3. Install leaspy:
-`pip install leaspy`
+```bash
+conda create --name leaspy python=3.10
+conda activate leaspy
+```
 
-It will automatically install all needed dependencies.
+#### Install a released version
+
+To install the latest version of Leaspy: `pip install leaspy`
+
+#### Install in development mode
+
+This project relies on `poetry` that you would need to install. It is recommended to install it with `pipx`:
+
+- Install `pipx` if you do not have it already:
+
+```bash
+pip install pipx
+```
+
+- Install `poetry`:
+
+```bash
+pipx install poetry
+```
+
+Create a dedicated environment and activate it (for example using `conda`). 
+
+Install leaspy in development mode:
+
+```bash
+poetry install
+```
+
+Once this is done, do not forget to install the pre-commit hook in order to automatically format and lint your commits:
+
+```bash
+pipx install pre-commit
+pre-commit install
+```
 
 ### Documentation
 [Available online at _Readthedocs.io_](https://leaspy.readthedocs.io)
