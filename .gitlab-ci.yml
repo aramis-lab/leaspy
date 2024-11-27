@@ -42,7 +42,7 @@ release-pypi:
     - pip install pipx
     - pipx ensurepath
     - source ~/.bashrc
-    - pipx install hatch
-    - hatch build
-    - hatch publish -u __token__ -a $PYPI_TOKEN -n
+    - pipx install poetry
+    - poetry build
+    - poetry publish -u __token__ -a $PYPI_TOKEN -n
 
