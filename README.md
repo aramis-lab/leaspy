@@ -16,7 +16,7 @@ Leaspy is a software package for the statistical analysis of **longitudinal data
 
 Leaspy requires Python >= 3.9, < 3.12.
 
-It is **highly recommended** to use a virtual environment to install Leaspy and its dependencies.
+Whether you wish to install a released version of Leaspy, or to install its development version, it is **highly recommended** to use a virtual environment to install the project and its dependencies.
 
 There exists multiple solutions for that, the most common option is to use `conda`:
 
@@ -27,25 +27,42 @@ conda activate leaspy
 
 #### Install a released version
 
-To install the latest version of Leaspy: `pip install leaspy`
+To install the latest version of Leaspy:
+
+```bash
+pip install leaspy
+```
 
 #### Install in development mode
 
-This project relies on `poetry` that you would need to install. It is recommended to install it with `pipx`:
+If you haven't done it already, create and activate a dedicated environment (see the beginning of the installation section). 
 
-- Install `pipx` if you do not have it already:
+**Clone the repository**
+
+To install the project in development mode, you first need to get the source code by cloning the project's repository:
+
+```bash
+git clone git@gitlab.com:icm-institute/aramislab/leaspy.git
+cd leaspy
+```
+
+**Install poetry**
+
+This project relies on [poetry](https://python-poetry.org) that you would need to install (see the [official instructions](https://python-poetry.org/docs/#installation)).
+
+It is recommended install it in a dedicated environment, separated from the one in which you will install Leaspy and its dependencies. One possibility is to install it with a tool called [pipx](https://pipx.pypa.io/stable/).
+
+If you don't have `pipx` installed, already, you can follow the [official installation guidelines](https://pipx.pypa.io/stable/installation/).
+
+In short, you can do:
 
 ```bash
 pip install pipx
-```
-
-- Install `poetry`:
-
-```bash
+pipx ensurepath
 pipx install poetry
 ```
 
-Create a dedicated environment and activate it (for example using `conda`). 
+**Install Leaspy and its dependencies**
 
 Install leaspy in development mode:
 
@@ -53,7 +70,9 @@ Install leaspy in development mode:
 poetry install
 ```
 
-Once this is done, do not forget to install the pre-commit hook in order to automatically format and lint your commits:
+**Install the pre-commit hook**
+
+Once you have installed Leaspy in development mode, do not forget to install the [pre-commit](https://pre-commit.com) hook in order to automatically format and lint your commits:
 
 ```bash
 pipx install pre-commit
@@ -61,9 +80,11 @@ pre-commit install
 ```
 
 ### Documentation
+
 [Available online at _Readthedocs.io_](https://leaspy.readthedocs.io)
 
 ### Examples & Tutorials
+
 The `example/start/` folder contains a starting point if you want to launch your first scripts and notebook with the Leaspy package.
 You can find additional walkthroughs in:
 - this series of [online tutorials](https://disease-progression-modelling.github.io/pages/notebooks/disease_course_mapping/disease_course_mapping.html) from 2020
