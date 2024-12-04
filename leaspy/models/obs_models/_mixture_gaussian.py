@@ -110,24 +110,41 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
     #correct it to be coherent with the specs
 
     @classmethod
-    def with_probs_as_model_parameter(cls, n_clusters: int):
+    def with_probs_as_model_parameter(cls, n_clusters: int, dimension: int):
         """
         Default instance
         """
         if not isinstance(n_clusters, int) or n_clusters < 2:
             raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
-        if n_clusters == 1:
+        if not isinstance(dimension, int) or dimension < 1:
+            raise ValueError(f"Dimension should be an integer >= 1. You provided {dimension}.")
+
+        if n_clusters == 1 and dimension == 1:
             extra_vars = {
                 "y_L2": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only)),
                 "n_obs": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only)),
             }
-        else:
+        elif n_clusters == 1 and dimension >= 2:
+            extra_vars = {
+                "y_L2_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
+                "n_obs_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
+            }
+        elif n_clusters >= 2 and dimension ==1:
             extra_vars = {
                 "y_L2_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=n_clusters)),
                 "n_obs_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=n_clusters)),
                 #fix dim to lvl_clusters
             }
-        return cls(probs=cls.probs_specs(n_clusters, **extra_vars))
+        elif n_clusters >= 2 and dimension >= 2:
+            extra_vars = {
+                "y_L2_per_cluster_per_ft": LinkedVariable(
+                    Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=[n_clusters, LVL_FT])),
+                "n_obs_per_cluster_per_ft": LinkedVariable(
+                    Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=[n_clusters, LVL_FT])),
+                # fix dim to lvl_clusters
+            }
+
+        return cls(probs=cls.probs_specs(n_clusters), noise_std=cls.noise_std_specs(dimension), **extra_vars)
 
     @classmethod
     def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
@@ -190,7 +207,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         Default specifications of `noise_std` variable when directly
         modelled as a parameter (no latent population variable).
         """
-        update_rule = cls.scalar_noise_std_update if dimension == 1 else cls.diagonal_noise_std_update
+        update_rule = cls.diagonal_noise_std_update
         return ModelParameter(
             shape=(dimension,),
             suff_stats=Collect(**cls.noise_std_suff_stats()),
@@ -245,9 +262,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
 
     def to_string(self) -> str:
         """method for parameter saving"""
-        if self.extra_vars['noise_std'].shape == (1,):
-            return "mixture-gaussian-scalar"
-        return "mixture-gaussian-diagonal"
+        return "mixture-gaussian"
 
 
 

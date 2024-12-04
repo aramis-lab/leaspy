@@ -86,7 +86,7 @@ class AbstractMixtureModel(AbstractModel):
             dimension = len(kwargs['features'])
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
-            observation_models = "gaussian-scalar" if dimension is None else "gaussian-diagonal"
+            observation_models = "mixture-gaussian"
         if isinstance(observation_models, (list, tuple)):
             kwargs["obs_models"] = tuple(
                 [observation_model_factory(obs_model, **kwargs)
