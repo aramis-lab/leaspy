@@ -1,24 +1,15 @@
-# .readthedocs.yml
-# Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
-
-# Required
 version: 2
 
-# Build documentation in the docs/ directory with Sphinx
-sphinx:
-  configuration: docs/conf.py
 build:
-  os: "ubuntu-22.04"
+  os: ubuntu-22.04
   tools:
     python: "3.11"
-formats:
-  - pdf
-# requirements_file: requirements.txt
-python:
-  # pip_install: true
-  install:
-    - requirements: requirements.txt
-    - requirements: docs/requirements.txt
-  # extra_requirements:
-  #   - docs
+  jobs:
+    post_create_environment:
+      - pip install poetry
+      - poetry config virtualenvs.create false
+      - . "$READTHEDOCS_VIRTUALENV_PATH/bin/activate" && poetry install --with docs
+      - pip freeze
+
+sphinx:
+  configuration: docs/conf.py
