@@ -222,7 +222,7 @@ class JointModel(LogisticMultivariateModel):
 
     def put_individual_parameters(self, state: State, dataset: Dataset):
 
-        df = dataset.to_pandas().reset_index('TIME').groupby('ID').min()
+        df = dataset.to_pandas().reset_index('TIME').groupby('ID').min().loc[dataset.indices]
 
         # Initialise individual parameters if they are not already initialised
         if not state.are_variables_set(('xi', 'tau')):
@@ -248,7 +248,7 @@ class JointModel(LogisticMultivariateModel):
         log_rho_mean = [0] * self.nb_events
         n_log_nu_mean = [0] * self.nb_events
 
-        df_ind = dataset.to_pandas().reset_index('TIME').groupby('ID').min()
+        df_ind = dataset.to_pandas().reset_index('TIME').groupby('ID').min().loc[dataset.indices]
         approx_tau = torch.tensor(df_ind['TIME'].values) - self.init_tolerance
 
         for i in range(self.nb_events):
