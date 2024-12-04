@@ -66,7 +66,6 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             loc="model",
             scale="noise_std",
             n_clusters=n_clusters,
-            probs=probs,
             noise_std=noise_std,
             **extra_vars,
         )
@@ -84,6 +83,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             y_x_model=LinkedVariable(Prod("y", "model")),
             model_x_model=LinkedVariable(Sqr("model")),
         )
+    #replace with calclulation here?
 
     @classmethod
     def probs_update(
@@ -94,6 +94,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         model_x_model: WeightedTensor[float],
     ) -> torch.Tensor:
         """Update rule for 'probs' from state & sufficient statistics."""
+    #replace with calculation here?
 
     @classmethod
     def probs_specs(cls, n_clusters: int) -> ModelParameter:
@@ -106,14 +107,15 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             suff_stats=Collect(**cls.noise_std_suff_stats()),
             update_rule=update_rule,
         )
+    #correct it to be coherent with the specs
 
     @classmethod
     def with_probs_as_model_parameter(cls, n_clusters: int):
         """
         Default instance
         """
-        if not isinstance(n_clusters, int) or n_clusters < 1:
-            raise ValueError(f"Number of clusters shouls be an integer >=1. You provided {n_clusters}.")
+        if not isinstance(n_clusters, int) or n_clusters < 2:
+            raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
         if n_clusters == 1:
             extra_vars = {
                 "y_L2": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only)),
@@ -244,8 +246,8 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
     def to_string(self) -> str:
         """method for parameter saving"""
         if self.extra_vars['noise_std'].shape == (1,):
-            return "gaussian-scalar"
-        return "gaussian-diagonal"
+            return "mixture-gaussian-scalar"
+        return "mixture-gaussian-diagonal"
 
 
 
