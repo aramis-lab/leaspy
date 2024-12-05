@@ -47,7 +47,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
     family = "fit"
 
     def __init__(self, settings):
-
         super().__init__(settings)
 
         self.logs = settings.logs
@@ -56,9 +55,11 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         # (\sum_k \epsilon_k = + \infty) but a finite sum of the squares (\sum_k \epsilon_k^2 < \infty )
         # cf page 657 of the book that contains the paper
         # "Construction of Bayesian deformable models via a stochastic approximation algorithm: a convergence study"
-        if not (0.5 < self.algo_parameters['burn_in_step_power'] <= 1):
-            raise LeaspyAlgoInputError("The parameter `burn_in_step_power` should be in ]0.5, 1] in order to "
-                                       "have theoretical guarantees on convergence of MCMC-SAEM algorithm.")
+        if not (0.5 < self.algo_parameters["burn_in_step_power"] <= 1):
+            raise LeaspyAlgoInputError(
+                "The parameter `burn_in_step_power` should be in ]0.5, 1] in order to "
+                "have theoretical guarantees on convergence of MCMC-SAEM algorithm."
+            )
 
         self.current_iteration: int = 0
 
@@ -92,39 +93,36 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         """
 
         with self._device_manager(model, dataset):
-
             state = self._initialize_algo(model, dataset)
 
-            if self.algo_parameters['progress_bar']:
-                self._display_progress_bar(-1, self.algo_parameters['n_iter'], suffix='iterations')
-            if self.logs:
-                state.save(self.logs.parameter_convergence_path, iteration=0)
+            if self.algo_parameters["progress_bar"]:
+                self._display_progress_bar(
+                    -1, self.algo_parameters["n_iter"], suffix="iterations"
+                )
 
-            for self.current_iteration in range(1, self.algo_parameters['n_iter']+1):
+            for self.current_iteration in range(1, self.algo_parameters["n_iter"] + 1):
                 self.iteration(model, state)
-                if self.logs:
-                    self.log_current_iteration(state)
 
                 if self.output_manager is not None:
                     # print/plot first & last iteration!
                     # <!> everything that will be printed/saved is AFTER iteration N
                     # (including temperature when annealing...)
-                    self.output_manager.iteration(self, model, dataset)
+                    self.output_manager.iteration(self, model, state)
 
-                if self.algo_parameters['progress_bar']:
+                if self.algo_parameters["progress_bar"]:
                     self._display_progress_bar(
                         self.current_iteration - 1,
-                        self.algo_parameters['n_iter'],
-                        suffix='iterations',
+                        self.algo_parameters["n_iter"],
+                        suffix="iterations",
                     )
 
-        loss = self._terminate_algo(model, state)
+        loss = state.get_tensor_value("noise_std")
         return state, loss
 
     def log_current_iteration(self, state: State):
         if (
-                self.is_current_iteration_in_last_n()
-                or self.should_current_iteration_be_saved()
+            self.is_current_iteration_in_last_n()
+            or self.should_current_iteration_be_saved()
         ):
             state.save(
                 self.logs.parameter_convergence_path,
@@ -134,14 +132,15 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
     def is_current_iteration_in_last_n(self):
         """Return True if current iteration is within the last n realizations defined in logging settings."""
         return (
-                self.current_iteration > self.algo_parameters["n_iter"] - self.logs.save_last_n_realizations
+            self.current_iteration
+            > self.algo_parameters["n_iter"] - self.logs.save_last_n_realizations
         )
 
     def should_current_iteration_be_saved(self):
         """Return True if current iteration should be saved based on log saving periodicity."""
         return (
-                self.logs.save_periodicity
-                and self.current_iteration % self.logs.save_periodicity == 0
+            self.logs.save_periodicity
+            and self.current_iteration % self.logs.save_periodicity == 0
         )
 
     def _get_fit_metrics(self) -> Optional[Dict[str, float]]:
@@ -150,8 +149,9 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             return
         return {
             # (scalars only)
-            k: v.item() for k, v in self.sufficient_statistics.items()
-            if k.startswith('nll_')
+            k: v.item()
+            for k, v in self.sufficient_statistics.items()
+            if k.startswith("nll_")
         }
 
     def __str__(self) -> str:
@@ -200,7 +200,9 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         return state
 
-    def _terminate_algo(self, model: AbstractModel, state: State) -> Any:  # torch.Tensor?
+    def _terminate_algo(
+        self, model: AbstractModel, state: State
+    ) -> Any:  # torch.Tensor?
         """
         Perform the last steps upon terminaison of algorithm (cleaning stuff, ...).
 
@@ -223,27 +225,28 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         ##  and parameters of noise-model if any)
         ## If noise-model is a 1-parameter distribution family final loss is the value of this parameter
         ## Otherwise we use the negative log-likelihood as measure of goodness-of-fit
-        #if len(model.noise_model.free_parameters) == 1:
+        # if len(model.noise_model.free_parameters) == 1:
         #    loss = next(iter(model.noise_model.parameters.values()))
-        #else:
+        # else:
         #    # TODO? rather return nll_tot (unlike previously)
         #    loss = self.sufficient_statistics.get("nll_attach", -1.)
         #
-        loss = -1.
+        loss = -1.0
 
         # WIP: cf. interrogation about internal state in model or not...
         model_state = state.clone()
         # TODO? Should those cleaning steps be performed here, or in the model.state setter instead?
         with model_state.auto_fork(None):
-            #model.reset_data_variables(model_state)
+            # model.reset_data_variables(model_state)
             # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
             # Thus we reset population latent variables to their mode, and we remove individual latent variables
-            model_state.put_population_latent_variables(LatentVariableInitType.PRIOR_MODE)
-            #model_state.put_individual_latent_variables(None)
+            model_state.put_population_latent_variables(
+                LatentVariableInitType.PRIOR_MODE
+            )
+            # model_state.put_individual_latent_variables(None)
         model.state = model_state
 
         return loss
-
 
     def _maximization_step(self, model: AbstractModel, state: State):
         """
@@ -259,20 +262,27 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         # TODO/WIP: not 100% clear to me whether model methods should take a state param, or always use its internal state...
         sufficient_statistics = model.compute_sufficient_statistics(state)
 
-        if self._is_burn_in() or self.current_iteration == 1 + self.algo_parameters['n_burn_in_iter']:
+        if (
+            self._is_burn_in()
+            or self.current_iteration == 1 + self.algo_parameters["n_burn_in_iter"]
+        ):
             # the maximization step is memoryless (or first iteration with memory)
             self.sufficient_statistics = sufficient_statistics
         else:
-            burn_in_step = self.current_iteration - self.algo_parameters['n_burn_in_iter'] # min = 2, max = n_iter - n_burn_in_iter
-            burn_in_step **= -self.algo_parameters['burn_in_step_power']
+            burn_in_step = (
+                self.current_iteration - self.algo_parameters["n_burn_in_iter"]
+            )  # min = 2, max = n_iter - n_burn_in_iter
+            burn_in_step **= -self.algo_parameters["burn_in_step_power"]
 
             # this new formulation (instead of v + burn_in_step*(sufficient_statistics[k] - v))
             # enables to keep `inf` deltas
             self.sufficient_statistics = {
-                k: v * (1. - burn_in_step) + burn_in_step * sufficient_statistics[k]
+                k: v * (1.0 - burn_in_step) + burn_in_step * sufficient_statistics[k]
                 for k, v in self.sufficient_statistics.items()
             }
 
         # TODO: use the same method in both cases (<!> very minor differences that might break
         #  exact reproducibility in tests)
-        model.update_parameters(state, self.sufficient_statistics, burn_in=self._is_burn_in())
+        model.update_parameters(
+            state, self.sufficient_statistics, burn_in=self._is_burn_in()
+        )
