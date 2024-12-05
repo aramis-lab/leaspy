@@ -371,8 +371,13 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     Each cluster is associated with a probability.
     """
 
-    parameters: ClassVar = ("loc", "scale", "n_clusters", "probs")
-    dist_factory: ClassVar = torch.distributions.Multinomial
+    parameters: ClassVar =  ("mixture_distribution", "component_distribution")
+    #n_clusters = cls.n_clusters
+    #probs = torch.ones(n_clusters)
+    #probs = probs / n_clusters
+    #mixture_distribution = torch.distributions.Categorical(probs),
+    #component_distribution = torch.distributions.Normal(torch.randn(n_clusters, ), torch.rand(n_clusters, ))
+    dist_factory: ClassVar = torch.distributions.MixtureSameFamily
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod

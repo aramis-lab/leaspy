@@ -4,6 +4,8 @@ import warnings
 from abc import abstractmethod
 from typing import Iterable, Optional
 
+from torch.distributions import MixtureSameFamily
+
 from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, unsqueeze_right
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, Sqr, OrthoBasis, MatMul, Sum
@@ -19,7 +21,7 @@ from leaspy.models.obs_models import observation_model_factory, MixtureGaussianO
 from leaspy.io.data.dataset import Dataset
 
 from leaspy.variables.distributions import MultinomialDistribution as Multinomial
-from leaspy.variables.distributions import Normal
+from leaspy.variables.distributions import Normal, MixtureNormalFamily
 from leaspy.variables.state import State
 from leaspy.variables.specs import (
     NamedVariables,
@@ -75,6 +77,7 @@ class AbstractMixtureModel(AbstractModel):
 
         self.source_dimension: Optional[int] = None
         self.n_clusters: Optional[int] = None
+        self.probs = torch.ones(self.n_clusters)/ self.n_clusters
 
         # TODO / WIP / TMP: dirty for now...
         # Should we:
@@ -114,6 +117,9 @@ class AbstractMixtureModel(AbstractModel):
         d = super().get_variables_specs()
 
         n_clusters = self.n_clusters
+        #probs = torch.ones(n_clusters)
+        #probs = probs / n_clusters
+        probs = self.probs
 
         d.update(
             # PRIORS
@@ -123,10 +129,15 @@ class AbstractMixtureModel(AbstractModel):
             xi_std=ModelParameter.for_ind_std("xi", shape=(n_clusters,)),
             # LATENT VARS
             xi=IndividualLatentVariable(
-                Multinomial( "probs", "xi_mean", "xi_std")
+                #Multinomial( "probs", "xi_mean", "xi_std")
+                MixtureNormalFamily(mixture_distribution = torch.distributions.Categorical(probs),
+                                    component_distribution = torch.distributions.Normal("xi_mean", "xi_std")
+                                    )
             ),
             tau=IndividualLatentVariable(
-                Multinomial("probs", "tau_mean", "tau_std")
+                #Multinomial("probs", "tau_mean", "tau_std")
+                MixtureNormalFamily(mixture_distribution=torch.distributions.Categorical(probs),
+                                    component_distribution=torch.distributions.Normal("tau_mean", "tau_std"))
             ),
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
@@ -151,7 +162,9 @@ class AbstractMixtureModel(AbstractModel):
                     sampling_kws={"scale": .5},   # cf. GibbsSampler (for retro-compat)
                 ),
                 sources=IndividualLatentVariable(
-                    Multinomial("probs", "sources_mean", "sources_std")
+                    #Multinomial("probs", "sources_mean", "sources_std")
+                    MixtureNormalFamily(mixture_distribution=torch.distributions.Categorical(probs),
+                                        component_distribution=torch.distributions.Normal("sources_mean", "sources_std"))
                 ),
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(
