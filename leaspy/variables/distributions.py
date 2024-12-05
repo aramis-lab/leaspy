@@ -372,7 +372,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
 
     parameters: ClassVar =  ("mixture_distribution", "component_distribution")
-    #n_clusters = cls.n_clusters
+    #n_clusters = n_clusters
     #probs = torch.ones(n_clusters)
     #probs = probs / n_clusters
     #mixture_distribution = torch.distributions.Categorical(probs),

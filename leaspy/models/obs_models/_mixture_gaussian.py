@@ -7,7 +7,7 @@ from typing import (
 import torch
 
 from leaspy.models.utilities import compute_std_from_variance
-from leaspy.variables.distributions import Normal
+from leaspy.variables.distributions import Normal, MixtureNormalFamily
 from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     sum_dim,
@@ -42,7 +42,7 @@ class GaussianObservationModel(ObservationModel):
     ):
         super().__init__(name, getter, Normal(loc, scale), extra_vars=extra_vars)
 
-class MixtureGaussianObservationModel(GaussianObservationModel):
+class MixtureGaussianObservationModel(ObservationModel):
     """
     Specialized `GaussianObservationModel` when mixture is involved and all data share the same observation model, with default naming.
 
@@ -59,14 +59,28 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
 
     tol_noise_variance = 1e-5
 
-    def __init__(self, n_clusters: VariableInterface, probs: VariableInterface, noise_std: VariableInterface,  **extra_vars: VariableInterface):
+    def __init__(
+            self,
+            #name: VarName,
+            #getter: Callable[[Dataset], WeightedTensor],
+            loc: VarName,
+            scale: VarName,
+            n_clusters : VariableInterface,
+            probs : VariableInterface,
+            noise_std : VariableInterface,
+            **extra_vars: VariableInterface,
+    ):
+
         super().__init__(
             name="y",
             getter=self.y_getter,
-            loc="model",
-            scale="noise_std",
-            n_clusters=n_clusters,
+            loc="model", # give dimension
+            scale="noise_std", # give dimension
+            n_clusters = n_clusters,
             noise_std=noise_std,
+            dist = MixtureNormalFamily,
+            mixture_distribution = torch.distributions.Categorical(probs),
+            component_distribution = torch.distributions.Normal(loc, scale),
             **extra_vars,
         )
 
@@ -75,6 +89,74 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         assert dataset.values is not None
         assert dataset.mask is not None
         return WeightedTensor(dataset.values, weight=dataset.mask.to(torch.bool))
+
+    @classmethod
+    def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
+        """Dictionary of sufficient statistics needed for `noise_std` (when directly a model parameter)."""
+        return dict(
+            y_x_model=LinkedVariable(Prod("y", "model")),
+            model_x_model=LinkedVariable(Sqr("model")),
+        )
+
+    @classmethod
+    def scalar_noise_std_update(
+            cls,
+            *,
+            state: State,
+            y_x_model: WeightedTensor[float],
+            model_x_model: WeightedTensor[float],
+    ) -> torch.Tensor:
+        """Update rule for scalar `noise_std` (when directly a model parameter), from state & sufficient statistics."""
+        y_l2 = state["y_L2"]
+        n_obs = state["n_obs"]
+        # TODO? by linearity couldn't we only require `-2*y_x_model + model_x_model` as summary stat?
+        # and couldn't we even collect the already summed version of it?
+        s1 = sum_dim(y_x_model)
+        s2 = sum_dim(model_x_model)
+        noise_var = (y_l2 - 2 * s1 + s2) / n_obs.float()
+        return compute_std_from_variance(
+            noise_var,
+            varname="noise_std",
+            tol=cls.tol_noise_variance,
+        )
+
+    @classmethod
+    def diagonal_noise_std_update(
+            cls,
+            *,
+            state: State,
+            y_x_model: WeightedTensor[float],
+            model_x_model: WeightedTensor[float],
+    ) -> torch.Tensor:
+        """
+        Update rule for feature-wise `noise_std` (when directly a model parameter),
+        from state & sufficient statistics.
+        """
+        y_l2_per_ft = state["y_L2_per_ft"]
+        n_obs_per_ft = state["n_obs_per_ft"]
+        # TODO: same remark as in `.scalar_noise_std_update()`
+        # sum must be done after computation to use weights of y in model to mask missing data
+        summed = sum_dim(- 2 * y_x_model + model_x_model, but_dim=LVL_FT)
+        noise_var = (y_l2_per_ft + summed) / n_obs_per_ft.float()
+
+        return compute_std_from_variance(
+            noise_var,
+            varname="noise_std",
+            tol=cls.tol_noise_variance,
+        )
+
+    @classmethod
+    def noise_std_specs(cls, dimension: int) -> ModelParameter:
+        """
+        Default specifications of `noise_std` variable when directly
+        modelled as a parameter (no latent population variable).
+        """
+        update_rule = cls.diagonal_noise_std_update
+        return ModelParameter(
+            shape=(dimension,),
+            suff_stats=Collect(**cls.noise_std_suff_stats()),
+            update_rule=update_rule,
+        )
 
     @classmethod
     def probs_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
@@ -145,74 +227,6 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             }
 
         return cls(probs=cls.probs_specs(n_clusters), noise_std=cls.noise_std_specs(dimension), **extra_vars)
-
-    @classmethod
-    def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
-        """Dictionary of sufficient statistics needed for `noise_std` (when directly a model parameter)."""
-        return dict(
-            y_x_model=LinkedVariable(Prod("y", "model")),
-            model_x_model=LinkedVariable(Sqr("model")),
-        )
-
-    @classmethod
-    def scalar_noise_std_update(
-        cls,
-        *,
-        state: State,
-        y_x_model: WeightedTensor[float],
-        model_x_model: WeightedTensor[float],
-    ) -> torch.Tensor:
-        """Update rule for scalar `noise_std` (when directly a model parameter), from state & sufficient statistics."""
-        y_l2 = state["y_L2"]
-        n_obs = state["n_obs"]
-        # TODO? by linearity couldn't we only require `-2*y_x_model + model_x_model` as summary stat?
-        # and couldn't we even collect the already summed version of it?
-        s1 = sum_dim(y_x_model)
-        s2 = sum_dim(model_x_model)
-        noise_var = (y_l2 - 2 * s1 + s2) / n_obs.float()
-        return compute_std_from_variance(
-            noise_var,
-            varname="noise_std",
-            tol=cls.tol_noise_variance,
-        )
-
-    @classmethod
-    def diagonal_noise_std_update(
-        cls,
-        *,
-        state: State,
-        y_x_model: WeightedTensor[float],
-        model_x_model: WeightedTensor[float],
-    ) -> torch.Tensor:
-        """
-        Update rule for feature-wise `noise_std` (when directly a model parameter),
-        from state & sufficient statistics.
-        """
-        y_l2_per_ft = state["y_L2_per_ft"]
-        n_obs_per_ft = state["n_obs_per_ft"]
-        # TODO: same remark as in `.scalar_noise_std_update()`
-        # sum must be done after computation to use weights of y in model to mask missing data
-        summed = sum_dim(- 2 * y_x_model + model_x_model, but_dim=LVL_FT)
-        noise_var = (y_l2_per_ft + summed) / n_obs_per_ft.float()
-
-        return compute_std_from_variance(
-            noise_var,
-            varname="noise_std",
-            tol=cls.tol_noise_variance,
-        )
-
-    @classmethod
-    def noise_std_specs(cls, dimension: int) -> ModelParameter:
-        """
-        Default specifications of `noise_std` variable when directly
-        modelled as a parameter (no latent population variable).
-        """
-        update_rule = cls.diagonal_noise_std_update
-        return ModelParameter(
-            shape=(dimension,),
-            suff_stats=Collect(**cls.noise_std_suff_stats()),
-            update_rule=update_rule,
-        )
 
     @classmethod
     def with_noise_std_as_model_parameter(cls, dimension: int):
