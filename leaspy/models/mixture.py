@@ -17,6 +17,7 @@ from leaspy.models.base import InitializationMethod
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.abstract_model import AbstractModel, InitializationMethod
 from leaspy.models.obs_models import observation_model_factory, MixtureGaussianObservationModel, FullGaussianObservationModel
+from leaspy.models.multivariate import LogisticMultivariateModel
 
 from leaspy.io.data.dataset import Dataset
 
@@ -34,24 +35,11 @@ from leaspy.variables.specs import (
     VariablesValuesRO,
 )
 
-
 @doc_with_super()
-class AbstractMixtureModel(AbstractModel):
-    """
-    Contains the common attributes & methods of the mixture models.
+class LogisticMixtureModel(LogisticMultivariateModel):
 
-    Parameters
-    ----------
-    name : :obj:`str`
-        Name of the model.
-    **kwargs
-        Hyperparameters for the model (including `obs_models`).
+    """Mixture Manifold model for multiple variables of interest (logistic formulation)."""
 
-    Raises
-    ------
-    :exc:`.LeaspyModelInputError`
-        If inconsistent hyperparameters.
-    """
     _xi_std = .5
     _tau_std = 5.
     _noise_std = .1
@@ -59,11 +47,11 @@ class AbstractMixtureModel(AbstractModel):
 
     @property
     def xi_std(self) -> torch.Tensor:
-        return torch.tensor([self._xi_std])
+        return torch.tensor([self._xi_std] * self.n_clusters)
 
     @property
     def tau_std(self) -> torch.Tensor:
-        return torch.tensor([self._tau_std])
+        return torch.tensor([self._tau_std] * self.n_clusters)
 
     @property
     def noise_std(self) -> torch.Tensor:
@@ -74,10 +62,11 @@ class AbstractMixtureModel(AbstractModel):
         return self._sources_std
 
     def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
 
         self.source_dimension: Optional[int] = None
         self.n_clusters: Optional[int] = None
-        self.probs = torch.ones(self.n_clusters)/ self.n_clusters
+        self.probs = torch.ones(self.n_clusters) / self.n_clusters
 
         # TODO / WIP / TMP: dirty for now...
         # Should we:
@@ -102,7 +91,32 @@ class AbstractMixtureModel(AbstractModel):
             )
         else:
             kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension),)
-        super().__init__(name, **kwargs)
+
+        variables_to_track = [
+            "g",
+            "v0",
+            "noise_std",
+            "tau_mean",
+            "tau_std",
+            "xi_mean",
+            "xi_std",
+            "nll_attach",
+            "nll_regul_log_g",
+            "nll_regul_log_v0",
+            "xi",
+            "tau",
+            "nll_regul_pop_sum",
+            "nll_regul_all_sum",
+            "nll_tot"]
+
+        if self.source_dimension:
+            variables_to_track += ['sources', 'sources_mean', 'betas', 'mixing_matrix', 'space_shifts']
+
+        if self.n_clusters:
+            variables_to_track += ['probs']
+
+        self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
+
 
     def get_variables_specs(self) -> NamedVariables:
         """
@@ -122,25 +136,40 @@ class AbstractMixtureModel(AbstractModel):
         probs = self.probs
 
         d.update(
+
             # PRIORS
+            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            log_v0_mean=ModelParameter.for_pop_mean("log_v0",shape=(self.dimension,)),
+
             tau_mean=ModelParameter.for_ind_mean("tau", shape=(n_clusters,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(n_clusters,)),
             xi_mean =ModelParameter.for_ind_mean("xi", shape=(n_clusters,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(n_clusters,)),
+
             # LATENT VARS
+            log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
+            log_v0=PopulationLatentVariable(Normal("log_v0_mean", "log_v0_std")),
+
             xi=IndividualLatentVariable(
-                #Multinomial( "probs", "xi_mean", "xi_std")
                 MixtureNormalFamily(mixture_distribution = torch.distributions.Categorical(probs),
                                     component_distribution = torch.distributions.Normal("xi_mean", "xi_std")
                                     )
             ),
             tau=IndividualLatentVariable(
-                #Multinomial("probs", "tau_mean", "tau_std")
                 MixtureNormalFamily(mixture_distribution=torch.distributions.Categorical(probs),
                                     component_distribution=torch.distributions.Normal("tau_mean", "tau_std"))
             ),
+
             # DERIVED VARS
+            g=LinkedVariable(Exp("log_g")),
+            v0=LinkedVariable(Exp("log_v0")),
             alpha=LinkedVariable(Exp("xi")),
+            metric=LinkedVariable(self.metric),  # for linear model: metric & metric_sqr are fixed = 1.
+
+            #HYPERPARAMETERS
+            log_g_std=Hyperparameter(0.01),
+            log_v0_std=Hyperparameter(0.01),
+
         )
 
         if self.source_dimension >= 1:
@@ -173,21 +202,15 @@ class AbstractMixtureModel(AbstractModel):
                 space_shifts=LinkedVariable(
                     MatMul("sources", "mixing_matrix")
                 ),  # shape: (Ni, Nfts)
+
+                model=LinkedVariable(self.model_with_sources),
+                metric_sqr=LinkedVariable(Sqr("metric")),
+                orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr"))
             )
+        else:
+            d.update( model = LinkedVariable(self.model_no_sources))
 
         return d
-
-    def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
-        df = dataset.to_pandas().dropna(how='all').sort_index()[dataset.headers]
-        if not df.index.is_unique:
-            raise LeaspyInputError("Index of DataFrame is not unique.")
-        if not df.index.to_frame().notnull().all(axis=None):
-            raise LeaspyInputError("Index of DataFrame contains unvalid values.")
-        if self.features != df.columns.tolist():
-            raise LeaspyInputError(
-                f"Features mismatch between model and dataset: {self.features} != {df.columns}"
-            )
-        return df
 
     def _validate_compatibility_of_dataset(self, dataset: Optional[Dataset] = None) -> None:
         super()._validate_compatibility_of_dataset(dataset)
@@ -299,207 +322,14 @@ class AbstractMixtureModel(AbstractModel):
 
         return model_settings
 
-
-@doc_with_super()
-class MixtureModel(AbstractMixtureModel):
-    """
-    Manifold model for multiple variables of interest
-
-    Parameters
-    ----------
-    name : :obj: `str`
-        The name of the model
-    base_model: str
-        The base model for the mixture
-    n_clusters : int
-        The number of models in the mixture
-    **kwargs
-        Hyperparameters of the model
-
-    Attributes
-    ----------
-
-    Raises
-    ------
-    :exc `.LeaspyModelInputError`
-        * If `name` is not the allowed sub-type 'mixture_logistic'
-        * If hyperparameters are inconsistent
-    """
-
-    def __init__(self, name: str, variables_to_track: Optional[Iterable[str]] = None, **kwargs):
-        super().__init__(name, **kwargs)
-
-        self.n_clusters: Optional[int] = None
-
-        default_variables_to_track = [
-            "g",
-            "v0",
-            "noise_std",
-            "tau_mean",
-            "tau_std",
-            "xi_mean",
-            "xi_std",
-            "nll_attach",
-            "nll_regul_log_g",
-            "nll_regul_log_v0",
-            "xi",
-            "tau",
-            "nll_regul_pop_sum",
-            "nll_regul_all_sum",
-            "nll_tot"]
-
-        if self.source_dimension:
-            default_variables_to_track += ['sources', 'sources_mean', 'betas', 'mixing_matrix', 'space_shifts']
-
-        if self.n_clusters:
-            default_variables_to_track += ['probs']
-
-        variables_to_track = variables_to_track or default_variables_to_track
-        self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
-
-    @classmethod
-    def _center_xi_realizations(cls, state: State) -> None:
-        """
-        Center the ``xi`` realizations in place.
-
-        .. note::
-            This operation does not change the orthonormal basis
-            (since the resulting ``v0`` is collinear to the previous one)
-            Nor all model computations (only ``v0 * exp(xi_i)`` matters),
-            it is only intended for model identifiability / ``xi_i`` regularization
-            <!> all operations are performed in "log" space (``v0`` is log'ed)
-
-        Parameters
-        ----------
-        realizations : :class:`.CollectionRealization`
-            The realizations to use for updating the :term:`MCMC` toolbox.
-        """
-
-        #is it ok for all the clusters?
-        mean_xi = torch.mean(state['xi'])
-        state["xi"] = state["xi"] - mean_xi
-        state["log_v0"] = state["log_v0"] + mean_xi
-
-    @classmethod
-    def _center_sources_realizations(cls, state: State) -> None:
-        """
-        Center the ``sources`` realizations in place.
-
-        """
-        #is it ok for all the clusters?
-        mean_sources = torch.mean(state['sources'])
-        state["sources"] = state["sources"] - mean_sources
-
-    @classmethod
-    def compute_probs(cls, state: State) -> torch.Tensor:
-        """
-        Compute the probability that each individual belongs to each cluster
-        """
-        #to complete
-
-
-    @classmethod
-    def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
-        """
-                Compute the model's :term:`sufficient statistics`.
-
-                Parameters
-                ----------
-                state : :class:`.State`
-                    The state to pick values from.
-
-                Returns
-                -------
-                SuffStatsRW :
-                    The computed sufficient statistics.
-                """
-        # <!> modify 'xi' and 'log_v0' realizations in-place
-        # TODO: what theoretical guarantees for this custom operation?
-        cls._center_xi_realizations(state)
-        cls._center_sources_realizations(state)
-
-        return super().compute_sufficient_statistics(state)
-
-
-    def get_variables_specs(self) -> NamedVariables:
-        """
-        Return the specifications of the variables (latent variables, derived variables,
-        model 'parameters') that are part of the model.
-
-        Returns
-        -------
-        NamedVariables :
-            The specifications of the model's variables.
-        """
-        d = super().get_variables_specs()
-        d.update(
-            # PRIORS
-            log_v0_mean=ModelParameter.for_pop_mean(
-                "log_v0",
-                shape=(self.dimension,),
-            ),
-            log_v0_std=Hyperparameter(0.01),
-            #xi_mean=Hyperparameter(0.),
-            # LATENT VARS
-            log_v0=PopulationLatentVariable(
-                Normal("log_v0_mean", "log_v0_std"),
-            ),
-            # DERIVED VARS
-            v0=LinkedVariable(
-                Exp("log_v0"),
-            ),
-            metric=LinkedVariable(self.metric),  # for linear model: metric & metric_sqr are fixed = 1.
-        )
-        if self.source_dimension >= 1:
-            d.update(
-                model=LinkedVariable(self.model_with_sources),
-                metric_sqr=LinkedVariable(Sqr("metric")),
-                orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr")),
-            )
-        else:
-            d['model'] = LinkedVariable(self.model_no_sources)
-
-        # TODO: WIP
-        # variables_info.update(self.get_additional_ordinal_population_random_variable_information())
-        # self.update_ordinal_population_random_variable_information(variables_info)
-
-        return d
-
-    @staticmethod
-    @abstractmethod
-    def metric(*, g: torch.Tensor) -> torch.Tensor:
-        pass
-
-    @classmethod
-    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
-        """Returns a model without source. A bit dirty?"""
-        return cls.model_with_sources(
-            rt=rt,
-            metric=metric,
-            v0=v0,
-            g=g,
-            space_shifts=torch.zeros((1, 1)),
-        )
-
-    @classmethod
-    @abstractmethod
-    def model_with_sources(
-        cls,
-        *,
-        rt: torch.Tensor,
-        space_shifts: torch.Tensor,
-        metric,
-        v0,
-        g,
-    ) -> torch.Tensor:
-        pass
-
-
-class LogisticMixtureInitializationMixin:
     def _compute_initial_values_for_model_parameters(
-        self,
-        dataset: Dataset,
-        method: InitializationMethod,
+            #Taken from class LogisticMultivariateInitializationMixin
+            #Should I create a Mixture Mixin or leave it here with ++probs
+            #do we need to change t0?
+
+            self,
+            dataset: Dataset,
+            method: InitializationMethod,
     ) -> VariablesValuesRO:
         """Compute initial values for model parameters."""
         from leaspy.models.utilities import (
@@ -532,7 +362,7 @@ class LogisticMixtureInitializationMixin:
         # Enforce values are between 0 and 1
         values = values.clamp(min=1e-2, max=1 - 1e-2)  # always "works" for ordinal (values >= 1)
 
-        #probability of clusters
+        # probability of clusters
         n_clusters = self.n_clusters
         probs = torch.ones(n_clusters)
         probs = probs / n_clusters
@@ -559,33 +389,67 @@ class LogisticMixtureInitializationMixin:
             )
         return rounded_parameters
 
-class LogisticMixtureModel(LogisticMixtureInitializationMixin, MixtureModel):
-    """Manifold model for multiple variables of interest (logistic formulation)."""
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
-
-    def get_variables_specs(self) -> NamedVariables:
+    @classmethod
+    def _center_xi_realizations(cls, state: State) -> None:
         """
-        Return the specifications of the variables (latent variables, derived variables,
-        model 'parameters') that are part of the model.
+        Center the ``xi`` realizations in place.
 
-        Returns
-        -------
-        NamedVariables :
-            The specifications of the model's variables.
+        .. note::
+            This operation does not change the orthonormal basis
+            (since the resulting ``v0`` is collinear to the previous one)
+            Nor all model computations (only ``v0 * exp(xi_i)`` matters),
+            it is only intended for model identifiability / ``xi_i`` regularization
+            <!> all operations are performed in "log" space (``v0`` is log'ed)
+
+        Parameters
+        ----------
+        realizations : :class:`.CollectionRealization`
+            The realizations to use for updating the :term:`MCMC` toolbox.
         """
-        d = super().get_variables_specs()
-        d.update(
-            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
-            log_g_std=Hyperparameter(0.01),
-            log_g=PopulationLatentVariable(
-                Normal("log_g_mean", "log_g_std")
-            ),
-            g=LinkedVariable(Exp("log_g")),
 
-        )
+        # is it ok for all the clusters?
+        mean_xi = torch.mean(state['xi'])
+        state["xi"] = state["xi"] - mean_xi
+        state["log_v0"] = state["log_v0"] + mean_xi
 
-        return d
+    @classmethod
+    def _center_sources_realizations(cls, state: State) -> None:
+        """
+        Center the ``sources`` realizations in place.
+
+        """
+        # is it ok for all the clusters?
+        mean_sources = torch.mean(state['sources'])
+        state["sources"] = state["sources"] - mean_sources
+
+    @classmethod
+    def compute_probs(cls, state: State) -> torch.Tensor:
+        """
+        Compute the probability that each individual belongs to each cluster
+        """
+        # to complete
+
+    @classmethod
+    def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
+        """
+                Compute the model's :term:`sufficient statistics`.
+
+                Parameters
+                ----------
+                state : :class:`.State`
+                    The state to pick values from.
+
+                Returns
+                -------
+                SuffStatsRW :
+                    The computed sufficient statistics.
+                """
+        # <!> modify 'xi' and 'log_v0' realizations in-place
+        # TODO: what theoretical guarantees for this custom operation?
+        cls._center_xi_realizations(state)
+        cls._center_sources_realizations(state)
+
+        return super().compute_sufficient_statistics(state)
 
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
@@ -609,3 +473,5 @@ class LogisticMixtureModel(LogisticMixtureInitializationMixin, MixtureModel):
         w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - torch.log(g[pop_s])
         model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
+
+    #maybe need to change to take into account all the clusters? also model_no_sources
