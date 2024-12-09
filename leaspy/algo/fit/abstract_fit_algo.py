@@ -116,7 +116,16 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                         suffix="iterations",
                     )
 
-        loss = state.get_tensor_value("noise_std")
+        model.fit_metrics = self._get_fit_metrics()
+        model_state = state.clone()
+        with model_state.auto_fork(None):
+            # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
+            # Thus we reset population latent variables to their mode, and we remove individual latent variables
+            model_state.put_population_latent_variables(
+                LatentVariableInitType.PRIOR_MODE
+            )
+        model.state = model_state
+        loss = model.state.get_tensor_value("noise_std")
         return state, loss
 
     def log_current_iteration(self, state: State):
