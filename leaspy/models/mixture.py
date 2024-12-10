@@ -22,7 +22,7 @@ from leaspy.models.multivariate import LogisticMultivariateModel
 from leaspy.io.data.dataset import Dataset
 
 from leaspy.variables.distributions import MultinomialDistribution as Multinomial
-from leaspy.variables.distributions import Normal, MixtureNormalFamily
+from leaspy.variables.distributions import Normal, MixtureNormal, Categorical
 from leaspy.variables.state import State
 from leaspy.variables.specs import (
     NamedVariables,
@@ -40,10 +40,10 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
     """Mixture Manifold model for multiple variables of interest (logistic formulation)."""
 
-    _xi_std = .5
-    _tau_std = 5.
-    _noise_std = .1
-    _sources_std = 1.
+    #_xi_std = .5
+    #_tau_std = 5.
+    #_noise_std = .1
+    #_sources_std = 1.
 
     @property
     def xi_std(self) -> torch.Tensor:
@@ -58,15 +58,16 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         return torch.tensor(self._noise_std)
 
     @property
-    def sources_std(self) -> float:
-        return self._sources_std
+    def sources_std(self) -> torch.Tensor:
+        return torch.tensor([self._sources_std] * self.n_clusters)
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
         self.source_dimension: Optional[int] = None
         self.n_clusters: Optional[int] = None
-        self.probs = torch.ones(self.n_clusters) / self.n_clusters
+        self.probs: Optional[torch.Tensor] = None # not sure if it has to be there
+        #self.probs = torch.ones(self.n_clusters) / self.n_clusters
 
         # TODO / WIP / TMP: dirty for now...
         # Should we:
@@ -151,13 +152,13 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             log_v0=PopulationLatentVariable(Normal("log_v0_mean", "log_v0_std")),
 
             xi=IndividualLatentVariable(
-                MixtureNormalFamily(mixture_distribution = torch.distributions.Categorical(probs),
-                                    component_distribution = torch.distributions.Normal("xi_mean", "xi_std")
+                MixtureNormal(mixture_distribution = Categorical(probs),
+                                    component_distribution = Normal("xi_mean", "xi_std")
                                     )
             ),
             tau=IndividualLatentVariable(
-                MixtureNormalFamily(mixture_distribution=torch.distributions.Categorical(probs),
-                                    component_distribution=torch.distributions.Normal("tau_mean", "tau_std"))
+                MixtureNormal(mixture_distribution=Categorical(probs),
+                                    component_distribution=Normal("tau_mean", "tau_std"))
             ),
 
             # DERIVED VARS
@@ -174,6 +175,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
         if self.source_dimension >= 1:
             d.update(
+
                 # PRIORS
                 betas_mean=ModelParameter.for_pop_mean(
                     "betas",
@@ -184,17 +186,18 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                     pop_var_name = "sources",
                     shape=(self.source_dimension, self.n_clusters),
                 ),
-                sources_std=Hyperparameter(1.),
+                sources_std=Hyperparameter(torch.ones(self.n_clusters)),
+
                 # LATENT VARS
                 betas=PopulationLatentVariable(
                     Normal("betas_mean", "betas_std"),
                     sampling_kws={"scale": .5},   # cf. GibbsSampler (for retro-compat)
                 ),
                 sources=IndividualLatentVariable(
-                    #Multinomial("probs", "sources_mean", "sources_std")
-                    MixtureNormalFamily(mixture_distribution=torch.distributions.Categorical(probs),
-                                        component_distribution=torch.distributions.Normal("sources_mean", "sources_std"))
+                    MixtureNormal(mixture_distribution=Categorical(probs),
+                                  component_distribution=Normal("sources_mean", "sources_std"))
                 ),
+
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(
                     MatMul("orthonormal_basis", "betas").then(torch.t)
@@ -208,7 +211,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                 orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr"))
             )
         else:
-            d.update( model = LinkedVariable(self.model_no_sources))
+            d.update(model = LinkedVariable(self.model_no_sources))
 
         return d
 
@@ -340,54 +343,52 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             torch_round,
         )
 
-        df = self._get_dataframe_from_dataset(dataset)
-        slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
-        values_mu, values_sigma = compute_patient_values_distribution(df)
-        time_mu, time_sigma = compute_patient_time_distribution(df)
-
-        if method == InitializationMethod.DEFAULT:
-            slopes = slopes_mu
-            values = values_mu
-            t0 = time_mu
-            betas = torch.zeros((self.dimension - 1, self.source_dimension))
-
-        if method == InitializationMethod.RANDOM:
-            slopes = torch.normal(slopes_mu, slopes_sigma)
-            values = torch.normal(values_mu, values_sigma)
-            t0 = torch.normal(time_mu, time_sigma)
-            betas = torch.distributions.normal.Normal(loc=0., scale=1.).sample(
-                sample_shape=(self.dimension - 1, self.source_dimension)
-            )
-
-        # Enforce values are between 0 and 1
-        values = values.clamp(min=1e-2, max=1 - 1e-2)  # always "works" for ordinal (values >= 1)
-
-        # probability of clusters
         n_clusters = self.n_clusters
-        probs = torch.ones(n_clusters)
-        probs = probs / n_clusters
+        for c in range(n_clusters):
+            #modify as needed to specify the parameters at each cluster
+            df = self._get_dataframe_from_dataset(dataset)
+            slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
+            values_mu, values_sigma = compute_patient_values_distribution(df)
+            time_mu, time_sigma = compute_patient_time_distribution(df)
 
-        parameters = {
-            "log_g_mean": torch.log(1. / values - 1.),
-            "log_v0_mean": get_log_velocities(slopes, self.features),
-            "tau_mean": t0,
-            "tau_std": self.tau_std,
-            "xi_mean": self.xi_mean,
-            "xi_std": self.xi_std,
-            "probs": probs
-        }
-        if self.source_dimension >= 1:
-            parameters["betas_mean"] = betas
-            parameters["sources_mean"] = self.sources_mean
-        rounded_parameters = {
-            str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
-        }
-        obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
-        if isinstance(obs_model, FullGaussianObservationModel):
+            if method == InitializationMethod.DEFAULT:
+                slopes = slopes_mu
+                values = values_mu
+                t0 = time_mu
+                betas = torch.zeros((self.dimension - 1, self.source_dimension))
+
+            if method == InitializationMethod.RANDOM:
+                slopes = torch.normal(slopes_mu, slopes_sigma)
+                values = torch.normal(values_mu, values_sigma)
+                t0 = torch.normal(time_mu, time_sigma)
+                betas = torch.distributions.normal.Normal(loc=0., scale=1.).sample(
+                    sample_shape=(self.dimension - 1, self.source_dimension)
+                )
+
+            # Enforce values are between 0 and 1
+            values = values.clamp(min=1e-2, max=1 - 1e-2)  # always "works" for ordinal (values >= 1)
+
+            parameters = {
+                "log_g_mean": torch.log(1. / values - 1.),
+                "log_v0_mean": get_log_velocities(slopes, self.features),
+                "tau_mean": self.tau_mean,
+                "tau_std": self.tau_std,
+                "xi_mean": self.xi_mean,
+                "xi_std": self.xi_std,
+                "probs": torch.ones(self.n_clusters) / self.n_clusters
+            }
+            if self.source_dimension >= 1:
+                parameters["betas_mean"] = betas
+                parameters["sources_mean"] = self.sources_mean
+            rounded_parameters = {
+                str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
+            }
+            obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
+            #if isinstance(obs_model, FullGaussianObservationModel):
             rounded_parameters["noise_std"] = self.noise_std.expand(
                 obs_model.extra_vars['noise_std'].shape
             )
-        return rounded_parameters
+            return rounded_parameters
 
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:

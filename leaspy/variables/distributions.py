@@ -364,6 +364,17 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     # def sample(cls, loc, scale, *, sample_shape = ()):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
+class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
+
+    """Categorical family (stateless)."""
+
+    parameters: ClassVar = ("probs", "n_clusters")
+    dist_factory: ClassVar = torch.distributions.Categorical
+
+    @classmethod
+    def mixing_probabilities (cls, probs: torch.Tensor) -> torch.Tensor:
+        return torch.tensor([probs])
+
 class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
     Mixture normal family (stateless).
@@ -964,6 +975,8 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
+Categorical = SymbolicDistribution.bound_to(CategoricalFamily)
+MixtureNormal = SymbolicDistribution.bound_to(MixtureNormalFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
