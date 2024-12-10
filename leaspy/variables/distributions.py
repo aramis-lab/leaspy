@@ -415,6 +415,8 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         """
         return torch.broadcast_tensors(loc, scale)[1]
 
+    #from now and one everything is new
+
     @classmethod
     def extract_cluster_parameters(
             cls,
