@@ -43,6 +43,7 @@ class GaussianObservationModel(ObservationModel):
         super().__init__(name, getter, Normal(loc, scale), extra_vars=extra_vars)
 
 class MixtureGaussianObservationModel(ObservationModel):
+    ## Add compute + initialize probs + probs_ind
     """
     Specialized `GaussianObservationModel` when mixture is involved and all data share the same observation model, with default naming.
 
@@ -227,6 +228,7 @@ class MixtureGaussianObservationModel(ObservationModel):
             }
 
         return cls(probs=cls.probs_specs(n_clusters), noise_std=cls.noise_std_specs(dimension), **extra_vars)
+    #to fix none of this really exists in state
 
     @classmethod
     def with_noise_std_as_model_parameter(cls, dimension: int):

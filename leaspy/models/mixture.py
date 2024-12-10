@@ -114,7 +114,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             variables_to_track += ['sources', 'sources_mean', 'betas', 'mixing_matrix', 'space_shifts']
 
         if self.n_clusters:
-            variables_to_track += ['probs']
+            variables_to_track += ['probs', 'probs_ind']
 
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
