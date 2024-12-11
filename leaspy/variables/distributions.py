@@ -373,13 +373,12 @@ class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     """Categorical family (stateless)."""
 
-    parameters: ClassVar = ("probs", "logits")
+    parameters: ClassVar = ("probs", "n_clusters")
     dist_factory: ClassVar = torch.distributions.Categorical
 
     @classmethod
-    def transform_probs(cls) -> torch.Tensor:
-        if (cls.probs is None) & (cls.logits is not None):
-            return logits_to_probs(cls.logits)
+    def mixing_probabilities (cls, probs: torch.Tensor) -> torch.Tensor:
+        return torch.tensor([probs])
 
 class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
@@ -390,14 +389,15 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     The component_distribution is the probability distribution of each cluster - in our case Normal(loc,scale)
     """
 
-    parameters: ClassVar =  ("probs", "loc", "scale")
-    dist_factory: ClassVar = torch.distributions.MixtureSameFamily(
-        mixture_distribution=torch.distributions.Categorical,
-        component_distribution=torch.distributions.Normal
-    )
-    nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
+    parameters: ClassVar = ("mixture_distribution", "component_distribution")
+    # n_clusters = n_clusters
+    # probs = torch.ones(n_clusters)
+    # probs = probs / n_clusters
+    # mixture_distribution = torch.distributions.Categorical(probs),
+    # component_distribution = torch.distributions.Normal(torch.randn(n_clusters, ), torch.rand(n_clusters, ))
+    dist_factory: ClassVar = torch.distributions.MixtureSameFamily
 
-    @classmethod
+    classmethod
     def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
         """
         Return the mode of the distribution given the distribution's loc and scale parameters.
