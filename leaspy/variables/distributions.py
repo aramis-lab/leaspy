@@ -373,8 +373,12 @@ class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     """Categorical family (stateless)."""
 
-    parameters: ClassVar = ("probs", "n_clusters")
+    parameters: ClassVar = "probs"
     dist_factory: ClassVar = torch.distributions.Categorical
+
+    @classmethod
+    def extract_n_clusters(cls, probs: torch.Tensor) -> int:
+        return probs.size()[0]
 
     @classmethod
     def mixing_probabilities (cls, probs: torch.Tensor) -> torch.Tensor:
@@ -390,35 +394,48 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
 
     parameters: ClassVar = ("mixture_distribution", "component_distribution")
-    # n_clusters = n_clusters
-    # probs = torch.ones(n_clusters)
-    # probs = probs / n_clusters
+    # probs = torch.ones(n_clusters)/n_clusters
     # mixture_distribution = torch.distributions.Categorical(probs),
     # component_distribution = torch.distributions.Normal(torch.randn(n_clusters, ), torch.rand(n_clusters, ))
     dist_factory: ClassVar = torch.distributions.MixtureSameFamily
 
-    classmethod
-    def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """
-        Return the mode of the distribution given the distribution's loc and scale parameters.
-        """
-        return torch.broadcast_tensors(loc, scale)[0]
-
     @classmethod
-    def mean(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    def mean(cls, component_distribution) -> torch.Tensor:
         """
         Return the mean of the distribution, given the distribution loc and scale parameters.
         """
-        return torch.broadcast_tensors(loc, scale)[0]
+        return component_distribution.mean
 
     @classmethod
-    def stddev(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    def std(cls, component_distribution) -> torch.Tensor:
+        """"
+        Return the standard deviation of the distribution, given loc and scale of the distribution.
         """
-        Return the standard-deviation of the distribution, given loc and scale of the distribution.
-        """
-        return torch.broadcast_tensors(loc, scale)[1]
+        return component_distribution.scale
 
-    #from now and one everything is new
+    @classmethod
+    def probs(cls, mixture_distribution) -> torch.Tensor:
+        """
+        Return the probabilities of the distribution, given loc and scale of the distribution.
+        """
+        return mixture_distribution.probs
+
+    @classmethod
+    def set_component_distribution(
+            cls,
+            component_distribution: torch.distributions,
+            loc : torch.Tensor,
+            scale : torch.Tensor,
+    ) -> torch.distributions:
+
+        if not isinstance(component_distribution, torch.distributions.Normal):
+            raise ValueError(
+                "The Component distribution need to be an "
+                "instance of torch.distributions.Normal"
+                "Setting the distribution to Normal"
+            )
+        component_distribution = torch.distributions.Normal(loc, scale)
+        return component_distribution
 
     @classmethod
     def extract_cluster_parameters(
