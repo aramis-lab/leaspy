@@ -370,10 +370,11 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
 class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """
+    Categorical family (stateless).
+    """
 
-    """Categorical family (stateless)."""
-
-    parameters: ClassVar = "probs"
+    parameters: ClassVar = ("probs",)
     dist_factory: ClassVar = torch.distributions.Categorical
 
     @classmethod
@@ -402,23 +403,30 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     @classmethod
     def mean(cls, component_distribution) -> torch.Tensor:
         """
-        Return the mean of the distribution, given the distribution loc and scale parameters.
+        Return the mean of the distribution, given the component distribution.
         """
         return component_distribution.mean
 
     @classmethod
-    def std(cls, component_distribution) -> torch.Tensor:
+    def stddev(cls, component_distribution) -> torch.Tensor:
         """"
-        Return the standard deviation of the distribution, given loc and scale of the distribution.
+        Return the standard deviation of the distribution, given the component distribution.
         """
         return component_distribution.scale
 
     @classmethod
-    def probs(cls, mixture_distribution) -> torch.Tensor:
+    def extract_probs(cls, mixture_distribution) -> torch.Tensor:
         """
-        Return the probabilities of the distribution, given loc and scale of the distribution.
+        Return the probabilities of the distribution, given the mixture distribution.
         """
         return mixture_distribution.probs
+
+    @classmethod
+    def extract_n_clusters(cls, mixture_distribution) -> int:
+        """
+        Return the number of clusters in the distribution, given the mixture distribution.
+        """
+        return mixture_distribution.probs.size()[0]
 
     @classmethod
     def set_component_distribution(
@@ -427,6 +435,9 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             loc : torch.Tensor,
             scale : torch.Tensor,
     ) -> torch.distributions:
+        """
+        Ensure that the component distribution is an instance of the torch.distributions.Normal.
+        """
 
         if not isinstance(component_distribution, torch.distributions.Normal):
             raise ValueError(
@@ -464,8 +475,9 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             which_cluster: int,
             probs: torch.Tensor,
     ) -> WeightedTensor:
-
-        """Calculate the nll per cluster weighted by the cluster probability"""
+        """
+        Calculate the nll per cluster weighted by the cluster probability
+        """
 
         prob, loc, scale = cls.extract_cluster_parameters(which_cluster, probs, loc, scale)
 
@@ -517,7 +529,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             scale: torch.Tensor,
             n_clusters : int,
             probs: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> WeightedTensor:
 
 
         """sum all the cluster nll"""
@@ -525,7 +537,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         for c in range(n_clusters):
             nll_total = nll_total + cls._nll_per_cluster(x,loc,scale,c,probs)
 
-        return nll_total
+        return WeightedTensor(nll_total, x.weight)
 
     @classmethod
     def _nll_jacobian_total(
@@ -535,14 +547,14 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             scale: torch.Tensor,
             n_clusters: int,
             probs: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> WeightedTensor:
 
         """sum all the cluster jacobian"""
         nll_total = 0
         for c in range(n_clusters):
             nll_total = nll_total + cls._nll_jacobian_per_cluster(x, loc, scale, c, probs)
 
-        return nll_total
+        return WeightedTensor(nll_total, x.weight)
 
     @classmethod
     def _nll_and_jacobian_total(
@@ -561,7 +573,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             nll_total = nll_total + cls._nll_and_jacobian_per_cluster(x, loc, scale, c, probs)[0]
             jacobian_total = jacobian_total +cls._nll_and_jacobian_per_cluster(x, loc, scale, c, probs)[1]
 
-        return nll_total, jacobian_total
+        return WeightedTensor(nll_total, x.weight), WeightedTensor(jacobian_total, x.weight)
 
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):

@@ -71,6 +71,7 @@ def observation_model_factory(model: ObservationModelFactoryInput, **kwargs) -> 
         If `model` is not supported.
     """
     dimension = kwargs.pop("dimension", None)
+    n_clusters = kwargs.pop("n_clusters", None)
     if isinstance(model, ObservationModel):
         return model
     if isinstance(model, str):
@@ -86,7 +87,12 @@ def observation_model_factory(model: ObservationModelFactoryInput, **kwargs) -> 
         if model == ObservationModelNames.GAUSSIAN_SCALAR:
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(1)
         if model == ObservationModelNames.MIXTURE_GAUSSIAN:
-            return MixtureGaussianObservationModel.with_probs_as_model_parameter(kwargs = kwargs)
+            if n_clusters is None:
+                raise NotImplementedError(
+                    "WIP: n_clusters should be provided to "
+                    f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
+                )
+            return MixtureGaussianObservationModel.with_probs_as_model_parameter(n_clusters)
         if model == ObservationModelNames.WEIBULL_RIGHT_CENSORED:
             return WeibullRightCensoredObservationModel.default_init(kwargs = kwargs)
         if model == ObservationModelNames.WEIBULL_RIGHT_CENSORED_WITH_SOURCES:

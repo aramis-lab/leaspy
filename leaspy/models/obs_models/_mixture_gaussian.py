@@ -7,7 +7,7 @@ from typing import (
 import torch
 
 from leaspy.models.utilities import compute_std_from_variance
-from leaspy.variables.distributions import Normal, MixtureNormalFamily
+from leaspy.variables.distributions import Categorical, Normal, MixtureNormal
 from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     sum_dim,
@@ -22,7 +22,7 @@ from leaspy.variables.specs import (
     LinkedVariable,
     ModelParameter,
     Collect,
-    LVL_FT,
+    LVL_FT, Hyperparameter,
 )
 from leaspy.io.data.dataset import Dataset
 from leaspy.variables.state import State
@@ -42,32 +42,18 @@ class GaussianObservationModel(ObservationModel):
     ):
         super().__init__(name, getter, Normal(loc, scale), extra_vars=extra_vars)
 
-class MixtureGaussianObservationModel(ObservationModel):
-    ## Add compute + initialize probs + probs_ind
+class MixtureGaussianObservationModel(GaussianObservationModel):
     """
-    Specialized `GaussianObservationModel` when mixture is involved and all data share the same observation model, with default naming.
-
-    The default naming is:
-        - 'y' for observations
-        - 'model' for model predictions
-        - 'noise_std' for scale of residuals
-
-    We also provide a convenient factory `default` for most common case, which corresponds
-    to `noise_std` directly being a `ModelParameter` (it could also be a `PopulationLatentVariable`
-    with positive support). Whether scale of residuals is scalar or diagonal depends on the
-    `dimension` argument of this method.
+    Specialized observational model when the data come from a mixture normal distribution.
     """
 
     tol_noise_variance = 1e-5
 
     def __init__(
             self,
-            #name: VarName,
-            #getter: Callable[[Dataset], WeightedTensor],
             loc: VarName,
             scale: VarName,
-            n_clusters : VariableInterface,
-            probs : VariableInterface,
+            probs : VarName,
             noise_std : VariableInterface,
             **extra_vars: VariableInterface,
     ):
@@ -75,15 +61,19 @@ class MixtureGaussianObservationModel(ObservationModel):
         super().__init__(
             name="y",
             getter=self.y_getter,
-            loc="model", # give dimension
-            scale="noise_std", # give dimension
-            n_clusters = n_clusters,
             noise_std=noise_std,
-            dist = MixtureNormalFamily,
-            mixture_distribution = torch.distributions.Categorical(probs),
-            component_distribution = torch.distributions.Normal(loc, scale),
+            dist = MixtureNormal,
+            mixture_distribution = Categorical(probs),
+            component_distribution = Normal(loc, scale),
             **extra_vars,
         )
+
+    @classmethod
+    def default_init(self, **kwargs):
+        return self(loc=kwargs.pop('loc', 'loc'),
+                    scale=kwargs.pop('scale', 'scale'),
+                    probs=kwargs.pop('probs', 'probs'),
+                    )
 
     @staticmethod
     def y_getter(dataset: Dataset) -> WeightedTensor:
@@ -206,32 +196,19 @@ class MixtureGaussianObservationModel(ObservationModel):
     #correct it to be coherent with the specs
 
     @classmethod
-    def with_probs_as_model_parameter(cls, n_clusters: int, dimension: int):
+    def with_probs_as_model_parameter(cls, n_clusters):
         """
         Default instance
         """
         if not isinstance(n_clusters, int) or n_clusters < 2:
             raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
-        if not isinstance(dimension, int) or dimension < 1:
-            raise ValueError(f"Dimension should be an integer >= 1. You provided {dimension}.")
 
-        if n_clusters == 1 and dimension == 1:
-            extra_vars = {
-                "y_L2": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only)),
-                "n_obs": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only)),
-            }
-        elif n_clusters == 1 and dimension >= 2:
+        if n_clusters == 1 :
             extra_vars = {
                 "y_L2_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
                 "n_obs_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
             }
-        elif n_clusters >= 2 and dimension ==1:
-            extra_vars = {
-                "y_L2_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=n_clusters)),
-                "n_obs_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=n_clusters)),
-                #fix dim to lvl_clusters
-            }
-        elif n_clusters >= 2 and dimension >= 2:
+        elif n_clusters >= 2 :
             extra_vars = {
                 "y_L2_per_cluster_per_ft": LinkedVariable(
                     Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=[n_clusters, LVL_FT])),
@@ -240,7 +217,7 @@ class MixtureGaussianObservationModel(ObservationModel):
                 # fix dim to lvl_clusters
             }
 
-        return cls(probs=cls.probs_specs(n_clusters), noise_std=cls.noise_std_specs(dimension), **extra_vars)
+        return cls(probs=cls.probs_specs(n_clusters), **extra_vars)
     #to fix none of this really exists in state
 
     @classmethod
