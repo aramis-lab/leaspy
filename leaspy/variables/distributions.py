@@ -10,6 +10,8 @@ from mpmath import jacobian
 from pkg_resources import dist_factory
 from torch import Tensor
 from torch.autograd import grad
+from torch.distributions.utils import logits_to_probs
+
 from leaspy.constants import constants
 from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, sum_dim
 from leaspy.exceptions import LeaspyInputError
@@ -371,12 +373,13 @@ class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     """Categorical family (stateless)."""
 
-    parameters: ClassVar = ("probs", "n_clusters")
+    parameters: ClassVar = ("probs", "logits")
     dist_factory: ClassVar = torch.distributions.Categorical
 
     @classmethod
-    def mixing_probabilities (cls, probs: torch.Tensor) -> torch.Tensor:
-        return torch.tensor([probs])
+    def transform_probs(cls) -> torch.Tensor:
+        if (cls.probs is None) & (cls.logits is not None):
+            return logits_to_probs(cls.logits)
 
 class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
