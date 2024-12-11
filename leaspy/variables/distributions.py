@@ -544,7 +544,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             nll_total = nll_total + cls._nll_and_jacobian_per_cluster(x, loc, scale, c, probs)[0]
             jacobian_total = jacobian_total +cls._nll_and_jacobian_per_cluster(x, loc, scale, c, probs)[1]
 
-        return [nll_total, jacobian_total]
+        return nll_total, jacobian_total
 
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):

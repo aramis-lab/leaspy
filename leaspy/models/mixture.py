@@ -152,12 +152,12 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             log_v0=PopulationLatentVariable(Normal("log_v0_mean", "log_v0_std")),
 
             xi=IndividualLatentVariable(
-                MixtureNormal(mixture_distribution = Categorical(probs),
+                MixtureNormal(mixture_distribution = Categorical("probs"),
                                     component_distribution = Normal("xi_mean", "xi_std")
                                     )
             ),
             tau=IndividualLatentVariable(
-                MixtureNormal(mixture_distribution=Categorical(probs),
+                MixtureNormal(mixture_distribution=Categorical("probs"),
                                     component_distribution=Normal("tau_mean", "tau_std"))
             ),
 

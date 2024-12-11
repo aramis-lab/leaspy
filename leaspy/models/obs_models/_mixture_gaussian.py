@@ -160,34 +160,47 @@ class MixtureGaussianObservationModel(ObservationModel):
         )
 
     @classmethod
-    def probs_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
-        """Dictionary of sufficient statistics needed for 'probs'."""
-        return dict(
-            y_x_model=LinkedVariable(Prod("y", "model")),
-            model_x_model=LinkedVariable(Sqr("model")),
-        )
-    #replace with calclulation here?
-
-    @classmethod
-    def probs_update(
-        cls,
-        *,
-        state: State,
-        y_x_model: WeightedTensor[float],
-        model_x_model: WeightedTensor[float],
-    ) -> torch.Tensor:
+    def probs_ind_update(
+            cls,
+            *,
+            state: State,
+            n_clusters: int,
+            n_inds : int,
+            probs_ind=None) -> torch.Tensor:
         """Update rule for 'probs' from state & sufficient statistics."""
-    #replace with calculation here?
+
+        nll_ind_per_cluster = state["nll_ind_per_cluster"]
+        nll_random_per_cluster = state["nll_random_per_cluster"]
+
+        for i in range(n_inds):
+            denominator = 0
+            for c in range(n_clusters):
+                denominator = denominator + state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c]
+
+            for c in range(n_clusters):
+                probs_ind[i,c] = state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c]
+
+        return probs_ind
 
     @classmethod
-    def probs_specs(cls, n_clusters: int) -> ModelParameter:
+    def probs_cluster(
+            cls,
+            *,
+            probs_ind : torch.Tensor,
+    ) -> torch.Tensor:
+
+        probs = probs_ind.sum(dim=0)
+
+        return probs
+
+    @classmethod
+    def probs_ind_specs(cls, n_inds: int, n_clusters: int) -> ModelParameter:
         """
         Default specifications of 'probs'.
         """
-        update_rule = cls.probs_update
+        update_rule = cls.probs_ind_update
         return ModelParameter(
-            shape=(n_clusters,),
-            suff_stats=Collect(**cls.noise_std_suff_stats()),
+            shape=(n_inds, n_clusters),
             update_rule=update_rule,
         )
     #correct it to be coherent with the specs
