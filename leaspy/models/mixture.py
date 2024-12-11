@@ -22,7 +22,8 @@ from leaspy.models.multivariate import LogisticMultivariateModel
 from leaspy.io.data.dataset import Dataset
 
 from leaspy.variables.distributions import MultinomialDistribution as Multinomial
-from leaspy.variables.distributions import Normal, MixtureNormal, Categorical
+from leaspy.variables.distributions import Normal, MixtureNormal
+from torch.distributions import Categorical
 from leaspy.variables.state import State
 from leaspy.variables.specs import (
     NamedVariables,
