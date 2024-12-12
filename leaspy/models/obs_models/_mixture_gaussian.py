@@ -53,33 +53,91 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             self,
             loc: VarName,
             scale: VarName,
+            n_clusters: int,
             probs : VarName,
-            noise_std : VariableInterface,
             **extra_vars: VariableInterface,
     ):
 
         super().__init__(
-            name="y",
+            name="cluster",
             getter=self.y_getter,
-            noise_std=noise_std,
-            dist = MixtureNormal,
-            mixture_distribution = Categorical(probs),
-            component_distribution = Normal(loc, scale),
+            n_clusters = n_clusters,
+            dist = MixtureNormal(Categorical(probs),Normal(loc,scale)),
             **extra_vars,
         )
-
-    @classmethod
-    def default_init(self, **kwargs):
-        return self(loc=kwargs.pop('loc', 'loc'),
-                    scale=kwargs.pop('scale', 'scale'),
-                    probs=kwargs.pop('probs', 'probs'),
-                    )
 
     @staticmethod
     def y_getter(dataset: Dataset) -> WeightedTensor:
         assert dataset.values is not None
         assert dataset.mask is not None
         return WeightedTensor(dataset.values, weight=dataset.mask.to(torch.bool))
+
+    @classmethod
+    def probs_update(
+            cls,
+            *,
+            state: State,
+            n_clusters: int,
+            n_inds : int,
+            probs_ind=None) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Update rule for 'probs' from state & sufficient statistics.
+        probs_ind refers to the probability of each individual i to belong to each cluster c
+        probs refers to the probability of each cluster c
+        """
+
+        nll_ind_per_cluster = state["nll_ind_per_cluster"]
+        nll_random_per_cluster = state["nll_random_per_cluster"]
+
+        for i in range(n_inds):
+            denominator = 0
+            for c in range(n_clusters):
+                denominator = denominator + state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c]
+
+            for c in range(n_clusters):
+                probs_ind[i,c] = state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c] / denominator
+
+        probs = probs_ind.sum(dim=0)
+
+        return probs_ind, probs
+
+    @classmethod
+    def probs_specs(cls, n_inds: int, n_clusters: int) -> ModelParameter:
+        """
+        Default specifications of 'probs'.
+        """
+        update_rule = cls.probs_update
+        return ModelParameter(
+            shape=(n_inds, n_clusters),
+            update_rule=update_rule,
+        )
+    #correct it to be coherent with the specs
+
+    @classmethod
+    def with_probs_as_model_parameter(cls, n_clusters: int):
+        """
+        Default instance
+        """
+        if not isinstance(n_clusters, int) or n_clusters < 2:
+            raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
+
+        if n_clusters == 1 :
+            extra_vars = {
+                "y_L2_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
+                "n_obs_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
+            }
+        elif n_clusters >= 2 :
+            extra_vars = {
+                "y_L2_per_cluster_per_ft": LinkedVariable(
+                    Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=[n_clusters, LVL_FT])),
+                "n_obs_per_cluster_per_ft": LinkedVariable(
+                    Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=[n_clusters, LVL_FT])),
+                # fix dim to lvl_clusters
+            }
+
+        return cls(probs=cls.probs_specs(n_clusters), **extra_vars)
+
+    #to fix none of this really exists in state
 
     @classmethod
     def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
@@ -89,27 +147,27 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             model_x_model=LinkedVariable(Sqr("model")),
         )
 
-    @classmethod
-    def scalar_noise_std_update(
-            cls,
-            *,
-            state: State,
-            y_x_model: WeightedTensor[float],
-            model_x_model: WeightedTensor[float],
-    ) -> torch.Tensor:
-        """Update rule for scalar `noise_std` (when directly a model parameter), from state & sufficient statistics."""
-        y_l2 = state["y_L2"]
-        n_obs = state["n_obs"]
-        # TODO? by linearity couldn't we only require `-2*y_x_model + model_x_model` as summary stat?
-        # and couldn't we even collect the already summed version of it?
-        s1 = sum_dim(y_x_model)
-        s2 = sum_dim(model_x_model)
-        noise_var = (y_l2 - 2 * s1 + s2) / n_obs.float()
-        return compute_std_from_variance(
-            noise_var,
-            varname="noise_std",
-            tol=cls.tol_noise_variance,
-        )
+    # @classmethod #not used for now - use the mixture model only with the diagonal noise update
+    # def scalar_noise_std_update(
+    #        cls,
+    #        *,
+    #        state: State,
+    #        y_x_model: WeightedTensor[float],
+    #        model_x_model: WeightedTensor[float],
+    # ) -> torch.Tensor:
+    #    """Update rule for scalar `noise_std` (when directly a model parameter), from state & sufficient statistics."""
+    #    y_l2 = state["y_L2"]
+    #    n_obs = state["n_obs"]
+    #    # TODO? by linearity couldn't we only require `-2*y_x_model + model_x_model` as summary stat?
+    #    # and couldn't we even collect the already summed version of it?
+    #    s1 = sum_dim(y_x_model)
+    #    s2 = sum_dim(model_x_model)
+    #    noise_var = (y_l2 - 2 * s1 + s2) / n_obs.float()
+    #    return compute_std_from_variance(
+    #        noise_var,
+    #        varname="noise_std",
+    #        tol=cls.tol_noise_variance,
+    #    )
 
     @classmethod
     def diagonal_noise_std_update(
@@ -149,96 +207,25 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             update_rule=update_rule,
         )
 
-    @classmethod
-    def probs_ind_update(
-            cls,
-            *,
-            state: State,
-            n_clusters: int,
-            n_inds : int,
-            probs_ind=None) -> torch.Tensor:
-        """Update rule for 'probs' from state & sufficient statistics."""
-
-        nll_ind_per_cluster = state["nll_ind_per_cluster"]
-        nll_random_per_cluster = state["nll_random_per_cluster"]
-
-        for i in range(n_inds):
-            denominator = 0
-            for c in range(n_clusters):
-                denominator = denominator + state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c]
-
-            for c in range(n_clusters):
-                probs_ind[i,c] = state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c]
-
-        return probs_ind
-
-    @classmethod
-    def probs_cluster(
-            cls,
-            *,
-            probs_ind : torch.Tensor,
-    ) -> torch.Tensor:
-
-        probs = probs_ind.sum(dim=0)
-
-        return probs
-
-    @classmethod
-    def probs_ind_specs(cls, n_inds: int, n_clusters: int) -> ModelParameter:
-        """
-        Default specifications of 'probs'.
-        """
-        update_rule = cls.probs_ind_update
-        return ModelParameter(
-            shape=(n_inds, n_clusters),
-            update_rule=update_rule,
-        )
-    #correct it to be coherent with the specs
-
-    @classmethod
-    def with_probs_as_model_parameter(cls, n_clusters):
-        """
-        Default instance
-        """
-        if not isinstance(n_clusters, int) or n_clusters < 2:
-            raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
-
-        if n_clusters == 1 :
-            extra_vars = {
-                "y_L2_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
-                "n_obs_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
-            }
-        elif n_clusters >= 2 :
-            extra_vars = {
-                "y_L2_per_cluster_per_ft": LinkedVariable(
-                    Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=[n_clusters, LVL_FT])),
-                "n_obs_per_cluster_per_ft": LinkedVariable(
-                    Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=[n_clusters, LVL_FT])),
-                # fix dim to lvl_clusters
-            }
-
-        return cls(probs=cls.probs_specs(n_clusters), **extra_vars)
-    #to fix none of this really exists in state
-
-    @classmethod
-    def with_noise_std_as_model_parameter(cls, dimension: int):
-        """
-        Default instance of `FullGaussianObservationModel` with `noise_std`
-        (scalar or diagonal depending on `dimension`) being a `ModelParameter`.
-        """
-        if not isinstance(dimension, int) or dimension < 1:
-            raise ValueError(f"Dimension should be an integer >= 1. You provided {dimension}.")
-        if dimension == 1:
-            extra_vars = {
-                "y_L2": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only)),
-                "n_obs": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only)),
-            }
-        else:
-            extra_vars = {
-                "y_L2_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
-                "n_obs_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
-            }
-        return cls(noise_std=cls.noise_std_specs(dimension), **extra_vars)
+    #@classmethod   #not used for now in the mixture model only in the full gaussian - leave here for reference
+    #def with_noise_std_as_model_parameter(cls, dimension: int):
+    #    """
+    #    Default instance of `FullGaussianObservationModel` with `noise_std`
+    #    (scalar or diagonal depending on `dimension`) being a `ModelParameter`.
+    #    """
+    #    if not isinstance(dimension, int) or dimension < 1:
+    #        raise ValueError(f"Dimension should be an integer >= 1. You provided {dimension}.")
+    #    if dimension == 1:
+    #        extra_vars = {
+    #            "y_L2": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only)),
+    #            "n_obs": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only)),
+    #        }
+    #    else:
+    #        extra_vars = {
+    #            "y_L2_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
+    #            "n_obs_per_ft": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
+    #        }
+    #    return cls(noise_std=cls.noise_std_specs(dimension), **extra_vars)
 
     # Util functions not directly used in code
 

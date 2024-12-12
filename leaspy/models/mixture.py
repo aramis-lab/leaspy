@@ -4,11 +4,13 @@ import warnings
 from abc import abstractmethod
 from typing import Iterable, Optional
 
+from sympy import Product
+from sympy.codegen.cnodes import union
 from torch.distributions import MixtureSameFamily
 
 from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, unsqueeze_right
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, Sqr, OrthoBasis, MatMul, Sum
+from leaspy.utils.functional import Exp, Sqr, OrthoBasis, MatMul, Sum, Prod
 from leaspy.utils.typing import KwargsType, Optional
 
 from leaspy.exceptions import LeaspyModelInputError, LeaspyInputError
@@ -63,58 +65,34 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
+        obs_models_to_string = [o.to_string() for o in self.obs_models]
 
-        self.source_dimension: Optional[int] = None
-        self.n_clusters: Optional[int] = None
-        self.probs: Optional[torch.Tensor] = None # not sure if it has to be there
-        #self.probs = torch.ones(self.n_clusters) / self.n_clusters
-
-        # TODO / WIP / TMP: dirty for now...
-        # Should we:
-        # - use factory of observation models instead? dataset -> ObservationModel
-        # - or refact a bit `ObservationModel` structure? (lazy init of its variables...)
-        # (cf. note in AbstractModel as well)
-        dimension = kwargs.get('dimension', None)
-        if 'features' in kwargs:
-            dimension = len(kwargs['features'])
-        observation_models = kwargs.get("obs_models", None)
-        if observation_models is None:
-            observation_models = "mixture-gaussian"
-        if isinstance(observation_models, (list, tuple)):
-            kwargs["obs_models"] = tuple(
-                [observation_model_factory(obs_model, **kwargs)
-                 for obs_model in observation_models]
-            )
-        elif isinstance(observation_models, (dict)):
-            # Not really satisfied... Used for api load
-            kwargs["obs_models"] = tuple(
-                [observation_model_factory(observation_models['y'], dimension=dimension)]
-            )
+        if (self.dimension == 1) or (self.source_dimension == 0):
+            if "mixture-gaussian" in obs_models_to_string:
+                raise LeaspyInputError("Mixture does not work for now with a univariate model")
         else:
-            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension),)
+            if "mixture-gaussian" not in obs_models_to_string:
+                self.obs_models += (
+                    observation_model_factory(
+                        "mixture-gaussian",
+                        n_clusters="n_clusters",
+                        xi='xi',
+                        tau='tau',
+                        sources='sources'
+                    ),
+                )
+                obs_models_to_string += ["mixture-gaussian"]
 
         variables_to_track = [
-            "g",
-            "v0",
-            "noise_std",
-            "tau_mean",
-            "tau_std",
-            "xi_mean",
-            "xi_std",
-            "nll_attach",
-            "nll_regul_log_g",
-            "nll_regul_log_v0",
-            "xi",
-            "tau",
-            "nll_regul_pop_sum",
-            "nll_regul_all_sum",
-            "nll_tot"]
+            "probs",
+            "xi_mean"
+            "nll_attach_xi_ind_cluster",
+            "nll_attach_tau_ind_cluster",
+            "nll_attach_y_ind_cluster",
+        ]
 
         if self.source_dimension:
-            variables_to_track += ['sources', 'sources_mean', 'betas', 'mixing_matrix', 'space_shifts']
-
-        if self.n_clusters:
-            variables_to_track += ['probs', 'probs_ind']
+            variables_to_track += ['sources_mean', 'nll_attach_sources_ind_cluster']
 
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
@@ -131,21 +109,16 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         """
         d = super().get_variables_specs()
 
-        n_clusters = self.n_clusters
-        #probs = torch.ones(n_clusters)
-        #probs = probs / n_clusters
-        probs = self.probs
-
         d.update(
 
             # PRIORS
             log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
             log_v0_mean=ModelParameter.for_pop_mean("log_v0",shape=(self.dimension,)),
 
-            tau_mean=ModelParameter.for_ind_mean("tau", shape=(n_clusters,)),
-            tau_std=ModelParameter.for_ind_std("tau", shape=(n_clusters,)),
-            xi_mean =ModelParameter.for_ind_mean("xi", shape=(n_clusters,)),
-            xi_std=ModelParameter.for_ind_std("xi", shape=(n_clusters,)),
+            tau_mean=ModelParameter.for_ind_mean("tau", shape=(self.n_clusters,)),
+            tau_std=ModelParameter.for_ind_std("tau", shape=(self.n_clusters,)),
+            xi_mean =ModelParameter.for_ind_mean("xi", shape=(self.n_clusters,)),
+            xi_std=ModelParameter.for_ind_std("xi", shape=(self.n_clusters,)),
 
             # LATENT VARS
             log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
@@ -165,7 +138,8 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             g=LinkedVariable(Exp("log_g")),
             v0=LinkedVariable(Exp("log_v0")),
             alpha=LinkedVariable(Exp("xi")),
-            metric=LinkedVariable(self.metric),  # for linear model: metric & metric_sqr are fixed = 1.
+            metric=LinkedVariable(self.metric),
+            #probs=LinkedVariable(a_clever_function("xi_mean","xi_std","tau_mean","tau_std","sources_mean","sources_std")), #TODO
 
             #HYPERPARAMETERS
             log_g_std=Hyperparameter(0.01),
@@ -194,7 +168,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                     sampling_kws={"scale": .5},   # cf. GibbsSampler (for retro-compat)
                 ),
                 sources=IndividualLatentVariable(
-                    MixtureNormal(mixture_distribution=Categorical(probs),
+                    MixtureNormal(mixture_distribution=Categorical("probs"),
                                   component_distribution=Normal("sources_mean", "sources_std"))
                 ),
 
@@ -213,24 +187,17 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         else:
             d.update(model = LinkedVariable(self.model_no_sources))
 
+        #d.update() #something with the total likelihood and the probabilities #TODO
+
         return d
 
     def _validate_compatibility_of_dataset(self, dataset: Optional[Dataset] = None) -> None:
+        """
+        Check that a valid number of clusters is provided
+        """
+
         super()._validate_compatibility_of_dataset(dataset)
-        if not dataset:
-            return
-        if self.source_dimension is None:
-            self.source_dimension = int(dataset.dimension ** .5)
-            warnings.warn(
-                "You did not provide `source_dimension` hyperparameter for multivariate model, "
-                f"setting it to ⌊√dimension⌋ = {self.source_dimension}."
-            )
-        elif not (isinstance(self.source_dimension, int) and 0 <= self.source_dimension < dataset.dimension):
-            raise LeaspyModelInputError(
-                f"Sources dimension should be an integer in [0, dimension - 1[ "
-                f"but you provided `source_dimension` = {self.source_dimension} "
-                f"whereas `dimension` = {dataset.dimension}."
-            )
+
         if self.n_clusters is None:
             warnings.warn("You did not provide `n_clusters` hyperparameter for mixture model")
         elif not (isinstance(self.n_clusters, int) and 2 > self.n_clusters ):
@@ -241,89 +208,31 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """
-        Updates all model hyperparameters from the provided hyperparameters.
-
-        Parameters
-        ----------
-        hyperparameters : KwargsType
-            The hyperparameters to be loaded.
+        Updates n_clusters along with the other hyperparameters.
         """
-        expected_hyperparameters = ('features', 'dimension', 'source_dimension', "n_clusters")
-
-        if 'features' in hyperparameters:
-            self.features = hyperparameters['features']
-
-        if 'dimension' in hyperparameters:
-            if self.features and hyperparameters['dimension'] != len(self.features):
-                raise LeaspyModelInputError(
-                    f"Dimension provided ({hyperparameters['dimension']}) does not match "
-                    f"features ({len(self.features)})"
-                )
-            self.dimension = hyperparameters['dimension']
-
-        if 'source_dimension' in hyperparameters:
-            if not (
-                isinstance(hyperparameters['source_dimension'], int)
-                and (hyperparameters['source_dimension'] >= 0)
-                and (self.dimension is None or hyperparameters['source_dimension'] <= self.dimension - 1)
-            ):
-                raise LeaspyModelInputError(
-                    f"Source dimension should be an integer in [0, dimension - 1], "
-                    f"not {hyperparameters['source_dimension']}"
-                )
-            self.source_dimension = hyperparameters['source_dimension']
+        super()._load_hyperparameters(hyperparameters)
+        expected_hyperparameters = ('n_clusters')
 
         if 'n_clusters' in hyperparameters:
             if not (
-                isinstance(hyperparameters['n_clusters'], int)
-                and (hyperparameters['n_clusters'] >= 2)
-                and (self.n_clusters is None)
+                    isinstance(hyperparameters['n_clusters'], int)
+                    and (hyperparameters['n_clusters'] >= 2)
             ):
                 raise LeaspyModelInputError(
-                    f"Number of clusters should be an integer greater than 2 , "
-                    f"not {hyperparameters['n_clusters']}"
+                    f"Source dimension should be an integer in greater than 2 , "
+                    f"not {hyperparameters['n_clusters']} "
                 )
             self.n_clusters = hyperparameters['n_clusters']
-
-        # WIP
-        ## special hyperparameter(s) for ordinal model
-        #expected_hyperparameters += self._handle_ordinal_hyperparameters(hyperparameters)
 
         self._raise_if_unknown_hyperparameters(expected_hyperparameters, hyperparameters)
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """
-        Export ``Leaspy`` object as dictionary ready for :term:`JSON` saving.
-
-        Parameters
-        ----------
-        with_mixing_matrix : :obj:`bool` (default ``True``)
-            Save the :term:`mixing matrix` in the exported file in its 'parameters' section.
-
-            .. warning::
-                It is not a real parameter and its value will be overwritten at model loading
-                (orthonormal basis is recomputed from other "true" parameters and mixing matrix
-                is then deduced from this orthonormal basis and the betas)!
-                It was integrated historically because it is used for convenience in
-                browser webtool and only there...
-
-        Returns
-        -------
-        KwargsType :
-            The object as a dictionary.
+        Pass n_clusters to dictionary for consistency
         """
-        model_settings = super().to_dict()
-        model_settings['source_dimension'] = self.source_dimension
-
-        model_settings['n_clusters'] = self.n_clusters
-
-        if with_mixing_matrix and self.source_dimension >= 1:
-            # transposed compared to previous version
-            model_settings['parameters']['mixing_matrix'] = self.state['mixing_matrix'].tolist()
-
-        # self._export_extra_ordinal_settings(model_settings)
-
-        return model_settings
+        dict_params = super().to_dict(with_mixing_matrix=with_mixing_matrix)
+        dict_params['n_clusters'] = self.n_clusters
+        return dict_params
 
     def _compute_initial_values_for_model_parameters(
             #Taken from class LogisticMultivariateInitializationMixin
@@ -335,6 +244,16 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             method: InitializationMethod,
     ) -> VariablesValuesRO:
         """Compute initial values for model parameters."""
+
+        n_inds = dataset.to_pandas().reset_index('TIME').groupby('ID').min().shape[0]
+
+        n_clusters = self.n_clusters
+        probs = torch.ones(n_clusters)/n_clusters
+        #probs_ind = torch.tensor(probs * n_inds) #TODO Continue from here create an object n_inds x n_clusters
+
+        df = self._get_dataframe_from_dataset(dataset)
+        df['probs'] = probs
+
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
             compute_patient_values_distribution,
@@ -390,22 +309,18 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             )
             return rounded_parameters
 
+        params = super()._compute_initial_values_for_model_parameters(dataset, method)
+
+        new_parameters = self._estimate_initial_event_parameters(dataset)
+        new_rounded_parameters = {str(p): torch_round(v.to(torch.float32)) for p, v in new_parameters.items()}
+
+        params.update(new_rounded_parameters)
+        return params
+
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:
         """
-        Center the ``xi`` realizations in place.
-
-        .. note::
-            This operation does not change the orthonormal basis
-            (since the resulting ``v0`` is collinear to the previous one)
-            Nor all model computations (only ``v0 * exp(xi_i)`` matters),
-            it is only intended for model identifiability / ``xi_i`` regularization
-            <!> all operations are performed in "log" space (``v0`` is log'ed)
-
-        Parameters
-        ----------
-        realizations : :class:`.CollectionRealization`
-            The realizations to use for updating the :term:`MCMC` toolbox.
+        Center the ``xi`` realizations in place
         """
 
         # is it ok for all the clusters?
@@ -417,7 +332,6 @@ class LogisticMixtureModel(LogisticMultivariateModel):
     def _center_sources_realizations(cls, state: State) -> None:
         """
         Center the ``sources`` realizations in place.
-
         """
         # is it ok for all the clusters?
         mean_sources = torch.mean(state['sources'])
@@ -433,18 +347,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
         """
-                Compute the model's :term:`sufficient statistics`.
-
-                Parameters
-                ----------
-                state : :class:`.State`
-                    The state to pick values from.
-
-                Returns
-                -------
-                SuffStatsRW :
-                    The computed sufficient statistics.
-                """
+        """
         # <!> modify 'xi' and 'log_v0' realizations in-place
         # TODO: what theoretical guarantees for this custom operation?
         cls._center_xi_realizations(state)
