@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+import math
 import torch
 import warnings
 from abc import abstractmethod
@@ -46,22 +48,32 @@ class LogisticMixtureModel(LogisticMultivariateModel):
     #_tau_std = 5.
     #_noise_std = .1
     #_sources_std = 1.
+    _xi_mean = 0
+    _sources_mean = 0
 
     @property
-    def xi_std(self) -> torch.Tensor:
-        return torch.tensor([self._xi_std] * self.n_clusters)
+    def xi_mean(self) -> torch.Tensor:
+        return torch.tensor(self._xi_mean)
 
     @property
-    def tau_std(self) -> torch.Tensor:
-        return torch.tensor([self._tau_std] * self.n_clusters)
+    def sources_mean(self) -> float:
+        return self._sources_mean
 
-    @property
-    def noise_std(self) -> torch.Tensor:
-        return torch.tensor(self._noise_std)
+    #@property
+    #def xi_std(self) -> torch.Tensor:
+    #    return torch.tensor([self._xi_std] * self.n_clusters)
 
-    @property
-    def sources_std(self) -> torch.Tensor:
-        return torch.tensor([self._sources_std] * self.n_clusters)
+    #@property
+    #def tau_std(self) -> torch.Tensor:
+    #    return torch.tensor([self._tau_std] * self.n_clusters)
+
+    #@property
+    #def noise_std(self) -> torch.Tensor:
+    #    return torch.tensor(self._noise_std)
+
+    #@property
+    #def sources_std(self) -> torch.Tensor:
+    #    return torch.tensor([self._sources_std] * self.n_clusters)
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
@@ -84,7 +96,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                 obs_models_to_string += ["mixture-gaussian"]
 
         variables_to_track = [
-            "probs",
+            "probs_ind",
             "xi_mean"
             "nll_attach_xi_ind_cluster",
             "nll_attach_tau_ind_cluster",
@@ -139,7 +151,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             v0=LinkedVariable(Exp("log_v0")),
             alpha=LinkedVariable(Exp("xi")),
             metric=LinkedVariable(self.metric),
-            #probs=LinkedVariable(a_clever_function("xi_mean","xi_std","tau_mean","tau_std","sources_mean","sources_std")), #TODO
+            probs=LinkedVariable(self.compute_probs_ind),
 
             #HYPERPARAMETERS
             log_g_std=Hyperparameter(0.01),
@@ -244,16 +256,6 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             method: InitializationMethod,
     ) -> VariablesValuesRO:
         """Compute initial values for model parameters."""
-
-        n_inds = dataset.to_pandas().reset_index('TIME').groupby('ID').min().shape[0]
-
-        n_clusters = self.n_clusters
-        probs = torch.ones(n_clusters)/n_clusters
-        #probs_ind = torch.tensor(probs * n_inds) #TODO Continue from here create an object n_inds x n_clusters
-
-        df = self._get_dataframe_from_dataset(dataset)
-        df['probs'] = probs
-
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
             compute_patient_values_distribution,
@@ -262,13 +264,29 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             torch_round,
         )
 
+        #initialize a df with the probabilities of each individual belonging to each cluster
+        n_inds = dataset.to_pandas().reset_index('TIME').groupby('ID').min().shape[0]
         n_clusters = self.n_clusters
+        probs_ind = torch.ones(n_inds,n_clusters)/n_clusters
+        probs = probs_ind.sum(axis=0)/n_inds
+
+        df = self._get_dataframe_from_dataset(dataset)
+        probs_ind_df = pd.concat([pd.DataFrame({"ID": np.arrange(1, n_inds+1,1)}),
+                                  pd.DataFrame(probs_ind)], axis=1, join="outer")
         for c in range(n_clusters):
-            #modify as needed to specify the parameters at each cluster
-            df = self._get_dataframe_from_dataset(dataset)
-            slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
-            values_mu, values_sigma = compute_patient_values_distribution(df)
-            time_mu, time_sigma = compute_patient_time_distribution(df)
+            print(c)
+            probs_ind_df = probs_ind_df.rename(columns={c: 'prob_cluster_' + str(c + 1)})
+
+        df = pd.concat([df, probs_ind_df], axis=1, join="outer")
+
+        step = math.ceil(n_inds / n_clusters)
+        start = 0
+        for c in range(n_clusters):
+            df_cluster = df[start:step * (c + 1)]
+            start = step * (c + 1)
+            slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df_cluster)
+            values_mu, values_sigma = compute_patient_values_distribution(df_cluster)
+            time_mu, time_sigma = compute_patient_time_distribution(df_cluster)
 
             if method == InitializationMethod.DEFAULT:
                 slopes = slopes_mu
@@ -290,32 +308,29 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             parameters = {
                 "log_g_mean": torch.log(1. / values - 1.),
                 "log_v0_mean": get_log_velocities(slopes, self.features),
-                "tau_mean": self.tau_mean,
+                "tau_mean": t0,
                 "tau_std": self.tau_std,
                 "xi_mean": self.xi_mean,
                 "xi_std": self.xi_std,
-                "probs": torch.ones(self.n_clusters) / self.n_clusters
             }
             if self.source_dimension >= 1:
                 parameters["betas_mean"] = betas
                 parameters["sources_mean"] = self.sources_mean
-            rounded_parameters = {
+            rounded_parameters_cluster = {
                 str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
             }
-            obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
-            #if isinstance(obs_model, FullGaussianObservationModel):
-            rounded_parameters["noise_std"] = self.noise_std.expand(
-                obs_model.extra_vars['noise_std'].shape
-            )
-            return rounded_parameters
+            obs_model_full = FullGaussianObservationModel
+            #dirty hack to use the noise as in FullGaussianObservationModel
+            rounded_parameters_cluster["noise_std"] = self.noise_std.expand(
+                obs_model_full.extra_vars['noise_std'].shape)
 
-        params = super()._compute_initial_values_for_model_parameters(dataset, method)
+            if c==0:
+                rounded_parameters = rounded_parameters_cluster
+            else:
+                rounded_parameters.update(rounded_parameters_cluster)
 
-        new_parameters = self._estimate_initial_event_parameters(dataset)
-        new_rounded_parameters = {str(p): torch_round(v.to(torch.float32)) for p, v in new_parameters.items()}
-
-        params.update(new_rounded_parameters)
-        return params
+        rounded_parameters.update(dict({"probs":probs}))
+        return rounded_parameters
 
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:
@@ -338,11 +353,17 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         state["sources"] = state["sources"] - mean_sources
 
     @classmethod
-    def compute_probs(cls, state: State) -> torch.Tensor:
+    def compute_probs_ind(cls, state: State) -> torch.Tensor:
         """
         Compute the probability that each individual belongs to each cluster
         """
         # to complete
+
+        #denominator = sum of all clusters (probs * nll_y * nll_random)
+
+        #for c in n_clusters:
+        #    nominator = probs[c] * nll_y[c] * nll_random[c]
+        #    probs_ind[:,c] = /denominator
 
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
