@@ -53,7 +53,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             self,
             loc: VarName,
             scale: VarName,
-            n_clusters: int,
+            n_clusters: Hyperparameter,
             probs : VarName,
             **extra_vars: VariableInterface,
     ):
@@ -73,15 +73,15 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         return WeightedTensor(dataset.values, weight=dataset.mask.to(torch.bool))
 
     @classmethod
-    def probs_update(
+    def compute_probs_update(
             cls,
             *,
             state: State,
             n_clusters: int,
             n_inds : int,
-            probs_ind=None) -> tuple[torch.Tensor, torch.Tensor]:
+            probs_ind=None) -> torch.Tensor : #tuple[torch.Tensor, torch.Tensor]:
         """
-        Update rule for 'probs' from state & sufficient statistics.
+        Update rule for 'probs' from state
         probs_ind refers to the probability of each individual i to belong to each cluster c
         probs refers to the probability of each cluster c
         """
@@ -97,21 +97,16 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
             for c in range(n_clusters):
                 probs_ind[i,c] = state["probs"][c] * nll_ind_per_cluster[i,c] * nll_random_per_cluster[i,c] / denominator
 
-        probs = probs_ind.sum(dim=0)
+        #probs = probs_ind.sum(dim=0)
 
-        return probs_ind, probs
+        return probs_ind#, probs
 
     @classmethod
-    def probs_specs(cls, n_inds: int, n_clusters: int) -> ModelParameter:
+    def probs_specs(cls, n_clusters: int) -> LinkedVariable:
         """
         Default specifications of 'probs'.
         """
-        update_rule = cls.probs_update
-        return ModelParameter(
-            shape=(n_inds, n_clusters),
-            update_rule=update_rule,
-        )
-    #correct it to be coherent with the specs
+        return LinkedVariable(cls.compute_probs_update(n_clusters))
 
     @classmethod
     def with_probs_as_model_parameter(cls, n_clusters: int):

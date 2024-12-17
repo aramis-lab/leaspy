@@ -97,14 +97,14 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
         variables_to_track = [
             "probs_ind",
-            "xi_mean"
-            "nll_attach_xi_ind_cluster",
-            "nll_attach_tau_ind_cluster",
-            "nll_attach_y_ind_cluster",
+            "xi_mean",
+            #"nll_attach_xi_ind_cluster",
+            #"nll_attach_tau_ind_cluster",
+            #"nll_attach_y_ind_cluster",
         ]
 
         if self.source_dimension:
-            variables_to_track += ['sources_mean', 'nll_attach_sources_ind_cluster']
+            variables_to_track += ['sources_mean'] #, 'nll_attach_sources_ind_cluster']
 
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
@@ -353,17 +353,67 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         state["sources"] = state["sources"] - mean_sources
 
     @classmethod
-    def compute_probs_ind(cls, state: State) -> torch.Tensor:
-        """
-        Compute the probability that each individual belongs to each cluster
-        """
-        # to complete
+    def compute_nll_cluster_random_effects(
+            cls,
+            probs_ind: torch.Tensor,
+            tau: torch.Tensor,
+            xi: torch.Tensor,
+            sources: torch.Tensor) -> torch.Tensor:
 
-        #denominator = sum of all clusters (probs * nll_y * nll_random)
+        # the estimated for every cluster
+        tau_std = cls.tau_std
+        tau_mean = cls.tau_mean
+        xi_std = cls.xi_std
+        xi_mean = cls.xi_mean
+        sources_mean = cls.sources_mean
+        n_sources = sources_mean.size()[0]
+        nll_constant_standard = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
-        #for c in n_clusters:
-        #    nominator = probs[c] * nll_y[c] * nll_random[c]
-        #    probs_ind[:,c] = /denominator
+        nll_tau = (probs_ind * torch.log(tau_std) + probs_ind * nll_constant_standard +
+                   (0.5 * probs_ind * ((tau - tau_mean) / tau_std) ** 2))
+        nll_xi = (probs_ind * torch.log(xi_std) + probs_ind * nll_constant_standard +
+                  (0.5 * probs_ind * ((xi - xi_mean) / xi_std) ** 2))
+        nll_sources = n_sources * nll_constant_standard + (
+                0.5 * probs_ind * (sources - sources_mean) ** 2)
+
+        return - nll_tau - nll_xi - nll_sources
+
+    @classmethod
+    def compute_nll_cluster_ind(
+            cls,
+            x: WeightedTensor,
+            probs: torch.Tensor,
+            loc: torch.Tensor,
+            scale: torch.Tensor, ) -> torch.Tensor:
+
+        nll_constant_standard = 0.5 * torch.log(2 * torch.tensor(math.pi))
+        nll_ind = probs * torch.log(scale) + probs * nll_constant_standard + (
+                    0.5 * probs * ((x.value - loc) / scale) ** 2)
+
+        return -nll_ind
+
+    @classmethod
+    def compute_probs_ind(cls,
+                          x: WeightedTensor,
+                          probs: torch.Tensor,
+                          loc: torch.Tensor,
+                          scale: torch.Tensor,
+                          tau: torch.Tensor,
+                          xi: torch.Tensor,
+                          sources: torch.Tensor,
+                          n_clusters: int,
+                          probs_ind=None) -> torch.Tensor:
+
+        nll_ind = cls.compute_nll_cluster_ind(x, probs, loc, scale)
+        nll_random = cls.compute_nll_cluster_random_effects(probs, tau, xi, sources)
+
+        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
+        nominator = probs * nll_ind * nll_random
+        for c in range(n_clusters):
+            probs_ind[:, c] = nominator[:, c] / denominator
+
+        return probs_ind
+
 
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:

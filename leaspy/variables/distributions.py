@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Tuple, Any, ClassVar, Callable, Type
 
+import numpy as np
 import torch
 from mpmath import jacobian
 from pkg_resources import dist_factory
@@ -399,6 +400,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     # mixture_distribution = torch.distributions.Categorical(probs),
     # component_distribution = torch.distributions.Normal(torch.randn(n_clusters, ), torch.rand(n_clusters, ))
     dist_factory: ClassVar = torch.distributions.MixtureSameFamily
+    nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
     def mean(cls, component_distribution) -> torch.Tensor:
@@ -467,114 +469,62 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         return prob, loc, scale
 
     @classmethod
-    def _nll_per_cluster(
+    def compute_nll_cluster_random_effects(
+            cls,
+            probs_ind: torch.Tensor,
+            tau : torch.Tensor,
+            xi : torch.Tensor,
+            sources : torch.Tensor) -> torch.Tensor :
+
+        # the estimated for every cluster
+        tau_std = torch.std(tau)
+        tau_mean = torch.mean(tau)
+        xi_std = torch.std(xi)
+        xi_mean = torch.mean(xi)
+        sources_mean = torch.mean(sources)
+        n_sources = sources_mean.size()[0]
+
+        nll_tau = (probs_ind * torch.log(tau_std) + probs_ind * cls.nll_constant_standard +
+                   (0.5 * probs_ind * ((tau - tau_mean)/tau_std)**2))
+        nll_xi = (probs_ind * torch.log(xi_std) + probs_ind * cls.nll_constant_standard +
+                  (0.5 * probs_ind * ((xi - xi_mean) / xi_std) ** 2))
+        nll_sources =  n_sources * cls.nll_constant_standard + (
+                    0.5 * probs_ind * (sources - sources_mean) ** 2)
+
+        return - nll_tau - nll_xi - nll_sources
+
+    @classmethod
+    def compute_nll_cluster_ind(
             cls,
             x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            which_cluster: int,
             probs: torch.Tensor,
-    ) -> WeightedTensor:
-        """
-        Calculate the nll per cluster weighted by the cluster probability
-        """
+            loc: torch.Tensor,
+            scale: torch.Tensor,) -> torch.Tensor:
 
-        prob, loc, scale = cls.extract_cluster_parameters(which_cluster, probs, loc, scale)
+        nll_ind = probs * torch.log(scale) + probs * cls.nll_constant_standard + (0.5 * probs * ((x.value - loc) / scale) ** 2)
 
-        nll_cluster =  ((0.5 * prob * ((x.value - loc) / scale) ** 2
-                    + prob * torch.log(scale))
-                    + cls.nll_constant_standard)
-
-        return WeightedTensor(nll_cluster, x.weight)
+        return -nll_ind
 
     @classmethod
-    def _nll_jacobian_per_cluster(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            which_cluster: int,
-            probs: torch.Tensor,
-    ) -> WeightedTensor:
+    def compute_prob_ind(cls,
+                         x: WeightedTensor,
+                         probs: torch.Tensor,
+                         loc: torch.Tensor,
+                         scale: torch.Tensor,
+                         tau: torch.Tensor,
+                         xi: torch.Tensor,
+                         sources: torch.Tensor,
+                         probs_ind=None) -> torch.Tensor:
 
-        """Calculate the jacobian per cluster weighted by the cluster probability"""
+        nll_ind = cls.compute_nll_cluster_ind(x, probs, loc, scale)
+        nll_random = cls.compute_nll_cluster_random_effects(probs, tau, xi, sources)
 
-        prob, loc, scale = cls.extract_cluster_parameters(which_cluster, probs, loc, scale)
-        jacobian = WeightedTensor(prob * ((x.value - loc) / scale) ** 2, x.weight)
-
-        return jacobian
-
-    @classmethod
-    def _nll_and_jacobian_per_cluster(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            which_cluster: int,
-            probs: torch.Tensor,
-    ) -> Tuple[WeightedTensor, WeightedTensor]:
-
-        """Calculate the nll and the jacobian per cluster weighted by the cluster probability"""
-
-        prob, loc, scale = cls.extract_cluster_parameters(which_cluster, probs, loc, scale)
-        z = (x.value - loc) / scale
-        nll = 0.5 * prob * z ** 2 + prob * torch.log(scale) + cls.nll_constant_standard
-        return WeightedTensor(nll, x.weight), WeightedTensor(prob * z / scale, x.weight)
-
-    @classmethod
-    def _nll_total(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            n_clusters : int,
-            probs: torch.Tensor
-    ) -> WeightedTensor:
-
-
-        """sum all the cluster nll"""
-        nll_total = 0
+        denominator = (probs * nll_ind * nll_random).sum(dim=1) #sum for all the clusters
+        nominator = probs * nll_ind * nll_random
         for c in range(n_clusters):
-            nll_total = nll_total + cls._nll_per_cluster(x,loc,scale,c,probs)
+            probs_ind[:,c] = nominator[:,c]/denominator
 
-        return WeightedTensor(nll_total, x.weight)
-
-    @classmethod
-    def _nll_jacobian_total(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            n_clusters: int,
-            probs: torch.Tensor
-    ) -> WeightedTensor:
-
-        """sum all the cluster jacobian"""
-        nll_total = 0
-        for c in range(n_clusters):
-            nll_total = nll_total + cls._nll_jacobian_per_cluster(x, loc, scale, c, probs)
-
-        return WeightedTensor(nll_total, x.weight)
-
-    @classmethod
-    def _nll_and_jacobian_total(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            n_clusters: int,
-            probs: torch.Tensor
-    ) -> Tuple[WeightedTensor, WeightedTensor]:
-
-        """sum all the cluster nll and jacobian"""
-        nll_total = 0
-        jacobian_total = 0
-        for c in range(n_clusters):
-            nll_total = nll_total + cls._nll_and_jacobian_per_cluster(x, loc, scale, c, probs)[0]
-            jacobian_total = jacobian_total +cls._nll_and_jacobian_per_cluster(x, loc, scale, c, probs)[1]
-
-        return WeightedTensor(nll_total, x.weight), WeightedTensor(jacobian_total, x.weight)
-
+        return probs_ind
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
