@@ -76,7 +76,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
     #    return torch.tensor([self._sources_std] * self.n_clusters)
 
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, self.n_clusters, **kwargs)
+        super().__init__(name, **kwargs)
         obs_models_to_string = [o.to_string() for o in self.obs_models]
 
         n_clusters = kwargs.get('n_clusters', None)
