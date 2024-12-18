@@ -516,6 +516,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
                          sources: torch.Tensor,
                          probs_ind=None) -> torch.Tensor:
 
+        n_clusters = probs_ind.size()[1]
         nll_ind = cls.compute_nll_cluster_ind(x, probs, loc, scale)
         nll_random = cls.compute_nll_cluster_random_effects(probs, tau, xi, sources)
 
