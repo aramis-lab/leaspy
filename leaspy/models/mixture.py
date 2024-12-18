@@ -81,7 +81,10 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
         n_clusters = kwargs.get('n_clusters', None)
         observation_models = kwargs.get("obs_models", None)
-        kwargs["obs_models"] = (observation_model_factory(observation_models, n_clusters=n_clusters),)
+        dimension = kwargs.get('dimension', None)
+        if 'features' in kwargs:
+            dimension = len(kwargs['features'])
+        kwargs["obs_models"] = (observation_model_factory(observation_models, n_clusters=n_clusters, dimension=dimension),)
 
         if (self.dimension == 1) or (self.source_dimension == 0):
             if "mixture-gaussian" in obs_models_to_string:
