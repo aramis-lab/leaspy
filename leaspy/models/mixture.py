@@ -388,14 +388,12 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
         return -nll_ind
 
-    @classmethod
-    def compute_probs_ind(cls,
-                          dataset,
-                          state: State,
-                          n_clusters: int,
-                          probs_ind=None) -> torch.Tensor:
+    @staticmethod
+    def compute_probs_ind(*, state: State) -> torch.Tensor:
 
-        n_inds = dataset.to_pandas().reset_index('TIME').groupby('ID').min().shape[0]
+        probs_ind = state['probs_ind']
+        n_inds = probs_ind.size()[0]
+        n_clusters = probs_ind.size()[1]
         probs = probs_ind.sum(dim=0)/n_inds
         nll_ind = state['nll_attach_y_ind']
         nll_random = probs * (state['nll_attach_xi_ind'] + state['nll_attach_tau_ind'] + state['nll_attach_sources_ind'])
