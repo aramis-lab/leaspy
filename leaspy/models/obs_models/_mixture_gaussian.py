@@ -47,7 +47,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
     Specialized observational model when the data come from a mixture normal distribution.
     """
 
-    n_clusters = None
+
     tol_noise_variance = 1e-5
 
     def __init__(

@@ -73,6 +73,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
     def __init__(self, name: str, **kwargs):
 
         self.source_dimension: Optional[int] = None
+        self.n_clusters: Optional[int] = None
 
         # TODO / WIP / TMP: dirty for now...
         # Should we:
@@ -96,7 +97,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 [observation_model_factory(observation_models['y'], dimension=dimension)]
             )
         else:
-            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension),)
+            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension, n_clusters=self.n_clusters),)
         super().__init__(name, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
