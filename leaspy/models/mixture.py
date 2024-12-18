@@ -79,6 +79,10 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         super().__init__(name, **kwargs)
         obs_models_to_string = [o.to_string() for o in self.obs_models]
 
+        n_clusters = kwargs.get('n_clusters', None)
+        observation_models = kwargs.get("obs_models", None)
+        kwargs["obs_models"] = (observation_model_factory(observation_models, n_clusters=n_clusters),)
+
         if (self.dimension == 1) or (self.source_dimension == 0):
             if "mixture-gaussian" in obs_models_to_string:
                 raise LeaspyInputError("Mixture does not work for now with a univariate model")
