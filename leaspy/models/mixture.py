@@ -152,8 +152,8 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             log_v0=PopulationLatentVariable(Normal("log_v0_mean", "log_v0_std")),
 
             xi=IndividualLatentVariable(
-                MixtureNormal(mixture_distribution = Categorical("probs"),
-                                    component_distribution = Normal("xi_mean", "xi_std")
+                MixtureNormal(Categorical("probs"),
+                                    Normal("xi_mean", "xi_std")
                                     )
             ),
             tau=IndividualLatentVariable(
@@ -195,8 +195,8 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                     sampling_kws={"scale": .5},   # cf. GibbsSampler (for retro-compat)
                 ),
                 sources=IndividualLatentVariable(
-                    MixtureNormal(mixture_distribution=Categorical("probs"),
-                                  component_distribution=Normal("sources_mean", "sources_std"))
+                    MixtureNormal(Categorical("probs"),
+                                  Normal("sources_mean", "sources_std"))
                 ),
 
                 # DERIVED VARS
