@@ -105,13 +105,13 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         variables_to_track = [
             "probs_ind",
             "xi_mean",
-            #"nll_attach_xi_ind_cluster",
-            #"nll_attach_tau_ind_cluster",
-            #"nll_attach_y_ind_cluster",
+            "nll_attach_xi",
+            "nll_attach_tau",
+            "nll_attach_y",
         ]
 
         if self.source_dimension:
-            variables_to_track += ['sources_mean'] #, 'nll_attach_sources_ind_cluster']
+            variables_to_track += ['sources_mean', 'nll_attach_sources']
 
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
@@ -390,18 +390,15 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
     @classmethod
     def compute_probs_ind(cls,
-                          x: WeightedTensor,
-                          probs: torch.Tensor,
-                          loc: torch.Tensor,
-                          scale: torch.Tensor,
-                          tau: torch.Tensor,
-                          xi: torch.Tensor,
-                          sources: torch.Tensor,
+                          dataset,
+                          state: State,
                           n_clusters: int,
                           probs_ind=None) -> torch.Tensor:
 
-        nll_ind = cls.compute_nll_cluster_ind(x, probs, loc, scale)
-        nll_random = cls.compute_nll_cluster_random_effects(probs, tau, xi, sources)
+        n_inds = dataset.to_pandas().reset_index('TIME').groupby('ID').min().shape[0]
+        probs = probs_ind.sum(dim=0)/n_inds
+        nll_ind = state['nll_attach_y_ind']
+        nll_random = probs * (state['nll_attach_xi_ind'] + state['nll_attach_tau_ind'] + state['nll_attach_sources_ind'])
 
         denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
         nominator = probs * nll_ind * nll_random
