@@ -73,7 +73,6 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
     def __init__(self, name: str, **kwargs):
 
         self.source_dimension: Optional[int] = None
-        self.n_clusters: Optional[int] = None
 
         # TODO / WIP / TMP: dirty for now...
         # Should we:
@@ -97,7 +96,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 [observation_model_factory(observation_models['y'], dimension=dimension)]
             )
         else:
-            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension, n_clusters=self.n_clusters),)
+            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension),)
         super().__init__(name, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
@@ -218,7 +217,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
         hyperparameters : KwargsType
             The hyperparameters to be loaded.
         """
-        expected_hyperparameters = ('features', 'dimension', 'source_dimension','n_clusters')
+        expected_hyperparameters = ('features', 'dimension', 'source_dimension')
 
         if 'features' in hyperparameters:
             self.features = hyperparameters['features']
@@ -242,17 +241,6 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                     f"not {hyperparameters['source_dimension']}"
                 )
             self.source_dimension = hyperparameters['source_dimension']
-
-            if 'n_clusters' in hyperparameters:
-                if not (
-                        isinstance(hyperparameters['n_clusters'], int)
-                        and (hyperparameters['n_clusters'] >= 2)
-                ):
-                    raise LeaspyModelInputError(
-                        f"Number of clusters should be an integer greater than 2 , "
-                        f"not {hyperparameters['n_clusters']} "
-                    )
-                self.n_clusters = hyperparameters['n_clusters']
 
         # WIP
         ## special hyperparameter(s) for ordinal model
