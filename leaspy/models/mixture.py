@@ -112,6 +112,14 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
 
+    @abstractmethod
+    def to_dict(self) -> KwargsType:
+
+        model_settings = super().to_dict()
+        model_settings['n_clusters'] = self.n_clusters
+
+        return model_settings
+
 
     def get_variables_specs(self) -> NamedVariables:
         """
