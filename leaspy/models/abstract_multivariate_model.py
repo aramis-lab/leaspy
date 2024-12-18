@@ -217,7 +217,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
         hyperparameters : KwargsType
             The hyperparameters to be loaded.
         """
-        expected_hyperparameters = ('features', 'dimension', 'source_dimension')
+        expected_hyperparameters = ('features', 'dimension', 'source_dimension','n_clusters')
 
         if 'features' in hyperparameters:
             self.features = hyperparameters['features']
@@ -241,6 +241,17 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                     f"not {hyperparameters['source_dimension']}"
                 )
             self.source_dimension = hyperparameters['source_dimension']
+
+            if 'n_clusters' in hyperparameters:
+                if not (
+                        isinstance(hyperparameters['n_clusters'], int)
+                        and (hyperparameters['n_clusters'] >= 2)
+                ):
+                    raise LeaspyModelInputError(
+                        f"Number of clusters should be an integer greater than 2 , "
+                        f"not {hyperparameters['n_clusters']} "
+                    )
+                self.n_clusters = hyperparameters['n_clusters']
 
         # WIP
         ## special hyperparameter(s) for ordinal model

@@ -235,7 +235,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                     and (hyperparameters['n_clusters'] >= 2)
             ):
                 raise LeaspyModelInputError(
-                    f"Source dimension should be an integer in greater than 2 , "
+                    f"Number of clusters should be an integer greater than 2 , "
                     f"not {hyperparameters['n_clusters']} "
                 )
             self.n_clusters = hyperparameters['n_clusters']
