@@ -86,21 +86,21 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             dimension = len(kwargs['features'])
         kwargs["obs_models"] = (observation_model_factory(observation_models, n_clusters=n_clusters, dimension=dimension),)
 
-        if (self.dimension == 1) or (self.source_dimension == 0):
-            if "mixture-gaussian" in obs_models_to_string:
-                raise LeaspyInputError("Mixture does not work for now with a univariate model")
-        else:
-            if "mixture-gaussian" not in obs_models_to_string:
-                self.obs_models += (
-                    observation_model_factory(
-                        "mixture-gaussian",
-                        n_clusters="n_clusters",
-                        xi='xi',
-                        tau='tau',
-                        sources='sources'
-                    ),
-                )
-                obs_models_to_string += ["mixture-gaussian"]
+        #if (self.dimension == 1) or (self.source_dimension == 0):
+        #    if "mixture-gaussian" in obs_models_to_string:
+        #        raise LeaspyInputError("Mixture does not work for now with a univariate model")
+        #else:
+        #    if "mixture-gaussian" not in obs_models_to_string:
+        #        self.obs_models += (
+        #            observation_model_factory(
+        #                "mixture-gaussian",
+        #                n_clusters="n_clusters",
+        #                xi='xi',
+        #                tau='tau',
+        #                sources='sources'
+        #            ),
+        #        )
+        #        obs_models_to_string += ["mixture-gaussian"]
 
         variables_to_track = [
             "probs_ind",
