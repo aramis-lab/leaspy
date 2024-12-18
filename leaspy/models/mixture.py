@@ -157,8 +157,8 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                                     )
             ),
             tau=IndividualLatentVariable(
-                MixtureNormal(mixture_distribution=Categorical("probs"),
-                                    component_distribution=Normal("tau_mean", "tau_std"))
+                MixtureNormal(Categorical("probs"),
+                                    Normal("tau_mean", "tau_std"))
             ),
 
             # DERIVED VARS
