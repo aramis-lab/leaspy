@@ -139,8 +139,6 @@ class LogisticMixtureModel(LogisticMultivariateModel):
         d.update(
 
             # PRIORS
-            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
-            log_v0_mean=ModelParameter.for_pop_mean("log_v0",shape=(self.dimension,)),
 
             tau_mean=ModelParameter.for_ind_mean("tau", shape=(self.n_clusters,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(self.n_clusters,)),
@@ -148,8 +146,6 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             xi_std=ModelParameter.for_ind_std("xi", shape=(self.n_clusters,)),
 
             # LATENT VARS
-            log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
-            log_v0=PopulationLatentVariable(Normal("log_v0_mean", "log_v0_std")),
 
             xi=IndividualLatentVariable(
                 MixtureNormal(Categorical("probs"),
@@ -162,15 +158,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             ),
 
             # DERIVED VARS
-            g=LinkedVariable(Exp("log_g")),
-            v0=LinkedVariable(Exp("log_v0")),
-            alpha=LinkedVariable(Exp("xi")),
-            metric=LinkedVariable(self.metric),
             probs=LinkedVariable(self.compute_probs_ind),
-
-            #HYPERPARAMETERS
-            log_g_std=Hyperparameter(0.01),
-            log_v0_std=Hyperparameter(0.01),
 
         )
 
@@ -178,11 +166,6 @@ class LogisticMixtureModel(LogisticMultivariateModel):
             d.update(
 
                 # PRIORS
-                betas_mean=ModelParameter.for_pop_mean(
-                    "betas",
-                    shape=(self.dimension - 1, self.source_dimension),
-                ),
-                betas_std=Hyperparameter(0.01),
                 sources_mean=ModelParameter.for_pop_mean(
                     pop_var_name = "sources",
                     shape=(self.source_dimension, self.n_clusters),
@@ -190,26 +173,10 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                 sources_std=Hyperparameter(torch.ones(self.n_clusters)),
 
                 # LATENT VARS
-                betas=PopulationLatentVariable(
-                    Normal("betas_mean", "betas_std"),
-                    sampling_kws={"scale": .5},   # cf. GibbsSampler (for retro-compat)
-                ),
                 sources=IndividualLatentVariable(
                     MixtureNormal(Categorical("probs"),
                                   Normal("sources_mean", "sources_std"))
                 ),
-
-                # DERIVED VARS
-                mixing_matrix=LinkedVariable(
-                    MatMul("orthonormal_basis", "betas").then(torch.t)
-                ),  # shape: (Ns, Nfts)
-                space_shifts=LinkedVariable(
-                    MatMul("sources", "mixing_matrix")
-                ),  # shape: (Ni, Nfts)
-
-                model=LinkedVariable(self.model_with_sources),
-                metric_sqr=LinkedVariable(Sqr("metric")),
-                orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr"))
             )
         else:
             d.update(model = LinkedVariable(self.model_no_sources))
