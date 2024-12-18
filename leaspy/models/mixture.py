@@ -230,33 +230,14 @@ class LogisticMixtureModel(LogisticMultivariateModel):
                 f"but you provided `n_clusters` = {self.n_clusters} "
             )
 
-    def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
-        """
-        Updates n_clusters along with the other hyperparameters.
-        """
-        super()._load_hyperparameters(hyperparameters)
-        expected_hyperparameters = ('n_clusters')
-
-        if 'n_clusters' in hyperparameters:
-            if not (
-                    isinstance(hyperparameters['n_clusters'], int)
-                    and (hyperparameters['n_clusters'] >= 2)
-            ):
-                raise LeaspyModelInputError(
-                    f"Number of clusters should be an integer greater than 2 , "
-                    f"not {hyperparameters['n_clusters']} "
-                )
-            self.n_clusters = hyperparameters['n_clusters']
-
-        self._raise_if_unknown_hyperparameters(expected_hyperparameters, hyperparameters)
-
-    def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
+    def to_dict(self) -> KwargsType:
         """
         Pass n_clusters to dictionary for consistency
         """
-        dict_params = super().to_dict(with_mixing_matrix=with_mixing_matrix)
-        dict_params['n_clusters'] = self.n_clusters
-        return dict_params
+        model_settings = super().to_dict(with_mixing_matrix=True)
+        model_settings['n_clusters'] = self.n_clusters
+
+        return model_settings
 
     def _compute_initial_values_for_model_parameters(
             #Taken from class LogisticMultivariateInitializationMixin
