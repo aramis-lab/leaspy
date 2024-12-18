@@ -227,7 +227,7 @@ class LogisticMixtureModel(LogisticMultivariateModel):
 
         if self.n_clusters is None:
             warnings.warn("You did not provide `n_clusters` hyperparameter for mixture model")
-        elif not (isinstance(self.n_clusters, int) and 2 > self.n_clusters ):
+        elif not (isinstance(self.n_clusters, int) and self.n_clusters>=2):
             raise LeaspyModelInputError(
                 f"Number of clusters should be an integer greater than 2 "
                 f"but you provided `n_clusters` = {self.n_clusters} "
