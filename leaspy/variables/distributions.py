@@ -403,18 +403,38 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
-    def mean(cls, component_distribution) -> torch.Tensor:
+    def set_component_distribution(
+            cls,
+            component_distribution: torch.distributions,
+            loc: torch.Tensor,
+            scale: torch.Tensor,
+    ) -> torch.distributions:
+        """
+        Ensure that the component distribution is an instance of the torch.distributions.Normal.
+        """
+
+        if not isinstance(component_distribution, torch.distributions.Normal):
+            raise ValueError(
+                "The Component distribution need to be an "
+                "instance of torch.distributions.Normal"
+                "Setting the distribution to Normal"
+            )
+        component_distribution = torch.distributions.Normal(loc, scale)
+        return component_distribution
+
+    @classmethod
+    def mean(cls, *params: torch.Tensor) -> torch.Tensor:
         """
         Return the mean of the distribution, given the component distribution.
         """
-        return component_distribution.mean
+        return cls.set_component_distribution.mean
 
     @classmethod
-    def stddev(cls, component_distribution) -> torch.Tensor:
+    def stddev(cls, *params: torch.Tensor) -> torch.Tensor:
         """"
         Return the standard deviation of the distribution, given the component distribution.
         """
-        return component_distribution.scale
+        return cls.set_component_distribution.scale
 
     @classmethod
     def extract_probs(cls, mixture_distribution) -> torch.Tensor:
@@ -429,26 +449,6 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         Return the number of clusters in the distribution, given the mixture distribution.
         """
         return mixture_distribution.probs.size()[0]
-
-    @classmethod
-    def set_component_distribution(
-            cls,
-            component_distribution: torch.distributions,
-            loc : torch.Tensor,
-            scale : torch.Tensor,
-    ) -> torch.distributions:
-        """
-        Ensure that the component distribution is an instance of the torch.distributions.Normal.
-        """
-
-        if not isinstance(component_distribution, torch.distributions.Normal):
-            raise ValueError(
-                "The Component distribution need to be an "
-                "instance of torch.distributions.Normal"
-                "Setting the distribution to Normal"
-            )
-        component_distribution = torch.distributions.Normal(loc, scale)
-        return component_distribution
 
     @classmethod
     def extract_cluster_parameters(

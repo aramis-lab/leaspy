@@ -47,6 +47,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
     Specialized observational model when the data come from a mixture normal distribution.
     """
 
+    n_clusters = None
     tol_noise_variance = 1e-5
 
     def __init__(
@@ -109,10 +110,11 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         return LinkedVariable(cls.compute_probs_update(n_clusters))
 
     @classmethod
-    def with_probs_as_model_parameter(cls, n_clusters: int):
+    def with_probs_as_model_parameter(cls):
         """
         Default instance
         """
+        n_clusters = cls.n_clusters
         if not isinstance(n_clusters, int) or n_clusters < 2:
             raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
 
