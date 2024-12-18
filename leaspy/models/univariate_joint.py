@@ -1,5 +1,5 @@
 import torch
-from lifelines import WeibullFitter
+#from lifelines import WeibullFitter
 
 from leaspy.models.univariate import LogisticUnivariateModel
 from leaspy.models.joint import JointModel
