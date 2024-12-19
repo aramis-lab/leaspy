@@ -454,20 +454,44 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     def extract_cluster_parameters(
             cls,
             which_cluster: int,
-            probs: torch.Tensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
         """
         Return the parameters for a specific cluster
         """
 
-        prob = probs[which_cluster]
-        loc = loc[which_cluster]
-        scale = scale[which_cluster]
+        prob = torch.Tensor(cls.extract_probs)[which_cluster]
+        loc = torch.Tensor(cls.mean)[which_cluster]
+        scale = torch.Tensor(cls.stddev)[which_cluster]
 
         return prob, loc, scale
 
+    @classmethod
+    def compute_nll_cluster(
+            cls,
+            which_cluster: int,
+            x: WeightedTensor,
+    ) -> WeightedTensor:
+
+        prob, loc, scale = cls.extract_cluster_parameters(which_cluster)
+        nll_cluster =  (prob * 0.5 * ((x.value - loc) / scale) ** 2 +
+                        prob * torch.log(scale) +
+                        prob * cls.nll_constant_standard)
+
+        return WeightedTensor(nll_cluster, x.weight)
+
+    @classmethod
+    def _nll(cls, x: WeightedTensor,
+        *params: torch.Tensor,
+    ) -> WeightedTensor:
+
+        n_clusters = int(cls.extract_n_clusters)
+        weighted_nll = 0
+        for c in range(n_clusters):
+            weighted_nll = weighted_nll + cls.compute_nll_cluster(x,c)
+
+        return weighted_nll
+
+"""
     @classmethod
     def compute_nll_cluster_random_effects(
             cls,
@@ -526,7 +550,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             probs_ind[:,c] = nominator[:,c]/denominator
 
         return probs_ind
-
+"""
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
     precision = 0.0001

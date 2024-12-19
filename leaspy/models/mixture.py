@@ -40,7 +40,7 @@ from leaspy.variables.specs import (
 )
 
 @doc_with_super()
-class AbstractMixtureModel(AbstractModel):
+class AbstractMultivariateMixtureModel(AbstractModel):
     """
     Contains the common attributes & methods of the mixture models.
     Developed according to AbstractMultivariateModel.
@@ -65,8 +65,8 @@ class AbstractMixtureModel(AbstractModel):
         return torch.tensor(self._noise_std)
 
     @property
-    def sources_std(self) -> float:
-        return [self._sources_std] * self.n_clusters #not sure it's working
+    def sources_std(self) -> torch.Tensor:
+        return torch.Tensor([self._sources_std] * self.n_clusters) #not sure it's working, it was float before
 
     def __init__(self, name: str, **kwargs):
 
@@ -104,6 +104,8 @@ class AbstractMixtureModel(AbstractModel):
         """
         Return the specifications of the variables (latent variables,
         derived variables, model 'parameters') that are part of the model.
+        probs_ind refers to the probability of each individual i to belong to each cluster c
+        probs refers to the probability of each cluster c
         """
         #add n_cluster dimension in shape for model parameters,
         #put MixtureNormal distribution for individual parameters,
@@ -125,7 +127,8 @@ class AbstractMixtureModel(AbstractModel):
 
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
-            probs=LinkedVariable(self.compute_probs_ind),
+            probs_ind=LinkedVariable(self.compute_probs_ind),
+            probs = LinkedVariable(self.compute_probs)
 
         )
 
@@ -155,6 +158,33 @@ class AbstractMixtureModel(AbstractModel):
             )
 
         return d
+
+    @staticmethod
+    def compute_probs_ind(*, state: State) -> torch.Tensor:
+
+        probs_ind = state['probs_ind']
+        n_inds = probs_ind.size()[0]
+        n_clusters = probs_ind.size()[1]
+        probs = probs_ind.sum(dim=0) / n_inds
+        nll_ind = state['nll_attach_y_ind']
+        nll_random = probs * (
+                    state['nll_attach_xi_ind'] + state['nll_attach_tau_ind'] + state['nll_attach_sources_ind'])
+
+        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
+        nominator = probs * nll_ind * nll_random
+        for c in range(n_clusters):
+            probs_ind[:, c] = nominator[:, c] / denominator
+
+        return probs_ind
+
+    @staticmethod
+    def compute_probs(*, state: State) -> torch.Tensor:
+
+        probs_ind = state['probs_ind']
+        n_inds = probs_ind.size()[0]
+        probs = probs_ind.sum(dim=0) / n_inds
+
+        return probs
 
     def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
         """
@@ -264,7 +294,7 @@ class AbstractMixtureModel(AbstractModel):
         return model_settings
 
 @doc_with_super()
-class MixtureModel(AbstractMixtureModel):
+class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
     """
     Manifold mixture model for multiple variables of interest (logistic or linear formulation).
     """
@@ -390,99 +420,8 @@ class MixtureModel(AbstractMixtureModel):
     ) -> torch.Tensor:
         pass
 
-
-@doc_with_super()
-class LogisticMixtureModel(MixtureModel):
-
-    """Mixture Manifold model for multiple variables of interest (logistic formulation)."""
-
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
-        obs_models_to_string = [o.to_string() for o in self.obs_models]
-
-        #if (self.dimension == 1) or (self.source_dimension == 0):
-        #    if "mixture-gaussian" in obs_models_to_string:
-        #        raise LeaspyInputError("Mixture does not work for now with a univariate model")
-        #else:
-        #    if "mixture-gaussian" not in obs_models_to_string:
-        #        self.obs_models += (
-        #            observation_model_factory(
-        #                "mixture-gaussian",
-        #                n_clusters="n_clusters",
-        #                xi='xi',
-        #                tau='tau',
-        #                sources='sources'
-        #            ),
-        #        )
-        #        obs_models_to_string += ["mixture-gaussian"]
-
-
-    @abstractmethod
-    def to_dict(self) -> KwargsType:
-
-        model_settings = super().to_dict()
-        model_settings['n_clusters'] = self.n_clusters
-
-        return model_settings
-
-
-    def get_variables_specs(self) -> NamedVariables:
-        """
-        Return the specifications of the variables (latent variables,
-        derived variables, model 'parameters') that are part of the model.
-
-        Returns
-        -------
-        NamedVariables :
-            The specifications of the model's variables.
-        """
-        d = super().get_variables_specs()
-
-        d.update(
-
-            # PRIORS
-            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
-            log_v0_mean=ModelParameter.for_pop_mean("log_v0",shape=(self.dimension,)),
-
-
-            # LATENT VARS
-            log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
-
-
-            # DERIVED VARS
-            g=LinkedVariable(Exp("log_g")),
-
-            #HYPERPARAMETERS
-            log_g_std=Hyperparameter(0.01),
-            log_v0_std=Hyperparameter(0.01),
-
-        )
-
-        return d
-
-    def _validate_compatibility_of_dataset(self, dataset: Optional[Dataset] = None) -> None:
-        """
-        Check that a valid number of clusters is provided
-        """
-
-        super()._validate_compatibility_of_dataset(dataset)
-
-
-
-    def to_dict(self) -> KwargsType:
-        """
-        Pass n_clusters to dictionary for consistency
-        """
-        model_settings = super().to_dict(with_mixing_matrix=True)
-        model_settings['n_clusters'] = self.n_clusters
-
-        return model_settings
-
+class LogisticMultivariateMixtureInitializationMixin:
     def _compute_initial_values_for_model_parameters(
-            #Taken from class LogisticMultivariateInitializationMixin
-            #Should I create a Mixture Mixin or leave it here with ++probs
-            #do we need to change t0?
-
             self,
             dataset: Dataset,
             method: InitializationMethod,
@@ -548,22 +487,60 @@ class LogisticMixtureModel(MixtureModel):
             if self.source_dimension >= 1:
                 parameters["betas_mean"] = betas
                 parameters["sources_mean"] = self.sources_mean
-            rounded_parameters_cluster = {
+            rounded_parameters = {
                 str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
             }
-            obs_model_full = FullGaussianObservationModel
-            #dirty hack to use the noise as in FullGaussianObservationModel
-            rounded_parameters_cluster["noise_std"] = self.noise_std.expand(
-                obs_model_full.extra_vars['noise_std'].shape)
+            obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
+            if isinstance(obs_model, FullGaussianObservationModel):
+                rounded_parameters["noise_std"] = self.noise_std.expand(
+                    obs_model.extra_vars['noise_std'].shape
+                )
+            return rounded_parameters
 
-            if c==0:
-                rounded_parameters = rounded_parameters_cluster
-            else:
-                rounded_parameters.update(rounded_parameters_cluster)
 
-        rounded_parameters.update(dict({"probs":probs}))
-        return rounded_parameters
+class LogisticMultivariateMixtureModel(LogisticMultivariateMixtureInitializationMixin, MultivariateMixtureModel):
 
+    """Mixture Manifold model for multiple variables of interest (logistic formulation)."""
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+    def get_variables_specs(self) -> NamedVariables:
+        """
+        Return the specifications of the variables (latent variables,
+        derived variables, model 'parameters') that are part of the model.
+        """
+        d = super().get_variables_specs()
+        d.update(
+            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            log_g_std=Hyperparameter(0.01),
+            log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
+            g=LinkedVariable(Exp("log_g")),
+        )
+        return d
+
+    @staticmethod
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
+        """Used to define the corresponding variable."""
+        return (g + 1) ** 2 / g
+
+    @classmethod
+    def model_with_sources(
+        cls,
+        *,
+        rt: TensorOrWeightedTensor[float],
+        space_shifts: TensorOrWeightedTensor[float],
+        metric: TensorOrWeightedTensor[float],
+        v0: TensorOrWeightedTensor[float],
+        g: TensorOrWeightedTensor[float],
+    ) -> torch.Tensor:
+        """Returns a model with sources."""
+        # Shape: (Ni, Nt, Nfts)
+        pop_s = (None, None, ...)
+        rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
+        w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - torch.log(g[pop_s])
+        model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
+        return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
 
 
     @classmethod
@@ -605,46 +582,3 @@ class LogisticMixtureModel(MixtureModel):
                     0.5 * probs * ((x.value - loc) / scale) ** 2)
 
         return -nll_ind
-
-    @staticmethod
-    def compute_probs_ind(*, state: State) -> torch.Tensor:
-
-        probs_ind = state['probs_ind']
-        n_inds = probs_ind.size()[0]
-        n_clusters = probs_ind.size()[1]
-        probs = probs_ind.sum(dim=0)/n_inds
-        nll_ind = state['nll_attach_y_ind']
-        nll_random = probs * (state['nll_attach_xi_ind'] + state['nll_attach_tau_ind'] + state['nll_attach_sources_ind'])
-
-        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
-        nominator = probs * nll_ind * nll_random
-        for c in range(n_clusters):
-            probs_ind[:, c] = nominator[:, c] / denominator
-
-        return probs_ind
-
-
-    @staticmethod
-    def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """Used to define the corresponding variable."""
-        return (g + 1) ** 2 / g
-
-    @classmethod
-    def model_with_sources(
-        cls,
-        *,
-        rt: TensorOrWeightedTensor[float],
-        space_shifts: TensorOrWeightedTensor[float],
-        metric: TensorOrWeightedTensor[float],
-        v0: TensorOrWeightedTensor[float],
-        g: TensorOrWeightedTensor[float],
-    ) -> torch.Tensor:
-        """Returns a model with sources."""
-        # Shape: (Ni, Nt, Nfts)
-        pop_s = (None, None, ...)
-        rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        w_model_logit = metric[pop_s] * (v0[pop_s] * rt + space_shifts[:, None, ...]) - torch.log(g[pop_s])
-        model_logit, weights = WeightedTensor.get_filled_value_and_weight(w_model_logit, fill_value=0.)
-        return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
-
-    #maybe need to change to take into account all the clusters? also model_no_sources
