@@ -3,11 +3,12 @@ import os
 import time
 import math
 import pandas as pd
+from matplotlib import colormaps
 import matplotlib.pyplot as plt
 from leaspy.io.data.dataset import Dataset
 from leaspy.models.abstract_model import AbstractModel
-from leaspy.io.realizations import CollectionRealization
-from leaspy.variables.state import State
+from matplotlib.lines import Line2D
+import numpy as np
 
 
 class FitOutputManager:
@@ -61,7 +62,7 @@ class FitOutputManager:
         self,
         algo,
         model: AbstractModel,
-        state: State,
+        data: Dataset,
     ) -> None:
         """
         Call methods to save state of the running computation, display statistics & plots if the current iteration
@@ -95,6 +96,7 @@ class FitOutputManager:
 
         if self.periodicity_save is not None:
             if iteration == 0 or iteration % self.periodicity_save == 0:
+                self.save_plot_patient_reconstructions(iteration, model, data)
                 self.save_model_parameters_convergence(iteration, model)
 
         if self.periodicity_plot is not None:
@@ -184,4 +186,68 @@ class FitOutputManager:
 
         plt.tight_layout()
         plt.savefig(self.path_plot_convergence_model_parameters)
+        plt.close()
+
+    def save_plot_patient_reconstructions(
+        self,
+        iteration: int,
+        model: AbstractModel,
+        data: Dataset,
+    ) -> None:
+        """
+        Saves figures of real longitudinal values and their reconstructions computed by the model for maximum
+        5 patients during each iteration.
+
+        Parameters
+        ----------
+        iteration : int
+            The current iteration
+        model : :class:`~.models.abstract_model.AbstractModel`
+            The model used by the computation
+        data : :class:`.Data`
+            The data used by the computation
+        """
+        number_of_patient_plot = min(5, data.n_individuals)
+        individual_parameters_dict = {
+            variable: model.state.get_tensor_value(variable)
+            for variable in model.individual_variables_names
+        }
+
+        colors = colormaps["Dark2"](np.linspace(0, 1, number_of_patient_plot + 2))
+
+        fig, ax = plt.subplots(1, 1)
+        ax.set_title(
+            "Feature trajectory for"
+            + " "
+            + str(number_of_patient_plot)
+            + " "
+            + "patients"
+        )
+        ax.set_xlabel("Ages")
+        ax.set_ylabel("Normalized Feature Value")
+
+        for i in range(number_of_patient_plot):
+            times_pat = data.get_times_patient(i).cpu().detach().numpy()
+            true_values_pat = data.get_values_patient(i).cpu().detach().numpy()
+            ip_patient = {pn: pv[i] for pn, pv in individual_parameters_dict.items()}
+
+            reconstruction_values_pat = model.compute_individual_trajectory(
+                times_pat, ip_patient
+            ).squeeze(0)
+            ax.plot(times_pat, reconstruction_values_pat, c=colors[i])
+            ax.plot(times_pat, true_values_pat, c=colors[i], linestyle="--", marker="o")
+
+        line_rec = Line2D([0], [0], label="Reconstructions", color="black")
+        line_real = Line2D(
+            [0], [0], label="Real feature values", color="black", linestyle="--"
+        )
+        handles, labels = ax.get_legend_handles_labels()
+        handles.extend([line_rec, line_real])
+
+        ax.legend(handles=handles)
+        path_iteration = os.path.join(
+            self.path_plot_patients, f"plot_patients_{iteration}.pdf"
+        )
+
+        plt.savefig(path_iteration)
         plt.close()
