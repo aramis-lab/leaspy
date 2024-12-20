@@ -12,6 +12,9 @@ from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.variables.specs import LatentVariableInitType
 from leaspy.variables.state import State
 
+from leaspy.models.obs_models import FullGaussianObservationModel
+
+
 if TYPE_CHECKING:
     from leaspy.io.data.dataset import Dataset
     from leaspy.models.abstract_model import AbstractModel
@@ -107,7 +110,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                     # print/plot first & last iteration!
                     # <!> everything that will be printed/saved is AFTER iteration N
                     # (including temperature when annealing...)
-                    self.output_manager.iteration(self, model, state)
+                    self.output_manager.iteration(self, model, dataset)
 
                 if self.algo_parameters["progress_bar"]:
                     self._display_progress_bar(
@@ -125,7 +128,11 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                 LatentVariableInitType.PRIOR_MODE
             )
         model.state = model_state
-        loss = model.state.get_tensor_value("noise_std")
+
+        if isinstance(model.obs_models[0], FullGaussianObservationModel):
+            loss = model.state.get_tensor_value("noise_std")
+        else:
+            loss = 0
         return state, loss
 
     def log_current_iteration(self, state: State):
