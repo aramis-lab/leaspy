@@ -123,7 +123,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         model_state = state.clone()
         with model_state.auto_fork(None):
             # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
-            # Thus we reset population latent variables to their mode, and we remove individual latent variables
+            # Thus we reset population latent variables to their mode
             model_state.put_population_latent_variables(
                 LatentVariableInitType.PRIOR_MODE
             )
@@ -216,53 +216,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         return state
 
-    def _terminate_algo(
-        self, model: AbstractModel, state: State
-    ) -> Any:  # torch.Tensor?
-        """
-        Perform the last steps upon terminaison of algorithm (cleaning stuff, ...).
-
-        Parameters
-        ----------
-        model : :class:`.AbstractModel`
-        state : :class:`.State`
-
-        Returns
-        -------
-        loss : Any
-        """
-
-        # TODO: finalize metrics handling
-        # we store metrics after the fit so they can be exported along with model
-        # parameters & hyper-parameters for archive...
-        model.fit_metrics = self._get_fit_metrics()
-
-        ## TODO: Shouldn't we always return (nll_tot, nll_attach, nll_regul_tot or nll_regul_{ind_param},
-        ##  and parameters of noise-model if any)
-        ## If noise-model is a 1-parameter distribution family final loss is the value of this parameter
-        ## Otherwise we use the negative log-likelihood as measure of goodness-of-fit
-        # if len(model.noise_model.free_parameters) == 1:
-        #    loss = next(iter(model.noise_model.parameters.values()))
-        # else:
-        #    # TODO? rather return nll_tot (unlike previously)
-        #    loss = self.sufficient_statistics.get("nll_attach", -1.)
-        #
-        loss = -1.0
-
-        # WIP: cf. interrogation about internal state in model or not...
-        model_state = state.clone()
-        # TODO? Should those cleaning steps be performed here, or in the model.state setter instead?
-        with model_state.auto_fork(None):
-            # model.reset_data_variables(model_state)
-            # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
-            # Thus we reset population latent variables to their mode, and we remove individual latent variables
-            model_state.put_population_latent_variables(
-                LatentVariableInitType.PRIOR_MODE
-            )
-            # model_state.put_individual_latent_variables(None)
-        model.state = model_state
-
-        return loss
 
     def _maximization_step(self, model: AbstractModel, state: State):
         """
