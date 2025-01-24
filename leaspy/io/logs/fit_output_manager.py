@@ -9,6 +9,7 @@ from leaspy.io.data.dataset import Dataset
 from leaspy.models.abstract_model import AbstractModel
 from matplotlib.lines import Line2D
 import numpy as np
+from pathlib import Path
 
 
 class FitOutputManager:
@@ -46,15 +47,13 @@ class FitOutputManager:
         self.periodicity_save = outputs.save_periodicity
         self.periodicity_plot = outputs.plot_periodicity
 
-        self.path_output = outputs.root_path
-        self.path_plot = outputs.plot_path
-        self.path_plot_patients = outputs.patients_plot_path
-        self.path_save_model_parameters_convergence = outputs.parameter_convergence_path
+        self.path_output = Path(outputs.root_path)
+        self.path_plot = Path(outputs.plot_path)
+        self.path_plot_patients = Path(outputs.patients_plot_path)
+        self.path_save_model_parameters_convergence = Path(outputs.parameter_convergence_path)
 
         if outputs.patients_plot_path is not None:
-            self.path_plot_convergence_model_parameters = os.path.join(
-                outputs.plot_path, "convergence_parameters.pdf"
-            )
+            self.path_plot_convergence_model_parameters = Path(outputs.plot_path) / "convergence_parameters.pdf"
 
         self.time = time.time()
 
@@ -163,26 +162,24 @@ class FitOutputManager:
         width = 10
         height_per_row = 3.5
 
-        to_skip = ["betas", "sources", "space_shifts", "mixing_matrix", "xi", "tau"]
+        to_skip = {"betas", "sources", "space_shifts", "mixing_matrix", "xi", "tau"}
         if getattr(model, "is_ordinal", False):
             to_skip.append("deltas")
-        params_to_plot = [p for p in model.state._tracked_variables if p not in to_skip]
+        params_to_plot = model.state.tracked_variables - to_skip
 
         n_plots = len(params_to_plot)
         n_rows = math.ceil(n_plots / 2)
         _, ax = plt.subplots(n_rows, 2, figsize=(width, n_rows * height_per_row))
 
         for i, parameter_name in enumerate(params_to_plot):
-            import_path = os.path.join(
-                self.path_save_model_parameters_convergence, key + ".csv"
-            )
+            import_path = self.path_save_model_parameters_convergence / f"{parameter_name}.csv"
             df_convergence = pd.read_csv(import_path, index_col=0, header=None)
             df_convergence.index.rename("iter", inplace=True)
 
             x_position = i // 2
             y_position = i % 2
             df_convergence.plot(ax=ax[x_position][y_position], legend=False)
-            ax[x_position][y_position].set_title(key)
+            ax[x_position][y_position].set_title(parameter_name)
 
         plt.tight_layout()
         plt.savefig(self.path_plot_convergence_model_parameters)
@@ -216,13 +213,7 @@ class FitOutputManager:
         colors = colormaps["Dark2"](np.linspace(0, 1, number_of_patient_plot + 2))
 
         fig, ax = plt.subplots(1, 1)
-        ax.set_title(
-            "Feature trajectory for"
-            + " "
-            + str(number_of_patient_plot)
-            + " "
-            + "patients"
-        )
+        ax.set_title(f"Feature trajectory for {number_of_patient_plot} patients.")
         ax.set_xlabel("Ages")
         ax.set_ylabel("Normalized Feature Value")
 
@@ -232,10 +223,10 @@ class FitOutputManager:
             ip_patient = {pn: pv[i] for pn, pv in individual_parameters_dict.items()}
 
             reconstruction_values_patient = model.compute_individual_trajectory(
-                times_pat, ip_patient
+                times_patient, ip_patient
             ).squeeze(0)
-            ax.plot(times_pat, reconstruction_values_pat, c=colors[i])
-            ax.plot(times_pat, true_values_pat, c=colors[i], linestyle="--", marker="o")
+            ax.plot(times_patient, reconstruction_values_patient, c=colors[i])
+            ax.plot(times_patient, true_values_patient, c=colors[i], linestyle="--", marker="o")
 
         line_rec = Line2D([0], [0], label="Reconstructions", color="black")
         line_real = Line2D(
@@ -245,9 +236,7 @@ class FitOutputManager:
         handles.extend([line_rec, line_real])
 
         ax.legend(handles=handles)
-        path_iteration = os.path.join(
-            self.path_plot_patients, f"plot_patients_{iteration}.pdf"
-        )
+        path_iteration = self.path_plot_patients / f"plot_patients_{iteration}.pdf"
 
         plt.savefig(path_iteration)
         plt.close()
