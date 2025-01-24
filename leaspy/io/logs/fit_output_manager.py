@@ -172,7 +172,7 @@ class FitOutputManager:
         n_rows = math.ceil(n_plots / 2)
         _, ax = plt.subplots(n_rows, 2, figsize=(width, n_rows * height_per_row))
 
-        for i, key in enumerate(params_to_plot):
+        for i, parameter_name in enumerate(params_to_plot):
             import_path = os.path.join(
                 self.path_save_model_parameters_convergence, key + ".csv"
             )
@@ -227,11 +227,11 @@ class FitOutputManager:
         ax.set_ylabel("Normalized Feature Value")
 
         for i in range(number_of_patient_plot):
-            times_pat = data.get_times_patient(i).cpu().detach().numpy()
-            true_values_pat = data.get_values_patient(i).cpu().detach().numpy()
+            times_patient = data.get_times_patient(i).cpu().detach().numpy()
+            true_values_patient = data.get_values_patient(i).cpu().detach().numpy()
             ip_patient = {pn: pv[i] for pn, pv in individual_parameters_dict.items()}
 
-            reconstruction_values_pat = model.compute_individual_trajectory(
+            reconstruction_values_patient = model.compute_individual_trajectory(
                 times_pat, ip_patient
             ).squeeze(0)
             ax.plot(times_pat, reconstruction_values_pat, c=colors[i])
