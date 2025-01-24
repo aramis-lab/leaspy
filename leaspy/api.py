@@ -10,7 +10,7 @@ from leaspy.algo.algo_factory import AlgoFactory
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 
 from leaspy.exceptions import LeaspyTypeError, LeaspyInputError
-from leaspy.utils.typing import FeatureType, IDType, Dict, Union, List, Tuple
+from leaspy.utils.typing import FeatureType, IDType, Dict, Union, List, Tuple, Optional
 
 if TYPE_CHECKING:
     import numpy as np
@@ -84,7 +84,6 @@ class Leaspy:
     """
 
     def __init__(self, model_name: str, **kwargs):
-
         self.model = ModelFactory.model(model_name, **kwargs)
 
     @property
@@ -149,7 +148,9 @@ class Leaspy:
         """
         self.fit(data, settings)
 
-    def personalize(self, data: Data, settings: AlgorithmSettings, *, return_loss: bool = False):
+    def personalize(
+        self, data: Data, settings: AlgorithmSettings, *, return_loss: bool = False
+    ):
         r"""
         From a model, estimate individual parameters for each `ID` of a given dataset.
         These individual parameters correspond to the random-effects :math:`(z_{i,j})` of the mixed-effects model.
@@ -210,15 +211,25 @@ class Leaspy:
 
         # only do the following for proper type hints due to the fact that algorithm.run is improper (return type depends on algorithm class... TODO fix this)
         if return_loss:
-            res: Tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(self.model, dataset, return_loss=True)
+            res: Tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(
+                self.model, dataset, return_loss=True
+            )
             return res
         else:
             # default
-            res: IndividualParameters = algorithm.run(self.model, dataset, return_loss=False)
+            res: IndividualParameters = algorithm.run(
+                self.model, dataset, return_loss=False
+            )
             return res
 
-    def estimate(self, timepoints: Union[pd.MultiIndex, Dict[IDType, List[float]]], individual_parameters: IndividualParameters, *,
-                 to_dataframe: bool = None, ordinal_method: str = 'MLE') -> Union[pd.DataFrame, Dict[IDType, np.ndarray]]:
+    def estimate(
+        self,
+        timepoints: Union[pd.MultiIndex, Dict[IDType, List[float]]],
+        individual_parameters: IndividualParameters,
+        *,
+        to_dataframe: Optional[bool] = None,
+        ordinal_method: str = "MLE",
+    ) -> Union[pd.DataFrame, Dict[IDType, np.ndarray]]:
         r"""
         Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
 
@@ -263,17 +274,21 @@ class Leaspy:
         ix = None
         # get timepoints to estimate from index
         if isinstance(timepoints, pd.MultiIndex):
-
             # default output is pd.DataFrame when input as pd.MultiIndex
             if to_dataframe is None:
                 to_dataframe = True
 
-            ix = timepoints # keep for future
-            timepoints = {subj_id: tpts.values for subj_id, tpts in timepoints.to_frame()['TIME'].groupby('ID')}
+            ix = timepoints  # keep for future
+            timepoints = {
+                subj_id: tpts.values
+                for subj_id, tpts in timepoints.to_frame()["TIME"].groupby("ID")
+            }
 
         # special post-processing function for some models (only `ordinal` for now)
         estimation_postprocessor_kws = dict(ordinal_method=ordinal_method)
-        estimation_postprocessor = getattr(self.model, 'postprocess_model_estimation', None)
+        estimation_postprocessor = getattr(
+            self.model, "postprocess_model_estimation", None
+        )
 
         for subj_id, tpts in timepoints.items():
             ip = individual_parameters[subj_id]
@@ -289,25 +304,37 @@ class Leaspy:
 
         # convert to proper dataframe
         if to_dataframe:
-            estimations = pd.concat({
-                subj_id: pd.DataFrame(# columns names may be directly embedded in the dictionary after a `postprocess_model_estimation`
-                                      ests, columns=None if isinstance(ests, dict) else self.model.features,
-                                      index=timepoints[subj_id])
-                for subj_id, ests in estimations.items()
-            }, names=['ID', 'TIME'])
+            estimations = pd.concat(
+                {
+                    subj_id: pd.DataFrame(  # columns names may be directly embedded in the dictionary after a `postprocess_model_estimation`
+                        ests,
+                        columns=None if isinstance(ests, dict) else self.model.features,
+                        index=timepoints[subj_id],
+                    )
+                    for subj_id, ests in estimations.items()
+                },
+                names=["ID", "TIME"],
+            )
 
             # reindex back to given index being careful to index order (join so to handle multi-levels cases)
             if ix is not None:
                 # we need to explicitly pass `on` to preserve order of index levels
                 # and to explicitly pass columns to preserve 2D columns when they are
-                empty_df_like_ests = pd.DataFrame([], index=ix, columns=estimations.columns)
-                estimations = empty_df_like_ests[[]].join(estimations, on=['ID', 'TIME'])
+                empty_df_like_ests = pd.DataFrame(
+                    [], index=ix, columns=estimations.columns
+                )
+                estimations = empty_df_like_ests[[]].join(
+                    estimations, on=["ID", "TIME"]
+                )
 
         return estimations
 
-    def estimate_ages_from_biomarker_values(self, individual_parameters: IndividualParameters,
-                                            biomarker_values: Dict[IDType, Union[List[float], float]],
-                                            feature: FeatureType = None) -> Dict[IDType, Union[List[float], float]]:
+    def estimate_ages_from_biomarker_values(
+        self,
+        individual_parameters: IndividualParameters,
+        biomarker_values: Dict[IDType, Union[List[float], float]],
+        feature: Optional[FeatureType] = None,
+    ) -> Dict[IDType, Union[List[float], float]]:
         r"""
         For individuals characterized by their individual parameters :math:`z_{i}`, returns the age :math:`t_{i,j}`
         at which a given feature value :math:`y_{i,j,k}` is reached.
@@ -359,34 +386,52 @@ class Leaspy:
 
         if feature is not None:
             if not isinstance(feature, str):
-                raise LeaspyTypeError(f"The 'feature' parameter must be a string, not {type(feature)} !")
+                raise LeaspyTypeError(
+                    f"The 'feature' parameter must be a string, not {type(feature)} !"
+                )
             elif feature not in model_features:
-                raise LeaspyInputError(f'Feature {feature} is not in model parameters features: {model_features} !')
+                raise LeaspyInputError(
+                    f"Feature {feature} is not in model parameters features: {model_features} !"
+                )
 
         if len(model_features) > 1 and not feature:
-            raise LeaspyInputError('Feature argument must not be None for a multivariate model !')
+            raise LeaspyInputError(
+                "Feature argument must not be None for a multivariate model !"
+            )
 
         if not isinstance(biomarker_values, dict):
-            raise LeaspyTypeError(f"The 'biomarker_values' parameter must be a dict, not {type(biomarker_values)} !")
+            raise LeaspyTypeError(
+                f"The 'biomarker_values' parameter must be a dict, not {type(biomarker_values)} !"
+            )
 
         if not isinstance(individual_parameters, IndividualParameters):
-            raise LeaspyTypeError("The 'individual_parameters' parameter must be type IndividualParameters, "
-                                  f"not {type(individual_parameters)} !")
+            raise LeaspyTypeError(
+                "The 'individual_parameters' parameter must be type IndividualParameters, "
+                f"not {type(individual_parameters)} !"
+            )
 
         # compute biomarker ages
         biomarker_ages = {}
 
         for index, value in biomarker_values.items():
-
             # precondition on input
             if not isinstance(value, (float, list)):
-                raise LeaspyTypeError(f"`biomarker_values` of individual '{index}' should be a float or a list, not {type(value)}.")
+                raise LeaspyTypeError(
+                    f"`biomarker_values` of individual '{index}' should be a float or a list, not {type(value)}."
+                )
 
             # get the individual parameters dict
             ip = individual_parameters[index]
 
             # compute individual ages from the value array and individual parameter dict
-            est = self.model.compute_individual_ages_from_biomarker_values(value, ip, feature).cpu().numpy().reshape(-1)
+            est = (
+                self.model.compute_individual_ages_from_biomarker_values(
+                    value, ip, feature
+                )
+                .cpu()
+                .numpy()
+                .reshape(-1)
+            )
 
             # convert array to initial type (int or list)
             if isinstance(value, float):
@@ -398,7 +443,12 @@ class Leaspy:
 
         return biomarker_ages
 
-    def simulate(self, individual_parameters: IndividualParameters, data: Data, settings: AlgorithmSettings):
+    def simulate(
+        self,
+        individual_parameters: IndividualParameters,
+        data: Data,
+        settings: AlgorithmSettings,
+    ):
         r"""
         Generate longitudinal synthetic patients data from a given model, a given collection of individual parameters
         and some given settings.

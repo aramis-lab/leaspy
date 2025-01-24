@@ -2,21 +2,23 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from queue import SimpleQueue
 from dataclasses import dataclass, field
+from queue import SimpleQueue
 from typing import (
-    Tuple,
     Dict,
     FrozenSet,
+    Tuple,
     Type,
+)
+from typing import (
     Mapping as TMapping,
 )
 
 import torch
 
-from leaspy.variables.specs import VarName, VariableInterface, IndividualLatentVariable
-from leaspy.utils.filtered_mapping_proxy import FilteredMappingProxy
 from leaspy.exceptions import LeaspyInputError
+from leaspy.utils.filtered_mapping_proxy import FilteredMappingProxy
+from leaspy.variables.specs import IndividualLatentVariable, VariableInterface, VarName
 
 
 @dataclass(frozen=True)
@@ -146,15 +148,15 @@ class VariablesDAG(Mapping):
     def _check_consistency_of_nodes(self) -> FrozenSet[VarName]:
         nodes = frozenset(self.variables.keys())
         if nodes != self.direct_ancestors.keys():
-            raise ValueError(
-                "Inconsistent nodes in dictionary of ancestors edges"
-            )
+            raise ValueError("Inconsistent nodes in dictionary of ancestors edges")
         self._raise_if_bad_nodes_in_edges(
             self.direct_ancestors, nodes, what="ancestors"
         )
         return nodes
 
-    def _compute_direct_children(self, nodes: FrozenSet[VarName]) -> TMapping[VarName, FrozenSet[VarName]]:
+    def _compute_direct_children(
+        self, nodes: FrozenSet[VarName]
+    ) -> TMapping[VarName, FrozenSet[VarName]]:
         """Compute children for efficient bidirectional access."""
         children = defaultdict(set)
         for child_name, set_ancestors in self.direct_ancestors.items():
@@ -167,7 +169,11 @@ class VariablesDAG(Mapping):
     def _compute_topological_orders(
         self,
         children: TMapping[VarName, FrozenSet[VarName]],
-    ) -> Tuple[Tuple[VarName, ...], TMapping[VarName, Tuple[VarName, ...]], TMapping[VarName, Tuple[VarName, ...]]]:
+    ) -> Tuple[
+        Tuple[VarName, ...],
+        TMapping[VarName, Tuple[VarName, ...]],
+        TMapping[VarName, Tuple[VarName, ...]],
+    ]:
         (
             sorted_variables_names,
             path_matrix,
@@ -320,7 +326,10 @@ class VariablesDAG(Mapping):
     def compute_sorted_children_and_ancestors(
         sorted_nodes: Tuple[VarName, ...],
         path_matrix: torch.Tensor,
-    ) -> Tuple[Dict[VarName, Tuple[VarName, ...]], Dict[VarName, Tuple[VarName, ...]], ]:
+    ) -> Tuple[
+        Dict[VarName, Tuple[VarName, ...]],
+        Dict[VarName, Tuple[VarName, ...]],
+    ]:
         """
         Produce node-wise topologically sorted children and ancestors from provided nodes
         full order and corresponding path matrix.
@@ -357,8 +366,6 @@ class VariablesDAG(Mapping):
     @property
     def individual_variable_names(self) -> Tuple[VarName, ...]:
         try:
-            return tuple(
-                self.sorted_variables_by_type[IndividualLatentVariable].keys()
-            )
+            return tuple(self.sorted_variables_by_type[IndividualLatentVariable].keys())
         except KeyError:
             return ()
