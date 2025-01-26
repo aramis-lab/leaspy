@@ -19,7 +19,7 @@ from leaspy.variables.specs import (
     LinkedVariable,
     VariablesValuesRO,
 )
-from leaspy.variables.distributions import Normal
+from leaspy.variables.distributions import Laplace, Normal
 from leaspy.utils.functional import (
     Exp,
     MatMul,
@@ -145,7 +145,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                     sampling_kws={"scale": .5},   # cf. GibbsSampler (for retro-compat)
                 ),
                 sources=IndividualLatentVariable(
-                    Normal("sources_mean", "sources_std")
+                    Laplace("sources_mean", "sources_std")
                 ),
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(
