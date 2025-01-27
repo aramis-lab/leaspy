@@ -432,7 +432,7 @@ class Plotting:
             timepoints = np.linspace(min_t - kwargs.get('factor_past', .5) * total_t, max_t + kwargs.get('factor_future', .5) * total_t, kwargs.get('n_tpts', 100))
             t = torch.tensor(timepoints, dtype=torch.float32).unsqueeze(0)
 
-            trajectory = model.compute_individual_tensorized(t, ind_ip).squeeze(0)
+            trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
 
             # times to plot if reparametrized ages are wanted
             if reparametrized_ages:
