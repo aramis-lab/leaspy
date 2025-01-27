@@ -1,6 +1,6 @@
 {
   "leaspy_version": "1.5.0",
-  "name": "logistic",
+  "name": "logistic_ordinal",
   "features": [
     "Y0",
     "Y1",
@@ -105,5 +105,11 @@
     ]
   },
   "source_dimension": 2,
-  "batch_deltas_ordinal": false
+  "batch_deltas_ordinal": false,
+  "max_levels": {
+      "Y0": 3,
+      "Y1": 4,
+      "Y2": 6,
+      "Y3": 10
+    }
 }

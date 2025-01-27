@@ -6,9 +6,6 @@ import pandas as pd
 from leaspy.models.abstract_model import AbstractModel, InitializationMethod
 from leaspy.models.obs_models import observation_model_factory
 
-# WIP
-# from leaspy.models.utils.initialization.model_initialization import initialize_parameters
-# from leaspy.models.utils.ordinal import OrdinalModelMixin
 from leaspy.io.data.dataset import Dataset
 from leaspy.variables.specs import (
     NamedVariables,
@@ -17,7 +14,6 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     IndividualLatentVariable,
     LinkedVariable,
-    VariablesValuesRO,
 )
 from leaspy.variables.distributions import Normal
 from leaspy.utils.functional import (
@@ -33,7 +29,7 @@ from leaspy.exceptions import LeaspyModelInputError, LeaspyInputError
 
 
 @doc_with_super()
-class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
+class AbstractMultivariateModel(AbstractModel):
     """
     Contains the common attributes & methods of the multivariate models.
 

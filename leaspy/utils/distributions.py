@@ -65,6 +65,7 @@ def compute_ordinal_pdf_from_ordinal_sf(
     pdf = sf_sup - sf_inf
     return pdf
 
+
 class MultinomialDistribution(torch.distributions.Multinomial):
     """
     Class for a multinomial distribution with only one sample based on the Multinomial torch distrib.
