@@ -53,7 +53,7 @@ class FitOutputManager:
         self.path_save_model_parameters_convergence = Path(outputs.parameter_convergence_path)
 
         if outputs.patients_plot_path is not None:
-            self.path_plot_convergence_model_parameters = Path(outputs.plot_path) / "convergence_parameters.pdf"
+            self.path_plot_convergence_model_parameters = self.path_plot / "convergence_parameters.pdf"
 
         self.time = time.time()
 
@@ -164,7 +164,7 @@ class FitOutputManager:
 
         to_skip = {"betas", "sources", "space_shifts", "mixing_matrix", "xi", "tau"}
         if getattr(model, "is_ordinal", False):
-            to_skip.append("deltas")
+            to_skip.add("deltas")
         params_to_plot = model.state.tracked_variables - to_skip
 
         n_plots = len(params_to_plot)
