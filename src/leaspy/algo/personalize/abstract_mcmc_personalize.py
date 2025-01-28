@@ -2,22 +2,20 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from random import shuffle
-from typing import TYPE_CHECKING
 
 import torch
 
 from leaspy.algo.personalize.abstract_personalize_algo import AbstractPersonalizeAlgo
-from leaspy.algo.utils.algo_with_annealing import AlgoWithAnnealingMixin
-from leaspy.algo.utils.algo_with_device import AlgoWithDeviceMixin
-from leaspy.algo.utils.algo_with_samplers import AlgoWithSamplersMixin
+from leaspy.io.data.dataset import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariableInitType
 from leaspy.variables.state import State
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
-    from leaspy.models.abstract_model import AbstractModel
+from ..utils import AlgoWithAnnealingMixin, AlgoWithDeviceMixin, AlgoWithSamplersMixin
+
+__all__ = ["AbstractMCMCPersonalizeAlgo"]
 
 
 class AbstractMCMCPersonalizeAlgo(

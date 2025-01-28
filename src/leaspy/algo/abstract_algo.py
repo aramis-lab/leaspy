@@ -5,18 +5,18 @@ import sys
 import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError, LeaspyModelInputError
 from leaspy.io.logs.fit_output_manager import FitOutputManager
+from leaspy.io.settings.algorithm_settings import AlgorithmSettings
+from leaspy.io.settings.outputs_settings import OutputsSettings
+from leaspy.models.abstract_model import AbstractModel
 
-if TYPE_CHECKING:
-    from leaspy.io.settings.algorithm_settings import AlgorithmSettings
-    from leaspy.io.settings.outputs_settings import OutputsSettings
-    from leaspy.models.abstract_model import AbstractModel
+__all__ = ["AbstractAlgo"]
 
 
 class AbstractAlgo(ABC):

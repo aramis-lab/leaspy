@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING
 
 import torch
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
-    from leaspy.models.abstract_model import AbstractModel
+from leaspy.io.data.dataset import Dataset
+from leaspy.models.abstract_model import AbstractModel
+
+__all__ = ["AlgoWithDeviceMixin"]
 
 
 class AlgoWithDeviceMixin:

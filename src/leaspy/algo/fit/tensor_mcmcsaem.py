@@ -1,4 +1,6 @@
-from leaspy.algo.fit.abstract_mcmc import AbstractFitMCMC
+from .abstract_mcmc import AbstractFitMCMC
+
+__all__ = ["TensorMCMCSAEM"]
 
 
 class TensorMCMCSAEM(AbstractFitMCMC):

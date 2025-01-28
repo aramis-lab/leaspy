@@ -3,9 +3,12 @@ import warnings
 import numpy as np
 import statsmodels.api as sm
 
-from leaspy.algo.abstract_algo import AbstractAlgo
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models.lme import LMEModel
+
+from ..abstract_algo import AbstractAlgo
+
+__all__ = ["LMEPersonalizeAlgorithm"]
 
 
 class LMEPersonalizeAlgorithm(AbstractAlgo):

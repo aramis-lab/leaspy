@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Tuple
+from typing import Tuple
 
 import torch
 
-from leaspy.algo.abstract_algo import AbstractAlgo
+from leaspy.io.data.dataset import Dataset
+from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.utils.weighted_tensor import wsum_dim
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
-    from leaspy.io.outputs.individual_parameters import IndividualParameters
-    from leaspy.models.abstract_model import AbstractModel
+from ..abstract_algo import AbstractAlgo
+
+__all__ = ["AbstractPersonalizeAlgo"]
 
 
 class AbstractPersonalizeAlgo(AbstractAlgo):

@@ -4,6 +4,8 @@ import numpy as np
 
 from leaspy.exceptions import LeaspyAlgoInputError
 
+__all__ = ["AlgoWithAnnealingMixin"]
+
 
 class AlgoWithAnnealingMixin:
     """

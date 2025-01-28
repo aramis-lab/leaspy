@@ -3,23 +3,24 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass, field
 from pprint import pformat
-from typing import TYPE_CHECKING, Dict, Tuple, Type
+from typing import Dict, Tuple, Type
 
 import numpy as np
 import torch
 from joblib import Parallel, delayed
 from scipy.optimize import minimize
 
-from leaspy.algo.personalize.abstract_personalize_algo import AbstractPersonalizeAlgo
 from leaspy.io.data.data import Data
 from leaspy.io.data.dataset import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariable, VarName
 from leaspy.variables.state import State
 
-if TYPE_CHECKING:
-    from leaspy.models.abstract_model import AbstractModel
+from .abstract_personalize_algo import AbstractPersonalizeAlgo
+
+__all__ = ["ScipyMinimize"]
 
 
 @dataclass(frozen=True)

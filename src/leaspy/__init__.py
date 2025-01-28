@@ -1,7 +1,6 @@
 from importlib import import_module
 
 from leaspy.exceptions import *
-from leaspy.io.logs.visualization.plotter import Plotter
 
 from .api import Leaspy
 from .io.data.data import Data

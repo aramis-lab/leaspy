@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from random import shuffle
-from typing import TYPE_CHECKING
 
 from leaspy.algo.fit.abstract_fit_algo import AbstractFitAlgo
 from leaspy.algo.utils.algo_with_annealing import AlgoWithAnnealingMixin
 from leaspy.algo.utils.algo_with_samplers import AlgoWithSamplersMixin
+from leaspy.io.data.dataset import Dataset
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.variables.specs import (
     IndividualLatentVariable,
     LatentVariableInitType,
@@ -13,9 +14,7 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
-    from leaspy.models.abstract_model import AbstractModel
+__all__ = ["AbstractFitMCMC"]
 
 
 class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFitAlgo):

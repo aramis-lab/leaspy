@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING
 
 import numpy as np
 import statsmodels.api as sm
 import torch
 from statsmodels.regression.mixed_linear_model import MixedLM, MixedLMParams
 
-from leaspy.algo.abstract_algo import AbstractAlgo
 from leaspy.exceptions import LeaspyDataInputError
+from leaspy.io.data.dataset import Dataset
 from leaspy.models.lme import LMEModel
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
+from ..abstract_algo import AbstractAlgo
+
+__all__ = ["LMEFitAlgorithm"]
 
 
 class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)

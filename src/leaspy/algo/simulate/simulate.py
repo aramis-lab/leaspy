@@ -4,7 +4,7 @@ import copy
 from collections.abc import Callable, Sized
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -12,11 +12,12 @@ from scipy.stats import gaussian_kde
 from sklearn.preprocessing import StandardScaler
 from torch.distributions import Distribution
 
-from leaspy.algo.abstract_algo import AbstractAlgo
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.data import Data
 from leaspy.io.data.dataset import Dataset
+from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.io.outputs.result import Result
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.models.noise_models import (
     NO_NOISE,
     AbstractOrdinalNoiseModel,
@@ -28,9 +29,12 @@ from leaspy.models.noise_models import (
 )
 from leaspy.utils.typing import Dict, DictParamsTorch
 
-if TYPE_CHECKING:
-    from leaspy.io.outputs.individual_parameters import IndividualParameters
-    from leaspy.models.abstract_model import AbstractModel
+from ..abstract_algo import AbstractAlgo
+
+__all__ = [
+    "SourcesMethod",
+    "SimulationAlgorithm",
+]
 
 
 class SourcesMethod(str, Enum):
@@ -1095,7 +1099,7 @@ def _check_noise_distribution(
     model: AbstractModel, noise_dist: DistributionFamily
 ) -> None:
     model_is_ordinal = getattr(model, "is_ordinal", False)
-    if model_is_ordinal and type(model.noise_model) != type(noise_dist):
+    if model_is_ordinal and not isinstance(model.noise_model, noise_dist):
         raise LeaspyAlgoInputError(
             "For an ordinal model, you HAVE to simulate observations with the "
             "exact same noise model as the one from your model (e.g. `noise=model`)."

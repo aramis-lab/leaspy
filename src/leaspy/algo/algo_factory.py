@@ -1,23 +1,21 @@
 from __future__ import annotations
 
 from collections import ChainMap
-from typing import TYPE_CHECKING, Type
+from typing import Type
 
-from leaspy.algo.fit.tensor_mcmcsaem import TensorMCMCSAEM
-from leaspy.algo.others.constant_prediction_algo import ConstantPredictionAlgorithm
-
-# from leaspy.algo.fit.gradient_descent import GradientDescent
-# from leaspy.algo.fit.gradient_mcmcsaem import GradientMCMCSAEM
-from leaspy.algo.others.lme_fit import LMEFitAlgorithm
-from leaspy.algo.others.lme_personalize import LMEPersonalizeAlgorithm
-from leaspy.algo.personalize.mean_realisations import MeanReal
-from leaspy.algo.personalize.mode_realisations import ModeReal
-from leaspy.algo.personalize.scipy_minimize import ScipyMinimize
-from leaspy.algo.simulate.simulate import SimulationAlgorithm
 from leaspy.exceptions import LeaspyAlgoInputError
 
-if TYPE_CHECKING:
-    from leaspy.algo.abstract_algo import AbstractAlgo
+from .abstract_algo import AbstractAlgo
+from .fit import TensorMCMCSAEM
+from .others import (
+    ConstantPredictionAlgorithm,
+    LMEFitAlgorithm,
+    LMEPersonalizeAlgorithm,
+)
+from .personalize import MeanReal, ModeReal, ScipyMinimize
+from .simulate import SimulationAlgorithm
+
+__all__ = ["AlgoFactory"]
 
 
 class AlgoFactory:
@@ -40,7 +38,6 @@ class AlgoFactory:
             "scipy_minimize": ScipyMinimize,
             "mean_real": MeanReal,
             "mode_real": ModeReal,
-            #'gradient_descent_personalize': GradientDescentPersonalize, # deprecated!
             "constant_prediction": ConstantPredictionAlgorithm,
             "lme_personalize": LMEPersonalizeAlgorithm,
         },

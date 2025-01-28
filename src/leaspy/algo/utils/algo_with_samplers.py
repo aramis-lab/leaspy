@@ -11,6 +11,8 @@ from leaspy.samplers.factory import sampler_factory
 from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 from leaspy.variables.state import State
 
+__all__ = ["AlgoWithSamplersMixin"]
+
 
 class AlgoWithSamplersMixin:
     """

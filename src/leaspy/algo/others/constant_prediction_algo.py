@@ -5,14 +5,15 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from leaspy.algo.abstract_algo import AbstractAlgo
 from leaspy.exceptions import LeaspyAlgoInputError
+from leaspy.io.data.dataset import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.models.constant import ConstantModel
 from leaspy.utils.typing import FeatureType, List
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
-    from leaspy.models.constant import ConstantModel
+from ..abstract_algo import AbstractAlgo
+
+__all__ = ["ConstantPredictionAlgorithm"]
 
 
 class ConstantPredictionAlgorithm(AbstractAlgo):

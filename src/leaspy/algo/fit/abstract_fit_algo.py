@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import os
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 from leaspy.algo.abstract_algo import AbstractAlgo
 from leaspy.algo.utils.algo_with_device import AlgoWithDeviceMixin
 from leaspy.exceptions import LeaspyAlgoInputError
+from leaspy.io.data.dataset import Dataset
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import LatentVariableInitType
 from leaspy.variables.state import State
 
-if TYPE_CHECKING:
-    from leaspy.io.data.dataset import Dataset
-    from leaspy.models.abstract_model import AbstractModel
+__all__ = ["AbstractFitAlgo"]
 
 
 class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):

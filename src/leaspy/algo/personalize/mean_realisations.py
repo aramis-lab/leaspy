@@ -1,9 +1,10 @@
 import torch
 
-from leaspy.algo.personalize.abstract_mcmc_personalize import (
-    AbstractMCMCPersonalizeAlgo,
-)
 from leaspy.utils.typing import DictParamsTorch
+
+from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
+
+__all__ = ["MeanReal"]
 
 
 class MeanReal(AbstractMCMCPersonalizeAlgo):
