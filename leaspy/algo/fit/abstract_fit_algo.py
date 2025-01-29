@@ -14,6 +14,8 @@ from leaspy.variables.state import State
 
 from leaspy.models.obs_models import FullGaussianObservationModel
 
+from leaspy.io.logs.fit_output_manager import FitOutputManager
+from leaspy.io.settings.outputs_settings import OutputsSettings
 
 if TYPE_CHECKING:
     from leaspy.io.data.dataset import Dataset
@@ -129,11 +131,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             )
         model.state = model_state
 
-        if isinstance(model.obs_models[0], FullGaussianObservationModel):
-            loss = model.state.get_tensor_value("noise_std")
-        else:
-            loss = 0
-        return state, loss
+        return state
 
     def log_current_iteration(self, state: State):
         if (

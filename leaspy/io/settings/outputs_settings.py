@@ -7,7 +7,7 @@ from leaspy.exceptions import LeaspyAlgoInputError
 
 class OutputsSettings:
     """
-    Used to create the `logs` folder to monitor the convergence of the calibration algorithm.
+    Used to create the `logs` folder to monitor the convergence of the fit algorithm.
 
     Parameters
     ----------
@@ -17,7 +17,7 @@ class OutputsSettings:
                 Where to store logs (relative or absolute path)
                 If None, nothing will be saved (only console prints),
                 unless save_periodicity is not None (default relative path './_outputs/' will be used).
-            * console_print_periodicity : int >= 1 or None
+            * print_periodicity : int >= 1 or None
                 Flag to log into console convergence data every N iterations
                 If None, no console prints.
             * save_periodicity : int >= 1, optional
@@ -42,20 +42,19 @@ class OutputsSettings:
     DEFAULT_LOGS_DIR = '_outputs'  # logs
 
     def __init__(self, settings):
-        self.console_print_periodicity = None
+        self.print_periodicity = None
         self.plot_periodicity = None
         self.save_periodicity = 50
-        self.save_last_n_realizations = 100
+        self.nb_of_patients_to_plot = 5
 
         self.root_path = None
         self.parameter_convergence_path = None
         self.plot_path = None
         self.patients_plot_path = None
 
-        self._set_console_print_periodicity(settings)
+        self._set_print_periodicity(settings)
         self._set_save_periodicity(settings)
         self._set_plot_periodicity(settings)
-        self._set_save_last_n_realizations(settings)
 
         # only create folders if the user want to save data or plots and provided a valid path!
         self._create_root_folder(settings)
@@ -79,14 +78,11 @@ class OutputsSettings:
         # Update the attribute of self in-place
         setattr(self, param, val)
 
-    def _set_console_print_periodicity(self, settings):
-        self._set_param_as_int_or_ignore(settings, 'console_print_periodicity')
+    def _set_print_periodicity(self, settings):
+        self._set_param_as_int_or_ignore(settings, 'print_periodicity')
 
     def _set_save_periodicity(self, settings):
         self._set_param_as_int_or_ignore(settings, 'save_periodicity')
-
-    def _set_save_last_n_realizations(self, settings):
-        self._set_param_as_int_or_ignore(settings, 'save_last_n_realizations')
 
     def _set_plot_periodicity(self, settings):
         self._set_param_as_int_or_ignore(settings, 'plot_periodicity')
@@ -99,6 +95,7 @@ class OutputsSettings:
             if self.plot_periodicity % self.save_periodicity != 0:
                 raise LeaspyAlgoInputError('The `plot_periodicity` should be a multiple of `save_periodicity`.')
 
+
     def _create_root_folder(self, settings):
 
         # Get the path to put the outputs
@@ -108,6 +105,7 @@ class OutputsSettings:
             warnings.warn("You did not provide a path for your logs outputs whereas you want to save convergence data. "
                           f"The default path '{self.DEFAULT_LOGS_DIR}' will be used (relative to the current working directory).")
             path = self.DEFAULT_LOGS_DIR
+
 
         if path is None:
             # No folder will be created and no convergence data shall be saved
