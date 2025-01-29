@@ -10,7 +10,7 @@ from .ordinal_multivariate_model import OrdinalMultivariateModel
 from .univariate_joint import UnivariateJointModel
 from .joint import JointModel
 from .univariate import LinearUnivariateModel, LogisticUnivariateModel
-
+from .mixture import LogisticMultivariateMixtureModel
 
 # flexible dictionary to have a simpler and more maintainable ModelFactory
 ALL_MODELS = {
@@ -23,6 +23,8 @@ ALL_MODELS = {
     "linear": LinearMultivariateModel,
     # 'mixed_linear-logistic': MultivariateModel,
     "logistic_parallel": MultivariateParallelModel,
+    "mixture_logistic" : LogisticMultivariateMixtureModel,
+    #"mixture_linear" : MixtureLinearModel
 
     # naive models (for benchmarks)
     'lme': LMEModel,
@@ -51,4 +53,6 @@ __all__ = [
     "UnivariateJointModel",
     "JointModel",
     "OrdinalMultivariateModel",
+    "LogisticMultivariateMixtureModel",
+    #"MixtureLinearModel",
 ]
