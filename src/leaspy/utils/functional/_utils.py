@@ -1,28 +1,26 @@
 """This module contains utility functions related to the functional module."""
 
 import operator
+from functools import reduce
 from typing import Callable, Iterable, Optional, Set, Tuple, TypeVar
 
 import torch
 
 from leaspy.utils.typing import KwargsType
-from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 
+from ..weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from ._named_input_function import NamedInputFunction
+
+__all__ = [
+    "get_named_parameters",
+]
 
 S = TypeVar("S")
 
 
-try:
-    # Only introduced in Python 3.8
-    from math import prod as _prod
-except ImportError:
-    # Shim for `prod` for Python < 3.8
-    from functools import reduce
-
-    def _prod(iterable: Iterable[S], start: int = 1) -> S:
-        """Product of all elements of the provided iterable, starting from `start`."""
-        return reduce(operator.mul, iterable, start)
+def _prod(iterable: Iterable[S], start: int = 1) -> S:
+    """Product of all elements of the provided iterable, starting from `start`."""
+    return reduce(operator.mul, iterable, start)
 
 
 def _prod_args(

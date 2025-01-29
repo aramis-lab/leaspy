@@ -6,6 +6,12 @@ from typing import Callable, Generic, Optional, Tuple, TypeVar, Union
 
 import torch
 
+__all__ = [
+    "WeightedTensor",
+    "TensorOrWeightedTensor",
+]
+
+
 VT = TypeVar("VT")
 
 

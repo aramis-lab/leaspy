@@ -4,7 +4,9 @@ import numpy as np
 import statsmodels.api as sm
 import torch
 
-from leaspy.models.generic import GenericModel
+from .generic import GenericModel
+
+__all__ = ["LMEModel"]
 
 
 class LMEModel(GenericModel):

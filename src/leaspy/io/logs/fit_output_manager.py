@@ -2,10 +2,13 @@ import csv
 import os
 import time
 
-from leaspy.io.data.dataset import Dataset
-from leaspy.io.logs.visualization.plotter import Plotter
-from leaspy.io.realizations import CollectionRealization
 from leaspy.models.abstract_model import AbstractModel
+
+from ..data import Dataset
+from .realizations import CollectionRealization
+from .visualization import Plotter
+
+__all__ = ["FitOutputManager"]
 
 
 class FitOutputManager:

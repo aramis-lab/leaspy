@@ -12,9 +12,11 @@ from leaspy.exceptions import (
     LeaspyInputError,
     LeaspyTypeError,
 )
-from leaspy.io.data.data import Data
-from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import Dict, DictParamsTorch, IDType, List, ParamType, Union
+
+from ..data import Data, Dataset
+
+__all__ = ["Result"]
 
 
 class Result:

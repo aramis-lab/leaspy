@@ -1,6 +1,10 @@
 from functools import wraps
 from typing import Callable
 
+__all__ = [
+    "suffixed_method",
+]
+
 
 def suffixed_method(f: Callable):
     """Decorator function to delegate a method to the subtype (suffixed) method if it exists."""

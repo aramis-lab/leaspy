@@ -4,6 +4,8 @@ from leaspy import __version__
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.utils.typing import KwargsType, Union
 
+__all__ = ["ModelSettings"]
+
 
 class ModelSettings:
     """

@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar, Tuple, Type
+from typing import Any, Callable, ClassVar, Type
 
 import torch
 from torch.autograd import grad
@@ -12,7 +10,24 @@ from leaspy.constants import constants
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import MultinomialDistribution
 from leaspy.utils.functional import NamedInputFunction
-from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor, sum_dim
+from leaspy.utils.weighted_tensor import WeightedTensor, sum_dim
+
+__all__ = [
+    "StatelessDistributionFamily",
+    "StatelessDistributionFamilyFromTorchDistribution",
+    "BernoulliFamily",
+    "OrdinalFamily",
+    "NormalFamily",
+    "AbstractWeibullRightCensoredFamily",
+    "WeibullRightCensoredFamily",
+    "WeibullRightCensoredWithSourcesFamily",
+    "SymbolicDistribution",
+    "Normal",
+    "Bernoulli",
+    "Ordinal",
+    "WeibullRightCensored",
+    "WeibullRightCensoredWithSources",
+]
 
 
 class StatelessDistributionFamily(ABC):
@@ -26,18 +41,18 @@ class StatelessDistributionFamily(ABC):
         directly at model parameter level `batched_deltas_mean`?
     """
 
-    parameters: ClassVar[Tuple[str, ...]]
+    parameters: ClassVar[tuple[str, ...]]
 
     @classmethod
     @abstractmethod
-    def validate_parameters(cls, *params: Any) -> Tuple[torch.Tensor, ...]:
+    def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
         """
         Validate consistency of distribution parameters,
         returning them with out-of-place modifications if needed.
         """
 
     @classmethod
-    def shape(cls, *params_shapes: Tuple[int, ...]) -> Tuple[int, ...]:
+    def shape(cls, *params_shapes: tuple[int, ...]) -> tuple[int, ...]:
         """
         Shape of distribution samples (without any additional expansion),
         given shapes of distribution parameters.
@@ -61,7 +76,7 @@ class StatelessDistributionFamily(ABC):
     def sample(
         cls,
         *params: torch.Tensor,
-        sample_shape: Tuple[int, ...] = (),
+        sample_shape: tuple[int, ...] = (),
     ) -> torch.Tensor:
         """
         Sample values, given distribution parameters (`sample_shape` is
@@ -101,7 +116,7 @@ class StatelessDistributionFamily(ABC):
         cls,
         x: WeightedTensor,
         *params: torch.Tensor,
-    ) -> Tuple[WeightedTensor, WeightedTensor]:
+    ) -> tuple[WeightedTensor, WeightedTensor]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         # not efficient implementation by default
         return cls._nll(x, *params), cls._nll_jacobian(x, *params)
@@ -138,7 +153,7 @@ class StatelessDistributionFamily(ABC):
         cls,
         x: WeightedTensor[float],
         *params: torch.Tensor,
-    ) -> Tuple[WeightedTensor[float], WeightedTensor[float]]:
+    ) -> tuple[WeightedTensor[float], WeightedTensor[float]]:
         """Negative log-likelihood of value and its jacobian w.r.t. value, given distribution parameters."""
         return cls._nll_and_jacobian(x, *params)
 
@@ -149,7 +164,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     dist_factory: ClassVar[Callable[..., torch.distributions.Distribution]]
 
     @classmethod
-    def validate_parameters(cls, *params: Any) -> Tuple[torch.Tensor, ...]:
+    def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
         """
         Validate consistency of distribution parameters,
         returning them with out-of-place modifications if needed.
@@ -171,7 +186,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     def sample(
         cls,
         *params: torch.Tensor,
-        sample_shape: Tuple[int, ...] = (),
+        sample_shape: tuple[int, ...] = (),
     ) -> torch.Tensor:
         return cls.dist_factory(*params).sample(sample_shape)
 
@@ -236,7 +251,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
         cls,
         x: WeightedTensor,
         *params: torch.Tensor,
-    ) -> Tuple[WeightedTensor, WeightedTensor]:
+    ) -> tuple[WeightedTensor, WeightedTensor]:
         nll = cls._nll(x, *params)
         (nll_grad_value,) = grad(nll.value, (x.value,), create_graph=x.requires_grad)
         return nll, WeightedTensor(nll_grad_value, x.weight)
@@ -380,10 +395,10 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     dist_weibull: ClassVar = torch.distributions.weibull.Weibull
-    precision = 0.0001
+    precision: float = 0.0001
 
     @classmethod
-    def validate_parameters(cls, *params: Any) -> Tuple[torch.Tensor, ...]:
+    def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
         """
         Validate consistency of distribution parameters,
         returning them with out-of-place modifications if needed.
@@ -407,7 +422,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
-        sample_shape: Tuple[int, ...] = (),
+        sample_shape: tuple[int, ...] = (),
     ) -> torch.Tensor:
         return cls.dist_weibull(nu * torch.exp(-xi), rho).sample(sample_shape) + tau
 
@@ -495,7 +510,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         xi: torch.Tensor,
         tau: torch.Tensor,
         *params: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # Construct reparametrized variables
         event_reparametrized_time = cls._extract_reparametrized_event(x.value, tau)
         nu_reparametrized = cls._extract_reparametrized_nu(nu, rho, xi, tau, *params)
@@ -663,7 +678,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         rho: torch.Tensor,
         xi: torch.Tensor,
         tau: torch.Tensor,
-    ) -> Tuple[WeightedTensor, WeightedTensor]:
+    ) -> tuple[WeightedTensor, WeightedTensor]:
         return cls._nll(x, nu, rho, xi, tau), cls._nll_jacobian(x, nu, rho, xi, tau)
 
     @classmethod
@@ -728,16 +743,16 @@ class WeibullRightCensoredWithSourcesFamily(AbstractWeibullRightCensoredFamily):
 class SymbolicDistribution:
     """Class providing symbolic methods for distribution families."""
 
-    parameters_names: Tuple[str, ...]
+    parameters_names: tuple[str, ...]
     dist_family: Type[StatelessDistributionFamily]
 
     # to hold automatic methods declared in `__post_init__`
-    validate_parameters: Callable[..., Tuple[torch.Tensor, ...]] = field(
+    validate_parameters: Callable[..., tuple[torch.Tensor, ...]] = field(
         init=False, repr=False, compare=False
     )
     """Function of named distribution parameters, to validate these parameters."""
 
-    shape: Callable[..., Tuple[int, ...]] = field(init=False, repr=False, compare=False)
+    shape: Callable[..., tuple[int, ...]] = field(init=False, repr=False, compare=False)
     """Function of named shapes of distribution parameters, to get shape of distribution samples."""
 
     mode: Callable[..., torch.Tensor] = field(init=False, repr=False, compare=False)
@@ -767,7 +782,7 @@ class SymbolicDistribution:
         )
 
     def get_func_sample(
-        self, sample_shape: Tuple[int, ...] = ()
+        self, sample_shape: tuple[int, ...] = ()
     ) -> NamedInputFunction[torch.Tensor]:
         """
         Factory of symbolic sampling function.
@@ -838,7 +853,7 @@ class SymbolicDistribution:
 
     def get_func_nll_and_jacobian(
         self, value_name: str
-    ) -> NamedInputFunction[Tuple[WeightedTensor[float], WeightedTensor[float]]]:
+    ) -> NamedInputFunction[tuple[WeightedTensor[float], WeightedTensor[float]]]:
         """
         Factory of symbolic function: state -> (negative log-likelihood, its jacobian w.r.t. value).
 

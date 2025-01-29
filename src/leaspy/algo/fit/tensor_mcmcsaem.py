@@ -1,3 +1,4 @@
+from ..factory import AlgorithmName
 from .abstract_mcmc import AbstractFitMCMC
 
 __all__ = ["TensorMCMCSAEM"]
@@ -17,4 +18,4 @@ class TensorMCMCSAEM(AbstractFitMCMC):
     :class:`.AbstractFitMCMC`
     """
 
-    name = "mcmc_saem"  # OLD: "MCMC_SAEM (tensor)"
+    name: AlgorithmName = AlgorithmName.FIT_MCMC_SAEM

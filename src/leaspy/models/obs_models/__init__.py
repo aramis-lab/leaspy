@@ -8,6 +8,11 @@ from ._factory import (
 )
 from ._gaussian import FullGaussianObservationModel, GaussianObservationModel
 from ._ordinal import OrdinalObservationModel
+from ._weibull import (
+    AbstractWeibullRightCensoredObservationModel,
+    WeibullRightCensoredObservationModel,
+    WeibullRightCensoredWithSourcesObservationModel,
+)
 
 __all__ = [
     "BernoulliObservationModel",
@@ -19,4 +24,7 @@ __all__ = [
     "observation_model_factory",
     "OrdinalObservationModel",
     "OBSERVATION_MODELS",
+    "AbstractWeibullRightCensoredObservationModel",
+    "WeibullRightCensoredObservationModel",
+    "WeibullRightCensoredWithSourcesObservationModel",
 ]

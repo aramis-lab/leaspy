@@ -6,6 +6,11 @@ from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import FeatureType, List, Optional
 
+__all__ = [
+    "InitializationMethod",
+    "BaseModel",
+]
+
 
 class InitializationMethod(str, Enum):
     DEFAULT = "default"

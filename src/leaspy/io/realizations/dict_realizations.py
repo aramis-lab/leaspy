@@ -10,6 +10,8 @@ from leaspy.utils.typing import DictParamsTorch
 
 from .realization import AbstractRealization
 
+__all__ = ["DictRealizations"]
+
 
 class DictRealizations:
     """

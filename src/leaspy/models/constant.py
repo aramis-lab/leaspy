@@ -1,8 +1,11 @@
 import torch
 
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.models.generic import GenericModel
 from leaspy.utils.docs import doc_with_super
+
+from .generic import GenericModel
+
+__all__ = ["ConstantModel"]
 
 
 @doc_with_super()

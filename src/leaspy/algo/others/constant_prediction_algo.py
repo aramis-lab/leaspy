@@ -1,17 +1,16 @@
-from __future__ import annotations
-
 import warnings
-from typing import TYPE_CHECKING
 
 import numpy as np
 
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.io.data.dataset import Dataset
+from leaspy.io.data import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models.constant import ConstantModel
-from leaspy.utils.typing import FeatureType, List
+from leaspy.models import ConstantModel
+from leaspy.utils.typing import FeatureType
 
-from ..abstract_algo import AbstractAlgo
+from ..base import AbstractAlgo
+from ..factory import AlgorithmName, AlgorithmType
+from ..settings import AlgorithmSettings
 
 __all__ = ["ConstantPredictionAlgorithm"]
 
@@ -43,20 +42,17 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
         If any invalid setting for the algorithm
     """
 
-    name = "constant_prediction"
-    family = "personalize"
-    deterministic = True
-
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_CONSTANT
+    family: AlgorithmType = AlgorithmType.PERSONALIZE
+    deterministic: bool = True
     _prediction_types = {"last", "last_known", "max", "mean"}
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
         if settings.parameters["prediction_type"] not in self._prediction_types:
             raise LeaspyAlgoInputError(
                 f"The `prediction_type` of the constant prediction should be in {self._prediction_types}"
             )
-
         self.prediction_type = settings.parameters["prediction_type"]
 
     def run_impl(self, model: ConstantModel, dataset: Dataset):
@@ -95,7 +91,9 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
 
         return ip, None  # TODO? evaluate rmse?
 
-    def _get_individual_last_values(self, times, values, *, fts: List[FeatureType]):
+    def _get_individual_last_values(
+        self, times: np.ndarray, values: np.ndarray, *, fts: list[FeatureType]
+    ):
         """
         Parameters
         ----------

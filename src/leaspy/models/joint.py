@@ -4,9 +4,6 @@ from lifelines import WeibullFitter
 
 from leaspy.exceptions import LeaspyInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.base import InitializationMethod
-from leaspy.models.multivariate import LogisticMultivariateModel
-from leaspy.models.obs_models import observation_model_factory
 from leaspy.utils.docs import doc_with_super  # doc_with_
 from leaspy.utils.functional import Exp, MatMul, Sum
 from leaspy.utils.typing import DictParams, KwargsType, Optional
@@ -22,12 +19,19 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
+from .base import InitializationMethod
+from .multivariate import LogisticMultivariateModel
+from .obs_models import observation_model_factory
+
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
 # model values or model values + jacobians wrt individual parameters
 
 # TODO refact? subclass or other proper code technique to extract model's concrete
 #  formulation depending on if linear, logistic, mixed log-lin, ...
+
+
+__all__ = ["JointModel"]
 
 
 @doc_with_super()

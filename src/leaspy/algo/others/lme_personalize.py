@@ -4,7 +4,7 @@ import numpy as np
 import statsmodels.api as sm
 
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models.lme import LMEModel
+from leaspy.models import LMEModel
 
 from ..abstract_algo import AbstractAlgo
 

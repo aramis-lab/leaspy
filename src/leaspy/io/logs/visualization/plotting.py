@@ -3,8 +3,6 @@ import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
-# import matplotlib.backends.backend_pdf
 import numpy as np
 import pandas as pd
 import torch
@@ -14,7 +12,10 @@ from leaspy.exceptions import (
     LeaspyInputError,
     LeaspyTypeError,
 )
-from leaspy.io.outputs.individual_parameters import IndividualParameters
+
+from ...outputs import IndividualParameters
+
+__all__ = ["Plotting"]
 
 
 # TODO: outdated -

@@ -2,6 +2,7 @@ import torch
 
 from leaspy.utils.typing import DictParamsTorch
 
+from ..factory import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
 __all__ = ["ModeReal"]
@@ -21,8 +22,7 @@ class ModeReal(AbstractMCMCPersonalizeAlgo):
         Settings of the algorithm.
     """
 
-    name = "mode_real"
-
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_MODE_REAL
     regularity_factor: float = 1.0
     """Weighting of regularity term in the final loss to be minimized."""
 

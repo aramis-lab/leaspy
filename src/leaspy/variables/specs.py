@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections import UserDict
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import (
     Callable,
     ClassVar,
@@ -41,7 +39,30 @@ from leaspy.utils.weighted_tensor import (
     expand_left,
     sum_dim,
 )
-from leaspy.variables.distributions import SymbolicDistribution
+
+from .distributions import SymbolicDistribution
+
+__all__ = [
+    "VarName",
+    "VarValue",
+    "VariablesValuesRO",
+    "VariablesLazyValuesRW",
+    "VariablesLazyValuesRO",
+    "SuffStatsRO",
+    "SuffStatsRW",
+    "VariableInterface",
+    "IndepVariable",
+    "Hyperparameter",
+    "Collect",
+    "ModelParameter",
+    "DataVariable",
+    "LatentVariableInitType",
+    "LatentVariable",
+    "PopulationLatentVariable",
+    "IndividualLatentVariable",
+    "LinkedVariable",
+    "NamedVariables",
+]
 
 VarName = str
 VarValue = TensorOrWeightedTensor[float]

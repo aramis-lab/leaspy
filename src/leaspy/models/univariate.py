@@ -1,9 +1,12 @@
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.models.multivariate import (
-    LinearMultivariateModel,
-    LogisticMultivariateModel,
-)
 from leaspy.utils.docs import doc_with_super
+
+from .multivariate import LinearMultivariateModel, LogisticMultivariateModel
+
+__all__ = [
+    "LogisticUnivariateModel",
+    "LinearUnivariateModel",
+]
 
 
 @doc_with_super()

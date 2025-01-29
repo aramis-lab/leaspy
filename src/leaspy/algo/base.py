@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import random
 import sys
 import time
@@ -12,9 +10,10 @@ import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError, LeaspyModelInputError
 from leaspy.io.logs.fit_output_manager import FitOutputManager
-from leaspy.io.settings.algorithm_settings import AlgorithmSettings
-from leaspy.io.settings.outputs_settings import OutputsSettings
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import AbstractModel
+
+from .factory import AlgorithmType
+from .settings import AlgorithmSettings, OutputsSettings
 
 __all__ = ["AbstractAlgo"]
 
@@ -52,7 +51,7 @@ class AbstractAlgo(ABC):
 
     # Identifier of algorithm (classes variables)
     name: str = None
-    family: str = None
+    family: AlgorithmType = None
     deterministic: bool = False
 
     def __init__(self, settings: AlgorithmSettings):
@@ -60,18 +59,13 @@ class AbstractAlgo(ABC):
             raise LeaspyAlgoInputError(
                 f"Inconsistent naming: {settings.name} != {self.name}"
             )
-
         self.seed = settings.seed
         # we deepcopy the settings.parameters, because those algo_parameters may be
         # modified within algorithm (e.g. `n_burn_in_iter`) and we would not want the original
         # settings parameters to be also modified (e.g. to be able to re-use them without any trouble)
         self.algo_parameters = deepcopy(settings.parameters)
-
         self.output_manager: Optional[FitOutputManager] = None
 
-    ###########################
-    # Initialization
-    ###########################
     @staticmethod
     def _initialize_seed(seed: Optional[int]):
         """
@@ -91,10 +85,6 @@ class AbstractAlgo(ABC):
             torch.manual_seed(seed)
             # TODO: use logger instead (level=INFO)
             print(f" ==> Setting seed to {seed}")
-
-    ###########################
-    # Main method
-    ###########################
 
     @abstractmethod
     def run_impl(
@@ -155,31 +145,21 @@ class AbstractAlgo(ABC):
         :class:`.AbstractPersonalizeAlgo`
         :class:`.SimulationAlgorithm`
         """
-
         # Check algo is well-defined
         if self.algo_parameters is None:
             raise LeaspyAlgoInputError(
                 f"The `{self.name}` algorithm was not properly created."
             )
-
-        # Set seed if needed
         self._initialize_seed(self.seed)
-
-        # Init the run
         time_beginning = time.time()
-
-        # Get the results (with loss)
         output, loss = self.run_impl(model, *args, **extra_kwargs)
-
-        # Print run infos
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get("progress_bar"):
             # new line for clarity
             print()
         print(
-            f"\n{self.family.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
+            f"\n{self.family.value.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
         )
-
         if loss is not None:
             loss_type, loss_scalar_fmt = getattr(
                 getattr(model, "noise_model", None),
@@ -190,16 +170,11 @@ class AbstractAlgo(ABC):
                 loss, features=model.features, loss_scalar_fmt=loss_scalar_fmt
             )
             print(f"The {loss_type} at the end of the {self.family} is: {loss_repr}")
-
         # Return only output part
         if return_loss:
             return output, loss
         else:
             return output
-
-    ###########################
-    # Getters / Setters
-    ###########################
 
     def load_parameters(self, parameters: dict):
         """
@@ -213,8 +188,8 @@ class AbstractAlgo(ABC):
 
         Examples
         --------
-        >>> settings = leaspy.io.settings.algorithm_settings.AlgorithmSettings("mcmc_saem")
-        >>> my_algo = leaspy.algo.fit.tensor_mcmcsaem.TensorMCMCSAEM(settings)
+        >>> from leaspy.algo import AlgorithmSettings, algorithm_factory, OutputsSettings
+        >>> my_algo = algorithm_factory(AlgorithmSettings("mcmc_saem"))
         >>> my_algo.algo_parameters
         {'n_iter': 10000,
          'n_burn_in_iter': 9000,
@@ -258,16 +233,15 @@ class AbstractAlgo(ABC):
 
         Examples
         --------
-        >>> from leaspy import AlgorithmSettings
-        >>> from leaspy.io.settings.outputs_settings import OutputsSettings
-        >>> from leaspy.algo.fit.tensor_mcmcsaem import TensorMCMCSAEM
+        >>> from leaspy.algo import AlgorithmSettings, algorithm_factory, OutputsSettings
         >>> algo_settings = AlgorithmSettings("mcmc_saem")
-        >>> my_algo = TensorMCMCSAEM(algo_settings)
-        >>> settings = {'path': 'brouillons',
-                        'console_print_periodicity': 50,
-                        'plot_periodicity': 100,
-                        'save_periodicity': 50
-                        }
+        >>> my_algo = algorithm_factory(algo_settings)
+        >>> settings = {
+            'path': 'brouillons',
+            'console_print_periodicity': 50,
+            'plot_periodicity': 100,
+            'save_periodicity': 50
+        }
         >>> my_algo.set_output_manager(OutputsSettings(settings))
         """
         if output_settings is not None:

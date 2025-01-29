@@ -1,16 +1,17 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from typing import Any, Dict, Optional
 
-from leaspy.algo.abstract_algo import AbstractAlgo
-from leaspy.algo.utils.algo_with_device import AlgoWithDeviceMixin
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import LatentVariableInitType
 from leaspy.variables.state import State
+
+from ..base import AbstractAlgo
+from ..factory import AlgorithmType
+from ..settings import AlgorithmSettings
+from ..utils import AlgoWithDeviceMixin
 
 __all__ = ["AbstractFitAlgo"]
 
@@ -42,13 +43,11 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
     :meth:`.Leaspy.fit`
     """
 
-    family = "fit"
+    family = AlgorithmType.FIT
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
         self.logs = settings.logs
-
         # The algorithm is proven to converge if the sequence `burn_in_step` is positive, with an infinite sum \sum
         # (\sum_k \epsilon_k = + \infty) but a finite sum of the squares (\sum_k \epsilon_k^2 < \infty )
         # cf page 657 of the book that contains the paper
@@ -58,14 +57,8 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                 "The parameter `burn_in_step_power` should be in ]0.5, 1] in order to "
                 "have theoretical guarantees on convergence of MCMC-SAEM algorithm."
             )
-
         self.current_iteration: int = 0
-
-        self.sufficient_statistics: DictParamsTorch = None
-
-    ###########################
-    # Core
-    ###########################
+        self.sufficient_statistics: Optional[DictParamsTorch] = None
 
     def run_impl(self, model: AbstractModel, dataset: Dataset):
         """
@@ -89,7 +82,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             * state : :class:`.State`
             * loss : Any
         """
-
         with self._device_manager(model, dataset):
             state = self._initialize_algo(model, dataset)
 

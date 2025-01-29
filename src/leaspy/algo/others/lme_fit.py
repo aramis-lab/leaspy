@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 
 import numpy as np
@@ -8,10 +6,12 @@ import torch
 from statsmodels.regression.mixed_linear_model import MixedLM, MixedLMParams
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.io.data.dataset import Dataset
-from leaspy.models.lme import LMEModel
+from leaspy.io.data import Dataset
+from leaspy.models import LMEModel
 
-from ..abstract_algo import AbstractAlgo
+from ..base import AbstractAlgo
+from ..factory import AlgorithmName, AlgorithmType
+from ..settings import AlgorithmSettings
 
 __all__ = ["LMEFitAlgorithm"]
 
@@ -39,14 +39,12 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
     :class:`statsmodels.regression.mixed_linear_model.MixedLM`
     """
 
-    name = "lme_fit"
-    family = "fit"
+    name: AlgorithmName = AlgorithmName.FIT_LME
+    family: AlgorithmType = AlgorithmType.FIT
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
         params = settings.parameters.copy()
-
         # Get model hyperparameters from fit algorithm parameters
         # deprecated only for backward-compat (to be removed soon...),
         self._model_hyperparams_to_set = {
@@ -157,7 +155,7 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
         return None, parameters["noise_std"]
 
     @staticmethod
-    def _get_reformated(dataset, elem):
+    def _get_reformated(dataset: Dataset, elem):
         # reformat ages
         dataset_elem = getattr(dataset, elem)
         # flatten
@@ -167,7 +165,7 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
         return final_elem
 
     @staticmethod
-    def _get_reformated_subjects(dataset):
+    def _get_reformated_subjects(dataset: Dataset):
         subjects_with_repeat = []
         for ind, subject in enumerate(dataset.indices):
             subjects_with_repeat += [subject] * max(

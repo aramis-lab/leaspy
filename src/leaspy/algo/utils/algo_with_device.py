@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 import contextlib
 
 import torch
 
-from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.io.data import Dataset
+from leaspy.models import AbstractModel
+
+from ..settings import AlgorithmSettings
 
 __all__ = ["AlgoWithDeviceMixin"]
 
@@ -25,11 +25,9 @@ class AlgoWithDeviceMixin:
         Valid torch device (only the `type` of the device is used)
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
         self.algorithm_device = settings.device
-
         self._default_algorithm_device = torch.device("cpu")
         self._default_algorithm_tensor_type = "torch.FloatTensor"
 

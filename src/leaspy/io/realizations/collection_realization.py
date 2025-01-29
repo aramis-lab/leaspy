@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Dict, NoReturn, Optional, Union
+from typing import Callable, Dict, NoReturn, Optional, Union
 
 from leaspy.exceptions import LeaspyInputError
+from leaspy.models.abstract_model import AbstractModel
 
 from .dict_realizations import DictRealizations
 from .realization import (
@@ -11,9 +12,10 @@ from .realization import (
     PopulationRealization,
 )
 
-if TYPE_CHECKING:
-    from leaspy.models.abstract_model import AbstractModel
-
+__all__ = [
+    "DictRealizationsType",
+    "CollectionRealization",
+]
 
 DictRealizationsType = Union[DictRealizations, Dict[str, AbstractRealization]]
 

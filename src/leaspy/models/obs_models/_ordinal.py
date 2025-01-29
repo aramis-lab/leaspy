@@ -7,6 +7,10 @@ from leaspy.variables.specs import VariableInterface
 
 from ._base import ObservationModel
 
+__all__ = [
+    "OrdinalObservationModel",
+]
+
 
 class OrdinalObservationModel(ObservationModel):
     max_level: int

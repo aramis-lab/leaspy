@@ -9,8 +9,11 @@ import torch
 
 from leaspy import __version__
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.models.base import BaseModel
 from leaspy.utils.typing import KwargsType, Tuple
+
+from .base import BaseModel
+
+__all__ = ["GenericModel"]
 
 
 class GenericModel(BaseModel):

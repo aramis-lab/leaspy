@@ -21,6 +21,8 @@ from leaspy.utils.typing import (
     Tuple,
 )
 
+__all__ = ["IndividualParameters"]
+
 
 class IndividualParameters:
     r"""

@@ -3,13 +3,15 @@ from __future__ import annotations
 import warnings
 from collections.abc import Iterable, Iterator
 
-import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
-from leaspy.io.data.factory import dataframe_data_reader_factory
-from leaspy.io.data.individual_data import IndividualData
 from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional, Union
+
+from .factory import dataframe_data_reader_factory
+from .individual_data import IndividualData
+
+__all__ = ["Data"]
 
 
 class Data(Iterable):

@@ -6,6 +6,13 @@ import numpy as np
 import torch
 from torch.distributions.constraints import unit_interval
 
+__all__ = [
+    "discrete_sf_from_pdf",
+    "compute_ordinal_pdf_from_ordinal_sf",
+    "MultinomialDistribution",
+    "MultinomialCdfDistribution",
+]
+
 
 def discrete_sf_from_pdf(pdf: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
     """

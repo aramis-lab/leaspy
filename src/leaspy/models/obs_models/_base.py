@@ -25,6 +25,8 @@ from leaspy.variables.specs import (
     VarName,
 )
 
+__all__ = ["ObservationModel"]
+
 
 @dataclass(frozen=True)
 class ObservationModel:

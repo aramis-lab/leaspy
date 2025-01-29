@@ -4,6 +4,8 @@ import numpy as np
 
 from leaspy.exceptions import LeaspyAlgoInputError
 
+from ..settings import AlgorithmSettings
+
 __all__ = ["AlgoWithAnnealingMixin"]
 
 
@@ -33,12 +35,10 @@ class AlgoWithAnnealingMixin:
         Temperature and its inverse when using annealing
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
         self.temperature: float = 1.0
         self.temperature_inv: float = 1.0
-
         # useful property derived from algo parameters
         self.annealing_on: bool = self.algo_parameters.get("annealing", {}).get(
             "do_annealing", False

@@ -14,6 +14,13 @@ from ._weibull import (
     WeibullRightCensoredWithSourcesObservationModel,
 )
 
+__all__ = [
+    "ObservationModelNames",
+    "ObservationModelFactoryInput",
+    "OBSERVATION_MODELS",
+    "observation_model_factory",
+]
+
 
 class ObservationModelNames(Enum):
     """Enumeration defining the possible names for observation models."""

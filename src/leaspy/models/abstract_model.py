@@ -12,9 +12,6 @@ from torch._tensor_str import PRINT_OPTS as torch_print_opts
 from leaspy import __version__
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.base import BaseModel, InitializationMethod
-from leaspy.models.obs_models import ObservationModel
-from leaspy.models.utilities import tensor_to_list
 from leaspy.utils.typing import (
     Dict,
     DictParams,
@@ -48,12 +45,19 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State, StateForkType
 
+from .base import BaseModel, InitializationMethod
+from .obs_models import ObservationModel
+from .utilities import tensor_to_list
+
 #  TODO? refact so to only contain methods needed for the Leaspy api + add another
 #  abstract class (interface) on top of it for MCMC fittable models + one for "manifold models"
 
 # TODO: not 100% clear to me whether:
 # 1. model should have an internal state? or only provide methods to define suited states (i.e. with the right DAG) and interact with such states
 # 2. model methods should have a `state: State` argument, or the state used is always the model internal one?
+
+
+__all__ = ["AbstractModel"]
 
 
 class AbstractModel(BaseModel):

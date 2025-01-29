@@ -7,6 +7,8 @@ from leaspy.variables.specs import VariableInterface
 
 from ._base import ObservationModel
 
+__all__ = ["BernoulliObservationModel"]
+
 
 class BernoulliObservationModel(ObservationModel):
     string_for_json = "bernoulli"

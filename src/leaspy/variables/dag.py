@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -18,7 +16,10 @@ import torch
 
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.filtered_mapping_proxy import FilteredMappingProxy
-from leaspy.variables.specs import IndividualLatentVariable, VariableInterface, VarName
+
+from .specs import IndividualLatentVariable, VariableInterface, VarName
+
+__all__ = ["VariablesDAG"]
 
 
 @dataclass(frozen=True)

@@ -1,23 +1,22 @@
-from __future__ import annotations
-
 import warnings
 from dataclasses import dataclass, field
 from pprint import pformat
-from typing import Dict, Tuple, Type
+from typing import Type
 
 import numpy as np
 import torch
 from joblib import Parallel, delayed
 from scipy.optimize import minimize
 
-from leaspy.io.data.data import Data
-from leaspy.io.data.dataset import Dataset
+from leaspy.io.data import Data, Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariable, VarName
 from leaspy.variables.state import State
 
+from ..factory import AlgorithmName
+from ..settings import AlgorithmSettings
 from .abstract_personalize_algo import AbstractPersonalizeAlgo
 
 __all__ = ["ScipyMinimize"]
@@ -34,7 +33,7 @@ class _AffineScaling:
     scale: torch.Tensor
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         shape = self.loc.shape
         assert self.scale.shape == shape
         return shape
@@ -59,8 +58,8 @@ class _AffineScalings1D:
     together in a single 1D tensor (in order).
     """
 
-    scalings: Dict[VarName, _AffineScaling]
-    slices: Dict[VarName, slice] = field(init=False, repr=False, compare=False)
+    scalings: dict[VarName, _AffineScaling]
+    slices: dict[VarName, slice] = field(init=False, repr=False, compare=False)
     length: int = field(init=False, repr=False, compare=False)
 
     def __post_init__(self):
@@ -79,7 +78,7 @@ class _AffineScalings1D:
     def __len__(self) -> int:
         return self.length
 
-    def stack(self, x: Dict[VarName, torch.Tensor]) -> torch.Tensor:
+    def stack(self, x: dict[VarName, torch.Tensor]) -> torch.Tensor:
         """
         Stack the provided mapping in a multidimensional numpy array.
 
@@ -95,7 +94,7 @@ class _AffineScalings1D:
         """
         return torch.cat([x[n].float() for n, _ in self.scalings.items()])
 
-    def unstack(self, x: torch.Tensor) -> Dict[VarName, torch.Tensor]:
+    def unstack(self, x: torch.Tensor) -> dict[VarName, torch.Tensor]:
         """ "
         Unstack the provided concatenated array.
 
@@ -111,7 +110,7 @@ class _AffineScalings1D:
         """
         return {n: x[None, self.slices[n]].float() for n, _ in self.scalings.items()}
 
-    def unscaling(self, x: np.ndarray) -> Dict[VarName, torch.Tensor]:
+    def unscaling(self, x: np.ndarray) -> dict[VarName, torch.Tensor]:
         """
         Unstack the concatenated array and unscale
         each element to bring it back to its natural scale.
@@ -135,7 +134,7 @@ class _AffineScalings1D:
         )
         return self.unstack(x_unscaled)
 
-    def scaling(self, x: Dict[VarName, torch.Tensor]) -> np.ndarray:
+    def scaling(self, x: dict[VarName, torch.Tensor]) -> np.ndarray:
         """
         Scale and concatenate provided mapping of values
         from their natural scale to the defined scale.
@@ -217,8 +216,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         You can customize it at initialization by defining a `logger` attribute to your `AlgorithmSettings` instance.
     """
 
-    name = "scipy_minimize"
-
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE
     DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN = {
         "method": "BFGS",
         "options": {
@@ -237,12 +235,10 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
     DEFAULT_FORMAT_CONVERGENCE_ISSUES = (
         "<!> {patient_id}:\n{optimization_result_pformat}"
     )
-
     regularity_factor: float = 1.0
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
         self.scipy_minimize_params = self.algo_parameters.get(
             "custom_scipy_minimize_params", None
         )
@@ -255,7 +251,6 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
                 self.scipy_minimize_params = (
                     self.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN
                 )
-
         self.format_convergence_issues = self.algo_parameters.get(
             "custom_format_convergence_issues", None
         )
@@ -301,7 +296,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         self,
         model: AbstractModel,
         individual_parameters: DictParamsTorch,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
         Compute the regularity term (and its gradient) of a patient given his individual parameters for a given model.
 
@@ -360,7 +355,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
     def obj_with_jac(
         self, x: np.ndarray, state: State, scaling: _AffineScalings1D
-    ) -> Tuple[float, torch.Tensor]:
+    ) -> tuple[float, torch.Tensor]:
         """
         Objective loss function to minimize in order to get patient's individual parameters,
         together with its jacobian w.r.t to each of `x` dimension.
@@ -433,7 +428,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         scaling: _AffineScalings1D,
         with_jac: bool,
         patient_id: str,
-    ) -> Tuple[Dict[str, torch.Tensor], torch.Tensor]:
+    ) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
         """
         Compute the individual parameter by minimizing the objective loss function with scipy solver.
 
@@ -498,7 +493,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         state: State,
         *,
         scaling: _AffineScalings1D,
-        progress: Tuple[int, int],
+        progress: tuple[int, int],
         with_jac: bool,
         patient_id: str,
     ):

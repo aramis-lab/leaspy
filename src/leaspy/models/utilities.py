@@ -7,6 +7,18 @@ import torch
 from leaspy.exceptions import LeaspyConvergenceError
 from leaspy.utils.weighted_tensor import WeightedTensor
 
+__all__ = [
+    "tensor_to_list",
+    "compute_std_from_variance",
+    "compute_ind_param_std_from_suff_stats",
+    "compute_patient_slopes_distribution",
+    "compute_linear_regression_subjects",
+    "compute_patient_values_distribution",
+    "compute_patient_time_distribution",
+    "get_log_velocities",
+    "torch_round",
+]
+
 
 def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
     """

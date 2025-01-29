@@ -5,8 +5,11 @@ import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.io.data.individual_data import IndividualData
 from leaspy.utils.typing import Dict, FeatureType, IDType, List
+
+from .individual_data import IndividualData
+
+__all__ = ["AbstractDataframeDataReader"]
 
 
 class AbstractDataframeDataReader:

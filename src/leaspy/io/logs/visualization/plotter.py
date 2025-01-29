@@ -12,9 +12,12 @@ import torch
 from matplotlib.lines import Line2D
 
 from leaspy.exceptions import LeaspyInputError
-from leaspy.io.data.dataset import Dataset
 from leaspy.models.abstract_model import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
+
+from ...data import Dataset
+
+__all__ = ["Plotter"]
 
 
 class Plotter:

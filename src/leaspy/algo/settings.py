@@ -1,15 +1,191 @@
 import json
 import os
+import shutil
 import warnings
+from pathlib import Path
+from typing import Optional, Union
 
-import torch  # to handle devices
+import torch
 
-from leaspy.algo.algo_factory import AlgoFactory
-from leaspy.algo.utils.algo_with_device import AlgoWithDeviceMixin
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.io.settings import algo_default_data_dir
-from leaspy.io.settings.outputs_settings import OutputsSettings
-from leaspy.utils.typing import KwargsType, Optional
+from leaspy.models import InitializationMethod
+from leaspy.utils.typing import KwargsType
+
+from .factory import (
+    AlgorithmName,
+    AlgorithmType,
+    get_algorithm_class,
+    get_algorithm_type,
+)
+from .utils import AlgoWithDeviceMixin
+
+algo_default_data_dir = Path(__file__).parent.parent.parent / "algo" / "data"
+
+__all__ = [
+    "OutputsSettings",
+    "AlgorithmSettings",
+    "algo_default_data_dir",
+]
+
+
+class OutputsSettings:
+    """
+    Used to create the `logs` folder to monitor the convergence of the calibration algorithm.
+
+    Parameters
+    ----------
+    settings : dict[str, Any]
+        Parameters of the object. It may be in:
+            * path : str or None
+                Where to store logs (relative or absolute path)
+                If None, nothing will be saved (only console prints),
+                unless save_periodicity is not None (default relative path './_outputs/' will be used).
+            * console_print_periodicity : int >= 1 or None
+                Flag to log into console convergence data every N iterations
+                If None, no console prints.
+            * save_periodicity : int >= 1, optional
+                Flag to save convergence data every N iterations
+                Default=50.
+            * plot_periodicity : int >= 1 or None
+                Flag to plot convergence data every N iterations
+                If None, no plots will be saved.
+                Note that you can not plot convergence data without saving data (and not more frequently than these saves!)
+            * overwrite_logs_folder : bool
+                Flag to remove all previous logs if existing (default False)
+
+    Raises
+    ------
+    :exc:`.LeaspyAlgoInputError`
+    """
+
+    # TODO mettre les variables par défaut à None
+    # TODO: Réfléchir aux cas d'usages : est-ce qu'on veut tout ou rien,
+    # TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
+    # TODO: Aussi, bien définir la création du path
+
+    DEFAULT_LOGS_DIR = "_outputs"
+
+    def __init__(self, settings):
+        self.console_print_periodicity = None
+        self.plot_periodicity = None
+        self.save_periodicity: int = 50
+        self.save_last_n_realizations: int = 100
+        self.root_path = None
+        self.parameter_convergence_path = None
+        self.plot_path = None
+        self.patients_plot_path = None
+
+        self._set_console_print_periodicity(settings)
+        self._set_save_periodicity(settings)
+        self._set_plot_periodicity(settings)
+        self._set_save_last_n_realizations(settings)
+
+        # only create folders if the user want to save data or plots and provided a valid path!
+        self._create_root_folder(settings)
+
+    def _set_param_as_int_or_ignore(self, settings: dict, param: str):
+        """Inplace set of parameter (as int) from settings."""
+        if param not in settings:
+            return
+        val = settings[param]
+        if val is not None:
+            # try to cast as an integer.
+            try:
+                val = int(val)
+                assert val >= 1
+            except Exception:
+                warnings.warn(
+                    f"The '{param}' parameter you provided is not castable to an int > 0. "
+                    "Ignoring its value.",
+                    UserWarning,
+                )
+                return
+
+        # Update the attribute of self in-place
+        setattr(self, param, val)
+
+    def _set_console_print_periodicity(self, settings: dict):
+        self._set_param_as_int_or_ignore(settings, "console_print_periodicity")
+
+    def _set_save_periodicity(self, settings: dict):
+        self._set_param_as_int_or_ignore(settings, "save_periodicity")
+
+    def _set_save_last_n_realizations(self, settings: dict):
+        self._set_param_as_int_or_ignore(settings, "save_last_n_realizations")
+
+    def _set_plot_periodicity(self, settings: dict):
+        self._set_param_as_int_or_ignore(settings, "plot_periodicity")
+        if self.plot_periodicity is not None:
+            if self.save_periodicity is None:
+                raise LeaspyAlgoInputError(
+                    "You can not define a `plot_periodicity` without defining `save_periodicity`. "
+                    "Note that the `plot_periodicity` should be a multiple of `save_periodicity`."
+                )
+            if self.plot_periodicity % self.save_periodicity != 0:
+                raise LeaspyAlgoInputError(
+                    "The `plot_periodicity` should be a multiple of `save_periodicity`."
+                )
+
+    def _create_root_folder(self, settings: dict):
+        # Get the path to put the outputs
+        path = settings.get("path", None)
+        if path is None and self.save_periodicity:
+            warnings.warn(
+                "You did not provide a path for your logs outputs whereas you want to save convergence data. "
+                f"The default path '{self.DEFAULT_LOGS_DIR}' will be used (relative to the current working directory)."
+            )
+            path = self.DEFAULT_LOGS_DIR
+        if path is None:
+            # No folder will be created and no convergence data shall be saved
+            return
+        # store the absolute path in settings
+        abs_path = Path.cwd() / path
+        settings["path"] = str(abs_path)
+        # Check if the folder does not exist: if not, create (and its parent)
+        if not abs_path.exists():
+            warnings.warn(
+                f"The logs path you provided ({settings['path']}) does not exist. "
+                "Needed paths will be created (and their parents if needed)."
+            )
+        elif settings.get("overwrite_logs_folder", False):
+            warnings.warn(f"Overwriting '{path}' folder...")
+            self._clean_folder(abs_path)
+        all_ok = self._check_needed_folders_are_empty_or_create_them(abs_path)
+        if not all_ok:
+            raise LeaspyAlgoInputError(
+                f"The logs folder '{path}' already exists and is not empty! "
+                "Give another path or use keyword argument `overwrite_logs_folder=True`."
+            )
+
+    @staticmethod
+    def _check_folder_is_empty_or_create_it(path_folder: Path) -> bool:
+        if path_folder.exists():
+            if (
+                os.path.islink(path_folder)
+                or not path_folder.is_dir()
+                or len([f for f in path_folder.iterdir()]) > 0
+            ):
+                return False
+        else:
+            path_folder.mkdir(parents=True, exist_ok=True)
+        return True
+
+    @staticmethod
+    def _clean_folder(path: Path):
+        shutil.rmtree(path)
+        path.mkdir(exist_ok=True, parents=True)
+
+    def _check_needed_folders_are_empty_or_create_them(self, path: Path) -> bool:
+        self.root_path = path
+        self.parameter_convergence_path = path / "parameter_convergence"
+        self.plot_path = path / "plots"
+        self.patients_plot_path = self.plot_path / "patients"
+        all_ok = self._check_folder_is_empty_or_create_it(
+            self.parameter_convergence_path
+        )
+        all_ok &= self._check_folder_is_empty_or_create_it(self.plot_path)
+        all_ok &= self._check_folder_is_empty_or_create_it(self.patients_plot_path)
+        return all_ok
 
 
 class AlgorithmSettings:
@@ -139,56 +315,45 @@ class AlgorithmSettings:
         "device",
     ]  # 'logs' are not handled in exported files
 
-    def __init__(self, name: str, **kwargs):
-        self.name = name
-        self.parameters: KwargsType = None  # {}
+    def __init__(self, name: Union[str, AlgorithmName], **kwargs):
+        self.name: AlgorithmName = AlgorithmName(name)
+        self.parameters: Optional[KwargsType] = None
         self.seed: Optional[int] = None
-        self.algorithm_initialization_method: str = (
-            None  # Initialization of the algorithm itself
+        self.algorithm_initialization_method: Optional[str] = None
+        self.model_initialization_method: Optional[str] = None
+        self.logs: Optional[OutputsSettings] = None
+        default_algo_settings_path = (
+            algo_default_data_dir / f"default_{name.value}.json"
         )
-        self.model_initialization_method: str = None  # Initialization of the model parameters (independently of the algorithm, for fit family only)
-        self.logs = None
-
-        default_algo_settings_path = os.path.join(
-            algo_default_data_dir, "default_" + name + ".json"
-        )
-
-        if os.path.isfile(default_algo_settings_path):
+        if default_algo_settings_path.is_file():
             self._load_default_values(default_algo_settings_path)
         else:
             raise LeaspyAlgoInputError(
-                f"The algorithm name '{name}' you provided does not exist"
+                f"The algorithm name '{name.value}' you provided does not exist"
             )
-
         self._manage_kwargs(kwargs)
         self.check_consistency()
-
-    @property
-    def algo_class(self):
-        """Class of the algorithm derived from its name (shorthand)."""
-        return AlgoFactory.get_class(self.name)
 
     def check_consistency(self) -> None:
         """
         Check internal consistency of algorithm settings and warn or raise a `LeaspyAlgoInputError` if not.
         """
-        algo_family = self.algo_class.family
-        if self.model_initialization_method is not None and algo_family != "fit":
-            warnings.warn(
-                "You should not define `model_initialization_method` in your algorithm: "
-                f'"{self.name}" is not a `fit` algorithm so it has no effect.'
-            )
-
-        if self.seed is not None and self.algo_class.deterministic:
-            warnings.warn(
-                f"You can skip defining `seed` since the algorithm {self.name} is deterministic."
-            )
-
-        if hasattr(self, "device") and not issubclass(
-            self.algo_class, AlgoWithDeviceMixin
+        if (
+            self.model_initialization_method is not None
+            and get_algorithm_type(self.name) != AlgorithmType.FIT
         ):
             warnings.warn(
-                f'The algorithm "{self.name}" does not support user-specified devices (this '
+                "You should not define `model_initialization_method` in your algorithm: "
+                f'"{self.name.value}" is not a `fit` algorithm so it has no effect.'
+            )
+        algo_class = get_algorithm_class(self.name)
+        if self.seed is not None and algo_class.deterministic:
+            warnings.warn(
+                f"You can skip defining `seed` since the algorithm {self.name.value} is deterministic."
+            )
+        if hasattr(self, "device") and not issubclass(algo_class, AlgoWithDeviceMixin):
+            warnings.warn(
+                f'The algorithm "{self.name.value}" does not support user-specified devices (this '
                 "is supported only for specific algorithms) and will use the default device (CPU)."
             )
 
@@ -215,7 +380,7 @@ class AlgorithmSettings:
                 )
 
     @classmethod
-    def load(cls, path_to_algorithm_settings: str):
+    def load(cls, path_to_algorithm_settings: Union[str, Path]):
         """
         Instantiate a AlgorithmSettings object a from json file.
 
@@ -236,64 +401,52 @@ class AlgorithmSettings:
 
         Examples
         --------
-        >>> from leaspy import AlgorithmSettings
+        >>> from leaspy.algo import AlgorithmSettings
         >>> leaspy_univariate = AlgorithmSettings.load('outputs/leaspy-univariate_model-settings.json')
         """
         with open(path_to_algorithm_settings) as fp:
             settings = json.load(fp)
-
         if "name" not in settings.keys():
             raise LeaspyAlgoInputError(
                 "Your json file must contain a 'name' attribute!"
             )
-
         algorithm_settings = cls(settings["name"])
-
         if "parameters" in settings.keys():
             print("You overwrote the algorithm default parameters")
             cls._recursive_merge_dict_warn_extra_keys(
                 algorithm_settings.parameters, cls._get_parameters(settings)
             )
-
         if "seed" in settings.keys():
             print("You overwrote the algorithm default seed")
             algorithm_settings.seed = cls._get_seed(settings)
-
         if "algorithm_initialization_method" in settings.keys():
             print("You overwrote the algorithm default initialization method")
             algorithm_settings.algorithm_initialization_method = (
                 cls._get_algorithm_initialization_method(settings)
             )
-
         if "model_initialization_method" in settings.keys():
             print("You overwrote the model default initialization method")
             algorithm_settings.model_initialization_method = (
                 cls._get_model_initialization_method(settings)
             )
-
         if "device" in settings.keys():
             print("You overwrote the algorithm default device")
             algorithm_settings.device = cls._get_device(settings)
-
         if "loss" in settings.keys():
             raise LeaspyAlgoInputError(
                 "`loss` keyword for AlgorithmSettings is not supported any more. "
                 "Please define `noise_model` directly in your Leaspy model."
             )
-
-        # Unknown keys
         # TODO: this class should really be refactored so not to copy in 3 methods same stuff (manage_kwargs, load & _check_default_settings)
         unknown_keys = set(settings.keys()).difference(cls._known_keys)
         if unknown_keys:
             raise LeaspyAlgoInputError(
                 f"Unexpected keys {unknown_keys} in algorithm settings."
             )
-
         algorithm_settings.check_consistency()
-
         return algorithm_settings
 
-    def save(self, path: str, **kwargs):
+    def save(self, path: Union[str, Path], **kwargs):
         """
         Save an AlgorithmSettings object in a json file.
 
@@ -309,40 +462,32 @@ class AlgorithmSettings:
 
         Examples
         --------
-        >>> from leaspy import AlgorithmSettings
-        >>> settings = AlgorithmSettings('scipy_minimize', seed=42)
-        >>> settings.save('outputs/scipy_minimize-settings.json')
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> settings = AlgorithmSettings("scipy_minimize", seed=42)
+        >>> settings.save("outputs/scipy_minimize-settings.json")
         """
         json_settings = {
             "name": self.name,
             "seed": self.seed,
             "algorithm_initialization_method": self.algorithm_initialization_method,
         }
-
-        algo_family = self.algo_class.family
-        if algo_family == "fit":
+        if get_algorithm_type(self.name) == AlgorithmType.FIT:
             json_settings["model_initialization_method"] = (
                 self.model_initialization_method
             )
         if hasattr(self, "device"):
             json_settings["device"] = self.device
-
-        """
-        TODO: save config of logging as well (OutputSettings needs to be JSON serializable...)
-        if self.logs is not None:
-            json_settings['logs'] = self.logs
-        """
-
+        # TODO: save config of logging as well (OutputSettings needs to be JSON serializable...)
+        # if self.logs is not None:
+        #    json_settings['logs'] = self.logs
         # append parameters key after "hyperparameters"
         json_settings["parameters"] = self.parameters
-
         # Default json.dump kwargs:
         kwargs = {"indent": 2, **kwargs}
-
-        with open(os.path.join(path), "w") as json_file:
+        with open(path, "w") as json_file:
             json.dump(json_settings, json_file, **kwargs)
 
-    def set_logs(self, path: Optional[str] = None, **kwargs):
+    def set_logs(self, path: Optional[Union[str, Path]] = None, **kwargs):
         """
         Use this method to monitor the convergence of a model calibration.
 
@@ -387,12 +532,12 @@ class AlgorithmSettings:
         }
 
         for k, v in kwargs.items():
-            if k in [
+            if k in (
                 "console_print_periodicity",
                 "plot_periodicity",
                 "save_periodicity",
                 "save_last_n_realizations",
-            ]:
+            ):
                 if v is not None and not isinstance(v, int):
                     raise LeaspyAlgoInputError(
                         f"You must provide a integer to the input <{k}>! "
@@ -410,7 +555,6 @@ class AlgorithmSettings:
                 warnings.warn(
                     f"The kwarg '{k}' you provided is not valid and was skipped."
                 )
-
         self.logs = OutputsSettings(settings)
 
     def _manage_kwargs(self, kwargs):
@@ -487,81 +631,66 @@ class AlgorithmSettings:
         assert isinstance(dict_to_set, dict)
         dict_to_set[last_level] = val  # inplace
 
-    def _load_default_values(self, path_to_algorithm_settings):
+    def _load_default_values(self, path_to_algorithm_settings: Path):
         with open(path_to_algorithm_settings) as fp:
             settings = json.load(fp)
-
         self._check_default_settings(settings)
         # TODO: Urgent => The following function should in fact be algorithm-name specific!! As for the constant prediction
-        # Etienne: I'd advocate for putting all non-generic / parametric stuff in special methods / attributes of corresponding algos... so that everything is generic here
+        # Etienne: I'd advocate for putting all non-generic / parametric stuff in special methods / attributes
+        # of corresponding algos... so that everything is generic here
         # Igor : Agreed. This class became a real mess.
-
         self.name = self._get_name(settings)
         self.parameters = self._get_parameters(settings)
-
         self.algorithm_initialization_method = (
             self._get_algorithm_initialization_method(settings)
         )
-
         # optional hyperparameters depending on type of algorithm
-        algo_class = self.algo_class
-
+        algo_class = get_algorithm_class(self.name)
         if not algo_class.deterministic:
             self.seed = self._get_seed(settings)
-
-        if algo_class.family == "fit":
+        if get_algorithm_type(self.name) == AlgorithmType.FIT:
             self.model_initialization_method = self._get_model_initialization_method(
                 settings
             )
-
         if "device" in settings:
             self.device = self._get_device(settings)
 
     @classmethod
-    def _check_default_settings(cls, settings):
-        # Unknown keys
+    def _check_default_settings(cls, settings: dict):
         unknown_keys = set(settings.keys()).difference(cls._known_keys)
         if unknown_keys:
             raise LeaspyAlgoInputError(
                 f"Unexpected keys {unknown_keys} in algorithm settings."
             )
-
-        # Missing keys
         error_tpl = "The '{}' key is missing in the algorithm settings (JSON file) you are loading."
-
-        for mandatory_key in ["name", "parameters"]:
+        for mandatory_key in ("name", "parameters"):
             if mandatory_key not in settings.keys():
                 raise LeaspyAlgoInputError(error_tpl.format(mandatory_key))
-
-        algo_class = AlgoFactory.get_class(settings["name"])
-
-        if not algo_class.deterministic and "seed" not in settings.keys():
+        algo_class = get_algorithm_class(settings["name"])
+        if not algo_class.deterministic and "seed" not in settings:
             raise LeaspyAlgoInputError(error_tpl.format("seed"))
-
-        if "algorithm_initialization_method" not in settings.keys():
+        if "algorithm_initialization_method" not in settings:
             raise LeaspyAlgoInputError(
                 error_tpl.format("algorithm_initialization_method")
             )
-
         if (
-            algo_class.family == "fit"
+            get_algorithm_type(settings["name"]) == AlgorithmType.FIT
             and "model_initialization_method" not in settings.keys()
         ):
             raise LeaspyAlgoInputError(error_tpl.format("model_initialization_method"))
 
     @staticmethod
-    def _get_name(settings):
-        return settings["name"].lower()
+    def _get_name(settings: dict) -> AlgorithmName:
+        return AlgorithmName(settings["name"].lower())
 
     @staticmethod
-    def _get_parameters(settings):
+    def _get_parameters(settings: dict) -> dict:
         return settings["parameters"]
 
     @staticmethod
-    def _get_seed(settings):
+    def _get_seed(settings: dict) -> Optional[int]:
         if settings["seed"] is None:
             return None
-
         try:
             return int(settings["seed"])
         except Exception:
@@ -571,21 +700,23 @@ class AlgorithmSettings:
             return None
 
     @staticmethod
-    def _get_algorithm_initialization_method(settings):
+    def _get_algorithm_initialization_method(settings: dict) -> Optional[str]:
         if settings["algorithm_initialization_method"] is None:
             return None
-        # TODO : There should be a list of possible initialization method. It can also be discussed depending on the algorithms name
+        # TODO : There should be a list of possible initialization method.
+        #  It can also be discussed depending on the algorithms name
         return settings["algorithm_initialization_method"]
 
     @staticmethod
-    def _get_model_initialization_method(settings):
+    def _get_model_initialization_method(
+        settings: dict,
+    ) -> Optional[InitializationMethod]:
         if settings["model_initialization_method"] is None:
             return None
-        # TODO : There should be a list of possible initialization method. It can also be discussed depending on the algorithms name
-        return settings["model_initialization_method"]
+        return InitializationMethod(settings["model_initialization_method"])
 
     @staticmethod
-    def _get_device(settings):
+    def _get_device(settings: dict):
         # in case where a torch.device object was used, we convert it to the
         # corresponding string (torch.device('cuda') is converted into 'cuda')
         # in order for the AlgorithmSettings to be saved into json files if needed

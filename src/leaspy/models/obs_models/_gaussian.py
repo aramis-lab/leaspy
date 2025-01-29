@@ -30,6 +30,11 @@ from leaspy.variables.state import State
 
 from ._base import ObservationModel
 
+__all__ = [
+    "GaussianObservationModel",
+    "FullGaussianObservationModel",
+]
+
 
 class GaussianObservationModel(ObservationModel):
     """Specialized `ObservationModel` for noisy observations with Gaussian residuals assumption."""

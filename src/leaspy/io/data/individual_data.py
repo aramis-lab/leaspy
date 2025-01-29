@@ -6,6 +6,8 @@ import pandas as pd
 from leaspy.exceptions import LeaspyDataInputError, LeaspyInputError, LeaspyTypeError
 from leaspy.utils.typing import Any, Dict, FeatureType, IDType, List
 
+__all__ = ["IndividualData"]
+
 
 class IndividualData:
     """

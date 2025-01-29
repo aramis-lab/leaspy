@@ -1,26 +1,13 @@
-import pandas as pd
 import torch
-from lifelines import WeibullFitter
 
 from leaspy.exceptions import LeaspyInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.base import InitializationMethod
-from leaspy.models.joint import JointModel
-from leaspy.models.obs_models import observation_model_factory
-from leaspy.models.univariate import LogisticUnivariateModel
 from leaspy.utils.docs import doc_with_super  # doc_with_
-from leaspy.utils.functional import Exp, Sum
 from leaspy.utils.typing import DictParams, Optional
-from leaspy.variables.distributions import Normal
-from leaspy.variables.specs import (
-    Hyperparameter,
-    LinkedVariable,
-    ModelParameter,
-    NamedVariables,
-    PopulationLatentVariable,
-    VariablesValuesRO,
-)
-from leaspy.variables.state import State
+
+from .joint import JointModel
+from .obs_models import observation_model_factory
+from .univariate import LogisticUnivariateModel
 
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
@@ -28,6 +15,9 @@ from leaspy.variables.state import State
 
 # TODO refact? subclass or other proper code technique to extract model's concrete
 #  formulation depending on if linear, logistic, mixed log-lin, ...
+
+
+__all__ = ["UnivariateJointModel"]
 
 
 @doc_with_super()

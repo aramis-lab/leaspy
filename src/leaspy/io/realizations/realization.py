@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 
 from leaspy.exceptions import LeaspyInputError
+from leaspy.models.abstract_model import AbstractModel
 from leaspy.utils.typing import KwargsType, ParamType
 
-if TYPE_CHECKING:
-    from leaspy.models.abstract_model import AbstractModel
+__all__ = [
+    "AbstractRealization",
+    "IndividualRealization",
+    "PopulationRealization",
+]
 
 
 class AbstractRealization:

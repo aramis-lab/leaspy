@@ -2,6 +2,10 @@ import torch
 
 from leaspy.exceptions import LeaspyModelInputError
 
+__all__ = [
+    "compute_orthonormal_basis",
+]
+
 
 def compute_orthonormal_basis(
     dgamma_t0: torch.Tensor, G_metric: torch.Tensor, *, strip_col: int = 0

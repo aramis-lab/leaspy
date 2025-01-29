@@ -1,19 +1,18 @@
-from __future__ import annotations
-
 import warnings
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyInputError
-from leaspy.io.data.individual_data import IndividualData
 from leaspy.utils.distributions import discrete_sf_from_pdf
-from leaspy.utils.typing import KwargsType
+from leaspy.utils.typing import FeatureType, KwargsType
 
-if TYPE_CHECKING:
-    from leaspy.io.data.data import Data
+from .data import Data
+from .individual_data import IndividualData
+
+__all__ = ["Dataset"]
 
 
 class Dataset:
@@ -88,7 +87,7 @@ class Dataset:
         self.indices = list(data.individuals.keys())
 
         # Longitudinal outcome information
-        self.headers: List[FeatureType] = data.headers
+        self.headers: list[FeatureType] = data.headers
         self.dimension: int = data.dimension
         self.n_visits: int = data.n_visits
         self.timepoints: Optional[torch.FloatTensor] = None
@@ -97,7 +96,7 @@ class Dataset:
         self.n_observations: Optional[int] = None
         self.n_observations_per_ft: Optional[torch.LongTensor] = None
         self.n_observations_per_ind_per_ft: Optional[torch.LongTensor] = None
-        self.n_visits_per_individual: Optional[List[int]] = None
+        self.n_visits_per_individual: Optional[list[int]] = None
         self.n_visits_max: Optional[int] = None
 
         # Event information
@@ -109,7 +108,7 @@ class Dataset:
         # Cofactor information (?)
 
         # internally used by ordinal models only (cache)
-        self._one_hot_encoding: Optional[Dict[bool, torch.LongTensor]] = None
+        self._one_hot_encoding: Optional[dict[bool, torch.LongTensor]] = None
 
         self.L2_norm_per_ft: Optional[torch.FloatTensor] = None
         self.L2_norm: Optional[torch.FloatTensor] = None
@@ -196,7 +195,7 @@ class Dataset:
         """
         return self.timepoints[i, : self.n_visits_per_individual[i]]
 
-    def get_event_patient(self, idx_patient: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_event_patient(self, idx_patient: int) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Get ages at event for patient number ``idx_patient``
 

@@ -1,15 +1,14 @@
 import warnings
-from typing import Dict, Optional
+from typing import Optional
 
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.io.data.dataset import Dataset
-from leaspy.io.realizations import (
-    VariableType,  # TODO: remove all `leaspy.io.realizations` sub-package?
-)
-from leaspy.samplers.base import AbstractSampler
-from leaspy.samplers.factory import sampler_factory
+from leaspy.io.data import Dataset
+from leaspy.io.realizations import VariableType
+from leaspy.samplers import AbstractSampler, sampler_factory
 from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 from leaspy.variables.state import State
+
+from ..settings import AlgorithmSettings
 
 __all__ = ["AlgoWithSamplersMixin"]
 
@@ -45,20 +44,17 @@ class AlgoWithSamplersMixin:
         gives a rationale on why we should activate this flag.
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
-
-        self.samplers: Dict[str, AbstractSampler] = None
+        self.samplers: dict[str, AbstractSampler] = None
         self.random_order_variables: bool = self.algo_parameters.get(
             "random_order_variables", True
         )
         self.current_iteration: int = 0
-
         # Dynamic number of iterations for burn-in phase
         n_burn_in_iter_frac: Optional[float] = self.algo_parameters[
             "n_burn_in_iter_frac"
         ]
-
         if self.algo_parameters.get("n_burn_in_iter", None) is None:
             if n_burn_in_iter_frac is None:
                 raise LeaspyAlgoInputError(

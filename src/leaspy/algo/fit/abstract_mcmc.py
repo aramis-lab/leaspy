@@ -1,18 +1,15 @@
-from __future__ import annotations
-
 from random import shuffle
 
-from leaspy.algo.fit.abstract_fit_algo import AbstractFitAlgo
-from leaspy.algo.utils.algo_with_annealing import AlgoWithAnnealingMixin
-from leaspy.algo.utils.algo_with_samplers import AlgoWithSamplersMixin
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import AbstractModel
 from leaspy.variables.specs import (
     IndividualLatentVariable,
-    LatentVariableInitType,
     PopulationLatentVariable,
 )
 from leaspy.variables.state import State
+
+from ..utils import AlgoWithAnnealingMixin, AlgoWithSamplersMixin
+from .abstract_fit_algo import AbstractFitAlgo
 
 __all__ = ["AbstractFitMCMC"]
 
@@ -45,10 +42,6 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
     :mod:`leaspy.algo.utils.samplers`
     """
 
-    ###########################
-    ## Initialization
-    ###########################
-
     def _initialize_algo(
         self,
         model: AbstractModel,
@@ -56,21 +49,14 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
     ) -> State:
         # TODO? mutualize with perso mcmc algo?
         state = super()._initialize_algo(model, dataset)
-
         # Initialize individual latent variables (population ones should be initialized before)
         model.put_individual_parameters(state, dataset)
-
         # Samplers mixin
         self._initialize_samplers(state, dataset)
-
         # Annealing mixin
         self._initialize_annealing()
 
         return state
-
-    ###########################
-    ## Core
-    ###########################
 
     def iteration(
         self,

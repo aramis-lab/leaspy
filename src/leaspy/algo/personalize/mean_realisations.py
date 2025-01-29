@@ -2,6 +2,7 @@ import torch
 
 from leaspy.utils.typing import DictParamsTorch
 
+from ..factory import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
 __all__ = ["MeanReal"]
@@ -19,7 +20,7 @@ class MeanReal(AbstractMCMCPersonalizeAlgo):
         Settings of the algorithm.
     """
 
-    name = "mean_real"
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_MEAN_REAL
 
     def _compute_individual_parameters_from_samples_torch(
         self,

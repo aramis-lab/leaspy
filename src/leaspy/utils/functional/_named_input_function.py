@@ -13,6 +13,10 @@ from typing import (
 
 from leaspy.utils.typing import KwargsType
 
+__all__ = [
+    "NamedInputFunction",
+]
+
 RT = TypeVar("RT")
 S = TypeVar("S")
 

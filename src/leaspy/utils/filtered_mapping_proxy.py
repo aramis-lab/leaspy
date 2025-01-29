@@ -3,6 +3,9 @@ from dataclasses import dataclass, field
 from typing import Generic, Iterator, Tuple, TypeVar
 from typing import Mapping as TMapping
 
+__all__ = ["FilteredMappingProxy"]
+
+
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 

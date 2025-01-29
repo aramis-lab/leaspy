@@ -6,6 +6,15 @@ import torch
 
 from ._weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 
+__all__ = [
+    "expand_left",
+    "expand_right",
+    "unsqueeze_right",
+    "sum_dim",
+    "wsum_dim",
+    "wsum_dim_return_weighted_sum_only",
+    "wsum_dim_return_sum_of_weights_only",
+]
 S = TypeVar("S")
 
 

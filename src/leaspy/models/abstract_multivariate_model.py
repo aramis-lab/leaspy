@@ -4,16 +4,7 @@ import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
-
-# WIP
-# from leaspy.models.utils.initialization.model_initialization import initialize_parameters
-# from leaspy.models.utils.ordinal import OrdinalModelMixin
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel, InitializationMethod
-from leaspy.models.obs_models import (
-    FullGaussianObservationModel,
-    observation_model_factory,
-)
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul, Sum
 from leaspy.utils.typing import KwargsType, Optional
@@ -27,6 +18,15 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     VariablesValuesRO,
 )
+
+from .abstract_model import AbstractModel
+from .base import InitializationMethod
+from .obs_models import (
+    FullGaussianObservationModel,
+    observation_model_factory,
+)
+
+__all__ = ["AbstractMultivariateModel"]
 
 
 @doc_with_super()

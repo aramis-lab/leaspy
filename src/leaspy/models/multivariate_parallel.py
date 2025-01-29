@@ -1,9 +1,6 @@
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
-from leaspy.models.base import InitializationMethod
-from leaspy.models.multivariate import LogisticMultivariateInitializationMixin
 from leaspy.utils.functional import Exp, OrthoBasis
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
@@ -19,6 +16,12 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     VariablesValuesRO,
 )
+
+from .abstract_multivariate_model import AbstractMultivariateModel
+from .base import InitializationMethod
+from .multivariate import LogisticMultivariateInitializationMixin
+
+__all__ = ["MultivariateParallelModel"]
 
 
 class MultivariateParallelModel(

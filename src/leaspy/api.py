@@ -1,24 +1,16 @@
-from __future__ import annotations
+from pathlib import Path
+from typing import Optional, Union
 
-from typing import TYPE_CHECKING
-
+import numpy as np
 import pandas as pd
+import torch
 
-from leaspy.algo.algo_factory import AlgoFactory
+from leaspy.algo import AlgorithmSettings, algorithm_factory
 from leaspy.exceptions import LeaspyInputError, LeaspyTypeError
-from leaspy.io.data.dataset import Dataset
-from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.io.settings.model_settings import ModelSettings
-from leaspy.models.factory import ModelFactory
-from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional, Tuple, Union
-
-if TYPE_CHECKING:
-    import numpy as np
-    import torch
-
-    from leaspy.io.data.data import Data
-    from leaspy.io.outputs.result import Result  # for simulate only
-    from leaspy.io.settings.algorithm_settings import AlgorithmSettings
+from leaspy.io.data import Data, Dataset
+from leaspy.io.outputs import IndividualParameters, Result
+from leaspy.models import ModelName, ModelSettings, model_factory
+from leaspy.utils.typing import FeatureType, IDType
 
 
 class Leaspy:
@@ -83,8 +75,8 @@ class Leaspy:
     :class:`.IndividualParameters`
     """
 
-    def __init__(self, model_name: str, **kwargs):
-        self.model = ModelFactory.model(model_name, **kwargs)
+    def __init__(self, model_name: Union[str, ModelName], **kwargs):
+        self.model = model_factory(model_name, **kwargs)
 
     @property
     def type(self) -> str:
@@ -111,9 +103,10 @@ class Leaspy:
         --------
         Fit a logistic model on a longitudinal dataset, display the group parameters
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy
-        >>> from leaspy.datasets import Loader
-        >>> putamen_df = Loader.load_dataset('parkinson-putamen')
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.io.data import Data
+        >>> from leaspy.datasets import load_dataset
+        >>> putamen_df = load_dataset("parkinson-putamen")
         >>> data = Data.from_dataframe(putamen_df)
         >>> leaspy_logistic = Leaspy('univariate_logistic')
         >>> settings = AlgorithmSettings('mcmc_saem', seed=0)
@@ -133,7 +126,7 @@ class Leaspy:
         xi_std : 0.5421289801597595
         noise_std : 0.021265486255288124
         """
-        algorithm = AlgoFactory.algo("fit", settings)
+        algorithm = algorithm_factory(settings)
         dataset = Dataset(data)
         if not self.model.is_initialized:
             # at this point randomness is not yet fixed even if seed was set in AlgoSettings
@@ -188,10 +181,11 @@ class Leaspy:
         Compute the individual parameters for a given longitudinal dataset and calibrated model, then
         display the histogram of the log-acceleration:
 
-        >>> from leaspy import AlgorithmSettings, Data
-        >>> from leaspy.datasets import Loader
-        >>> leaspy_logistic = Loader.load_leaspy_instance('parkinson-putamen-train')
-        >>> putamen_df = Loader.load_dataset('parkinson-putamen')
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.io.data import Data
+        >>> from leaspy.datasets import load_leaspy_instance, load_dataset
+        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
+        >>> putamen_df = load_dataset("parkinson-putamen")
         >>> data = Data.from_dataframe(putamen_df)
         >>> personalize_settings = AlgorithmSettings('scipy_minimize', seed=0)
         >>> individual_parameters = leaspy_logistic.personalize(data, personalize_settings)
@@ -205,13 +199,13 @@ class Leaspy:
         """
         # Check if model has been initialized
         self.check_if_initialized()
-
-        algorithm = AlgoFactory.algo("personalize", settings)
+        algorithm = algorithm_factory(settings)
         dataset = Dataset(data)
 
-        # only do the following for proper type hints due to the fact that algorithm.run is improper (return type depends on algorithm class... TODO fix this)
+        # only do the following for proper type hints due to the fact that algorithm.run
+        # is improper (return type depends on algorithm class... TODO fix this)
         if return_loss:
-            res: Tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(
+            res: tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(
                 self.model, dataset, return_loss=True
             )
             return res
@@ -224,12 +218,12 @@ class Leaspy:
 
     def estimate(
         self,
-        timepoints: Union[pd.MultiIndex, Dict[IDType, List[float]]],
+        timepoints: Union[pd.MultiIndex, dict[IDType, list[float]]],
         individual_parameters: IndividualParameters,
         *,
         to_dataframe: Optional[bool] = None,
         ordinal_method: str = "MLE",
-    ) -> Union[pd.DataFrame, Dict[IDType, np.ndarray]]:
+    ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
         r"""
         Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
 
@@ -261,10 +255,10 @@ class Leaspy:
         Given the individual parameters of two subjects, estimate the features of the first
         at 70, 74 and 80 years old and at 71 and 72 years old for the second.
 
-        >>> from leaspy.datasets import Loader
-        >>> leaspy_logistic = Loader.load_leaspy_instance('parkinson-putamen-train')
-        >>> individual_parameters = Loader.load_individual_parameters('parkinson-putamen-train')
-        >>> df_train = Loader.load_dataset('parkinson-putamen-train_and_test').xs('train', level='SPLIT')
+        >>> from leaspy.datasets import load_leaspy_instance, load_individual_parameters, load_dataset
+        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
+        >>> individual_parameters = load_individual_parameters("parkinson-putamen-train")
+        >>> df_train = load_dataset("parkinson-putamen-train_and_test").xs("train", level="SPLIT")
         >>> timepoints = {'GS-001': (70, 74, 80), 'GS-002': (71, 72)}  # as dict
         >>> timepoints = df_train.sort_index().groupby('ID').tail(2).index  # as pandas (ID, TIME) MultiIndex
         >>> estimations = leaspy_logistic.estimate(timepoints, individual_parameters)
@@ -332,9 +326,9 @@ class Leaspy:
     def estimate_ages_from_biomarker_values(
         self,
         individual_parameters: IndividualParameters,
-        biomarker_values: Dict[IDType, Union[List[float], float]],
+        biomarker_values: dict[IDType, Union[list[float], float]],
         feature: Optional[FeatureType] = None,
-    ) -> Dict[IDType, Union[List[float], float]]:
+    ) -> dict[IDType, Union[list[float], float]]:
         r"""
         For individuals characterized by their individual parameters :math:`z_{i}`, returns the age :math:`t_{i,j}`
         at which a given feature value :math:`y_{i,j,k}` is reached.
@@ -370,13 +364,12 @@ class Leaspy:
         Given the individual parameters of two subjects, and the feature value of 0.2 for the first
         and 0.5 and 0.6 for the second, get the corresponding estimated ages at which these values will be reached.
 
-        >>> from leaspy.datasets import Loader
-        >>> leaspy_logistic = Loader.load_leaspy_instance('parkinson-putamen-train')
-        >>> individual_parameters = Loader.load_individual_parameters('parkinson-putamen-train')
+        >>> from leaspy.datasets import load_leaspy_instance, load_individual_parameters
+        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
+        >>> individual_parameters = load_individual_parameters("parkinson-putamen-train")
         >>> biomarker_values = {'GS-001': [0.2], 'GS-002': [0.5, 0.6]}
         # Here the 'feature' argument is optional, as the model is univariate
-        >>> estimated_ages = leaspy_logistic.estimate_ages_from_biomarker_values(individual_parameters, biomarker_values,
-        >>> feature='PUTAMEN')
+        >>> estimated_ages = leaspy_logistic.estimate_ages_from_biomarker_values(individual_parameters, biomarker_values, feature='PUTAMEN')
         """
         # check input
         model_features = self.model.features
@@ -490,12 +483,13 @@ class Leaspy:
         --------
         Use a calibrated model & individual parameters to simulate new subjects similar to the ones you have:
 
-        >>> from leaspy import AlgorithmSettings, Data
-        >>> from leaspy.datasets import Loader
-        >>> putamen_df = Loader.load_dataset('parkinson-putamen-train_and_test')
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.io.data import Data
+        >>> from leaspy.datasets import load_dataset, load_leaspy_instance, load_individual_parameters
+        >>> putamen_df = load_dataset("parkinson-putamen-train_and_test")
         >>> data = Data.from_dataframe(putamen_df.xs('train', level='SPLIT'))
-        >>> leaspy_logistic = Loader.load_leaspy_instance('parkinson-putamen-train')
-        >>> individual_parameters = Loader.load_individual_parameters('parkinson-putamen-train')
+        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
+        >>> individual_parameters = load_individual_parameters("parkinson-putamen-train")
         >>> simulation_settings = AlgorithmSettings('simulation', seed=0, noise='bernoulli')
         >>> simulated_data = leaspy_logistic.simulate(individual_parameters, data, simulation_settings)
          ==> Setting seed to 0
@@ -551,14 +545,13 @@ class Leaspy:
         """
         # Check if model has been initialized
         self.check_if_initialized()
-
-        algorithm = AlgoFactory.algo("simulate", settings)
+        algorithm = algorithm_factory(settings)
         # <!> The `AbstractAlgo.run` signature is not respected for simulation algorithm...
         simulated_data: Result = algorithm.run(self.model, individual_parameters, data)
         return simulated_data
 
     @classmethod
-    def load(cls, path_to_model_settings: str) -> Leaspy:
+    def load(cls, path_to_model_settings: Union[str, Path]):
         r"""
         Instantiate a Leaspy object from json model parameter file or the corresponding dictionary.
 
@@ -578,9 +571,9 @@ class Leaspy:
         --------
         Load a univariate logistic pre-trained model.
 
-        >>> from leaspy import Leaspy
-        >>> from leaspy.datasets.loader import model_paths
-        >>> leaspy_logistic = Leaspy.load(model_paths['parkinson-putamen-train'])
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.datasets import get_model_path
+        >>> leaspy_logistic = Leaspy.load(get_model_path("parkinson-putamen-train"))
         >>> print(str(leaspy_logistic.model))
         === MODEL ===
         g : tensor([-0.7901])
@@ -593,12 +586,10 @@ class Leaspy:
         reader = ModelSettings(path_to_model_settings)
         leaspy = cls(reader.name, **reader.hyperparameters)
         leaspy.model.load_parameters(reader.parameters)
-
         leaspy.model.is_initialized = True
-
         return leaspy
 
-    def save(self, path: str, **kwargs) -> None:
+    def save(self, path: Union[str, Path], **kwargs) -> None:
         """
         Save Leaspy object as json model parameter file.
 
@@ -614,7 +605,8 @@ class Leaspy:
         --------
         Load the univariate dataset ``'parkinson-putamen'``, calibrate the model & save it:
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.io.data import Data
         >>> from leaspy.datasets import Loader
         >>> putamen_df = Loader.load_dataset('parkinson-putamen')
         >>> data = Data.from_dataframe(putamen_df)

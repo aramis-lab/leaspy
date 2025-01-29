@@ -1,15 +1,9 @@
-from abc import abstractmethod
 from operator import itemgetter
-from typing import Iterable, Optional
+from typing import Optional
 
-import pandas as pd
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.base import InitializationMethod
-from leaspy.models.multivariate import LogisticMultivariateModel
-from leaspy.models.obs_models import FullGaussianObservationModel
-from leaspy.models.utils.ordinal import OrdinalModelMixin
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, OrthoBasis, Sqr
 from leaspy.utils.weighted_tensor import (
@@ -27,7 +21,10 @@ from leaspy.variables.specs import (
     SuffStatsRW,
     VariablesValuesRO,
 )
-from leaspy.variables.state import State
+
+from .base import InitializationMethod
+from .multivariate import LogisticMultivariateModel
+from .utils.ordinal import OrdinalModelMixin
 
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
@@ -35,6 +32,9 @@ from leaspy.variables.state import State
 
 # TODO refact? subclass or other proper code technique to extract model's concrete
 #  formulation depending on if linear, logistic, mixed log-lin, ...
+
+
+__all__ = ["OrdinalMultivariateModel"]
 
 
 @doc_with_super()

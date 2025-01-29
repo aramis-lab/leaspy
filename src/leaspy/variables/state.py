@@ -6,15 +6,16 @@ from collections.abc import MutableMapping
 from contextlib import contextmanager
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Iterable, Optional, Union
 
 import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.weighted_tensor import WeightedTensor, unsqueeze_right
-from leaspy.variables.dag import VariablesDAG
-from leaspy.variables.specs import (
+
+from .dag import VariablesDAG
+from .specs import (
     Hyperparameter,
     IndividualLatentVariable,
     LatentVariableInitType,
@@ -24,6 +25,11 @@ from leaspy.variables.specs import (
     VarName,
     VarValue,
 )
+
+__all__ = [
+    "State",
+    "StateForkType",
+]
 
 
 class StateForkType(Enum):
@@ -84,13 +90,13 @@ class State(MutableMapping):
     ):
         self.dag = dag
         self.auto_fork_type = auto_fork_type
-        self._tracked_variables: Set[str, ...] = set()
+        self._tracked_variables: set[str, ...] = set()
         self._values: VariablesLazyValuesRW = {}
         self._last_fork: Optional[VariablesLazyValuesRO] = None
         self.clear()
 
     @property
-    def tracked_variables(self) -> Set[str, ...]:
+    def tracked_variables(self) -> set[str, ...]:
         return self._tracked_variables
 
     def track_variables(self, variable_names: Iterable[str]) -> None:
@@ -226,7 +232,7 @@ class State(MutableMapping):
         variable_name: VarName,
         variable_value: VarValue,
         *,
-        indices: Tuple[int, ...] = (),
+        indices: tuple[int, ...] = (),
         accumulate: bool = False,
     ) -> None:
         """
@@ -430,7 +436,7 @@ class State(MutableMapping):
                     writer = csv.writer(filename)
                     writer.writerow(value)
 
-    def _get_value_as_dict_of_lists(self, variable_name: str) -> Dict[str, List[float]]:
+    def _get_value_as_dict_of_lists(self, variable_name: str) -> dict[str, list[float]]:
         """Return the value of the given variable as a dictionary of list of floats."""
         value = self.__getitem__(variable_name)
         if isinstance(value, WeightedTensor):
@@ -461,5 +467,5 @@ class State(MutableMapping):
 
     def get_tensor_values(
         self, variable_names: Iterable[str]
-    ) -> Tuple[torch.Tensor, ...]:
+    ) -> tuple[torch.Tensor, ...]:
         return tuple(self.get_tensor_value(name) for name in variable_names)

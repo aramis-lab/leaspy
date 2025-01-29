@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from typing import Tuple
 
@@ -7,10 +5,11 @@ import torch
 
 from leaspy.io.data.dataset import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import AbstractModel
 from leaspy.utils.weighted_tensor import wsum_dim
 
-from ..abstract_algo import AbstractAlgo
+from ..base import AbstractAlgo
+from ..factory import AlgorithmType
 
 __all__ = ["AbstractPersonalizeAlgo"]
 
@@ -40,7 +39,7 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
     :meth:`.Leaspy.personalize`
     """
 
-    family = "personalize"
+    family: AlgorithmType = AlgorithmType.PERSONALIZE
 
     def run_impl(
         self, model: AbstractModel, dataset: Dataset

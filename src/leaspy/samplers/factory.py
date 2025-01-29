@@ -2,15 +2,35 @@ from typing import Type, Union
 
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.realizations import VariableType
-from leaspy.samplers import INDIVIDUAL_SAMPLERS, POPULATION_SAMPLERS
 
 from .base import (
     AbstractIndividualSampler,
     AbstractPopulationSampler,
     AbstractSampler,
 )
+from .gibbs import (
+    IndividualGibbsSampler,
+    PopulationFastGibbsSampler,
+    PopulationGibbsSampler,
+    PopulationMetropolisHastingsSampler,
+)
+
+__all__ = [
+    "SamplerFactoryInput",
+    "INDIVIDUAL_SAMPLERS",
+    "POPULATION_SAMPLERS",
+    "sampler_factory",
+]
 
 SamplerFactoryInput = Union[str, AbstractSampler]
+
+INDIVIDUAL_SAMPLERS = {"gibbs": IndividualGibbsSampler}
+
+POPULATION_SAMPLERS = {
+    "gibbs": PopulationGibbsSampler,
+    "fastgibbs": PopulationFastGibbsSampler,
+    "metropolis-hastings": PopulationMetropolisHastingsSampler,
+}
 
 
 def sampler_factory(

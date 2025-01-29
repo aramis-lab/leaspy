@@ -5,6 +5,11 @@ import torch
 
 from ._weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 
+__all__ = [
+    "factory_weighted_tensor_unary_operator",
+]
+
+
 VT = TypeVar("VT")
 
 

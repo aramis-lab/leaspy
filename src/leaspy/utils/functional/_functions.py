@@ -4,11 +4,24 @@ from __future__ import annotations
 
 import torch
 
-from leaspy.utils.linalg import compute_orthonormal_basis
-from leaspy.utils.weighted_tensor import factory_weighted_tensor_unary_operator, sum_dim
-
+from ..linalg import compute_orthonormal_basis
+from ..weighted_tensor import factory_weighted_tensor_unary_operator, sum_dim
 from ._named_input_function import NamedInputFunction
 from ._utils import _arguments_checker, _identity, _prod_args, _sum_args
+
+__all__ = [
+    "Prod",
+    "Identity",
+    "MatMul",
+    "OrthoBasis",
+    "Exp",
+    "Sqr",
+    "Mean",
+    "Std",
+    "SumDim",
+    "Sum",
+]
+
 
 Prod = NamedInputFunction.bound_to(
     _prod_args,
