@@ -78,7 +78,7 @@ def load_dataset(dataset_name: Union[str, DatasetName]) -> pd.DataFrame:
 
     * Columns: One column correspond to one feature (or score).
     """
-    df = pd.read_csv(_get_dataset_path(dataset_name), dtype={"ID": str})
+    df = pd.read_csv(get_dataset_path(dataset_name), dtype={"ID": str})
     if "SPLIT" in df.columns:
         df.set_index(["ID", "TIME", "SPLIT"], inplace=True)
     else:
@@ -101,7 +101,7 @@ def load_individual_parameters(name: Union[str, DatasetName]) -> IndividualParam
     :class:`.IndividualParameters`
         Leaspy instance with a model already calibrated.
     """
-    return IndividualParameters.load(str(_get_individual_parameter_path(name)))
+    return IndividualParameters.load(str(get_individual_parameter_path(name)))
 
 
 def load_leaspy_instance(name: Union[str, DatasetName]) -> Leaspy:
@@ -119,4 +119,4 @@ def load_leaspy_instance(name: Union[str, DatasetName]) -> Leaspy:
     :class:`.Leaspy`
         Leaspy instance with a model already calibrated.
     """
-    return Leaspy.load(str(_get_model_path(name)))
+    return Leaspy.load(str(get_model_path(name)))

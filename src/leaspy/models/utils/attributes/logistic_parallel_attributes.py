@@ -4,6 +4,8 @@ from leaspy.exceptions import LeaspyModelInputError
 
 from .abstract_manifold_model_attributes import AbstractManifoldModelAttributes
 
+__all__ = ["LogisticParallelAttributes"]
+
 
 class LogisticParallelAttributes(AbstractManifoldModelAttributes):
     """

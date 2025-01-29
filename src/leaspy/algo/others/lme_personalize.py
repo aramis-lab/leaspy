@@ -6,7 +6,7 @@ import statsmodels.api as sm
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import LMEModel
 
-from ..abstract_algo import AbstractAlgo
+from ..base import AbstractAlgo, AlgorithmName, AlgorithmType
 
 __all__ = ["LMEPersonalizeAlgorithm"]
 
@@ -28,9 +28,9 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
     name : ``'lme_personalize'``
     """
 
-    name = "lme_personalize"
-    family = "personalize"
-    deterministic = True
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_LME
+    family: AlgorithmType = AlgorithmType.PERSONALIZE
+    deterministic: bool = True
 
     def run_impl(self, model, dataset):
         """

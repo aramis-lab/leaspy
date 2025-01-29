@@ -1,4 +1,4 @@
-from ..factory import AlgorithmName
+from ..base import AlgorithmName
 from .abstract_mcmc import AbstractFitMCMC
 
 __all__ = ["TensorMCMCSAEM"]

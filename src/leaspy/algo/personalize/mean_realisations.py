@@ -2,7 +2,7 @@ import torch
 
 from leaspy.utils.typing import DictParamsTorch
 
-from ..factory import AlgorithmName
+from ..base import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
 __all__ = ["MeanReal"]

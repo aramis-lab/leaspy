@@ -1,10 +1,8 @@
-from unittest.mock import patch
-from unittest import skip
 from dataclasses import dataclass
 from typing import List
+from unittest import skip
 
-from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
-from leaspy.models.noise_models import NOISE_MODELS
+from leaspy.models import AbstractMultivariateModel
 
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
 from tests.unit_tests.models.test_univariate_model import ManifoldModelTestMixin
@@ -20,7 +18,6 @@ class MockDataset:
 
 @ManifoldModelTestMixin.allow_abstract_class_init(AbstractMultivariateModel)
 class AbstractMultivariateModelTest(ManifoldModelTestMixin):
-
     def test_constructor_abstract_multivariate(self):
         """
         Test attribute's initialization of leaspy abstract multivariate model
@@ -32,9 +29,9 @@ class AbstractMultivariateModelTest(ManifoldModelTestMixin):
         """
 
         # Abstract Multivariate Model
-        model = AbstractMultivariateModel('dummy')
+        model = AbstractMultivariateModel("dummy")
         self.assertEqual(type(model), AbstractMultivariateModel)
-        self.assertEqual(model.name, 'dummy')
+        self.assertEqual(model.name, "dummy")
 
         # Test common initialization with univariate / manifold model
         # self.check_common_attrs(model)
@@ -50,8 +47,8 @@ class AbstractMultivariateModelTest(ManifoldModelTestMixin):
         # self.assertEqual(model.MCMC_toolbox['priors']['betas_std'], None)
 
     def test_bad_initialize_features_dimension_inconsistent(self):
-        with self.assertRaisesRegex(ValueError, 'does not match'):
-            AbstractMultivariateModel('dummy', features=['x', 'y'], dimension=3)
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            AbstractMultivariateModel("dummy", features=["x", "y"], dimension=3)
 
     def test_bad_initialize_source_dim(self):
         with self.assertRaises(ValueError):
@@ -62,9 +59,9 @@ class AbstractMultivariateModelTest(ManifoldModelTestMixin):
 
         m = AbstractMultivariateModel("dummy", source_dimension=3)
 
-        mock_dataset = MockDataset(['ft_1', 'ft_2', 'ft_3'])
+        mock_dataset = MockDataset(["ft_1", "ft_2", "ft_3"])
 
-        with self.assertRaisesRegex(ValueError, 'source_dimension'):
+        with self.assertRaisesRegex(ValueError, "source_dimension"):
             # source_dimension should be < dimension
             m.initialize(mock_dataset)
 
@@ -74,8 +71,7 @@ class AbstractMultivariateModelTest(ManifoldModelTestMixin):
 
     @skip("broken in v2")
     def test_get_attributes(self):
-
-        m = AbstractMultivariateModel('d')
+        m = AbstractMultivariateModel("d")
 
         # not supported attributes (only None & 'MCMC' are)
         with self.assertRaises(ValueError):
@@ -83,4 +79,4 @@ class AbstractMultivariateModelTest(ManifoldModelTestMixin):
         with self.assertRaises(ValueError):
             m._get_attributes(True)
         with self.assertRaises(ValueError):
-            m._get_attributes('toolbox')
+            m._get_attributes("toolbox")

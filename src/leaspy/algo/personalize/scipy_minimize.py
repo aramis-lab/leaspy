@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 from dataclasses import dataclass, field
 from pprint import pformat
@@ -15,7 +17,7 @@ from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariable, VarName
 from leaspy.variables.state import State
 
-from ..factory import AlgorithmName
+from ..base import AlgorithmName
 from ..settings import AlgorithmSettings
 from .abstract_personalize_algo import AbstractPersonalizeAlgo
 

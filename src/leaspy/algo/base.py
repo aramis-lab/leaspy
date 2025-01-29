@@ -3,7 +3,8 @@ import sys
 import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Optional, Tuple, Union
+from enum import Enum
+from typing import Any, Optional, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -12,10 +13,35 @@ from leaspy.exceptions import LeaspyAlgoInputError, LeaspyModelInputError
 from leaspy.io.logs.fit_output_manager import FitOutputManager
 from leaspy.models import AbstractModel
 
-from .factory import AlgorithmType
 from .settings import AlgorithmSettings, OutputsSettings
 
-__all__ = ["AbstractAlgo"]
+__all__ = [
+    "AbstractAlgo",
+    "AlgorithmType",
+    "AlgorithmName",
+    "get_algorithm_type",
+    "get_algorithm_class",
+    "algorithm_factory",
+]
+
+
+class AlgorithmType(str, Enum):
+    FIT = "fit"
+    PERSONALIZE = "personalize"
+    SIMULATE = "simulate"
+
+
+class AlgorithmName(str, Enum):
+    """The available algorithms in Leaspy."""
+
+    FIT_MCMC_SAEM = "mcmc_saem"
+    FIT_LME = "lme_fit"
+    PERSONALIZE_SCIPY_MINIMIZE = "scipy_minimize"
+    PERSONALIZE_MEAN_REAL = "mean_real"
+    PERSONALIZE_MODE_REAL = "mode_real"
+    PERSONALIZE_CONSTANT = "constant_prediction"
+    PERSONALIZE_LME = "lme_personalize"
+    SIMULATE = "simulation"
 
 
 class AbstractAlgo(ABC):
@@ -50,7 +76,7 @@ class AbstractAlgo(ABC):
     """
 
     # Identifier of algorithm (classes variables)
-    name: str = None
+    name: AlgorithmName = None
     family: AlgorithmType = None
     deterministic: bool = False
 
@@ -387,3 +413,64 @@ class AbstractAlgo(ABC):
         if progress_str:
             out += "\n" + progress_str
         return out
+
+
+def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
+    name = AlgorithmName(name)
+    if name in (AlgorithmName.FIT_LME, AlgorithmName.FIT_MCMC_SAEM):
+        return AlgorithmType.FIT
+    if name == AlgorithmName.SIMULATE:
+        return AlgorithmType.SIMULATE
+    return AlgorithmType.PERSONALIZE
+
+
+def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
+    name = AlgorithmName(name)
+    if name == AlgorithmName.FIT_MCMC_SAEM:
+        from .fit import TensorMCMCSAEM
+
+        return TensorMCMCSAEM
+    if name == AlgorithmName.FIT_LME:
+        from .others import LMEFitAlgorithm
+
+        return LMEFitAlgorithm
+    if name == AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE:
+        from .personalize import ScipyMinimize
+
+        return ScipyMinimize
+    if name == AlgorithmName.PERSONALIZE_MEAN_REAL:
+        from .personalize import MeanReal
+
+        return MeanReal
+    if name == AlgorithmName.PERSONALIZE_MODE_REAL:
+        from .personalize import ModeReal
+
+        return ModeReal
+    if name == AlgorithmName.PERSONALIZE_CONSTANT:
+        from .others import ConstantPredictionAlgorithm
+
+        return ConstantPredictionAlgorithm
+    if name == AlgorithmName.PERSONALIZE_LME:
+        from .others import LMEPersonalizeAlgorithm
+
+        return LMEPersonalizeAlgorithm
+    if name == AlgorithmName.SIMULATE:
+        raise ValueError("The simulation algorithm is currently broken.")
+
+
+def algorithm_factory(settings: AlgorithmSettings) -> AbstractAlgo:
+    """
+    Return the wanted algorithm.
+
+    Parameters
+    settings : :class:`.AlgorithmSettings`
+        The algorithm settings.
+
+    Returns
+    -------
+    algorithm : child class of :class:`.AbstractAlgo`
+        The wanted algorithm if it exists and is compatible with algorithm family.
+    """
+    algorithm = get_algorithm_class(settings.name)(settings)
+    algorithm.set_output_manager(settings.logs)
+    return algorithm

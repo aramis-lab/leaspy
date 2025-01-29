@@ -2,10 +2,10 @@ import csv
 import os
 import time
 
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import AbstractModel
 
 from ..data import Dataset
-from .realizations import CollectionRealization
+from ..realizations import CollectionRealization
 from .visualization import Plotter
 
 __all__ = ["FitOutputManager"]

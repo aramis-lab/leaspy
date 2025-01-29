@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 
@@ -6,6 +6,8 @@ from leaspy.exceptions import LeaspyModelInputError
 from leaspy.utils.typing import DictParamsTorch
 
 from .abstract_attributes import AbstractAttributes
+
+__all__ = ["AbstractManifoldModelAttributes"]
 
 
 class AbstractManifoldModelAttributes(AbstractAttributes):

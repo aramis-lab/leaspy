@@ -11,15 +11,7 @@ from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.models import InitializationMethod
 from leaspy.utils.typing import KwargsType
 
-from .factory import (
-    AlgorithmName,
-    AlgorithmType,
-    get_algorithm_class,
-    get_algorithm_type,
-)
-from .utils import AlgoWithDeviceMixin
-
-algo_default_data_dir = Path(__file__).parent.parent.parent / "algo" / "data"
+algo_default_data_dir = Path(__file__).parent.parent / "algo" / "data"
 
 __all__ = [
     "OutputsSettings",
@@ -315,7 +307,9 @@ class AlgorithmSettings:
         "device",
     ]  # 'logs' are not handled in exported files
 
-    def __init__(self, name: Union[str, AlgorithmName], **kwargs):
+    def __init__(self, name: str, **kwargs):
+        from leaspy.algo import AlgorithmName
+
         self.name: AlgorithmName = AlgorithmName(name)
         self.parameters: Optional[KwargsType] = None
         self.seed: Optional[int] = None
@@ -323,13 +317,13 @@ class AlgorithmSettings:
         self.model_initialization_method: Optional[str] = None
         self.logs: Optional[OutputsSettings] = None
         default_algo_settings_path = (
-            algo_default_data_dir / f"default_{name.value}.json"
+            algo_default_data_dir / f"default_{self.name.value}.json"
         )
         if default_algo_settings_path.is_file():
             self._load_default_values(default_algo_settings_path)
         else:
             raise LeaspyAlgoInputError(
-                f"The algorithm name '{name.value}' you provided does not exist"
+                f"The algorithm name '{self.name.value}' you provided does not exist"
             )
         self._manage_kwargs(kwargs)
         self.check_consistency()
@@ -338,22 +332,25 @@ class AlgorithmSettings:
         """
         Check internal consistency of algorithm settings and warn or raise a `LeaspyAlgoInputError` if not.
         """
+        from leaspy.algo import AlgorithmType, get_algorithm_class, get_algorithm_type
+        from leaspy.algo.utils import AlgoWithDeviceMixin
+
         if (
             self.model_initialization_method is not None
             and get_algorithm_type(self.name) != AlgorithmType.FIT
         ):
             warnings.warn(
                 "You should not define `model_initialization_method` in your algorithm: "
-                f'"{self.name.value}" is not a `fit` algorithm so it has no effect.'
+                f'"{self.name}" is not a `fit` algorithm so it has no effect.'
             )
         algo_class = get_algorithm_class(self.name)
         if self.seed is not None and algo_class.deterministic:
             warnings.warn(
-                f"You can skip defining `seed` since the algorithm {self.name.value} is deterministic."
+                f"You can skip defining `seed` since the algorithm {self.name} is deterministic."
             )
         if hasattr(self, "device") and not issubclass(algo_class, AlgoWithDeviceMixin):
             warnings.warn(
-                f'The algorithm "{self.name.value}" does not support user-specified devices (this '
+                f'The algorithm "{self.name}" does not support user-specified devices (this '
                 "is supported only for specific algorithms) and will use the default device (CPU)."
             )
 
@@ -466,6 +463,8 @@ class AlgorithmSettings:
         >>> settings = AlgorithmSettings("scipy_minimize", seed=42)
         >>> settings.save("outputs/scipy_minimize-settings.json")
         """
+        from leaspy.algo import AlgorithmType, get_algorithm_type
+
         json_settings = {
             "name": self.name,
             "seed": self.seed,
@@ -632,6 +631,8 @@ class AlgorithmSettings:
         dict_to_set[last_level] = val  # inplace
 
     def _load_default_values(self, path_to_algorithm_settings: Path):
+        from leaspy.algo import AlgorithmType, get_algorithm_class, get_algorithm_type
+
         with open(path_to_algorithm_settings) as fp:
             settings = json.load(fp)
         self._check_default_settings(settings)
@@ -657,6 +658,8 @@ class AlgorithmSettings:
 
     @classmethod
     def _check_default_settings(cls, settings: dict):
+        from leaspy.algo import AlgorithmType, get_algorithm_class, get_algorithm_type
+
         unknown_keys = set(settings.keys()).difference(cls._known_keys)
         if unknown_keys:
             raise LeaspyAlgoInputError(
@@ -680,8 +683,8 @@ class AlgorithmSettings:
             raise LeaspyAlgoInputError(error_tpl.format("model_initialization_method"))
 
     @staticmethod
-    def _get_name(settings: dict) -> AlgorithmName:
-        return AlgorithmName(settings["name"].lower())
+    def _get_name(settings: dict) -> str:
+        return settings["name"].lower()
 
     @staticmethod
     def _get_parameters(settings: dict) -> dict:

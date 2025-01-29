@@ -2,6 +2,8 @@ import torch
 
 from .logistic_attributes import LogisticAttributes
 
+__all__ = ["LogisticOrdinalAttributes"]
+
 
 class LogisticOrdinalAttributes(LogisticAttributes):
     """

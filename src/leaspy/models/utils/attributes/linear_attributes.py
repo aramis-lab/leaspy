@@ -2,6 +2,8 @@ import torch
 
 from .abstract_manifold_model_attributes import AbstractManifoldModelAttributes
 
+__all__ = ["LinearAttributes"]
+
 
 class LinearAttributes(AbstractManifoldModelAttributes):
     """

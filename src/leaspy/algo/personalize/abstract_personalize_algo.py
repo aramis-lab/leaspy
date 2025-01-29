@@ -3,13 +3,12 @@ from typing import Tuple
 
 import torch
 
-from leaspy.io.data.dataset import Dataset
+from leaspy.io.data import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import AbstractModel
 from leaspy.utils.weighted_tensor import wsum_dim
 
-from ..base import AbstractAlgo
-from ..factory import AlgorithmType
+from ..base import AbstractAlgo, AlgorithmType
 
 __all__ = ["AbstractPersonalizeAlgo"]
 

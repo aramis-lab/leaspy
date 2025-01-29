@@ -8,8 +8,7 @@ from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import LatentVariableInitType
 from leaspy.variables.state import State
 
-from ..base import AbstractAlgo
-from ..factory import AlgorithmType
+from ..base import AbstractAlgo, AlgorithmType
 from ..settings import AlgorithmSettings
 from ..utils import AlgoWithDeviceMixin
 

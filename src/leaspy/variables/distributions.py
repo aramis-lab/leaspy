@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -382,7 +384,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         x: WeightedTensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
-    ) -> Tuple[WeightedTensor, WeightedTensor]:
+    ) -> tuple[WeightedTensor, WeightedTensor]:
         # Hardcode method for efficiency
         z = (x.value - loc) / scale
         nll = 0.5 * z**2 + torch.log(scale) + cls.nll_constant_standard

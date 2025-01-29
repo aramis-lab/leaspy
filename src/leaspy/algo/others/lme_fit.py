@@ -9,8 +9,7 @@ from leaspy.exceptions import LeaspyDataInputError
 from leaspy.io.data import Dataset
 from leaspy.models import LMEModel
 
-from ..base import AbstractAlgo
-from ..factory import AlgorithmName, AlgorithmType
+from ..base import AbstractAlgo, AlgorithmName, AlgorithmType
 from ..settings import AlgorithmSettings
 
 __all__ = ["LMEFitAlgorithm"]

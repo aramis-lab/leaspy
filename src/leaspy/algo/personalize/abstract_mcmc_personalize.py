@@ -3,7 +3,7 @@ from random import shuffle
 
 import torch
 
-from leaspy.io.data.dataset import Dataset
+from leaspy.io.data import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import AbstractModel
 from leaspy.utils.typing import DictParamsTorch

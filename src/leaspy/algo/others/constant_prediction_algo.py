@@ -8,8 +8,7 @@ from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import ConstantModel
 from leaspy.utils.typing import FeatureType
 
-from ..base import AbstractAlgo
-from ..factory import AlgorithmName, AlgorithmType
+from ..base import AbstractAlgo, AlgorithmName, AlgorithmType
 from ..settings import AlgorithmSettings
 
 __all__ = ["ConstantPredictionAlgorithm"]

@@ -1,6 +1,6 @@
 from random import shuffle
 
-from leaspy.io.data.dataset import Dataset
+from leaspy.io.data import Dataset
 from leaspy.models import AbstractModel
 from leaspy.variables.specs import (
     IndividualLatentVariable,

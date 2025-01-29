@@ -5,6 +5,8 @@ import torch
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.utils.typing import DictParamsTorch, ParamType, Set, Tuple
 
+__all__ = ["AbstractAttributes"]
+
 
 class AbstractAttributes(ABC):
     """

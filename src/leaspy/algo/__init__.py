@@ -1,12 +1,12 @@
-from .base import AbstractAlgo
-from .factory import (
+from .base import (
+    AbstractAlgo,
     AlgorithmName,
     AlgorithmType,
     algorithm_factory,
     get_algorithm_class,
     get_algorithm_type,
 )
-from .settings import AlgorithmSettings, OutputsSettings
+from .settings import AlgorithmSettings, OutputsSettings, algo_default_data_dir
 
 __all__ = [
     "AbstractAlgo",
@@ -17,4 +17,5 @@ __all__ = [
     "get_algorithm_type",
     "algorithm_factory",
     "get_algorithm_class",
+    "algo_default_data_dir",
 ]
