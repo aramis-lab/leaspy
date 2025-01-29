@@ -7,6 +7,7 @@ from leaspy.exceptions import LeaspyModelInputError
 
 from ._base import ObservationModel
 from ._gaussian import FullGaussianObservationModel
+from ._mixture_gaussian import MixtureGaussianObservationModel
 from ._bernoulli import BernoulliObservationModel
 from ._ordinal import OrdinalObservationModel
 from ._weibull import WeibullRightCensoredObservationModel, WeibullRightCensoredWithSourcesObservationModel
@@ -16,6 +17,7 @@ class ObservationModelNames(Enum):
     """Enumeration defining the possible names for observation models."""
     GAUSSIAN_DIAGONAL = "gaussian-diagonal"
     GAUSSIAN_SCALAR = "gaussian-scalar"
+    #MIXTURE_GAUSSIAN = "mixture-gaussian"
     BERNOULLI = "bernoulli"
     ORDINAL = "ordinal"
     WEIBULL_RIGHT_CENSORED = "weibull-right-censored"
@@ -37,6 +39,7 @@ ObservationModelFactoryInput = Union[str, ObservationModelNames, ObservationMode
 OBSERVATION_MODELS: Dict[ObservationModelNames, Type[ObservationModel]] = {
     ObservationModelNames.GAUSSIAN_DIAGONAL: FullGaussianObservationModel,
     ObservationModelNames.GAUSSIAN_SCALAR: FullGaussianObservationModel,
+    #ObservationModelNames.MIXTURE_GAUSSIAN: MixtureGaussianObservationModel,
     ObservationModelNames.BERNOULLI: BernoulliObservationModel,
     ObservationModelNames.ORDINAL: OrdinalObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED: WeibullRightCensoredObservationModel,
@@ -68,6 +71,7 @@ def observation_model_factory(model: ObservationModelFactoryInput, **kwargs) -> 
         If `model` is not supported.
     """
     dimension = kwargs.pop("dimension", None)
+    n_clusters = kwargs.pop("n_clusters", None)
     if isinstance(model, ObservationModel):
         return model
     if isinstance(model, str):
@@ -82,6 +86,13 @@ def observation_model_factory(model: ObservationModelFactoryInput, **kwargs) -> 
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(dimension)
         if model == ObservationModelNames.GAUSSIAN_SCALAR:
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(1)
+        #if model == ObservationModelNames.MIXTURE_GAUSSIAN:
+        #    if n_clusters is None:
+        #        raise NotImplementedError(
+        #            "WIP: n_clusters should be provided to "
+        #            f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
+        #        )
+        #    return MixtureGaussianObservationModel.with_probs_as_model_parameter(n_clusters)
         if model == ObservationModelNames.WEIBULL_RIGHT_CENSORED:
             return WeibullRightCensoredObservationModel.default_init(kwargs = kwargs)
         if model == ObservationModelNames.WEIBULL_RIGHT_CENSORED_WITH_SOURCES:
