@@ -77,7 +77,7 @@ class AlgorithmSettings:
     parameters : dict
         Contains the other parameters: `n_iter`, `n_burn_in_iter`, `use_jacobian`, `n_jobs` & `progress_bar`.
     logs : :class:`.OutputsSettings`, optional
-        Used to create a ``logs`` file during a model calibration containing convergence information.
+        Used to create a ``logs`` file during a model fit containing convergence information.
     device : str (or torch.device), optional, default 'cpu'
         Used to specify on which device the algorithm will run. This should either be:
         'cpu' or 'cuda' and is only supported in specific algorithms (inheriting `AlgoWithDeviceMixin`).
@@ -298,9 +298,9 @@ class AlgorithmSettings:
 
     def set_logs(self, path: Optional[str] = None, **kwargs):
         """
-        Use this method to monitor the convergence of a model calibration.
+        Use this method to monitor the convergence of a model fit.
 
-        It create graphs and csv files of the values of the population parameters (fixed effects) during the calibration
+        It create graphs and csv files of the values of the population parameters (fixed effects) during the fit
 
         Parameters
         ----------
@@ -308,7 +308,7 @@ class AlgorithmSettings:
             The path of the folder to store the graphs and csv files.
             No data will be saved if it is None, as well as save_periodicity and plot_periodicity.
         **kwargs
-            * console_print_periodicity: int, optional, default 100
+            * print_periodicity: int, optional, default 100
                 Display logs in the console/terminal every N iterations.
             * save_periodicity: int, optional, default 50
                 Saves the values in csv files every N iterations.
@@ -316,9 +316,11 @@ class AlgorithmSettings:
                 Generates plots from saved values every N iterations.
                 Note that:
                     * it should be a multiple of save_periodicity
-                    * setting a too low value (frequent) we seriously slow down you calibration
+                    * setting a too low value (frequent) we seriously slow down you fit
             * overwrite_logs_folder: bool, optional, default False
                 Set it to ``True`` to overwrite the content of the folder in ``path``.
+            * nb_of_patients_to_plot: int, optional default 5
+                number of patients to plot
 
         Raises
         ------
@@ -334,14 +336,15 @@ class AlgorithmSettings:
 
         settings = {
             'path': path,
-            'console_print_periodicity': 100,
+            'print_periodicity': 100,
             'save_periodicity': 50,
             'plot_periodicity': 1000,
-            'overwrite_logs_folder': False
+            'overwrite_logs_folder': False,
+            'nb_of_patients_to_plot': 5
         }
 
         for k, v in kwargs.items():
-            if k in ['console_print_periodicity', 'plot_periodicity', 'save_periodicity', 'save_last_n_realizations']:
+            if k in ['print_periodicity', 'plot_periodicity', 'save_periodicity', 'nb_of_patients_to_plot']:
                 if v is not None and not isinstance(v, int):
                     raise LeaspyAlgoInputError(f'You must provide a integer to the input <{k}>! '
                                     f'You provide {v} of type {type(v)}.')
