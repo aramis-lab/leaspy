@@ -99,7 +99,7 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 [200 rows x 4 columns]
 ```
 
-Plotting the input participant data against its personalization would give the following, see [started example notebook](https://gitlab.com/icm-institute/aramislab/leaspy) for details.
+Plotting the input participant data against its personalization would give the following, see [started example notebook]( https://gitlab.com/icm-institute/aramislab/leaspy/-/blob/master/example/start/starter.ipynb) for details.
 
 ![alzheimer-subject_trajectories](./_static/images/alzheimer-subject_trajectories.png)
 
