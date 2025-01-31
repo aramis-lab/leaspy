@@ -2,23 +2,24 @@
 
 ## Comprehensive example
 
-We first load synthetic data, using a :class:`.Loader` object, to get of a grasp of longitudinal data.
+We first load synthetic data to get of a grasp of longitudinal data:
 
 ```python
->>> from leaspy import AlgorithmSettings, Data, Leaspy
->>> from leaspy.datasets import Loader
->>> alzheimer_df = Loader.load_dataset('alzheimer-multivariate')
+>>> from leaspy.datasets import load_dataset
+>>> alzheimer_df = load_dataset('alzheimer-multivariate')
 >>> print(alzheimer_df.columns)
 Index(['E-Cog Subject', 'E-Cog Study-partner', 'MMSE', 'RAVLT', 'FAQ',
-        'FDG PET', 'Hippocampus volume ratio'], dtype='object')
+       'FDG PET', 'Hippocampus volume ratio'],
+      dtype='object')
 >>> alzheimer_df = alzheimer_df[['MMSE', 'RAVLT', 'FAQ', 'FDG PET']]
 >>> print(alzheimer_df.head())
-MMSE      RAVLT     FAQ       FDG PET ID      TIME GS-001
-73.973183  0.111998  0.510524  0.178827  0.454605
-74.573181  0.029991  0.749223  0.181327  0.450064
-75.173180  0.121922  0.779680  0.026179  0.662006
-75.773186  0.092102  0.649391  0.156153  0.585949
-75.973183  0.203874  0.612311  0.320484  0.634809
+                      MMSE     RAVLT       FAQ   FDG PET
+ID     TIME
+GS-001 73.973183  0.111998  0.510524  0.178827  0.454605
+       74.573181  0.029991  0.749223  0.181327  0.450064
+       75.173180  0.121922  0.779680  0.026179  0.662006
+       75.773186  0.092102  0.649391  0.156153  0.585949
+       75.973183  0.203874  0.612311  0.320484  0.634809
 ```
 
 The data correspond to repeated visits (`TIME` index) of different participants (`ID` index).
@@ -31,38 +32,37 @@ If plotted, the data would look like the following:
 
 Where each color corresponds to a variable, and the connected dots corresponds to the repeated visits of a single participant.
 
-Not very engaging, right ? To go a step further, let's first encapsulate the data into the main :class:`.Data` container.
+Not very engaging, right ? To go a step further, let's first encapsulate the data into the main `Data` container:
 
 ```python
+>>> from leaspy.io.data import Data, Dataset
 >>> data = Data.from_dataframe(alzheimer_df)
+>>> dataset = Dataset(data)
 ```
 
 Leaspy core functionality is to estimate the group-average trajectory of the different variables that are measured in a population.
 
-Let's initialize the :class:`.Leaspy` object:
+Let's initialize a multivariate logistic model:
 
 ```python
->>> leaspy_logistic = Leaspy('logistic', source_dimension=2)
+>>> from leaspy.models import LogisticMultivariateModel
+>>> model = LogisticMultivariateModel(name="test-model", source_dimension=2)
 ```
 
 As well as the algorithm needed to estimate the group-average trajectory:
 
 ```python
->>> fit_settings = AlgorithmSettings('mcmc_saem', seed=0, n_iter=8000)
-```
-
-We then use the method `Leaspy.fit` to estimate the group average trajectory:
-
-```python
->>> leaspy_logistic.fit(data, fit_settings)
+>>> from leaspy.algo import AlgorithmSettings, algorithm_factory
+>>> fit_settings = AlgorithmSettings("mcmc_saem", seed=0, n_iter=8000)
+>>> algorithm = algorithm_factory(fit_settings)
+>>> model.initialize(dataset, fit_settings.model_initialization_method)
+>>> algorithm.run(model, dataset)
 ==> Setting seed to 0
 |##################################################|   8000/8000 iterations
-Fit with `mcmc_saem` took: 6m 57s
-The standard deviation of the noise at the end of the fit is:
-MMSE: 6.50%
-RAVLT: 7.63%
-FAQ: 6.67%
-FDG PET: 7.87%
+
+Fit with `AlgorithmName.FIT_MCMC_SAEM` took: 1m 32s
+The standard-deviation of the noise at the end of the AlgorithmType.FIT is: -100.00%
+<leaspy.variables.state.State object at 0x305b7ff90>
 ```
 
 If we were to plot the measured average progression of the variables, see [started example notebook](https://gitlab.com/icm-institute/aramislab/leaspy) for details, it would look like the following:
@@ -71,19 +71,32 @@ If we were to plot the measured average progression of the variables, see [start
 
 We can also derive the individual trajectory of each subject.
 
-To do this, we use the `Leaspy.personalize` method, again by providing the proper `AlgorithmSettings`.
+To do this, we use a `personalization` algorithm called `scipy_minimize`:
 
 ```python
->>> personalize_settings = AlgorithmSettings('scipy_minimize', seed=0)
->>> individual_parameters = leaspy_logistic.personalize(data, personalize_settings)
+>>> personalize_settings = AlgorithmSettings("scipy_minimize", seed=0)
+>>> algorithm = algorithm_factory(personalize_settings)
+>>> individual_parameters = algorithm.run(model, dataset)
 ==> Setting seed to 0
 |##################################################|   200/200 subjects
-Personalize with `scipy_minimize` took: 9s
-The standard deviation of the noise at the end of the personalize is:
-MMSE: 6.32%
-RAVLT: 7.27%
-FAQ: 6.29%
-FDG PET: 7.49%
+Personalize with `AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE` took: 29s
+The standard-deviation of the noise at the end of the AlgorithmType.PERSONALIZE is: 6.85%
+>>> individual_parameters.to_dataframe()
+        sources_0  sources_1        tau        xi
+ID
+GS-001   0.027233  -0.423354  76.399582 -0.386364
+GS-002  -0.262680   0.665351  75.137474 -0.577525
+GS-003   0.409585   0.844824  75.840012  0.102436
+GS-004   0.195366   0.056577  78.110085  0.433171
+GS-005   1.424637   1.054663  84.183098 -0.051317
+...           ...        ...        ...       ...
+GS-196   0.961941   0.389468  72.528786  0.354126
+GS-197  -0.561685  -0.720041  79.006042 -0.624100
+GS-198  -0.061995   0.177671  83.596138  0.201686
+GS-199   1.932454   1.820023  92.275978 -0.136224
+GS-200   1.152407  -0.171888  76.504517  0.770118
+
+[200 rows x 4 columns]
 ```
 
 Plotting the input participant data against its personalization would give the following, see [started example notebook](https://gitlab.com/icm-institute/aramislab/leaspy) for details.
