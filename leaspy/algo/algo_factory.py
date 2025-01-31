@@ -104,6 +104,9 @@ class AlgoFactory:
 
         # instantiate algorithm with settings and set output manager
         algorithm = cls._algos[algorithm_family][name](settings)
-        algorithm.set_output_manager(settings.logs)
 
+        # In the fit method, we want to create logs even if the user doesn't have an input
+        if settings.logs is None and settings.algo_class.family == "fit":
+            settings.set_logs()
+        algorithm.set_output_manager(settings.logs)
         return algorithm

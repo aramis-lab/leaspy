@@ -161,8 +161,8 @@ class AbstractAlgo(ABC):
         # Init the run
         time_beginning = time.time()
 
-        # Get the results (with loss)
-        output, loss = self.run_impl(model, *args, **extra_kwargs)
+        # Get the results
+        output = self.run_impl(model, *args, **extra_kwargs)
 
         # Print run infos
         duration_in_seconds = time.time() - time_beginning
@@ -171,20 +171,7 @@ class AbstractAlgo(ABC):
             print()
         print(f"\n{self.family.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}")
 
-        if loss is not None:
-            loss_type, loss_scalar_fmt = getattr(
-                getattr(model, 'noise_model', None),
-                "canonical_loss_properties",
-                ("standard-deviation of the noise", ".2%")
-            )
-            loss_repr = self._loss_repr(loss, features=model.features, loss_scalar_fmt=loss_scalar_fmt)
-            print(f"The {loss_type} at the end of the {self.family} is: {loss_repr}")
-
-        # Return only output part
-        if return_loss:
-            return output, loss
-        else:
-            return output
+        return output
 
     ###########################
     # Getters / Setters
@@ -243,7 +230,7 @@ class AbstractAlgo(ABC):
         Parameters
         ----------
         output_settings : :class:`~.io.settings.outputs_settings.OutputsSettings`
-            Contains the logs settings for the computation run (console print periodicity, plot periodicity ...)
+            Contains the logs settings for the computation run (print periodicity, plot periodicity ...)
 
         Examples
         --------
@@ -261,6 +248,7 @@ class AbstractAlgo(ABC):
         """
         if output_settings is not None:
             self.output_manager = FitOutputManager(output_settings)
+
 
     @staticmethod
     def _display_progress_bar(iteration: int, n_iter: int, suffix: str, n_step_default: int = 50):
@@ -298,51 +286,6 @@ class AbstractAlgo(ABC):
                 sys.stdout.write(f"|{'#'*nbar}{'-'*(n_step - nbar)}|   {iteration_plus_1}/{n_iter} {suffix}")
                 sys.stdout.flush()
 
-    @staticmethod
-    def _loss_repr(loss: Union[np.ndarray, torch.FloatTensor], features: list, loss_scalar_fmt: str) -> str:
-        """
-        Get a nice string representation of loss for a given model.
-
-        TODO? move this code into a NoiseModel helper class
-
-        Parameters
-        ----------
-        loss : :class:`torch.FloatTensor`
-            Loss value (tensor).
-        features : list[str]
-            Model features (to be used for multivariate losses).
-        loss_scalar_fmt : str
-            Format for elements of loss.
-
-        Returns
-        -------
-        str
-
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            If multivariate loss and model dimension are inconsistent.
-        """
-        loss_elts = np.array(loss).reshape(-1).tolist()  # can be torch tensor or numpy array (LME, constant model ...)
-        loss_elts_nb = len(loss_elts)
-
-        if loss_elts_nb != 1:
-            if loss_elts_nb != len(features):
-                raise LeaspyModelInputError(f'Number of features ({len(features)}) does not match with '
-                                            f'number of terms in loss ({loss_elts_nb}).')
-
-            loss_map = {
-                ft_name: f'{ft_loss:{loss_scalar_fmt}}'
-                for ft_name, ft_loss in zip(features, loss_elts)
-            }
-            print_loss = repr(loss_map).replace("'", "").replace("{", "").replace("}", "")
-            print_loss = '\n- ' + '\n- '.join(print_loss.split(', '))
-        else:
-            if hasattr(loss, 'item'):
-                loss = loss.item()
-            print_loss = f"{loss:{loss_scalar_fmt}}"
-
-        return print_loss
 
     @staticmethod
     def _duration_to_str(seconds: float, *, seconds_fmt='.0f') -> str:
