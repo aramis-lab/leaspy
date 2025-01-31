@@ -336,9 +336,9 @@ class AlgorithmSettings:
 
         settings = {
             'path': path,
-            'print_periodicity': 100,
-            'save_periodicity': 50,
-            'plot_periodicity': 1000,
+            'print_periodicity': None,
+            'save_periodicity': 10,
+            'plot_periodicity': 50,
             'overwrite_logs_folder': False,
             'nb_of_patients_to_plot': 5
         }
