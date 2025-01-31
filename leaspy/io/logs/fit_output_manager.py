@@ -226,10 +226,13 @@ class FitOutputManager:
 
             reconstruction_values_patient = model.compute_individual_trajectory(
                 times_patient, ip_patient
-            ).squeeze(0)
+            ).squeeze(0).numpy()
             ax.plot(times_patient, reconstruction_values_patient, c=colors[i])
             ax.plot(times_patient, true_values_patient, c=colors[i], linestyle="--", marker="o")
 
+            last_time_point = times_patient[-1]
+            last_reconsutruction_value = reconstruction_values_patient.flatten()[-1]
+            ax.text(last_time_point, last_reconsutruction_value, data.indices[i], color=colors[i])
 
         min_time, max_time = np.percentile(
             data.timepoints[data.timepoints > 0.0].cpu().detach().numpy(),
