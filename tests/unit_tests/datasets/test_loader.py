@@ -1,57 +1,54 @@
 import torch
-from leaspy.datasets.loader import Loader
-from leaspy.models.obs_models import FullGaussianObservationModel
 
+from leaspy.datasets import (
+    DatasetName,
+    load_dataset,
+    load_individual_parameters,
+    load_leaspy_instance,
+)
+from leaspy.models.obs_models import FullGaussianObservationModel
 from tests import LeaspyTestCase
 
 # TODO: regenerate example models + individual parameters
 
 
 class LoaderTest(LeaspyTestCase):
-
     def test_load_dataset(self):
         """
         Check ID and dtype of ID, TIME and values.
         """
-        self.assertEqual(
-            list(Loader().data_paths.keys()),
-            [
-                "alzheimer-multivariate",
-                "parkinson-multivariate",
-                "parkinson-putamen",
-                "parkinson-putamen-train_and_test",
-            ]
-        )
-        for name in Loader().data_paths.keys():
-            df = Loader.load_dataset(name)
-            expected_index = ['ID', 'TIME', 'SPLIT'] if "train_and_test" in name else ['ID', 'TIME']
+        for name in DatasetName:
+            df = load_dataset(name)
+            expected_index = (
+                ["ID", "TIME", "SPLIT"] if "train_and_test" in name else ["ID", "TIME"]
+            )
             self.assertEqual(df.index.names, expected_index)
-            self.assertTrue(all(df.dtypes.values == 'float64'))
+            self.assertTrue(all(df.dtypes.values == "float64"))
             self.assertEqual(
-                df.index.get_level_values('ID').unique().tolist(),
+                df.index.get_level_values("ID").unique().tolist(),
                 ["GS-" + "0" * (3 - len(str(i))) + str(i) for i in range(1, 201)],
             )
-            self.assertIn(df.index.get_level_values('TIME').dtype, ('float64', 'float32'))
+            self.assertIn(
+                df.index.get_level_values("TIME").dtype, ("float64", "float32")
+            )
 
     def test_load_leaspy_instance(self):
         """
         Check that all models are loadable, and check parameter values for one model.
         """
-        self.assertEqual(
-            list(Loader().model_paths.keys()),
-            ["alzheimer-multivariate", "parkinson-multivariate", "parkinson-putamen-train"],
-        )
+        for name in DatasetName:
+            if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
+                leaspy_instance = load_leaspy_instance(name)
+                if "multivariate" in name.value:
+                    self.assertEqual(leaspy_instance.type, "logistic")
+                else:
+                    self.assertEqual(leaspy_instance.type, "univariate_logistic")
 
-        for name in Loader().model_paths.keys():
-            leaspy_instance = Loader.load_leaspy_instance(name)
-            if "multivariate" in name:
-                self.assertEqual(leaspy_instance.type, "logistic")
-            else:
-                self.assertEqual(leaspy_instance.type, "univariate_logistic")
-
-        leaspy_instance = Loader.load_leaspy_instance("parkinson-putamen-train")
+        leaspy_instance = load_leaspy_instance(DatasetName.PARKINSON_PUTAMEN)
         self.assertEqual(leaspy_instance.model.features, ["PUTAMEN"])
-        self.assertIsInstance(leaspy_instance.model.obs_models[0], FullGaussianObservationModel)
+        self.assertIsInstance(
+            leaspy_instance.model.obs_models[0], FullGaussianObservationModel
+        )
 
         self.assertAlmostEqual(
             leaspy_instance.model.parameters["noise_std"].item(),
@@ -61,7 +58,7 @@ class LoaderTest(LeaspyTestCase):
         parameters = {
             "log_g_std": torch.tensor(0.0100),
             "log_v0_std": torch.tensor(0.0100),
-            "xi_mean": torch.tensor(0.),
+            "xi_mean": torch.tensor(0.0),
             "log_g_mean": torch.tensor([-1.1862]),
             "log_v0_mean": torch.tensor([-4.0517]),
             "noise_std": torch.tensor([0.0212]),
@@ -69,21 +66,19 @@ class LoaderTest(LeaspyTestCase):
             "tau_std": torch.tensor([10.0295]),
             "xi_std": torch.tensor([0.5543]),
         }
-        self.assertDictAlmostEqual(leaspy_instance.model.parameters, parameters, atol=1e-4)
+        self.assertDictAlmostEqual(
+            leaspy_instance.model.parameters, parameters, atol=1e-4
+        )
 
     def test_load_individual_parameters(self):
         """
         Check that all ips are loadable, and check values for one individual_parameters
         instance.
         """
-        self.assertEqual(
-            list(Loader().ip_paths.keys()),
-            ["alzheimer-multivariate", "parkinson-multivariate", "parkinson-putamen-train"],
-        )
-        for name in Loader().ip_paths.keys():
-            Loader.load_individual_parameters(name)
-
-        individual_parameters = Loader.load_individual_parameters("alzheimer-multivariate")
+        for name in DatasetName:
+            if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
+                individual_parameters = load_individual_parameters(name)
+        individual_parameters = load_individual_parameters("alzheimer-multivariate")
 
         self.assertAlmostEqual(
             individual_parameters.get_mean("tau")[0], 76.9612, delta=1e-4
