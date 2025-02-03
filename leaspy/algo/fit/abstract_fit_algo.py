@@ -239,7 +239,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
             # Thus we reset population latent variables to their mode, and we remove individual latent variables
             model_state.put_population_latent_variables(LatentVariableInitType.PRIOR_MODE)
-            #model_state.put_individual_latent_variables(None)
+            model_state.put_individual_latent_variables(None)
         model.state = model_state
 
         return loss
