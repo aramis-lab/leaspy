@@ -24,7 +24,7 @@ from leaspy.variables.distributions import Normal
 from leaspy.utils.functional import Exp, Sqr, OrthoBasis
 from leaspy.utils.weighted_tensor import unsqueeze_right
 
-from leaspy.models.obs_models import FullGaussianObservationModel
+from leaspy.models.obs_models import FullGaussianObservationModel, FullBetaObservationModel
 
 
 # TODO refact? implement a single function
@@ -58,7 +58,11 @@ class MultivariateModel(AbstractMultivariateModel):
 
         default_variables_to_track = [
             "g",
+            "log_g_mean",
+            "log_g",
             "v0",
+            "log_v0_mean",
+            "log_v0",
             "noise_std",
             "tau_mean",
             "tau_std",
@@ -471,6 +475,7 @@ class MultivariateModel(AbstractMultivariateModel):
             ),
             metric=LinkedVariable(self.metric),  # for linear model: metric & metric_sqr are fixed = 1.
         )
+
         if self.source_dimension >= 1:
             d.update(
                 model=LinkedVariable(self.model_with_sources),
@@ -666,6 +671,11 @@ class LogisticMultivariateInitializationMixin:
             rounded_parameters["noise_std"] = self.noise_std.expand(
                 obs_model.extra_vars['noise_std'].shape
             )
+        if isinstance(obs_model, FullBetaObservationModel):
+            rounded_parameters["noise_std"] = self.noise_std.expand(
+                obs_model.extra_vars['noise_std'].shape
+            )*100
+            print(rounded_parameters["noise_std"])
         return rounded_parameters
 
 

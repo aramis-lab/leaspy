@@ -92,6 +92,7 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
             loss = obs_model.dist.get_func_nll("y").then(wsum_dim)(
                 y=local_state["y"],
                 model=local_state["model"],
+                noise_std=local_state["noise_std"],
             )[0]
 
         return individual_parameters, loss

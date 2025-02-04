@@ -53,10 +53,6 @@ class UnivariateJointModel(LogisticUnivariateModel, JointModel):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         obs_models_to_string = [o.to_string() for o in self.obs_models]
-        if "gaussian-scalar" not in obs_models_to_string:
-            self.obs_models += (
-                observation_model_factory("gaussian-scalar", dimension=1),
-            )
         if "weibull-right-censored" not in obs_models_to_string:
             self.obs_models += (
                 observation_model_factory(
