@@ -11,6 +11,7 @@ clean: clean.doc clean.py clean.test
 .PHONY: clean.doc
 clean.doc:
 	@$(RM) -rf site/
+	@$(RM) -rf docs/_build/
 
 .PHONY: clean.py
 clean.py:

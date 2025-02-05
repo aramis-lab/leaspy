@@ -1,14 +1,14 @@
+from unittest import skip
+
 import numpy as np
-from leaspy import Leaspy
+
+from leaspy.api import Leaspy
 
 # never import a real test case at top-level so to not duplicate tests, only tests MIXINS!
 from .test_api_estimate import LeaspyEstimateTestMixin
 
-from unittest import skip
-
 
 class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
-
     @property
     def individual_parameters(self):
         return self.get_hardcoded_individual_params("ip_save.json")
@@ -19,13 +19,11 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
 
         # univariate logistic model
         # feat is "feature"
-        leaspy = self.get_hardcoded_model('univariate_logistic')
-        individual_parameters = self.get_hardcoded_individual_params('ip_univariate_save.json')
-        timepoints = {
-            'idx1': [78, 81],
-            'idx2': [71],
-            'idx3': []
-        }
+        leaspy = self.get_hardcoded_model("univariate_logistic")
+        individual_parameters = self.get_hardcoded_individual_params(
+            "ip_univariate_save.json"
+        )
+        timepoints = {"idx1": [78, 81], "idx2": [71], "idx3": []}
         estimations_raw = leaspy.estimate(timepoints, individual_parameters)
 
         # some reshape to do (else shape is (2, 1), when it is supposed to be 2)
@@ -88,8 +86,8 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
                 biomarker_values=estimations,
             )
 
-        bad_estimations = {'idx1': {'bad_type'}}
-        with self.assertRaisesRegex(TypeError, 'biomarker_values'):
+        bad_estimations = {"idx1": {"bad_type"}}
+        with self.assertRaisesRegex(TypeError, "biomarker_values"):
             leaspy.estimate_ages_from_biomarker_values(
                 individual_parameters=individual_parameters,
                 biomarker_values=bad_estimations,
@@ -98,17 +96,21 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
 
         # check other errors
         problematic_timepoints = {
-            'idx1': [90],  # fast progressor, 90 is already too much (estimation will be nan)
+            "idx1": [
+                90
+            ],  # fast progressor, 90 is already too much (estimation will be nan)
         }
-        problematic_estimations = leaspy.estimate(problematic_timepoints, individual_parameters)
-        problematic_estimations['idx1'] = problematic_estimations['idx1'].tolist()[0]
+        problematic_estimations = leaspy.estimate(
+            problematic_timepoints, individual_parameters
+        )
+        problematic_estimations["idx1"] = problematic_estimations["idx1"].tolist()[0]
         pbq_age = leaspy.estimate_ages_from_biomarker_values(
             individual_parameters=individual_parameters,
             biomarker_values=problematic_estimations,
         )
 
         # check that nan estimation gives nan age
-        self.assertNotEqual(pbq_age['idx1'][0], pbq_age['idx1'][0])
+        self.assertNotEqual(pbq_age["idx1"][0], pbq_age["idx1"][0])
 
         # quick check biomarker_values as dict of key: str and val: int rather than list works
         estimated_ages_0 = leaspy.estimate_ages_from_biomarker_values(
@@ -116,24 +118,23 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
             biomarker_values={
                 "idx1": 0.4,
                 "idx2": 0.3,
-            }
+            },
         )
-        self.assertAlmostEqual(estimated_ages_0['idx1'], 70.53896, 2)
-        self.assertAlmostEqual(estimated_ages_0['idx2'], 73.12502, 2)
+        self.assertAlmostEqual(estimated_ages_0["idx1"], 70.53896, 2)
+        self.assertAlmostEqual(estimated_ages_0["idx2"], 73.12502, 2)
 
     @skip("Broken: compute_individual_ages_from_biomarker_values is not implemented")
     def test_estimate_ages_from_biomarker_values_multivariate(self):
         # multivariate logistic model
         # feats are "Y0", ...
-        leaspy = self.get_hardcoded_model('logistic_scalar_noise')
-        timepoints = {
-            'idx1': [78, 81],
-            'idx2': [91]
-        }
+        leaspy = self.get_hardcoded_model("logistic_scalar_noise")
+        timepoints = {"idx1": [78, 81], "idx2": [91]}
         estimations_raw = leaspy.estimate(timepoints, self.individual_parameters)
 
         # select right feature
-        def select_feature_estimation(estimations: dict, leaspy: Leaspy, feature: str) -> np.ndarray:
+        def select_feature_estimation(
+            estimations: dict, leaspy: Leaspy, feature: str
+        ) -> np.ndarray:
             """
             Select the right feature from multivariate estimation
 
@@ -189,7 +190,9 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
             )
 
             # Remark: tolerance had to be pretty diminished so that the test passes...
-            self.check_almost_equal_for_all_ind_tpts(estimated_ages, timepoints, tol=0.5)
+            self.check_almost_equal_for_all_ind_tpts(
+                estimated_ages, timepoints, tol=0.5
+            )
 
         # quick check biomarker_values as dict of key: str and val: int works
         estimated_ages_0 = leaspy.estimate_ages_from_biomarker_values(
@@ -200,33 +203,55 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
             },
             feature="Y0",
         )
-        self.assertAlmostEqual(estimated_ages_0['idx1'], 68.52, 2)
-        self.assertAlmostEqual(estimated_ages_0['idx2'], 72.38, 2)
+        self.assertAlmostEqual(estimated_ages_0["idx1"], 68.52, 2)
+        self.assertAlmostEqual(estimated_ages_0["idx2"], 72.38, 2)
 
     @skip("Broken : Ordinal models are currently broken")
     def test_estimate_ages_from_biomarker_values_multivariate_ordinal(self):
         # multivariate logistic ordinal model
         # feats are "Y0", ...
         timepoints = {
-            "Y0": {'idx1': [69.087, 70.881], 'idx2': [72.841, 74.465]},
-            "Y1": {'idx1': [72.463, 73.047, 73.0466],
-                   'idx2': [74.627, 75.155, 75.155]},
-            "Y2": {'idx1': [69.913, 72.248, 72.248, 72.248, 72.248],
-                   'idx2': [72.697, 74.810, 74.810, 74.810, 74.810]},
-            "Y3": {'idx1': [69.695, 69.695, 70.554, 70.554, 71.689,
-                            71.689, 73.992, 73.992, 74.680],
-                   'idx2': [72.396, 72.396, 73.174, 73.174, 74.200,
-                            74.200, 76.285, 76.285, 76.907]}
+            "Y0": {"idx1": [69.087, 70.881], "idx2": [72.841, 74.465]},
+            "Y1": {"idx1": [72.463, 73.047, 73.0466], "idx2": [74.627, 75.155, 75.155]},
+            "Y2": {
+                "idx1": [69.913, 72.248, 72.248, 72.248, 72.248],
+                "idx2": [72.697, 74.810, 74.810, 74.810, 74.810],
+            },
+            "Y3": {
+                "idx1": [
+                    69.695,
+                    69.695,
+                    70.554,
+                    70.554,
+                    71.689,
+                    71.689,
+                    73.992,
+                    73.992,
+                    74.680,
+                ],
+                "idx2": [
+                    72.396,
+                    72.396,
+                    73.174,
+                    73.174,
+                    74.200,
+                    74.200,
+                    76.285,
+                    76.285,
+                    76.907,
+                ],
+            },
         }
 
         # loss is not involved in estimation so all expected outputs are the same for those 2 models
-        for hardcoded_model in ('logistic_ordinal', 'logistic_ordinal_ranking_same'):
+        for hardcoded_model in ("logistic_ordinal", "logistic_ordinal_ranking_same"):
             with self.subTest(hardcoded_model=hardcoded_model):
                 leaspy = self.get_hardcoded_model(hardcoded_model)
                 levels = {
                     ft: {
                         id_: [list(range(1, ft_max_level))] for id_ in ("idx1", "idx2")
-                    } for ft, ft_max_level in leaspy.model.noise_model.max_levels.items()
+                    }
+                    for ft, ft_max_level in leaspy.model.noise_model.max_levels.items()
                 }
                 # checks with no feature argument
                 with self.assertRaises(ValueError):
@@ -241,4 +266,6 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
                         biomarker_values=feat_estimations,
                         feature=feature,
                     )
-                    self.check_almost_equal_for_all_ind_tpts(estimated_ages, timepoints[feature], tol=1e-3)
+                    self.check_almost_equal_for_all_ind_tpts(
+                        estimated_ages, timepoints[feature], tol=1e-3
+                    )
