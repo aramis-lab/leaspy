@@ -1,14 +1,16 @@
 import csv
 import os
 import time
-
-from leaspy.models import AbstractModel
-
-from ..data import Dataset
-from ..realizations import CollectionRealization
-from .visualization import Plotter
-
-__all__ = ["FitOutputManager"]
+import math
+import pandas as pd
+from matplotlib import colormaps
+import matplotlib.pyplot as plt
+from leaspy.io.data.dataset import Dataset
+from leaspy.models.abstract_model import AbstractModel
+from matplotlib.lines import Line2D
+import numpy as np
+from pathlib import Path
+import torch
 
 
 class FitOutputManager:
@@ -26,13 +28,13 @@ class FitOutputManager:
         Path of the folder containing all the outputs
     path_plot : str
         Path of the subfolder of path_output containing the logs plots
-    path_plot_convergence_model_parameters_1 : str
+    path_plot_convergence_model_parameters : str
         Path of the first plot of the convergence of the model's parameters (in the subfolder path_plot)
-    path_plot_convergence_model_parameters_2 : str
-        Path of the second plot of the convergence of the model's parameters (in the subfolder path_plot)
     path_plot_patients : str
         Path of the subfolder of path_plot containing the plot of the reconstruction of the patients' longitudinal
         trajectory by the model
+    nb_of_patients_to_plot : int
+        Number of patients for whom the reconstructions will be plotted.
     path_save_model_parameters_convergence : str
         Path of the subfolder of path_output containing the progression of the model's parameters convergence
     periodicity_plot : int (default 100)
@@ -40,53 +42,27 @@ class FitOutputManager:
     periodicity_print : int
         Set the frequency of the display of the statistics
     periodicity_save : int
-        Set the frequency of the saves of the model's parameters & the realizations
-    plot_options : dict
-        Contain all the additional information (for now contain only the number of displayed patients by the method
-        plot_patient_reconstructions - which is 5 by default)
-    plotter : :class:`~.utils.logs.visualization.plotter.Plotter`
-        class object used to call visualization methods
-    time : float
-        Last timestamp (to display the duration between two visualization prints)
+        Set the frequency of the saves of the model's parameters
     """
 
     def __init__(self, outputs):
-        self.periodicity_print = outputs.console_print_periodicity
+        self.periodicity_print = outputs.print_periodicity
         self.periodicity_save = outputs.save_periodicity
         self.periodicity_plot = outputs.plot_periodicity
-
-        self.path_output = outputs.root_path
-        self.path_plot = outputs.plot_path
-        self.path_plot_patients = outputs.patients_plot_path
-        self.path_save_model_parameters_convergence = outputs.parameter_convergence_path
-        self.path_plot_convergence_model_parameters_1 = None
-        self.path_plot_convergence_model_parameters_2 = None
-
-        if outputs.patients_plot_path is not None:
-            self.path_plot_convergence_model_parameters_1 = os.path.join(
-                outputs.plot_path, "convergence_1.pdf"
-            )
-            self.path_plot_convergence_model_parameters_2 = os.path.join(
-                outputs.plot_path, "convergence_2.pdf"
-            )
-
-        # Options
-        # TODO : Maybe add to the outputs reader
-        # <!> We would need the attributes of the model if we would want to reconstruct values without MCMC toolbox
-        # This is the only location where we could need it during the calibration....
-        self.plot_options = {"max_patient_number": 5, "attribute_type": "MCMC"}  # TODO
-        self.plotter = Plotter()
-        self.plotter._show = False  # do not show any of the plots!
-
+        self.nb_of_patients_to_plot = outputs.nb_of_patients_to_plot
+        if outputs.root_path is not None:
+            self.path_output = Path(outputs.root_path)
+            self.path_plot = Path(outputs.plot_path)
+            self.path_plot_patients = Path(outputs.patients_plot_path)
+            self.path_save_model_parameters_convergence = Path(outputs.parameter_convergence_path)
+            self.path_plot_convergence_model_parameters = self.path_plot / "convergence_parameters.pdf"
         self.time = time.time()
-
-        self.save_last_n_realizations = outputs.save_last_n_realizations
 
     def iteration(
         self,
         algo,
         model: AbstractModel,
-        data: Dataset,  # directly use observations embedded in State?
+        data: Dataset,
     ) -> None:
         """
         Call methods to save state of the running computation, display statistics & plots if the current iteration
@@ -106,47 +82,29 @@ class FitOutputManager:
         if not hasattr(algo, "current_iteration"):
             # emit a warning?
             return
-
         iteration = algo.current_iteration
 
+        if self.path_output is None:
+                return
+
         if self.periodicity_print is not None:
-            if iteration == 1 or iteration % self.periodicity_print == 0:
-                # print first iteration
-                print()
+            if iteration == 0 or iteration % self.periodicity_print == 0:
                 self.print_algo_statistics(algo)
-                print()
                 self.print_model_statistics(model)
-                print()
                 self.print_time()
 
-        if self.path_output is None:
-            return
-
         if self.periodicity_save is not None:
-            if iteration == 1 or iteration % self.periodicity_save == 0:
-                # save first iteration
+            if iteration == 0 or iteration % self.periodicity_save == 0:
+                self.save_plot_patient_reconstructions(iteration, model, data)
                 self.save_model_parameters_convergence(iteration, model)
-                # model.save(...)
-
-        # TODO: no realizations any more...
-        return
 
         if self.periodicity_plot is not None:
             if iteration % self.periodicity_plot == 0:
-                # do not plot first iteration (useless, no lines yet)
-                self.plot_patient_reconstructions(iteration, data, model, realizations)
-                self.plot_convergence_model_parameters(model)
-
-        if (algo.algo_parameters["n_iter"] - iteration) < self.save_last_n_realizations:
-            self.save_realizations(iteration, realizations)
-
-    ########
-    ## Printing methods
-    ########
+                self.save_plot_convergence_model_parameters(model)
 
     def print_time(self):
         """
-        Display the duration since the last print
+        Prints the duration since the last periodic point
         """
         current_time = time.time()
         print(f"Duration since last print: {current_time - self.time:.3f}s")
@@ -154,7 +112,7 @@ class FitOutputManager:
 
     def print_model_statistics(self, model: AbstractModel):
         """
-        Print model's statistics
+        Prints model's statistics
 
         Parameters
         ----------
@@ -165,7 +123,7 @@ class FitOutputManager:
 
     def print_algo_statistics(self, algo):
         """
-        Print algorithm's statistics
+        Prints algorithm's statistics
 
         Parameters
         ----------
@@ -174,15 +132,11 @@ class FitOutputManager:
         """
         print(algo)
 
-    ########
-    ## Saving methods
-    ########
-
     def save_model_parameters_convergence(
         self, iteration: int, model: AbstractModel
     ) -> None:
         """
-        Save the current state of the model's parameters
+        Saves the current state of the model's parameters
 
         Parameters
         ----------
@@ -191,142 +145,124 @@ class FitOutputManager:
         model : :class:`~.models.abstract_model.AbstractModel`
             The model used by the computation
         """
-        # TODO
-        return
-
-        model_parameters = model.parameters
-
-        # TODO maybe better way ???
-        model_parameters_save = model_parameters.copy()
-
-        # TODO I Stopped here, 2d array saves should be fixed.
-
-        # Transform the types
-        for key, value in model_parameters.items():
-            if value.ndim > 1:
-                if key == "betas":
-                    model_parameters_save.pop(key)
-                    for column in range(value.shape[1]):
-                        model_parameters_save[f"{key}_{column}"] = value[
-                            :, column
-                        ].tolist()
-                if key == "deltas":
-                    model_parameters_save.pop(key)
-                    for line in range(value.shape[0]):
-                        model_parameters_save[f"{key}_{line}"] = value[line].tolist()
-                # P0, V0
-                elif value.shape[0] == 1 and len(value.shape) > 1:
-                    model_parameters_save[key] = value[0].tolist()
-            elif value.ndim == 1:
-                model_parameters_save[key] = value.tolist()
-            else:  # ndim == 0
-                model_parameters_save[key] = [value.tolist()]
-
-        # Save the dictionary
-        for key, value in model_parameters_save.items():
-            path = os.path.join(
-                self.path_save_model_parameters_convergence, key + ".csv"
-            )
-            with open(path, "a", newline="") as filename:
-                writer = csv.writer(filename)
-                writer.writerow([iteration] + value)
-
-    def save_realizations(
-        self, iteration: int, realizations: CollectionRealization
-    ) -> None:
-        """
-        Save the current realizations.
-        The path is given by the attribute path_save_model_parameters_convergence.
-
-        Parameters
-        ----------
-        iteration : int
-            The current iteration
-        realizations : :class:`~.io.realizations.collection_realization.CollectionRealization`
-            Current state of the realizations
-        """
-        # TODO
-        return
-
-        # TODO: not generic at all
-        for name in ("xi", "tau"):
-            value = realizations[name].tensor.squeeze(1).detach().tolist()
-            path = os.path.join(
-                self.path_save_model_parameters_convergence, name + ".csv"
-            )
-            with open(path, "a", newline="") as filename:
-                writer = csv.writer(filename)
-                # writer.writerow([iteration]+list(model_parameters.values()))
-                writer.writerow([iteration] + value)
-        if "sources" in realizations.individual.names:
-            for i in range(realizations["sources"].tensor.shape[1]):
-                value = realizations["sources"].tensor[:, i].detach().tolist()
-                path = os.path.join(
-                    self.path_save_model_parameters_convergence,
-                    "sources" + str(i) + ".csv",
-                )
-                with open(path, "a", newline="") as filename:
-                    writer = csv.writer(filename)
-                    # writer.writerow([iteration]+list(model_parameters.values()))
-                    writer.writerow([iteration] + value)
-
-    ########
-    ## Plotting methods
-    ########
-
-    def plot_convergence_model_parameters(self, model: AbstractModel):
-        """
-        Plot the convergence of the model parameters (calling the `Plotter`)
-
-        Parameters
-        ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
-            The model used by the computation
-        """
-        # TODO
-        return
-
-        self.plotter.plot_convergence_model_parameters(
+        model.state.save(
             self.path_save_model_parameters_convergence,
-            self.path_plot_convergence_model_parameters_1,
-            self.path_plot_convergence_model_parameters_2,
-            model,
+            iteration=iteration,
         )
 
-    # def plot_model_average_trajectory(self, model):
-    #    raise NotImplementedError
+    def save_plot_convergence_model_parameters(self, model: AbstractModel):
+        """
+        Saves figures of the model parameters' convergence in one pdf file
 
-    def plot_patient_reconstructions(
+        Parameters
+        ----------
+        model : :class:`~.models.abstract_model.AbstractModel`
+            The model used by the computation
+        """
+        width = 10
+        height_per_row = 3.5
+
+        to_skip = {"betas", "sources", "space_shifts", "mixing_matrix", "xi", "tau"}
+        if getattr(model, "is_ordinal", False):
+            to_skip.add("deltas")
+        params_to_plot = model.state.tracked_variables - to_skip
+
+        n_plots = len(params_to_plot)
+        n_rows = math.ceil(n_plots / 2)
+        _, ax = plt.subplots(n_rows, 2, figsize=(width, n_rows * height_per_row))
+
+        for i, parameter_name in enumerate(params_to_plot):
+            df_convergence = pd.read_csv(
+                self.path_save_model_parameters_convergence / f"{parameter_name}.csv",
+                index_col=0,
+                header=None,
+            )
+            df_convergence.index.rename("iter", inplace=True)
+
+            x_position = i // 2
+            y_position = i % 2
+            df_convergence.plot(ax=ax[x_position][y_position], legend=False)
+            ax[x_position][y_position].set_title(parameter_name)
+
+        plt.tight_layout()
+        plt.savefig(self.path_plot_convergence_model_parameters)
+        plt.close()
+
+    def save_plot_patient_reconstructions(
         self,
         iteration: int,
-        data: Dataset,
         model: AbstractModel,
-        realizations: CollectionRealization,
+        data: Dataset,
     ) -> None:
         """
-        Plot on the same graph for several patients their real longitudinal values
-        and their reconstructions by the model.
+        Saves figures of real longitudinal values and their reconstructions computed by the model for maximum
+        5 patients during each iteration.
 
         Parameters
         ----------
         iteration : int
             The current iteration
-        data : :class:`.Dataset`
-            The data used by the computation
         model : :class:`~.models.abstract_model.AbstractModel`
             The model used by the computation
-        realizations : :class:`~.io.realizations.collection_realization.CollectionRealization`
-            Current state of the realizations
+        data : :class:`.Data`
+            The data used by the computation
         """
-        # TODO
-        return
-        path_iteration = os.path.join(
-            self.path_plot_patients, f"plot_patients_{iteration}.pdf"
+        number_of_patient_plot = min(self.nb_of_patients_to_plot, data.n_individuals)
+        individual_parameters_dict = {
+            variable: model.state.get_tensor_value(variable)
+            for variable in model.individual_variables_names
+        }
+
+        colors = colormaps["Dark2"](np.linspace(0, 1, number_of_patient_plot + 2))
+
+        fig, ax = plt.subplots(1, 1)
+        ax.set_title(f"Feature trajectory for {number_of_patient_plot} patients")
+        ax.set_xlabel("Ages")
+        ax.set_ylabel("Normalized Feature Value")
+
+        for i in range(number_of_patient_plot):
+            times_patient = data.get_times_patient(i).cpu().detach().numpy()
+            true_values_patient = data.get_values_patient(i).cpu().detach().numpy()
+            ip_patient = {pn: pv[i] for pn, pv in individual_parameters_dict.items()}
+
+            reconstruction_values_patient = model.compute_individual_trajectory(
+                times_patient, ip_patient
+            ).squeeze(0).numpy()
+            ax.plot(times_patient, reconstruction_values_patient, c=colors[i])
+            ax.plot(times_patient, true_values_patient, c=colors[i], linestyle="--", marker="o")
+
+            last_time_point = times_patient[-1]
+            last_reconsutruction_value = reconstruction_values_patient.flatten()[-1]
+            ax.text(last_time_point, last_reconsutruction_value, data.indices[i], color=colors[i])
+
+        min_time, max_time = np.percentile(
+            data.timepoints[data.timepoints > 0.0].cpu().detach().numpy(),
+            [10, 90],
         )
-        self.plotter.plot_patient_reconstructions(
-            path_iteration,
-            data,
-            model,
-            realizations.individual.tensors_dict,
-            **self.plot_options,
+        timepoints_np = np.linspace(min_time, max_time, 100)
+        model_values_np = model.compute_mean_traj(torch.tensor(np.expand_dims(timepoints_np, 0)))
+
+        for feature in range(model.dimension):
+            ax.plot(
+                timepoints_np,
+                model_values_np[0, :, feature],
+                c="gray",
+                linewidth=3,
+                alpha=0.3,
+            )
+
+
+        line_rec = Line2D([0], [0], label="Reconstructions", color="black")
+        line_real = Line2D(
+            [0], [0], label="Real feature values", color="black", linestyle="--"
         )
+        line_avg = Line2D([0], [0], label='Global avg. features', color='gray')
+
+        handles, labels = ax.get_legend_handles_labels()
+        handles.extend([line_rec, line_real, line_avg])
+
+        ax.legend(handles=handles)
+        path_iteration = self.path_plot_patients / f"plot_patients_{iteration}.pdf"
+
+        plt.savefig(path_iteration)
+        plt.close()

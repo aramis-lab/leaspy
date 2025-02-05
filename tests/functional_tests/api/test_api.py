@@ -20,7 +20,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         model_name: str,
         model_codename: str,
         *,
-        expected_loss_personalization: Union[float, List[float]],
         personalization_algo: str,
         fit_algo: str = "mcmc_saem",
         simulate_algo: str = "simulation",
@@ -29,7 +28,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         personalization_algo_params: Optional[Dict] = None,
         simulate_algo_params: Optional[Dict] = None,
         simulate_tol: float = 1e-4,
-        tol_loss: float = 1e-2,
         **model_hyperparams,
     ):
         """
@@ -48,8 +46,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             The name of the model.
         model_codename : str
             The name of the model used to retrieve the expected model filename.
-        expected_loss_personalization : float or list of floats
-            The expected loss value for personalization algorithm.
         personalization_algo : str
             The algorithm to use for personalization.
         fit_algo : str, optional
@@ -70,8 +66,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             Default is {seed: 0}
         simulate_tol : float, optional
             Tolerance for consistency checks of simulation results.
-        tol_loss : float, optional
-            Tolerance for consistency checks of personalization loss result.
         """
         fit_algo_params = fit_algo_params or {"n_iter": 200, "seed": 0}
         fit_check_kws = fit_check_kws or {"atol": 1e-3}
@@ -98,16 +92,12 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             name=personalization_algo,
             **personalization_algo_params,
         )
-        individual_parameters, loss = leaspy.personalize(
+        individual_parameters = leaspy.personalize(
             data,
             settings=algo_personalize_settings,
-            return_loss=True,
         )
         self.check_consistency_of_personalization_outputs(
             individual_parameters,
-            loss,
-            expected_loss=expected_loss_personalization,
-            tol_loss=tol_loss,
         )
 
         if RUN_SIMULATION_TESTS:
@@ -136,7 +126,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             fit_check_kws={"atol": 1e-2, "rtol": 1e-2},
             personalization_algo="mode_real",
             personalization_algo_params={"n_iter": 200, "seed": 0},
-            expected_loss_personalization=0.0857,  # scalar RMSE
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
@@ -151,7 +140,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             fit_check_kws={"atol": 1e-2, "rtol": 1e-2},
             personalization_algo="mode_real",
             personalization_algo_params={"n_iter": 200, "seed": 0},
-            expected_loss_personalization=0.08366094529628754,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
@@ -194,7 +182,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
                 "allclose_custom": all_close_custom,
             },
             personalization_algo="scipy_minimize",
-            expected_loss_personalization=[0.064, 0.037, 0.066, 0.142],  # per-ft RMSE
             simulate_algo_params=simulation_parameters,
             simulate_tol=2e-3,  # Not fully reproducible on Linux below this tol...
         )
@@ -206,7 +193,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             obs_models="bernoulli",
             source_dimension=2,
             personalization_algo="mean_real",
-            expected_loss_personalization=104.072,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": .5,
@@ -224,8 +210,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             source_dimension=2,
             fit_algo_params={"n_iter": 200, "seed": 0},
             personalization_algo="mean_real",
-            expected_loss_perso=1064.9 if os.uname()[4][:3] == "arm" else 1065.0,  # logLL, not noise_std
-            tol_loss=0.1,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": .5,
@@ -248,8 +232,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             source_dimension=2,
             fit_check_kws={"atol": 0.005},
             personalization_algo="mean_real",
-            expected_loss_personalization=1045.989,
-            tol_loss=0.1,
             simulate_algo_params={
                 "seed": 123,
                 "delay_btw_visits": .5,
@@ -266,8 +248,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             model_codename="univariate_logistic_ordinal",
             obs_models="ordinal",
             personalization_algo="mean_real",
-            expected_loss_personalization=169.8,  # logLL, not noise_std
-            tol_loss=0.1,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": .5,
@@ -285,8 +265,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             source_dimension=2,
             personalization_algo="mean_real",
             fit_algo_params={"n_iter": 200, "seed": 0},
-            expected_loss_perso=976.4 if os.uname()[4][:3] == "arm" else 977.3,  # logLL, not noise_std
-            tol_loss=0.1,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": .5,
@@ -303,8 +281,6 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             obs_models="ordinal-ranking",
             source_dimension=2,
             personalization_algo="mode_real",
-            expected_loss_personalization=971.95,  # logLL, not noise_std
-            tol_loss=0.1,
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": .5,
@@ -313,3 +289,4 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             },
             batch_deltas_ordinal=True,
         )
+

@@ -74,10 +74,8 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
 
             ip.add_individual_parameters(str(idx), ind_ip)
 
-        # stacked residuals
-        rmse = (np.hstack(residuals) ** 2).mean() ** 0.5
 
-        return ip, rmse
+        return ip
 
     @staticmethod
     def _remove_nans(values, times):

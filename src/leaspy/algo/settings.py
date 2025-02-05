@@ -22,7 +22,7 @@ __all__ = [
 
 class OutputsSettings:
     """
-    Used to create the `logs` folder to monitor the convergence of the calibration algorithm.
+    Used to create the `logs` folder to monitor the convergence of the fit algorithm.
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ class OutputsSettings:
                 Where to store logs (relative or absolute path)
                 If None, nothing will be saved (only console prints),
                 unless save_periodicity is not None (default relative path './_outputs/' will be used).
-            * console_print_periodicity : int >= 1 or None
+            * print_periodicity : int >= 1 or None
                 Flag to log into console convergence data every N iterations
                 If None, no console prints.
             * save_periodicity : int >= 1, optional
@@ -49,36 +49,36 @@ class OutputsSettings:
     ------
     :exc:`.LeaspyAlgoInputError`
     """
-
     # TODO mettre les variables par défaut à None
     # TODO: Réfléchir aux cas d'usages : est-ce qu'on veut tout ou rien,
     # TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
     # TODO: Aussi, bien définir la création du path
 
-    DEFAULT_LOGS_DIR = "_outputs"
+    DEFAULT_LOGS_DIR = '_outputs'  # logs
 
     def __init__(self, settings):
-        self.console_print_periodicity = None
+        self.print_periodicity = None
         self.plot_periodicity = None
-        self.save_periodicity: int = 50
-        self.save_last_n_realizations: int = 100
+        self.save_periodicity = 50
+        self.nb_of_patients_to_plot = 5
+
         self.root_path = None
         self.parameter_convergence_path = None
         self.plot_path = None
         self.patients_plot_path = None
 
-        self._set_console_print_periodicity(settings)
+        self._set_print_periodicity(settings)
         self._set_save_periodicity(settings)
         self._set_plot_periodicity(settings)
-        self._set_save_last_n_realizations(settings)
 
         # only create folders if the user want to save data or plots and provided a valid path!
         self._create_root_folder(settings)
 
-    def _set_param_as_int_or_ignore(self, settings: dict, param: str):
+    def _set_param_as_int_or_ignore(self, settings, param: str):
         """Inplace set of parameter (as int) from settings."""
         if param not in settings:
             return
+
         val = settings[param]
         if val is not None:
             # try to cast as an integer.
@@ -86,97 +86,94 @@ class OutputsSettings:
                 val = int(val)
                 assert val >= 1
             except Exception:
-                warnings.warn(
-                    f"The '{param}' parameter you provided is not castable to an int > 0. "
-                    "Ignoring its value.",
-                    UserWarning,
-                )
+                warnings.warn(f"The '{param}' parameter you provided is not castable to an int > 0. "
+                              "Ignoring its value.", UserWarning)
                 return
 
         # Update the attribute of self in-place
         setattr(self, param, val)
 
-    def _set_console_print_periodicity(self, settings: dict):
-        self._set_param_as_int_or_ignore(settings, "console_print_periodicity")
+    def _set_print_periodicity(self, settings):
+        self._set_param_as_int_or_ignore(settings, 'print_periodicity')
 
-    def _set_save_periodicity(self, settings: dict):
-        self._set_param_as_int_or_ignore(settings, "save_periodicity")
+    def _set_save_periodicity(self, settings):
+        self._set_param_as_int_or_ignore(settings, 'save_periodicity')
 
-    def _set_save_last_n_realizations(self, settings: dict):
-        self._set_param_as_int_or_ignore(settings, "save_last_n_realizations")
+    def _set_plot_periodicity(self, settings):
+        self._set_param_as_int_or_ignore(settings, 'plot_periodicity')
 
-    def _set_plot_periodicity(self, settings: dict):
-        self._set_param_as_int_or_ignore(settings, "plot_periodicity")
         if self.plot_periodicity is not None:
             if self.save_periodicity is None:
-                raise LeaspyAlgoInputError(
-                    "You can not define a `plot_periodicity` without defining `save_periodicity`. "
-                    "Note that the `plot_periodicity` should be a multiple of `save_periodicity`."
-                )
-            if self.plot_periodicity % self.save_periodicity != 0:
-                raise LeaspyAlgoInputError(
-                    "The `plot_periodicity` should be a multiple of `save_periodicity`."
-                )
+                raise LeaspyAlgoInputError('You can not define a `plot_periodicity` without defining `save_periodicity`. '
+                                           'Note that the `plot_periodicity` should be a multiple of `save_periodicity`.')
 
-    def _create_root_folder(self, settings: dict):
+            if self.plot_periodicity % self.save_periodicity != 0:
+                raise LeaspyAlgoInputError('The `plot_periodicity` should be a multiple of `save_periodicity`.')
+
+
+    def _create_root_folder(self, settings):
+
         # Get the path to put the outputs
-        path = settings.get("path", None)
+        path = settings.get('path', None)
+
         if path is None and self.save_periodicity:
-            warnings.warn(
-                "You did not provide a path for your logs outputs whereas you want to save convergence data. "
-                f"The default path '{self.DEFAULT_LOGS_DIR}' will be used (relative to the current working directory)."
-            )
+            warnings.warn("You did not provide a path for your logs outputs whereas you want to save convergence data. "
+                          f"The default path '{self.DEFAULT_LOGS_DIR}' will be used (relative to the current working directory).")
             path = self.DEFAULT_LOGS_DIR
+
+        if path == self.DEFAULT_LOGS_DIR:
+            if os.path.exists(path):
+                self._clean_folder(path)
+
         if path is None:
             # No folder will be created and no convergence data shall be saved
             return
+
         # store the absolute path in settings
-        abs_path = Path.cwd() / path
-        settings["path"] = str(abs_path)
+        abs_path = os.path.abspath(path)
+        settings['path'] = abs_path
+
         # Check if the folder does not exist: if not, create (and its parent)
-        if not abs_path.exists():
-            warnings.warn(
-                f"The logs path you provided ({settings['path']}) does not exist. "
-                "Needed paths will be created (and their parents if needed)."
-            )
-        elif settings.get("overwrite_logs_folder", False):
+        if not os.path.exists(abs_path):
+            warnings.warn(f"The logs path you provided ({settings['path']}) does not exist. "
+                          "Needed paths will be created (and their parents if needed).")
+        elif settings.get('overwrite_logs_folder', False):
             warnings.warn(f"Overwriting '{path}' folder...")
             self._clean_folder(abs_path)
+
         all_ok = self._check_needed_folders_are_empty_or_create_them(abs_path)
+
         if not all_ok:
-            raise LeaspyAlgoInputError(
-                f"The logs folder '{path}' already exists and is not empty! "
-                "Give another path or use keyword argument `overwrite_logs_folder=True`."
-            )
+            raise LeaspyAlgoInputError(f"The logs folder '{path}' already exists and is not empty! "
+                                       "Give another path or use keyword argument `overwrite_logs_folder=True`.")
 
     @staticmethod
-    def _check_folder_is_empty_or_create_it(path_folder: Path) -> bool:
-        if path_folder.exists():
-            if (
-                os.path.islink(path_folder)
-                or not path_folder.is_dir()
-                or len([f for f in path_folder.iterdir()]) > 0
-            ):
+    def _check_folder_is_empty_or_create_it(path_folder) -> bool:
+        if os.path.exists(path_folder):
+            if os.path.islink(path_folder) or not os.path.isdir(path_folder) or len(os.listdir(path_folder)) > 0:
+                # path is a link, or not a directory, or a directory containing something
                 return False
         else:
-            path_folder.mkdir(parents=True, exist_ok=True)
+            os.makedirs(path_folder)
+
         return True
 
     @staticmethod
-    def _clean_folder(path: Path):
+    def _clean_folder(path):
         shutil.rmtree(path)
-        path.mkdir(exist_ok=True, parents=True)
+        os.makedirs(path)
 
-    def _check_needed_folders_are_empty_or_create_them(self, path: Path) -> bool:
+    def _check_needed_folders_are_empty_or_create_them(self, path) -> bool:
         self.root_path = path
-        self.parameter_convergence_path = path / "parameter_convergence"
-        self.plot_path = path / "plots"
-        self.patients_plot_path = self.plot_path / "patients"
-        all_ok = self._check_folder_is_empty_or_create_it(
-            self.parameter_convergence_path
-        )
+
+        self.parameter_convergence_path = os.path.join(path, 'parameter_convergence')
+        self.plot_path = os.path.join(path, 'plots')
+        self.patients_plot_path = os.path.join(self.plot_path, 'patients')
+
+        all_ok = self._check_folder_is_empty_or_create_it(self.parameter_convergence_path)
         all_ok &= self._check_folder_is_empty_or_create_it(self.plot_path)
         all_ok &= self._check_folder_is_empty_or_create_it(self.patients_plot_path)
+
         return all_ok
 
 
@@ -486,11 +483,11 @@ class AlgorithmSettings:
         with open(path, "w") as json_file:
             json.dump(json_settings, json_file, **kwargs)
 
-    def set_logs(self, path: Optional[Union[str, Path]] = None, **kwargs):
+    def set_logs(self, path: Optional[str] = None, **kwargs):
         """
-        Use this method to monitor the convergence of a model calibration.
+        Use this method to monitor the convergence of a model fit.
 
-        It create graphs and csv files of the values of the population parameters (fixed effects) during the calibration
+        It create graphs and csv files of the values of the population parameters (fixed effects) during the fit
 
         Parameters
         ----------
@@ -498,7 +495,7 @@ class AlgorithmSettings:
             The path of the folder to store the graphs and csv files.
             No data will be saved if it is None, as well as save_periodicity and plot_periodicity.
         **kwargs
-            * console_print_periodicity: int, optional, default 100
+            * print_periodicity: int, optional, default 100
                 Display logs in the console/terminal every N iterations.
             * save_periodicity: int, optional, default 50
                 Saves the values in csv files every N iterations.
@@ -506,9 +503,11 @@ class AlgorithmSettings:
                 Generates plots from saved values every N iterations.
                 Note that:
                     * it should be a multiple of save_periodicity
-                    * setting a too low value (frequent) we seriously slow down you calibration
+                    * setting a too low value (frequent) we seriously slow down you fit
             * overwrite_logs_folder: bool, optional, default False
                 Set it to ``True`` to overwrite the content of the folder in ``path``.
+            * nb_of_patients_to_plot: int, optional default 5
+                number of patients to plot
 
         Raises
         ------
@@ -523,37 +522,28 @@ class AlgorithmSettings:
         # TODO: all this logic should be delegated in dedicated OutputSettings class...!
 
         settings = {
-            "path": path,
-            "console_print_periodicity": 100,
-            "save_periodicity": 50,
-            "plot_periodicity": 1000,
-            "overwrite_logs_folder": False,
+            'path': path,
+            'print_periodicity': None,
+            'save_periodicity': 10,
+            'plot_periodicity': 50,
+            'overwrite_logs_folder': False,
+            'nb_of_patients_to_plot': 5
         }
 
         for k, v in kwargs.items():
-            if k in (
-                "console_print_periodicity",
-                "plot_periodicity",
-                "save_periodicity",
-                "save_last_n_realizations",
-            ):
+            if k in ['print_periodicity', 'plot_periodicity', 'save_periodicity', 'nb_of_patients_to_plot']:
                 if v is not None and not isinstance(v, int):
-                    raise LeaspyAlgoInputError(
-                        f"You must provide a integer to the input <{k}>! "
-                        f"You provide {v} of type {type(v)}."
-                    )
+                    raise LeaspyAlgoInputError(f'You must provide a integer to the input <{k}>! '
+                                               f'You provide {v} of type {type(v)}.')
                 settings[k] = v
-            elif k in ["overwrite_logs_folder"]:
+            elif k in ['overwrite_logs_folder']:
                 if not isinstance(v, bool):
-                    raise LeaspyAlgoInputError(
-                        f"You must provide a boolean to the input <{k}>! "
-                        f"You provide {v} of type {type(v)}."
-                    )
+                    raise LeaspyAlgoInputError(f'You must provide a boolean to the input <{k}>! '
+                                               f'You provide {v} of type {type(v)}.')
                 settings[k] = v
             else:
-                warnings.warn(
-                    f"The kwarg '{k}' you provided is not valid and was skipped."
-                )
+                warnings.warn(f"The kwarg '{k}' you provided is not valid and was skipped.")
+
         self.logs = OutputsSettings(settings)
 
     def _manage_kwargs(self, kwargs):
