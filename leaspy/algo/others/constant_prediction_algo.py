@@ -90,7 +90,7 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
 
             ip.add_individual_parameters(str(idx), ind_ip)
 
-        return ip, None # TODO? evaluate rmse?
+        return ip
 
     def _get_individual_last_values(self, times, values, *, fts: List[FeatureType]):
         """

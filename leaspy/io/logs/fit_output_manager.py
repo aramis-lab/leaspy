@@ -50,11 +50,12 @@ class FitOutputManager:
         self.periodicity_save = outputs.save_periodicity
         self.periodicity_plot = outputs.plot_periodicity
         self.nb_of_patients_to_plot = outputs.nb_of_patients_to_plot
-        self.path_output = Path(outputs.root_path)
-        self.path_plot = Path(outputs.plot_path)
-        self.path_plot_patients = Path(outputs.patients_plot_path)
-        self.path_save_model_parameters_convergence = Path(outputs.parameter_convergence_path)
-        self.path_plot_convergence_model_parameters = self.path_plot / "convergence_parameters.pdf"
+        if outputs.root_path is not None:
+            self.path_output = Path(outputs.root_path)
+            self.path_plot = Path(outputs.plot_path)
+            self.path_plot_patients = Path(outputs.patients_plot_path)
+            self.path_save_model_parameters_convergence = Path(outputs.parameter_convergence_path)
+            self.path_plot_convergence_model_parameters = self.path_plot / "convergence_parameters.pdf"
         self.time = time.time()
 
     def iteration(

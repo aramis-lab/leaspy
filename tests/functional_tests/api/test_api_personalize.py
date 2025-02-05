@@ -67,34 +67,22 @@ class LeaspyPersonalizeTestMixin(LeaspyTestCase):
             data = Data.from_csv_file(data_full_path, **data_kws)
 
         algo_settings = cls.get_algo_settings(path=algo_path, name=algo_name, **algo_params)
-        ips, loss = leaspy.personalize(data, settings=algo_settings, return_loss=True)
+        ips = leaspy.personalize(data, settings=algo_settings)
 
-        return ips, loss, leaspy  # data?
+        return ips, leaspy  # data?
 
     def check_consistency_of_personalization_outputs(
         self,
         ips: IndividualParameters,
-        loss: torch.Tensor,
-        expected_loss: Union[float, List[float]],
-        *,
-        tol_loss: Optional[float] = 5e-3,
         msg=None,
     ):
         self.assertIsInstance(ips, IndividualParameters)
-        self.assertIsInstance(loss, torch.Tensor)
 
-        if isinstance(expected_loss, float):
-            self.assertEqual(loss.numel(), 1, msg=msg)  # scalar noise or neg-ll
-            self.assertAlmostEqual(loss.item(), expected_loss, delta=tol_loss, msg=msg)
-        else:
-            # vector of noises (for Gaussian diagonal noise)
-            self.assertEqual(loss.numel(), len(expected_loss), msg=msg)  # diagonal noise
-            self.assertAllClose(loss, expected_loss, atol=tol_loss, what='noise', msg=msg)
 
 
 class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
 
-    def test_personalize_mean_real_logistic_old(self, tol_noise=1e-3):
+    def test_personalize_mean_real_logistic_old(self):
         """
         Load logistic model from file, and personalize it to data from ...
         """
@@ -106,17 +94,14 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             "settings", "algo", "settings_mean_real_old_with_annealing.json"
         )
         with self.assertWarnsRegex(UserWarning, r'[Aa]nnealing'):
-            ips, noise_std, _ = self.generic_personalization(
+            ips, _ = self.generic_personalization(
                 "logistic_scalar_noise", algo_path=path_settings
             )
         self.check_consistency_of_personalization_outputs(
-            ips,
-            noise_std,
-            expected_loss=0.102,
-            tol_loss=tol_noise,
+            ips
         )
 
-    def test_personalize_mode_real_logistic_old(self, tol_noise=1e-3):
+    def test_personalize_mode_real_logistic_old(self):
         """
         Load logistic model from file, and personalize it to data from ...
         """
@@ -125,29 +110,23 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             "settings", "algo", "settings_mode_real_old_with_annealing.json"
         )
         with self.assertWarnsRegex(UserWarning, r'[Aa]nnealing'):
-            ips, noise_std, _ = self.generic_personalization(
+            ips, _ = self.generic_personalization(
                 "logistic_scalar_noise", algo_path=path_settings
             )
         self.check_consistency_of_personalization_outputs(
-            ips,
-            noise_std,
-            expected_loss=0.117,
-            tol_loss=tol_noise,
-        )
+            ips)
 
     def _personalize_generic(
         self,
         model_name: str,
         algo_name: str,
-        expected_loss: Union[float, List[float]],
         algo_kws: Optional[dict] = None,
-        tol_noise: Optional[float] = 5e-4,
     ):
         algo_kws = algo_kws or {}
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter('always')
             # only look at loss to detect any regression in personalization
-            ips, loss, _ = self.generic_personalization(model_name, algo_name=algo_name, seed=0, **algo_kws)
+            ips, _ = self.generic_personalization(model_name, algo_name=algo_name, seed=0, **algo_kws)
 
         ws = [str(w.message) for w in ws]
         if 'ordinal' in model_name:
@@ -156,20 +135,9 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         else:
             self.assertEqual(ws, [])
 
-        tol_loss = tol_noise
-        # not noise but NLL (less precise...); some minor exact reproducibility issues MacOS vs. Linux
-        if 'binary' in model_name:
-            tol_loss = 0.1
-        elif 'ordinal_ranking' in model_name:
-            tol_loss = 0.5
-        elif 'ordinal' in model_name:
-            tol_loss = 3.0  # highest reprod. issues
 
         self.check_consistency_of_personalization_outputs(
             ips,
-            loss,
-            expected_loss=expected_loss,
-            tol_loss=tol_loss,
             msg={
                 "model_name": model_name,
                 "perso_name": algo_name,
@@ -181,7 +149,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_scalar_noise",
             "scipy_minimize",
-            0.1189,
             {"use_jacobian": False},
         )
 
@@ -190,21 +157,19 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_scalar_noise",
             "scipy_minimize",
-            0.1188,
             {"use_jacobian": True},
         )
 
     def test_multivariate_logistic_mode_real(self):
-        self._personalize_generic("logistic_scalar_noise", "mode_real", 0.1191)
+        self._personalize_generic("logistic_scalar_noise", "mode_real")
 
     def test_multivariate_logistic_mean_real(self):
-        self._personalize_generic("logistic_scalar_noise", "mean_real", 0.1200)
+        self._personalize_generic("logistic_scalar_noise", "mean_real")
 
     def test_multivariate_logistic_diagonal_id_scipy_minimize(self):
         self._personalize_generic(
             "logistic_diag_noise_id",
             "scipy_minimize",
-            [0.1414, 0.0806, 0.0812, 0.1531],
             {"use_jacobian": False},
         )
 
@@ -213,7 +178,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_diag_noise_id",
             "scipy_minimize",
-            [0.1414, 0.0804, 0.0811, 0.1529],
             {"use_jacobian": True},
         )
 
@@ -221,23 +185,19 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_diag_noise_id",
             "mode_real",
-            [0.1415, 0.0814, 0.0810, 0.1532],
         )
 
     def test_multivariate_logistic_diagonal_id_mean_real(self):
         self._personalize_generic(
             "logistic_diag_noise_id",
             "mean_real",
-            [0.1430, 0.0789, 0.0775, 0.1578],
         )
 
     def test_multivariate_logistic_diagonal_scipy_minimize(self):
         self._personalize_generic(
             "logistic_diag_noise",
             "scipy_minimize",
-            [0.1537, 0.0597, 0.0827, 0.1513],
-            {"use_jacobian": False},
-            tol_noise = 0.003
+            {"use_jacobian": False}
         )
 
     @skipIf(not TEST_LOGISTIC_MODELS_WITH_JACOBIAN, SKIP_LOGISTIC_MODELS_WITH_JACOBIAN)
@@ -245,7 +205,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_diag_noise",
             "scipy_minimize",
-            [0.1543, 0.0597, 0.0827, 0.1509],
             {"use_jacobian": True},
         )
 
@@ -253,14 +212,12 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_diag_noise",
             "mode_real",
-            [0.1596, 0.0598, 0.0824, 0.1507],
         )
 
     def test_multivariate_logistic_diagonal_mean_real(self):
         self._personalize_generic(
             "logistic_diag_noise",
             "mean_real",
-            [0.1565, 0.0587, 0.0833, 0.1511],
         )
 
     @skipIf(not TEST_LOGISTIC_MODELS_WITH_JACOBIAN, SKIP_LOGISTIC_MODELS_WITH_JACOBIAN)
@@ -268,7 +225,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_diag_noise_no_source",
             "scipy_minimize",
-            [0.1053, 0.0404, 0.0699, 0.1991],
             {"use_jacobian": True},
         )
 
@@ -276,14 +232,12 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_diag_noise_no_source",
             "mode_real",
-            [0.1053, 0.0404, 0.0700, 0.1990],
         )
 
     def test_multivariate_logistic_diagonal_no_source_mean_real(self):
         self._personalize_generic(
             "logistic_diag_noise_no_source",
             "mean_real",
-            [0.1067, 0.0406, 0.0691, 0.1987],
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -291,7 +245,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_scalar_noise",
             "scipy_minimize",
-            0.0960,
             {"use_jacobian": False},
         )
 
@@ -303,7 +256,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_scalar_noise",
             "scipy_minimize",
-            0.0956,
             {"use_jacobian": True},
         )
 
@@ -312,7 +264,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_scalar_noise",
             "mode_real",
-            0.0959,
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -320,7 +271,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_scalar_noise",
             "mean_real",
-            0.0964,
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -328,7 +278,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_diag_noise",
             "scipy_minimize",
-            [0.0670, 0.0538, 0.1043, 0.1494],
             {"use_jacobian": False},
         )
 
@@ -340,7 +289,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_diag_noise",
             "scipy_minimize",
-            [0.0669, 0.0538, 0.1043, 0.1494],
             {"use_jacobian": True},
         )
 
@@ -349,7 +297,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_diag_noise",
             "mode_real",
-            [0.0675, 0.0531, 0.1046, 0.1505],
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -357,7 +304,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_diag_noise",
             "mean_real",
-            [0.0671, 0.0553, 0.1040, 0.1509],
         )
 
     ################################################################
@@ -367,7 +313,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_logistic",
             "scipy_minimize",
-            0.1341,
             {"use_jacobian": False},
         )
 
@@ -376,7 +321,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_logistic",
             "scipy_minimize",
-            0.1341,
             {"use_jacobian": True},
         )
 
@@ -384,14 +328,12 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_logistic",
             "mode_real",
-            0.1346,
         )
 
     def test_univariate_logistic_mean_real(self):
         self._personalize_generic(
             "univariate_logistic",
             "mean_real",
-            0.1351,
         )
 
     ################################################################
@@ -401,7 +343,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_joint",
             "scipy_minimize",
-            0.2959330677986145,
             {"use_jacobian": False},
         )
 
@@ -410,7 +351,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_joint",
             "scipy_minimize",
-            0.1341, # TODO: random value
             {"use_jacobian": True},
         )
 
@@ -418,21 +358,18 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_joint",
             "mode_real",
-            0.26655313372612,
         )
 
     def test_univariate_joint_mean_real(self):
         self._personalize_generic(
             "univariate_joint",
             "mean_real",
-            0.2860680818557739,
         )
 
     def test_joint_scipy_minimize(self):
         self._personalize_generic(
             "joint_diagonal",
             "scipy_minimize",
-            [0.0712, 0.0411, 0.0694, 0.1604],
             {"use_jacobian": False},
         )
 
@@ -441,7 +378,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "joint_diagonal",
             "scipy_minimize",
-            [0.0671, 0.0553, 0.1040, 0.1509], # TODO: random value
             {"use_jacobian": True},
         )
 
@@ -449,14 +385,12 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "joint_diagonal",
             "mode_real",
-            [0.0709, 0.0415, 0.0700, 0.1595],
         )
 
     def test_joint_mean_real(self):
         self._personalize_generic(
             "joint_diagonal",
             "mean_real",
-            [0.0707, 0.0412, 0.0691, 0.1602],
         )
 
     ################################################################
@@ -467,7 +401,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_linear",
             "scipy_minimize",
-            0.0812,
             {"use_jacobian": False},
         )
 
@@ -476,7 +409,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_linear",
             "scipy_minimize",
-            0.0812,
             {"use_jacobian": True},
         )
 
@@ -485,7 +417,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_linear",
             "mode_real",
-            0.0817,
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -493,7 +424,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "univariate_linear",
             "mean_real",
-            0.0898,
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -501,7 +431,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_scalar_noise",
             "scipy_minimize",
-            0.1241,
             {"use_jacobian": False},
         )
 
@@ -510,7 +439,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_scalar_noise",
             "scipy_minimize",
-            0.1241,
             {"use_jacobian": True},
         )
 
@@ -519,7 +447,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_scalar_noise",
             "mode_real",
-            0.1241,
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -527,7 +454,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_scalar_noise",
             "mean_real",
-            0.1237,
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -535,7 +461,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_diag_noise",
             "scipy_minimize",
-            [0.1003, 0.1274, 0.1249, 0.1486],
             {"use_jacobian": False},
         )
 
@@ -544,7 +469,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_diag_noise",
             "scipy_minimize",
-            [0.1002, 0.1276, 0.1249, 0.1486],
             {"use_jacobian": True},
         )
 
@@ -553,7 +477,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_diag_noise",
             "mode_real",
-            [0.1007, 0.1292, 0.1250, 0.1489],
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -561,7 +484,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "linear_diag_noise",
             "mean_real",
-            [0.1000, 0.1265, 0.1242, 0.1485],
         )
 
     @skipIf(not TEST_LOGISTIC_BINARY_MODELS, SKIP_LOGISTIC_BINARY_MODELS)
@@ -569,7 +491,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_binary",
             "scipy_minimize",
-            103.7,
             {"use_jacobian": False},
         )
 
@@ -578,7 +499,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_binary",
             "scipy_minimize",
-            103.67,
             {"use_jacobian": True},
         )
 
@@ -587,7 +507,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_binary",
             "mode_real",
-            103.96,
         )
 
     @skipIf(not TEST_LOGISTIC_BINARY_MODELS, SKIP_LOGISTIC_BINARY_MODELS)
@@ -595,7 +514,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_binary",
             "mean_real",
-            101.95,
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -603,7 +521,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_binary",
             "scipy_minimize",
-            112.66,
             {"use_jacobian": False},
         )
 
@@ -615,7 +532,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_binary",
             "scipy_minimize",
-            112.63,
             {"use_jacobian": True},
         )
 
@@ -624,7 +540,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_binary",
             "mode_real",
-            112.105 if os.uname()[4][:3] == "arm" else 111.96,
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -632,7 +547,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_parallel_binary",
             "mean_real",
-            120.16 if os.uname()[4][:3] == "arm" else 120.06,
         )
 
     #@skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -640,7 +554,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal_b",
             "scipy_minimize",
-            700.55,
             {"use_jacobian": False},
         )
 
@@ -649,7 +562,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal",
             "scipy_minimize",
-            631.96 if os.uname()[4][:3] == "arm" else 629.97,
             {"use_jacobian": True},
         )
 
@@ -658,7 +570,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal",
             "mode_real",
-            619.64,
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -666,7 +577,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal",
             "mean_real",
-            616.94,
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -674,7 +584,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal_ranking",
             "scipy_minimize",
-            1014.2,
             {"use_jacobian": False},
         )
 
@@ -683,7 +592,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal_ranking",
             "scipy_minimize",
-            1014.1,
             {"use_jacobian": True},
         )
 
@@ -692,7 +600,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal_ranking",
             "mode_real",
-            1014.9,
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -700,7 +607,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         self._personalize_generic(
             "logistic_ordinal_ranking",
             "mean_real",
-            1015.0,
         )
 
 
@@ -716,7 +622,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self,
         model_name: str,
         algo_name: str,
-        expected_loss: Union[float, List[float]],
         algo_kws: Optional[dict] = None,
         rtol: float = 2e-2,
         atol: float = 5e-3,
@@ -729,13 +634,13 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         }
         common_params = dict(algo_name=algo_name, seed=0, **algo_kws)
 
-        ips_sparse, loss_sparse, _ = self.generic_personalization(
+        ips_sparse, _ = self.generic_personalization(
             model_name,
             **common_params,
             data_path="missing_data/sparse_data.csv",
             data_kws={'drop_full_nan': False},
         )
-        ips_merged, loss_merged, _ = self.generic_personalization(
+        ips_merged, _ = self.generic_personalization(
             model_name,
             **common_params,
             data_path="missing_data/merged_data.csv",
@@ -745,18 +650,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
 
         # same individuals
         self.assertEqual(indices_sparse, indices_merged, msg=subtest)
-
-        # same loss between both cases
-        loss_desc = "nll" if any(kw in model_name for kw in {"binary", "ordinal"}) else "noise"
-        self.assertAllClose(
-            loss_sparse,
-            loss_merged,
-            left_desc="sparse",
-            right_desc="merged",
-            what=loss_desc,
-            atol=atol,
-            msg=subtest,
-        )
 
         # same individual parameters (up to rounding errors)
         self.assertDictAlmostEqual(
@@ -769,14 +662,10 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
             msg=subtest,
         )
 
-        # same loss as expected
-        self.assertAllClose(loss_merged, expected_loss, atol=atol, what=loss_desc, msg=subtest)
-
     def test_multivariate_logistic_scipy_minimize(self):
         self._robustness_to_data_sparsity(
             "logistic_scalar_noise",
             "scipy_minimize",
-            0.1161,
             {"use_jacobian": False},
         )
 
@@ -785,7 +674,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_scalar_noise",
             "scipy_minimize",
-            0.1162,
             {"use_jacobian": True},
         )
 
@@ -793,7 +681,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_id",
             "scipy_minimize",
-            [0.0865, 0.0358, 0.0564, 0.2049],
             {"use_jacobian": False},
         )
 
@@ -802,7 +689,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_id",
             "scipy_minimize",
-            [0.0865, 0.0359, 0.0564, 0.2050],
             {"use_jacobian": True},
         )
 
@@ -810,7 +696,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
             "scipy_minimize",
-            [0.0824, 0.0089, 0.0551, 0.1819],
             {"use_jacobian": False},
         )
 
@@ -819,7 +704,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
             "scipy_minimize",
-            [0.0824, 0.0089, 0.0552, 0.1819],
             {"use_jacobian": True},
         )
 
@@ -827,21 +711,18 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
             "mode_real",
-            [0.0937, 0.0126, 0.0587, 0.1831],
         )
 
     def test_multivariate_logistic_diagonal_mean_real(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
             "mean_real",
-            [0.0908, 0.0072, 0.0595, 0.1817],
         )
 
     def test_multivariate_logistic_diagonal_no_source_scipy_minimize(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_no_source",
             "scipy_minimize",
-            [0.1349, 0.0336, 0.0760, 0.1777],
             {"use_jacobian": False},
         )
 
@@ -850,7 +731,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_no_source",
             "scipy_minimize",
-            [0.1349, 0.0336, 0.0761, 0.1777],
             {"use_jacobian": True},
         )
 
@@ -858,14 +738,12 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_no_source",
             "mode_real",
-            [0.1339, 0.0356, 0.0754, 0.1761],
         )
 
     def test_multivariate_logistic_diagonal_no_source_mean_real(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_no_source",
             "mean_real",
-            [0.1387, 0.0277, 0.0708, 0.1807],
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -873,7 +751,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_scalar_noise",
             "scipy_minimize",
-            0.1525,
             {"use_jacobian": False},
         )
 
@@ -885,7 +762,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_scalar_noise",
             "scipy_minimize",
-            0.1872,
             {"use_jacobian": True},
         )
 
@@ -902,7 +778,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_diag_noise",
             "scipy_minimize",
-            [0.0178, 0.0120, 0.0509, 0.0939],
             {"use_jacobian": False},
         )
 
@@ -914,7 +789,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_diag_noise",
             "scipy_minimize",
-            [0.0178, 0.0120, 0.0508, 0.0940],
             {"use_jacobian": True},
         )
 
@@ -923,7 +797,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_diag_noise",
             "mode_real",
-            [0.0193, 0.0179, 0.0443, 0.0971],
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -931,7 +804,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_diag_noise",
             "mean_real",
-            [0.0385, 0.0153, 0.0433, 0.3016],
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -939,7 +811,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "linear_scalar_noise",
             "scipy_minimize",
-            0.1699,
             {"use_jacobian": False},
         )
 
@@ -948,7 +819,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "linear_scalar_noise",
             "scipy_minimize",
-            0.1699,
             {"use_jacobian": True},
         )
 
@@ -957,7 +827,7 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "linear_diag_noise",
             "scipy_minimize",
-            [0.1021, 0.1650, 0.2083, 0.1481],
+
             {"use_jacobian": False},
         )
 
@@ -966,7 +836,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "linear_diag_noise",
             "scipy_minimize",
-            [0.1023, 0.1630, 0.2081, 0.1480],
             {"use_jacobian": True},
         )
 
@@ -975,7 +844,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_binary",
             "scipy_minimize",
-            8.4722,
             {"use_jacobian": False},
         )
 
@@ -984,7 +852,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_binary",
             "scipy_minimize",
-            8.4718,
             {"use_jacobian": False},
         )
 
@@ -993,7 +860,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_binary",
             "scipy_minimize",
-            8.8422,
             {"use_jacobian": False},
         )
 
@@ -1002,7 +868,6 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_parallel_binary",
             "scipy_minimize",
-            8.8408,
             {"use_jacobian": False},
         )
 

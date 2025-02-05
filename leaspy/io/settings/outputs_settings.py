@@ -106,6 +106,9 @@ class OutputsSettings:
                           f"The default path '{self.DEFAULT_LOGS_DIR}' will be used (relative to the current working directory).")
             path = self.DEFAULT_LOGS_DIR
 
+        if path == self.DEFAULT_LOGS_DIR:
+            if os.path.exists(path):
+                self._clean_folder(path)
 
         if path is None:
             # No folder will be created and no convergence data shall be saved
