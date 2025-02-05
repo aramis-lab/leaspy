@@ -2,8 +2,7 @@ from dataclasses import dataclass
 
 import torch
 
-from leaspy.algo.abstract_algo import AbstractAlgo
-
+from leaspy.algo import AbstractAlgo
 from tests import LeaspyTestCase
 
 
@@ -15,7 +14,6 @@ class FakeAlgorithmSettings:
 
 
 class TestAbstractAlgo(LeaspyTestCase):
-
     @classmethod
     def setUpClass(cls) -> None:
         # for tmp handling
@@ -43,13 +41,15 @@ class TestAbstractAlgo(LeaspyTestCase):
     @LeaspyTestCase.allow_abstract_class_init(AbstractAlgo)
     def test_load_parameters(self):
         algo = AbstractAlgo(self.fake_algo_settings)
-        algo.algo_parameters = {'param1': 1, 'param2': 2}
-        parameters = {'param1': 10, 'param3': 3}
+        algo.algo_parameters = {"param1": 1, "param2": 2}
+        parameters = {"param1": 10, "param3": 3}
         algo.load_parameters(parameters)
-        self.assertEqual(list(algo.algo_parameters.keys()), ['param1', 'param2', 'param3'])
-        self.assertEqual(algo.algo_parameters['param1'], 10)
-        self.assertEqual(algo.algo_parameters['param2'], 2)
-        self.assertEqual(algo.algo_parameters['param3'], 3)
+        self.assertEqual(
+            list(algo.algo_parameters.keys()), ["param1", "param2", "param3"]
+        )
+        self.assertEqual(algo.algo_parameters["param1"], 10)
+        self.assertEqual(algo.algo_parameters["param2"], 2)
+        self.assertEqual(algo.algo_parameters["param3"], 3)
 
     @LeaspyTestCase.allow_abstract_class_init(AbstractAlgo)
     def test_set_output_manager(self):

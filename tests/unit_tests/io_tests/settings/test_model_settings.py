@@ -1,10 +1,8 @@
-from leaspy.io.settings.model_settings import ModelSettings
-
+from leaspy.models import ModelSettings
 from tests import LeaspyTestCase
 
 
 class ModelSettingsTest(LeaspyTestCase):
-
     def _load_settings(self, model_type: str) -> ModelSettings:
         return ModelSettings(
             self.get_test_data_path(
@@ -22,11 +20,11 @@ class ModelSettingsTest(LeaspyTestCase):
 
     def test_model_settings_univariate(self):
         self.assertEqual(self.univariate_model_settings.name, "univariate")
-        self.assertEqual(self.univariate_model_settings.parameters['p0'], 0.3)
-        self.assertEqual(self.univariate_model_settings.parameters['tau_mean'], 50)
-        self.assertEqual(self.univariate_model_settings.parameters['tau_var'], 2)
-        self.assertEqual(self.univariate_model_settings.parameters['xi_mean'], -10)
-        self.assertEqual(self.univariate_model_settings.parameters['xi_var'], 0.8)
+        self.assertEqual(self.univariate_model_settings.parameters["p0"], 0.3)
+        self.assertEqual(self.univariate_model_settings.parameters["tau_mean"], 50)
+        self.assertEqual(self.univariate_model_settings.parameters["tau_var"], 2)
+        self.assertEqual(self.univariate_model_settings.parameters["xi_mean"], -10)
+        self.assertEqual(self.univariate_model_settings.parameters["xi_var"], 0.8)
         self.assertEqual(self.univariate_model_settings.hyperparameters, {})
 
     def test_model_settings_multivariate(self):
@@ -42,13 +40,10 @@ class ModelSettingsTest(LeaspyTestCase):
                 "xi_var": 4,
                 # "sources_mean": [0.0, 0.1],
                 "sources_var": [1.1, 0.9],
-                "noise_var": 0.02
-            }
+                "noise_var": 0.02,
+            },
         )
         self.assertEqual(
             self.multivariate_model_settings.hyperparameters,
-            {
-                "dimension": 3,
-                "source_dimension": 2
-            }
+            {"dimension": 3, "source_dimension": 2},
         )

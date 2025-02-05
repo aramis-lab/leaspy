@@ -10,17 +10,13 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import ast
 import os
 import re
-import sys
-import ast
 from datetime import date
-import sphinx
 from distutils.version import LooseVersion
 
-
-# Add leaspy source path into python path to get references working
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import sphinx
 
 # -- Project information -----------------------------------------------------
 
@@ -36,8 +32,7 @@ def find_var(varname: str, *py_file_paths):
 
 
 # The full version, including alpha/beta/rc tags
-release = find_var("__version__", "..", "leaspy", "__init__.py").s
-
+release = find_var("__version__", "../src", "leaspy", "__init__.py").s
 copyright = f"2017-{date.today().year}, Leaspy contributors"
 
 # -- General configuration ---------------------------------------------------
@@ -46,8 +41,7 @@ copyright = f"2017-{date.today().year}, Leaspy contributors"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # 'sphinx.ext.todo',
-    # 'sphinx.ext.githubpages',
+    "autoapi.extension",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     # 'sphinx.ext.doctest',
@@ -59,7 +53,14 @@ extensions = [
     # 'sphinx.ext.napoleon',
     # 'pytsdtwdoc',
     # 'sphinx_gallery.gen_gallery',
+    "myst_nb",
 ]
+
+# -- autoapi configuration ---------------------------------------------------
+# https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
+
+autoapi_dirs = ["../src"]
+autoapi_root = "reference/api"
 
 
 # this is needed for some reason...
@@ -83,12 +84,6 @@ primary_domain = "py"
 # Use svg images for math stuff
 imgmath_image_format = "svg"
 # pngmath / imgmath compatibility layer for different sphinx versions
-
-
-if LooseVersion(sphinx.__version__) < LooseVersion("1.4"):
-    extensions.append("sphinx.ext.pngmath")
-else:
-    extensions.append("sphinx.ext.imgmath")
 
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#configuration
 
