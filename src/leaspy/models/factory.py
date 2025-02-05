@@ -10,6 +10,7 @@ from .multivariate_parallel import MultivariateParallelModel
 from .ordinal_multivariate_model import OrdinalMultivariateModel
 from .univariate import LinearUnivariateModel, LogisticUnivariateModel
 from .univariate_joint import UnivariateJointModel
+from .mixture import LogisticMultivariateMixtureModel
 
 __all__ = [
     "ModelName",
@@ -30,6 +31,7 @@ class ModelName(str, Enum):
     UNIVARIATE_LINEAR = "univariate_linear"
     LME = "lme"
     CONSTANT = "constant"
+    MIXTURE_LOGISTIC = "mixture_logistic"
 
 
 def model_factory(
@@ -78,3 +80,5 @@ def model_factory(
         return LMEModel(instance_name, **kwargs)
     if name == ModelName.CONSTANT:
         return ConstantModel(instance_name, **kwargs)
+    if name == ModelName.MIXTURE_LOGISTIC:
+        return LogisticMultivariateMixtureModel(instance_name, **kwargs)
