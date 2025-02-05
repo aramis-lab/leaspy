@@ -122,7 +122,7 @@ class AbstractMultivariateMixtureModel(AbstractModel):
             xi_std=ModelParameter.for_ind_std("xi", shape=(self.n_clusters,)),
 
             # LATENT VARS
-            xi=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("xi_mean", "xi_std"))),
+            xi=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("xi_mean", "xi_std"))), # change to probs only after correct calculations in the observational model
             tau=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("tau_mean", "tau_std"))),
 
             # DERIVED VARS
@@ -319,14 +319,13 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
             "nll_tot",
             #specific to the mixture model :
             "probs_ind",
-            "nll_attach_xi",
-            "nll_attach_tau",
             "nll_attach_y",
+            #add nll regul here
         ]
 
         if self.source_dimension:
             default_variables_to_track += ['sources', 'betas', 'mixing_matrix', 'space_shifts',
-                                           'sources_mean', 'nll_attach_sources'] #specific to the mixture model
+                                           'sources_mean'] #specific to the mixture model #add nll regul here
 
         variables_to_track = variables_to_track or default_variables_to_track
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
