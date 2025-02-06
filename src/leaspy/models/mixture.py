@@ -69,23 +69,28 @@ class AbstractMultivariateMixtureModel(AbstractModel):
         return torch.Tensor([self._sources_std] * self.n_clusters) #not sure it's working, it was float before
 
     def __init__(self, name: str, **kwargs):
-
-        #Add the n_clusters as an optional argument.
-        #Keep the simple gaussian observational models.
-
         #n_clusters = kwargs.get('n_clusters', None)
         #kwargs["obs_models"] = (observation_model_factory(observation_models, n_clusters=n_clusters, dimension=dimension),)
         #not sure how to treat n_clusters
 
         self.source_dimension: Optional[int] = None
-        self.n_clusters: Optional[int] = None
 
         dimension = kwargs.get('dimension', None)
+        n_clusters = kwargs.get('n_clusters', None)
         if 'features' in kwargs:
             dimension = len(kwargs['features'])
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
-            observation_models = "gaussian-scalar" if dimension is None else "gaussian-diagonal"
+            observation_models = "mixture-gaussian"
+        if observation_models=="mixture-gaussian":
+            if  n_clusters < 2 :
+                raise LeaspyInputError(
+                    "Number of clusters should be at least 2 to fit a mixture model"
+                )
+            if dimension == 1 :
+                raise LeaspyInputError(
+                    "You cannot use a multivariate model with 1 feature"
+                )
         if isinstance(observation_models, (list, tuple)):
             kwargs["obs_models"] = tuple(
                 [observation_model_factory(obs_model, **kwargs)
@@ -94,23 +99,17 @@ class AbstractMultivariateMixtureModel(AbstractModel):
         elif isinstance(observation_models, (dict)):
             # Not really satisfied... Used for api load
             kwargs["obs_models"] = tuple(
-                [observation_model_factory(observation_models['y'], dimension=dimension)]
+                [observation_model_factory(observation_models['y'], dimension=dimension, n_clusters=n_clusters)]
             )
         else:
-            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension, n_clusters=self.n_clusters),)
+            kwargs["obs_models"] = (observation_model_factory(observation_models, dimension=dimension, n_clusters=n_clusters),)
         super().__init__(name, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """
         Return the specifications of the variables (latent variables,
         derived variables, model 'parameters') that are part of the model.
-        probs_ind refers to the probability of each individual i to belong to each cluster c
-        probs refers to the probability of each cluster c
         """
-        #add n_cluster dimension in shape for model parameters,
-        #put MixtureNormal distribution for individual parameters,
-        #add probs in derived vars
-
         d = super().get_variables_specs()
 
         d.update(
@@ -127,8 +126,8 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
-            probs_ind=LinkedVariable(self.compute_probs_ind),
-            probs = LinkedVariable(self.compute_probs)
+            #probs_ind=LinkedVariable(self.compute_probs_ind),
+            #probs = LinkedVariable(self.compute_probs)
 
         )
 
@@ -159,32 +158,35 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
         return d
 
-    @staticmethod
-    def compute_probs_ind(*, state: State) -> torch.Tensor:
+#PASSED TO OBSERVATIONAL MODEL
 
-        probs_ind = state['probs_ind']
-        n_inds = probs_ind.size()[0]
-        n_clusters = probs_ind.size()[1]
-        probs = probs_ind.sum(dim=0) / n_inds
-        nll_ind = state['nll_attach_y_ind']
-        nll_random = probs * (
-                    state['nll_attach_xi_ind'] + state['nll_attach_tau_ind'] + state['nll_attach_sources_ind'])
+#@staticmethod
+#    def compute_probs_ind(*, state: State) -> torch.Tensor:
 
-        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
-        nominator = probs * nll_ind * nll_random
-        for c in range(n_clusters):
-            probs_ind[:, c] = nominator[:, c] / denominator
+#        probs_ind = state['probs_ind']
+#        n_inds = probs_ind.size()[0]
+#        n_clusters = probs_ind.size()[1]
+#        probs = probs_ind.sum(dim=0) / n_inds
+#        nll_ind = state['nll_attach_y']
+#        nll_random = probs * (
+#                    state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
 
-        return probs_ind
+#        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
+#        nominator = probs * nll_ind * nll_random
+#        for c in range(n_clusters):
+#            probs_ind[:, c] = nominator[:, c] / denominator
 
-    @staticmethod
-    def compute_probs(*, state: State) -> torch.Tensor:
+#        return probs_ind
 
-        probs_ind = state['probs_ind']
-        n_inds = probs_ind.size()[0]
-        probs = probs_ind.sum(dim=0) / n_inds
+#    @staticmethod
+#    def compute_probs(*, state: State) -> torch.Tensor:
 
-        return probs
+#        probs_ind = state['probs_ind']
+#        n_inds = probs_ind.size()[0]
+#        probs = probs_ind.sum(dim=0) / n_inds
+
+#        return probs
+
 
     def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
         """
@@ -318,14 +320,17 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
             "nll_regul_all_sum",
             "nll_tot",
             #specific to the mixture model :
-            "probs_ind",
+            #"probs_ind", ---> transfered to the obervational model
             "nll_attach_y",
-            #add nll regul here
+            "nll_regul_tau",
+            "nll_regul_tau_ind",
+            "nll_regul_xi",
+            "nll_regul_xi_ind",
         ]
 
         if self.source_dimension:
             default_variables_to_track += ['sources', 'betas', 'mixing_matrix', 'space_shifts',
-                                           'sources_mean'] #specific to the mixture model #add nll regul here
+                                           'sources_mean', "nll_regul_sources", "nll_regul_sources_ind",] #specific to the mixture model
 
         variables_to_track = variables_to_track or default_variables_to_track
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
