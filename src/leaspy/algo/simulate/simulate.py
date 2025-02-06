@@ -9,8 +9,10 @@ from leaspy.io.outputs import IndividualParameters
 
 class SimulateData(ABC):
 
-    def __init__(self, dict_param, name, features):
+    def __init__(self, dict_param, visit_type, name, features):
+
         self.parameters = {}
+        self.visit_type = visit_type
         self.load_parameters(dict_param)
         self.features = features
         self.name = name
@@ -30,14 +32,42 @@ class SimulateData(ABC):
         self.param_rm = dict_param
 
     def set_param_study(self, dict_param):
-        self.param_study = {'pat_nb': dict_param['pat_nb'],
+        self.param_study = {'pat_nb': dict_param.get('pat_nb', None),
+                            'regular_visit': dict_param.get('regular_visit', None),
+                            'df_visits': dict_param.get('df_visits', None),
+                            'fv_mean': dict_param.get('fv_mean', None),
+                            'fv_std': dict_param.get('fv_std', None),
+                            'tf_mean': dict_param.get('tf_mean', None),
+                            'tf_std': dict_param.get('tf_std', None),
+                            'distv_mean': dict_param.get('distv_mean', None),
+                            'distv_std': dict_param.get('distv_std', None)
+                            }
+        
+        if self.visit_type=='dataframe':
+            pat_nb = dict_param['df_visits'].groupby('ID').size().shape[0]
+
+            self.param_study = {'pat_nb': pat_nb,
+                                'df_visits': dict_param['df_visits'],                                
+                    }
+            
+        elif self.visit_type=='regular':
+            self.param_study = {'pat_nb': dict_param['pat_nb'],
+                            'regular_visit': dict_param['regular_visit'],
+                            'fv_mean': dict_param['fv_mean'],
+                            'fv_std': dict_param['fv_std'],
+                            'tf_mean': dict_param['tf_mean'],
+                            'tf_std': dict_param['tf_std'],
+                    }
+            
+        elif self.visit_type=='random':
+            self.param_study = {'pat_nb': dict_param['pat_nb'],
                             'fv_mean': dict_param['fv_mean'],
                             'fv_std': dict_param['fv_std'],
                             'tf_mean': dict_param['tf_mean'],
                             'tf_std': dict_param['tf_std'],
                             'distv_mean': dict_param['distv_mean'],
-                            'distv_std': dict_param['distv_std'],
-                            }
+                            'distv_std': dict_param['distv_std']
+                    }
 
     ## ---- SIMULATE ---
     def simulate_data(self, seed=None):
@@ -66,13 +96,19 @@ class SimulateData(ABC):
                                  self.param_study['pat_nb'])
 
         tau_rm = np.random.normal(self.param_rm["parameters"]["tau_mean"],
-                                         self.param_rm["parameters"]["tau_std"],
-                                         self.param_study['pat_nb'])
+                                        self.param_rm["parameters"]["tau_std"],
+                                        self.param_study['pat_nb'])
+        
+        if self.visit_type=='dataframe':
+            df_ip_rm = pd.DataFrame([xi_rm, tau_rm],
+                         index=['xi', 'tau'],
+                         columns=[str(i) for i in self.param_study['df_visits']['ID'].unique()]).T
 
+        else:
 
-        df_ip_rm = pd.DataFrame([xi_rm, tau_rm],
-                              index=['xi', 'tau'],
-                              columns=[str(i) for i in range(0, self.param_study['pat_nb'])]).T
+            df_ip_rm = pd.DataFrame([xi_rm, tau_rm],
+                                index=['xi', 'tau'],
+                                columns=[str(i) for i in range(0, self.param_study['pat_nb'])]).T
 
         for i in range(self.param_rm["source_dimension"]):
             df_ip_rm[f'sources_{i}'] = np.random.normal(0., 1.,self.param_study['pat_nb']) #skewnorm.rvs(3,size = self.param_study['pat_nb'])#
@@ -100,29 +136,43 @@ class SimulateData(ABC):
     def generate_visit_ages(self, df):
 
         df_ind = df.copy()
-        
-        df_ind['AGE_AT_BASELINE'] = df_ind['tau'] + pd.DataFrame(np.random.normal(self.param_study['fv_mean'],
-                                                                     self.param_study['fv_std'],
-                                                                     self.param_study['pat_nb']),
-                                                                  index = df_ind.index)[0]#/np.exp(df_ind['xi'])
 
-        df_ind['AGE_FOLLOW_UP'] = df_ind['AGE_AT_BASELINE'] + np.random.normal(self.param_study['tf_mean'],
-                                                                                           self.param_study['tf_std'],
-                                                                                        self.param_study['pat_nb'])
-        ## Generate visit ages for each patients
-        dict_timepoints = {}
-        for id_ in df_ind.index.values:
+        if self.visit_type=='dataframe':
+            dict_timepoints = self.param_study['df_visits'].groupby('ID')['TIME'].apply(list).to_dict()
+            
+        else:
 
-            ## Get the number of visit per patient
-            time = df_ind.loc[id_, "AGE_AT_BASELINE"]
-            age_visits = [time]
-            while time < df_ind.loc[id_, "AGE_FOLLOW_UP"]:
+            mode = self.param_study['fv_mean'] * ((self.param_study['fv_std'] - 1) / self.param_study['fv_std']) ** \
+                self.param_study['fv_std']  # noqa: F841
 
-                # Add one age at visit
-                time += np.random.normal(self.param_study['distv_mean'],self.param_study['distv_std'])
-                age_visits.append(time)
+            df_ind['AGE_AT_BASELINE'] = df_ind['tau'] + pd.DataFrame(np.random.normal(self.param_study['fv_mean'],
+                                                                        self.param_study['fv_std'],
+                                                                        self.param_study['pat_nb']),
+                                                                    index = df_ind.index)[0]#/np.exp(df_ind['xi'])
 
-            dict_timepoints[id_] = list(age_visits)
+            df_ind['AGE_FOLLOW_UP'] = df_ind['AGE_AT_BASELINE'] + np.random.normal(self.param_study['tf_mean'],
+                                                                                            self.param_study['tf_std'],
+                                                                                            self.param_study['pat_nb'])
+            ## Generate visit ages for each patients
+            dict_timepoints = {}
+
+            for id_ in df_ind.index.values:
+
+                ## Get the number of visit per patient
+                time = df_ind.loc[id_, "AGE_AT_BASELINE"]
+                age_visits = [time]
+
+                while time < df_ind.loc[id_, "AGE_FOLLOW_UP"]:
+
+                    if self.visit_type=='regular':
+                        time += self.param_study['regular_visit']
+                    
+                    if self.visit_type=='random':
+                        time += np.random.normal(self.param_study['distv_mean'],self.param_study['distv_std'])
+                    
+                    age_visits.append(time)
+
+                dict_timepoints[id_] = list(age_visits)
 
         return dict_timepoints
 
@@ -139,9 +189,11 @@ class SimulateData(ABC):
         for i, feat in enumerate(self.features):
             if np.isscalar(self.param_rm["parameters"]['noise_std']):
                 mu = df_long[feat + '_no_noise']
+                print(mu)
                 var = self.param_rm["parameters"]['noise_std']**2
             else:
                 mu = df_long[feat + '_no_noise']
+                print(mu)
                 var = self.param_rm["parameters"]['noise_std'][i]**2
             
             alpha_param = mu * ((mu * (1 - mu)/var) - 1)
