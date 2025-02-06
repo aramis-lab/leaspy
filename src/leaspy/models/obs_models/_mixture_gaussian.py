@@ -29,6 +29,9 @@ from src.leaspy.variables.state import State
 
 from ._gaussian import FullGaussianObservationModel
 
+__all__ = [
+    "MixtureGaussianObservationModel",
+]
 
 class MixtureGaussianObservationModel(FullGaussianObservationModel):
     """
@@ -42,58 +45,76 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
         )
 
     @classmethod
-    def with_probs(cls, n_clusters: int):
+    def update_probs_ind(cls, *, state: State) -> torch.Tensor:
         """
-        Default instance
+        Update rule for the individual probabilities of each individual i to belong to the cluster c.
+        It uses the parts pf the likelihood corresponding to the data attachment and the attachment to the
+        random effects, as calculated in the previous iteration.
+        ----------
+        Parameters
+        ----------
+        state
+
+        Returns
+        -------
+        probs_ind : a 2D tensor (n_individuals x n_clusters)
+        with the corresponding probabilities of each individual i to belong to the cluster i
         """
+        probs_ind = state['probs_ind'] #from the previous iteration
+        n_inds = probs_ind.size()[0]
+        n_clusters = probs_ind.size()[1]
+        probs = probs_ind.sum(dim=0) / n_inds #from the previous iteration
+        nll_ind = state['nll_attach_y']
+        nll_random = probs * (
+                state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
 
-        if not isinstance(n_clusters, int) or n_clusters >= 2:
-            raise ValueError(f"Number of clusters should be an integer >=2. You provided {n_clusters}.")
-
+        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
+        nominator = probs * nll_ind * nll_random
         for c in range(n_clusters):
-            extra_vars = {
-                "y_L2_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_weighted_sum_only, but_dim=LVL_FT)),
-                "n_obs_per_cluster": LinkedVariable(Sqr("y").then(wsum_dim_return_sum_of_weights_only, but_dim=LVL_FT)),
-                # fix dim to lvl_clusters
-            }
+            probs_ind[:, c] = nominator[:, c] / denominator
 
-        return cls(**extra_vars)
+        return probs_ind
 
-    # to fix none of this really exists in state
+    @classmethod
+    def update_probs(cls) -> torch.Tensor:
+        """
+        Update rule for the probabilities of occurrence of each cluster.
+        -------
+        Returns
+        -------
+        probs : an 1D tensor (n_cluster)
+        with the probabilities of occurrence of each cluster
+        """
+        probs_ind = cls.update_probs_ind
+        n_inds = probs_ind.size()[0]
+        probs = probs_ind.sum(dim=0) / n_inds
+
+        return probs
+
+    @classmethod
+    def probs_specs(cls, n_clusters:int):
+        """
+        Default specifications for probs parameter.
+        """
+        update_rule = cls.update_probs
+
+        return ModelParameter(
+            shape = n_clusters,
+            update_rule = update_rule
+        )
+
+    @classmethod
+    def with_probs_as_model_parameter(cls, n_clusters:int):
+        """
+        Default instance of MixtureGaussianObservationModel
+        """
+        if not isinstance(n_clusters, int) or n_clusters < 2:
+            raise ValueError(
+                f"Number of clusters should be an integer >= 2. You provided {n_clusters}."
+            )
+
+        return cls(noise_std=cls.probs_specs(n_clusters))
 
     def to_string(self) -> str:
         """method for parameter saving"""
         return "mixture-gaussian"
-
-
-"""
-    @classmethod
-    def compute_probs_update(
-            cls,
-            *,
-            state: State,
-            n_clusters: int,
-            n_inds: int,
-            probs_ind=None) -> torch.Tensor:  # tuple[torch.Tensor, torch.Tensor]:
-
-
-        nll_ind_per_cluster = state["nll_ind_per_cluster"]
-        nll_random_per_cluster = state["nll_random_per_cluster"]
-
-        for i in range(n_inds):
-            denominator = 0
-            for c in range(n_clusters):
-                denominator = denominator + state["probs"][c] * nll_ind_per_cluster[i, c] * nll_random_per_cluster[i, c]
-
-            for c in range(n_clusters):
-                probs_ind[i, c] = state["probs"][c] * nll_ind_per_cluster[i, c] * nll_random_per_cluster[
-                    i, c] / denominator
-
-        # probs = probs_ind.sum(dim=0)
-
-        return probs_ind  # , probs
-
-    @classmethod
-    def probs_specs(cls, n_clusters: int) -> LinkedVariable:
-    return LinkedVariable(cls.compute_probs_update(n_clusters))
-    """
