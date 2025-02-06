@@ -7,10 +7,7 @@ from enum import Enum
 from typing import (
     Callable,
     ClassVar,
-    Dict,
-    FrozenSet,
     Optional,
-    Tuple,
     Union,
 )
 from typing import (
@@ -45,9 +42,10 @@ from leaspy.utils.weighted_tensor import (
 from .distributions import SymbolicDistribution
 
 __all__ = [
-    "VarName",
-    "VarValue",
-    "VariablesValuesRO",
+    "VariableName",
+    "VariableValue",
+    "VariableNameToValueMapping",
+    "VariablesToFrozenSet",
     "VariablesLazyValuesRW",
     "VariablesLazyValuesRO",
     "SuffStatsRO",
@@ -66,13 +64,14 @@ __all__ = [
     "NamedVariables",
 ]
 
-VarName = str
-VarValue = TensorOrWeightedTensor[float]
-VariablesValuesRO = TMapping[VarName, VarValue]
-VariablesLazyValuesRO = TMapping[VarName, Optional[VarValue]]
-VariablesLazyValuesRW = TMutableMapping[VarName, Optional[VarValue]]
-SuffStatsRO = TMapping[VarName, torch.Tensor]  # VarValue
-SuffStatsRW = TMutableMapping[VarName, torch.Tensor]  # VarValue
+VariableName = str
+VariableValue = TensorOrWeightedTensor[float]
+VariableNameToValueMapping = TMapping[VariableName, VariableValue]
+VariablesToFrozenSet = TMapping[VariableName, frozenset[VariableValue]]
+VariablesLazyValuesRO = TMapping[VariableName, Optional[VariableValue]]
+VariablesLazyValuesRW = TMutableMapping[VariableName, Optional[VariableValue]]
+SuffStatsRO = TMapping[VariableName, torch.Tensor]  # VarValue
+SuffStatsRW = TMutableMapping[VariableName, torch.Tensor]  # VarValue
 
 LVL_IND = 0
 LVL_FT = -1
@@ -91,30 +90,29 @@ class VariableInterface:
     """Is True as soon as we guarantee that shape of variable is only dependent on model hyperparameters, not data."""
 
     @abstractmethod
-    def compute(self, state: VariablesValuesRO) -> Optional[VarValue]:
+    def compute(self, state: VariableNameToValueMapping) -> Optional[VariableValue]:
         """
         Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
         If not relevant for variable type return None.
 
         Parameters
         ----------
-        state : VariablesValuesRO
+        state : :class:`~leaspy.variables.specs.VariableNameToValueMapping`
             The state to use in order to perform computations.
 
         Returns
         -------
-        VarValue :
+        :class:`~leaspy.variables.specs.VariableValue` :
             The variable value computed from the state.
         """
 
     @abstractmethod
-    def get_ancestors_names(self) -> FrozenSet[VarName]:
-        """
-        Get the names of the variables that the current variable directly depends on.
+    def get_ancestors_names(self) -> frozenset[VariableName]:
+        """Get the names of the variables that the current variable directly depends on.
 
         Returns
         -------
-        FrozenSet[VarName] :
+        :obj:`frozenset` [ :class:`~leaspy.variables.specs.VariableName`] :
             The set of ancestors variable names.
         """
 
@@ -127,30 +125,29 @@ class VariableInterface:
 class IndepVariable(VariableInterface):
     """Base class for variable that is not dependent on any other variable."""
 
-    def get_ancestors_names(self) -> FrozenSet[VarName]:
-        """
-        Get the names of the variables that the current variable directly depends on.
+    def get_ancestors_names(self) -> frozenset[VariableName]:
+        """Get the names of the variables that the current variable directly depends on.
 
         Returns
         -------
-        FrozenSet[VarName] :
+        :obj:`frozenset` [ :class:`~leaspy.variables.specs.VariableName`] :
             The set of ancestors variable names.
         """
         return frozenset()
 
-    def compute(self, state: VariablesValuesRO) -> None:
-        """
-        Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
+    def compute(self, state: VariableNameToValueMapping) -> Optional[VariableValue]:
+        """Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
+
         If not relevant for variable type return None.
 
         Parameters
         ----------
-        state : VariablesValuesRO
+        state : :class:`~leaspy.variables.specs.VariableNameToValueMapping`
             The state to use in order to perform computations.
 
         Returns
         -------
-        VarValue :
+        :class:`~leaspy.variables.specs.VariableValue` or None:
             The variable value computed from the state.
         """
         return None
@@ -160,8 +157,7 @@ class IndepVariable(VariableInterface):
 class Hyperparameter(IndepVariable):
     """Hyperparameters that can not be reset."""
 
-    value: VarValue
-
+    value: VariableValue
     fixed_shape: ClassVar = True
     is_settable: ClassVar = False
 
@@ -170,54 +166,47 @@ class Hyperparameter(IndepVariable):
             object.__setattr__(self, "value", torch.tensor(self.value))
 
     def to_device(self, device: torch.device) -> None:
-        """
-        Move the value to specified device (other variables never hold values so need for this method).
+        """Move the value to specified device (other variables never hold values so need for this method).
 
         Parameters
         ----------
-        device : torch.device
+        device : :class:`torch.device`
             The device on which to move the variable value.
         """
         return object.__setattr__(self, "value", self.value.to(device=device))
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         return self.value.shape
 
 
 @dataclass(frozen=True, init=False)
 class Collect:
-    """
-    A convenient class to produce a function to collect sufficient stats that
-    are existing or dedicated variables (to be automatically created).
-    """
+    """A convenient class to produce a function to collect sufficient stats that are existing or dedicated variables (to be automatically created)."""
 
-    existing_variables: Tuple[VarName, ...] = ()
-    dedicated_variables: Optional[TMapping[VarName, LinkedVariable]] = None
+    existing_variables: tuple[VariableName, ...] = ()
+    dedicated_variables: Optional[TMapping[VariableName, LinkedVariable]] = None
 
     def __init__(
-        self, *existing_variables: VarName, **dedicated_variables: LinkedVariable
+        self, *existing_variables: VariableName, **dedicated_variables: LinkedVariable
     ):
         # custom init to allow more convenient variadic form
         object.__setattr__(self, "existing_variables", existing_variables)
         object.__setattr__(self, "dedicated_variables", dedicated_variables or None)
 
     @property
-    def variables(self) -> Tuple[VarName, ...]:
+    def variables(self) -> tuple[VariableName, ...]:
         return self.existing_variables + tuple(self.dedicated_variables or ())
 
-    def __call__(self, state: VariablesValuesRO) -> SuffStatsRW:
+    def __call__(self, state: VariableNameToValueMapping) -> SuffStatsRW:
         return {k: state[k] for k in self.variables}
 
 
 @dataclass(frozen=True)
 class ModelParameter(IndepVariable):
-    """
-    Variable for model parameters, with a maximization rule (not to be sampled but
-    is not data / nor hyperparameter, nor linked).
-    """
+    """Variable for model parameters, with a maximization rule (not to be sampled but is not data / nor hyperparameter, nor linked)."""
 
-    shape: Tuple[int, ...]
+    shape: tuple[int, ...]
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
     """
     The symbolic update functions will take variadic `suff_stats` values,
@@ -230,15 +219,15 @@ class ModelParameter(IndepVariable):
     name for a variable as a safety)
     """
 
-    update_rule: Callable[..., VarValue]
+    update_rule: Callable[..., VariableValue]
     """Update rule for normal phase, and memory-less (burn-in) phase unless `update_rule_burn_in` is not None."""
 
-    update_rule_burn_in: Optional[Callable[..., VarValue]] = None
+    update_rule_burn_in: Optional[Callable[..., VariableValue]] = None
     """Specific rule for burn-in (currently implemented for some variables -> e.g. `xi_std`)"""
 
     # private attributes (computed in __post_init__)
-    _update_rule_parameters: FrozenSet[VarName] = field(init=False, repr=False)
-    _update_rule_burn_in_parameters: Optional[FrozenSet[VarName]] = field(
+    _update_rule_parameters: frozenset[VariableName] = field(init=False, repr=False)
+    _update_rule_burn_in_parameters: Optional[frozenset[VariableName]] = field(
         default=None, init=False, repr=False
     )
 
@@ -273,25 +262,26 @@ class ModelParameter(IndepVariable):
     def compute_update(
         self,
         *,
-        state: VariablesValuesRO,
+        state: VariableNameToValueMapping,
         suff_stats: SuffStatsRO,
         burn_in: bool,
-    ) -> VarValue:
-        """
-        Update rule (maximization step) for the model parameter.
+    ) -> VariableValue:
+        """Update rule (maximization step) for the model parameter.
 
         Parameters
         ----------
-        state : VariablesValuesRO
+        state : :class:`~leaspy.variables.specs.VariableNameToValueMapping`
             The state to use for computations.
-        suff_stats : SuffStatsRO
+
+        suff_stats : :class:`~leaspy.variables.specs.SuffStatsRO`
             The sufficient statistics to use.
-        burn_in : bool
+
+        burn_in : :obj:`bool`
             If True, use the update rule in burning phase.
 
         Returns
         -------
-        VarValue :
+        :class:`~leaspy.variables.specs.VariableValue` :
             The computed variable value.
         """
         update_rule, update_rule_params = self.update_rule, self._update_rule_parameters
@@ -310,11 +300,8 @@ class ModelParameter(IndepVariable):
     # Special factories for typical cases (shortcuts)
 
     @classmethod
-    def for_pop_mean(cls, pop_var_name: VarName, shape: Tuple[int, ...]):
-        """
-        Smart automatic definition of `ModelParameter` when it is the mean of Gaussian
-        prior of a population latent variable.
-        """
+    def for_pop_mean(cls, pop_var_name: VariableName, shape: tuple[int, ...]):
+        """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of a population latent variable."""
         return cls(
             shape,
             suff_stats=Collect(pop_var_name),
@@ -322,11 +309,8 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_ind_mean(cls, ind_var_name: VarName, shape: Tuple[int, ...]):
-        """
-        Smart automatic definition of `ModelParameter` when it is the mean of Gaussian
-        prior of an individual latent variable.
-        """
+    def for_ind_mean(cls, ind_var_name: VariableName, shape: tuple[int, ...]):
+        """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of an individual latent variable."""
         return cls(
             shape,
             suff_stats=Collect(ind_var_name),
@@ -334,11 +318,8 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_ind_std(cls, ind_var_name: VarName, shape: Tuple[int, ...], **tol_kw):
-        """
-        Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
-        prior of an individual latent variable.
-        """
+    def for_ind_std(cls, ind_var_name: VariableName, shape: tuple[int, ...], **tol_kw):
+        """Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian prior of an individual latent variable."""
         ind_var_sqr_name = f"{ind_var_name}_sqr"
         update_rule_normal = NamedInputFunction(
             compute_ind_param_std_from_suff_stats,
@@ -383,8 +364,8 @@ class LatentVariable(IndepVariable):
     is_settable: ClassVar = True
 
     def get_prior_shape(
-        self, named_vars: TMapping[VarName, VariableInterface]
-    ) -> Tuple[int, ...]:
+        self, named_vars: TMapping[VariableName, VariableInterface]
+    ) -> tuple[int, ...]:
         """Get shape of prior distribution (i.e. without any expansion for `IndividualLatentVariable`)."""
         bad_params = {
             n for n in self.prior.parameters_names if not named_vars[n].fixed_shape
@@ -400,7 +381,7 @@ class LatentVariable(IndepVariable):
         self,
         method: Union[str, LatentVariableInitType],
         *,
-        sample_shape: Tuple[int, ...],
+        sample_shape: tuple[int, ...],
     ) -> NamedInputFunction[torch.Tensor]:
         """Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization."""
         method = LatentVariableInitType(method)
@@ -413,8 +394,8 @@ class LatentVariable(IndepVariable):
 
     @abstractmethod
     def get_regularity_variables(
-        self, value_name: VarName
-    ) -> Dict[VarName, LinkedVariable]:
+        self, value_name: VariableName
+    ) -> dict[VariableName, LinkedVariable]:
         """Automatically get extra linked variables to compute regularity term for this latent variable."""
         # return {
         #    # Not really useful... directly sum it to be memory efficient...
@@ -437,38 +418,37 @@ class PopulationLatentVariable(LatentVariable):
         self,
         method: Union[str, LatentVariableInitType],
     ) -> NamedInputFunction[torch.Tensor]:
-        """
-        Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization.
+        """Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization.
 
         Parameters
         ----------
-        method : LatentVariableInitType or str
+        method : :class:`~leaspy.variables.specs.LatentVariableInitType` or :obj:`str`
             The method to be used.
 
         Returns
         -------
-        NamedInputFunction :
+        :class:`~leaspy.utils.functional.NamedInputFunction` :
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=())
 
     def get_regularity_variables(
         self,
-        variable_name: VarName,
-    ) -> Dict[VarName, LinkedVariable]:
+        variable_name: VariableName,
+    ) -> dict[VariableName, LinkedVariable]:
         """
         Return the negative log likelihood regularity for the
         provided variable name.
 
         Parameters
         ----------
-        variable_name : VarName
+        variable_name : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable for which to retrieve regularity.
 
         Returns
         -------
-        Dict[VarName, LinkedVariable] :
-            The dictionary holding the LinkedVariable for the regularity.
+        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`] :
+            The dictionary holding the :class:`~leaspy.variables.specs.LinkedVariable` for the regularity.
         """
         # d = super().get_regularity_variables(value_name)
         d = {}
@@ -499,36 +479,34 @@ class IndividualLatentVariable(LatentVariable):
 
         Parameters
         ----------
-        method : LatentVariableInitType or str
+        method : :class:`~leaspy.variables.specs.LatentVariableInitType` or :obj:`str`
             The method to be used.
 
-        n_individuals : int
+        n_individuals : :obj:`int`
             The number of individuals, used to define the shape.
 
         Returns
         -------
-        NamedInputFunction :
+        :class:`~leaspy.utils.functional.NamedInputFunction` :
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=(n_individuals,))
 
     def get_regularity_variables(
         self,
-        variable_name: VarName,
-    ) -> Dict[VarName, LinkedVariable]:
-        """
-        Return the negative log likelihood regularity for the
-        provided variable name.
+        variable_name: VariableName,
+    ) -> dict[VariableName, LinkedVariable]:
+        """Return the negative log likelihood regularity for the provided variable name.
 
         Parameters
         ----------
-        variable_name : VarName
+        variable_name : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable for which to retrieve regularity.
 
         Returns
         -------
-        Dict[VarName, LinkedVariable] :
-            The dictionary holding the LinkedVariable for the regularity.
+        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`] :
+            The dictionary holding the :class:`~leaspy.variables.specs.LinkedVariable` for the regularity.
         """
         # d = super().get_regularity_variables(value_name)
         d = {}
@@ -551,13 +529,10 @@ class IndividualLatentVariable(LatentVariable):
 
 @dataclass(frozen=True)
 class LinkedVariable(VariableInterface):
-    """
-    Variable which is a deterministic expression of other variables (we directly
-    use variables names instead of boring mappings: kws <-> vars).
-    """
+    """Variable which is a deterministic expression of other variables (we directly use variables names instead of boring mappings: kws <-> vars)."""
 
-    f: Callable[..., VarValue]
-    parameters: FrozenSet[VarName] = field(init=False)
+    f: Callable[..., VariableValue]
+    parameters: frozenset[VariableName] = field(init=False)
     # expected_shape? (<!> some of the shape dimensions might not be known like `n_individuals` or `n_timepoints`...)
     # admissible_value? (<!> same issue than before, cf. remark on `IndividualLatentVariable`)
 
@@ -575,29 +550,27 @@ class LinkedVariable(VariableInterface):
             )
         object.__setattr__(self, "parameters", frozenset(inferred_params))
 
-    def get_ancestors_names(self) -> FrozenSet[VarName]:
+    def get_ancestors_names(self) -> frozenset[VariableName]:
         return self.parameters
 
-    def compute(self, state: VariablesValuesRO) -> VarValue:
-        """
-        Compute the variable value from a given State.
+    def compute(self, state: VariableNameToValueMapping) -> VariableValue:
+        """Compute the variable value from a given State.
 
         Parameters
         ----------
-        state : VariablesValuesRO
+        state : :class:`~leaspy.variables.specs.VariableNameToValueMapping`
             The state to use for computations.
 
         Returns
         -------
-        VarValue :
+        :class:`~leaspy.variables.specs.VariableValue` :
             The value of the variable.
         """
         return self.f(**{k: state[k] for k in self.parameters})
 
 
 class NamedVariables(UserDict):
-    """
-    Convenient dictionary for named variables specifications.
+    """Convenient dictionary for named variables specifications.
 
     In particular, it:
         1. forbids the collisions in variable names when assigning/updating the collection
@@ -647,7 +620,7 @@ class NamedVariables(UserDict):
     def __iter__(self):
         return iter(tuple(self.data) + self.AUTOMATIC_VARS)
 
-    def __setitem__(self, name: VarName, var: VariableInterface) -> None:
+    def __setitem__(self, name: VariableName, var: VariableInterface) -> None:
         if name in self.FORBIDDEN_NAMES or name in self.AUTOMATIC_VARS:
             raise ValueError(f"Can not use the reserved name '{name}'")
         if name in self.data:
@@ -662,13 +635,13 @@ class NamedVariables(UserDict):
             else:
                 self._latent_ind_vars.add(name)
 
-    def __getitem__(self, name: VarName) -> VariableInterface:
+    def __getitem__(self, name: VariableName) -> VariableInterface:
         if name in self.AUTOMATIC_VARS:
             return self._auto_vars[name]
         return super().__getitem__(name)
 
     @property
-    def _auto_vars(self) -> Dict[VarName, LinkedVariable]:
+    def _auto_vars(self) -> dict[VariableName, LinkedVariable]:
         # TODO? add jacobian as well?
         d = dict(
             # nll_regul_pop_sum=LinkedVariable(
