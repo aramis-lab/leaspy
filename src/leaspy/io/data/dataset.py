@@ -295,10 +295,6 @@ class Dataset:
             raise LeaspyInputError("Index of DataFrame is not unique.")
         if not df.index.to_frame().notnull().all(axis=None):
             raise LeaspyInputError("Index of DataFrame contains unvalid values.")
-        if self.features != df.columns.tolist():
-            raise LeaspyInputError(
-                    f"Features mismatch between model and dataset: {self.features} != {df.columns}"
-                )
         return df
 
     def move_to_device(self, device: torch.device) -> None:
