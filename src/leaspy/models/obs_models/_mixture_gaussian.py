@@ -45,7 +45,7 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
         )
 
     @classmethod
-    def update_probs_ind(cls, *, state: State) -> torch.Tensor:
+    def compute_probs_ind(cls, *, state: State) -> torch.Tensor:
         """
         Update rule for the individual probabilities of each individual i to belong to the cluster c.
         It uses the parts pf the likelihood corresponding to the data attachment and the attachment to the
@@ -76,7 +76,7 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
         return probs_ind
 
     @classmethod
-    def update_probs(cls) -> torch.Tensor:
+    def compute_probs(cls) -> torch.Tensor:
         """
         Update rule for the probabilities of occurrence of each cluster.
         -------
@@ -85,7 +85,7 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
         probs : an 1D tensor (n_cluster)
         with the probabilities of occurrence of each cluster
         """
-        probs_ind = cls.update_probs_ind
+        probs_ind = cls.compute_probs_ind
         n_inds = probs_ind.size()[0]
         probs = probs_ind.sum(dim=0) / n_inds
 
@@ -96,15 +96,11 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
         """
         Default specifications for probs parameter.
         """
-        update_rule = cls.update_probs
 
-        return ModelParameter(
-            shape = n_clusters,
-            update_rule = update_rule
-        )
+        return LinkedVariable(cls.compute_probs)
 
     @classmethod
-    def with_probs_as_model_parameter(cls, n_clusters:int):
+    def with_probs(cls, n_clusters:int):
         """
         Default instance of MixtureGaussianObservationModel
         """
