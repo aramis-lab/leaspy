@@ -38,7 +38,7 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
     Specialized observational model when the data come from a mixture normal distribution.
     """
 
-    def __init__(self, probs: VariableInterface, **extra_vars: VariableInterface):
+    def __init__(self, noise_std: VariableInterface, probs: VariableInterface, **extra_vars: VariableInterface):
         super().__init__(
             name="y",
             getter=self.y_getter,
