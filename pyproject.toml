@@ -31,7 +31,7 @@ classifiers = [
 packages = [{include = "leaspy", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.9,<3.13"
 joblib = ">=1.2.0"
 lifelines = ">=0.27.4"
 matplotlib = ">=3.6.3,<4"
