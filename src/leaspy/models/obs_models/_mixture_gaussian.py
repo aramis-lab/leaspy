@@ -26,14 +26,25 @@ from leaspy.variables.specs import (
 )
 from leaspy.io.data.dataset import Dataset
 from leaspy.variables.state import State
-
-from ._gaussian import FullGaussianObservationModel
+from ._base import ObservationModel
 
 __all__ = [
     "MixtureGaussianObservationModel",
 ]
+class GaussianObservationModel(ObservationModel):
+    """Specialized `ObservationModel` for noisy observations with Gaussian residuals assumption."""
 
-class MixtureGaussianObservationModel(FullGaussianObservationModel):
+    def __init__(
+        self,
+        name: VarName,
+        getter: Callable[[Dataset], WeightedTensor],
+        loc: VarName,
+        scale: VarName,
+        **extra_vars: VariableInterface,
+    ):
+        super().__init__(name, getter, Normal(loc, scale), extra_vars=extra_vars)
+
+class MixtureGaussianObservationModel(GaussianObservationModel):
     """
     Specialized observational model when the data come from a mixture normal distribution.
     """
