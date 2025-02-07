@@ -113,7 +113,7 @@ def observation_model_factory(
                     "WIP: number of clusters should be provided to "
                     f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
                 )
-            return MixtureGaussianObservationModel.with_probs_as_model_parameter(n_clusters)
+            return MixtureGaussianObservationModel.with_probs(n_clusters)
         return OBSERVATION_MODELS[model](**kwargs)
     raise LeaspyModelInputError(
         "The provided `model` should be a valid instance of `ObservationModel`, "
