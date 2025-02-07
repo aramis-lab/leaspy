@@ -185,7 +185,7 @@ class OrdinalMultivariateModel(LogisticMultivariateModel, OrdinalModelMixin):
         parameters = super()._compute_initial_values_for_model_parameters(
             dataset, method
         )
-        df = self._get_dataframe_from_dataset(dataset)
+        df = dataset.hearders_to_pandas()
 
         deltas = {}
         for ft, s in df.items():  # preserve feature order

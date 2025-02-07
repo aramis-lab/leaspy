@@ -287,7 +287,19 @@ class Dataset:
                     self.headers, self.event_time_name, self.event_bool_name
                 )
             )
-        return pd.concat(to_concat)
+        return pd.concat(to_concat).sort_index()
+
+    def hearders_to_pandas(self):
+        df = self.to_pandas()[self.headers]
+        if not df.index.is_unique:
+            raise LeaspyInputError("Index of DataFrame is not unique.")
+        if not df.index.to_frame().notnull().all(axis=None):
+            raise LeaspyInputError("Index of DataFrame contains unvalid values.")
+        if self.features != df.columns.tolist():
+            raise LeaspyInputError(
+                    f"Features mismatch between model and dataset: {self.features} != {df.columns}"
+                )
+        return df
 
     def move_to_device(self, device: torch.device) -> None:
         """
