@@ -8,7 +8,7 @@ import torch
 
 from leaspy.models.utilities import compute_std_from_variance
 from leaspy.variables.distributions import Categorical, Normal, MixtureNormal
-from srceaspy.utils.weighted_tensor import (
+from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     sum_dim,
     wsum_dim_return_weighted_sum_only,
