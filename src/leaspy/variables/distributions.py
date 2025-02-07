@@ -1,3 +1,5 @@
+"""This module defines the distributions used for sampling variables."""
+
 from __future__ import annotations
 
 import math
@@ -33,9 +35,7 @@ __all__ = [
 
 
 class StatelessDistributionFamily(ABC):
-    """
-    Interface to represent stateless distribution families
-    (i.e. no distribution parameters are stored in instance).
+    """Interface to represent stateless distribution families (i.e. no distribution parameters are stored in instance).
 
     TODO / WIP? allow WeightedTensor for parameters as well?
     (e.g. `batched_deltas = Normal(batched_deltas_mean, ...)` which should be masked at some indices)
@@ -167,9 +167,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
-        """
-        Validate consistency of distribution parameters,
-        returning them with out-of-place modifications if needed.
+        """Validate consistency of distribution parameters, returning them with out-of-place modifications if needed.
 
         Parameters
         ----------
@@ -178,7 +176,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
         Returns
         -------
-        Tuple[torch.Tensor, ...] :
+        :obj:`tuple` [ :class:`torch.Tensor`, ...] :
             The validated parameters.
         """
         distribution = cls.dist_factory(*params, validate_args=True)
@@ -194,52 +192,48 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def mode(cls, *params: torch.Tensor) -> torch.Tensor:
-        """
-        Mode of distribution (returning first value if discrete ties),
-        given distribution parameters.
+        """Mode of distribution (returning first value if discrete ties), given distribution parameters.
 
         Parameters
         ----------
-        params : torch.Tensor
+        params : :class:`torch.Tensor`
             The distribution parameters.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's mode.
         """
         raise NotImplementedError("Not provided in torch.Distribution interface")
 
     @classmethod
     def mean(cls, *params: torch.Tensor) -> torch.Tensor:
-        """
-        Mean of distribution (if defined), given distribution parameters.
+        """Mean of distribution (if defined), given distribution parameters.
 
         Parameters
         ----------
-        params : torch.Tensor
+        params : :class:`torch.Tensor`
             The distribution parameters.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's mean.
         """
         return cls.dist_factory(*params).mean
 
     @classmethod
     def stddev(cls, *params: torch.Tensor) -> torch.Tensor:
-        """
-        Return the standard-deviation of the distribution, given distribution parameters.
+        """Return the standard-deviation of the distribution, given distribution parameters.
 
         Parameters
         ----------
-        params : torch.Tensor
+        params : :class:`torch.Tensor`
             The distribution parameters.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's standard deviation.
         """
         return cls.dist_factory(*params).stddev
@@ -296,20 +290,19 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     @classmethod
     def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """
-        Return the mode of the distribution given the distribution's loc and scale parameters.
+        """Return the mode of the distribution given the distribution's loc and scale parameters.
 
         Parameters
         ----------
-        loc : torch.Tensor
+        loc : :class:`torch.Tensor`
             The distribution loc.
 
-        scale : torch.Tensor
+        scale : :class:`torch.Tensor`
             The distribution scale.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's mode.
         """
         # `loc`, but with possible broadcasting of shape
@@ -317,19 +310,19 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     @classmethod
     def mean(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """
-        Return the mean of the distribution, given the distribution loc and scale parameters.
+        """Return the mean of the distribution, given the distribution loc and scale parameters.
 
         Parameters
         ----------
-        loc : torch.Tensor
+        loc : :class:`torch.Tensor`
             The distribution loc parameters.
-        scale : torch.Tensor
+
+        scale : :class:`torch.Tensor`
             The distribution scale parameters.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's mean.
         """
         # Hardcode method for efficiency
@@ -338,19 +331,19 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     @classmethod
     def stddev(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """
-        Return the standard-deviation of the distribution, given loc and scale of the distribution.
+        """Return the standard-deviation of the distribution, given loc and scale of the distribution.
 
         Parameters
         ----------
-        loc : torch.Tensor
+        loc : :class:`torch.Tensor`
             The distribution loc parameter.
-        scale : torch.Tensor
+
+        scale : :class:`torch.Tensor`
             The distribution scale parameter.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's standard deviation.
         """
         # Hardcode method for efficiency
@@ -401,9 +394,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
 
     @classmethod
     def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
-        """
-        Validate consistency of distribution parameters,
-        returning them with out-of-place modifications if needed.
+        """Validate consistency of distribution parameters, returning them with out-of-place modifications if needed.
 
         Parameters
         ----------
@@ -412,7 +403,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
 
         Returns
         -------
-        Tuple[torch.Tensor, ...] :
+        :obj:`tuple` [ :class:`torch.Tensor`, ...] :
             The validated parameters.
         """
         raise NotImplementedError("Validate parameters not implemented")
@@ -430,18 +421,16 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
 
     @classmethod
     def mode(cls, *params: torch.Tensor) -> torch.Tensor:
-        """
-        Mode of distribution (returning first value if discrete ties),
-        given distribution parameters.
+        """Mode of distribution (returning first value if discrete ties), given distribution parameters.
 
         Parameters
         ----------
-        params : torch.Tensor
+        params : :class:`torch.Tensor`
             The distribution parameters.
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's mode.
         """
         raise NotImplementedError("Mode not implemented")
@@ -454,19 +443,21 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         xi: torch.Tensor,
         tau: torch.Tensor,
     ) -> torch.Tensor:
-        """
-        Mean of distribution (if defined), given distribution parameters.
+        """Mean of distribution (if defined), given distribution parameters.
 
         Parameters
         ----------
-        nu : torch.Tensor
-        rho : torch.Tensor
-        xi : torch.Tensor
-        tau : torch.Tensor
+        nu : :class:`torch.Tensor`
+
+        rho : :class:`torch.Tensor`
+
+        xi : :class:`torch.Tensor`
+
+        tau : :class:`torch.Tensor`
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's mean.
         """
         return cls.dist_weibull(cls._extract_reparametrized_nu(nu, xi), rho).mean + tau
@@ -484,19 +475,21 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         xi: torch.Tensor,
         tau: torch.Tensor,
     ) -> torch.Tensor:
-        """
-        Return the standard-deviation of the distribution, given distribution parameters.
+        """Return the standard-deviation of the distribution, given distribution parameters.
 
         Parameters
         ----------
-        nu : torch.Tensor
-        rho : torch.Tensor
-        xi : torch.Tensor
-        tau : torch.Tensor
+        nu : :class:`torch.Tensor`
+
+        rho : :class:`torch.Tensor`
+
+        xi : :class:`torch.Tensor`
+
+        tau : :class:`torch.Tensor`
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             The value of the distribution's standard deviation.
         """
         return cls.dist_weibull(
@@ -786,18 +779,17 @@ class SymbolicDistribution:
     def get_func_sample(
         self, sample_shape: tuple[int, ...] = ()
     ) -> NamedInputFunction[torch.Tensor]:
-        """
-        Factory of symbolic sampling function.
+        """Factory of symbolic sampling function.
 
         Parameters
         ----------
-        sample_shape : tuple of int, optional
+        sample_shape : :obj:`tuple` of :obj:`int`, optional
             The shape of the sample.
             Default=().
 
         Returns
         -------
-        NamedInputFunction :
+        :class:`~leaspy.utils.functional.NamedInputFunction` :
             The sample function.
         """
         return self.get_func("sample", sample_shape=sample_shape)
@@ -805,16 +797,15 @@ class SymbolicDistribution:
     def get_func_regularization(
         self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
-        """
-        Factory of symbolic function: state -> negative log-likelihood of value.
+        """Factory of symbolic function: state -> negative log-likelihood of value.
 
         Parameters
         ----------
-        value_name : str
+        value_name : :obj:`str`
 
         Returns
         -------
-        NamedInputFunction :
+        :class:`~leaspy.utils.functional.NamedInputFunction` :
             The named input function to use to compute negative log likelihood.
         """
         return self.get_func("regularization", value_name)
@@ -822,16 +813,15 @@ class SymbolicDistribution:
     def get_func_nll(
         self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
-        """
-        Factory of symbolic function: state -> negative log-likelihood of value.
+        """Factory of symbolic function: state -> negative log-likelihood of value.
 
         Parameters
         ----------
-        value_name : str
+        value_name : :obj:`str`
 
         Returns
         -------
-        NamedInputFunction :
+        :class:`~leaspy.utils.functional.NamedInputFunction` :
             The named input function to use to compute negative log likelihood.
         """
         return self.get_func("nll", value_name)
@@ -839,16 +829,15 @@ class SymbolicDistribution:
     def get_func_nll_jacobian(
         self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
-        """
-        Factory of symbolic function: state -> jacobian w.r.t. value of negative log-likelihood.
+        """Factory of symbolic function: state -> jacobian w.r.t. value of negative log-likelihood.
 
         Parameters
         ----------
-        value_name : str
+        value_name : :obj:`str`
 
         Returns
         -------
-        NamedInputFunction :
+        :class:`~leaspy.utils.functional.NamedInputFunction` :
             The named input function to use to compute negative log likelihood jacobian.
         """
         return self.get_func("nll_jacobian", value_name)
@@ -856,16 +845,15 @@ class SymbolicDistribution:
     def get_func_nll_and_jacobian(
         self, value_name: str
     ) -> NamedInputFunction[tuple[WeightedTensor[float], WeightedTensor[float]]]:
-        """
-        Factory of symbolic function: state -> (negative log-likelihood, its jacobian w.r.t. value).
+        """Factory of symbolic function: state -> (negative log-likelihood, its jacobian w.r.t. value).
 
         Parameters
         ----------
-        value_name : str
+        value_name : :obj:`str`
 
         Returns
         -------
-        Tuple[NamedInputFunction, NamedInputFunction] :
+        :obj:`tuple` [ :class:`~leaspy.utils.functional.NamedInputFunction`, :class:`~leaspy.utils.functional.NamedInputFunction`] :
             The named input functions to use to compute negative log likelihood and its jacobian.
         """
         return self.get_func("nll_and_jacobian", value_name)
@@ -875,32 +863,30 @@ class SymbolicDistribution:
         cls,
         dist_family: Type[StatelessDistributionFamily],
     ) -> Callable[..., SymbolicDistribution]:
-        """
-        Return a factory to create `SymbolicDistribution` bound to the provided distribution family.
+        """Return a factory to create `SymbolicDistribution` bound to the provided distribution family.
 
         Parameters
         ----------
-        dist_family : StatelessDistributionFamily
+        dist_family : :class:`~leaspy.variables.distributions.StatelessDistributionFamily`
             The distribution family to use to create a SymbolicDistribution.
 
         Returns
         -------
-        factory : Callable[..., SymbolicDistribution]
+        factory : Callable[..., :class:`~leaspy.variables.distributions.SymbolicDistribution`]
             The factory.
         """
 
         def factory(*parameters_names: str) -> SymbolicDistribution:
-            """
-            Factory of a `SymbolicDistribution`, bounded to the provided distribution family.
+            """Factory of a `SymbolicDistribution`, bounded to the provided distribution family.
 
             Parameters
             ----------
-            *parameters : str
+            *parameters_names : :obj:`str`
                 Names, in order, for distribution parameters.
 
             Returns
             -------
-            SymbolicDistribution :
+            :class:`~leaspy.variables.distributions.SymbolicDistribution` :
                 The symbolic distribution resulting from the factory.
             """
             return SymbolicDistribution(parameters_names, dist_family)

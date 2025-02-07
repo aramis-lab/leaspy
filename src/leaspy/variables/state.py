@@ -1,3 +1,12 @@
+"""This module defines the State of stateful models.
+
+A state contains both the relationships between the variables through a :class:`~leaspy.variables.dag.VariablesDAG`,
+and the values each variable of the DAG as a mapping between variable names and their values.
+
+This class is very important for stateful models as it contains the logic to efficiently retrieve variable values
+and only compute the needed variables in doing so. It relies on a caching mechanism that enables quick queries.
+"""
+
 from __future__ import annotations
 
 import copy
@@ -20,10 +29,10 @@ from .specs import (
     IndividualLatentVariable,
     LatentVariableInitType,
     PopulationLatentVariable,
+    VariableName,
     VariablesLazyValuesRO,
     VariablesLazyValuesRW,
-    VarName,
-    VarValue,
+    VariableValue,
 )
 
 __all__ = [
@@ -33,8 +42,7 @@ __all__ = [
 
 
 class StateForkType(Enum):
-    """
-    The strategy used to cache forked values in :class:`.State`.
+    """The strategy used to cache forked values in :class:`.State`.
 
     REF : caching using references
     COPY : caching using deepcopy
@@ -56,28 +64,31 @@ class StateForkType(Enum):
 
 
 class State(MutableMapping):
-    """
-    Dictionary of cached values corresponding to the stateless DAG instance.
+    """Dictionary of cached values corresponding to the stateless DAG instance.
 
     Parameters
     ----------
-    dag : VariablesDAG
+    dag : :class:`~leaspy.variables.dag.VariablesDAG`
         The stateless DAG which state will hold values for.
-    auto_fork_type : :class:`.StateForkType` or None (default)
-        Refer to :class:`.StateForkType` class and :attr:`auto_fork_type`
+
+    auto_fork_type : :class:`~leaspy.variables.state.StateForkType` or None (default)
+        Refer to :class:`~leaspy.variables.state.StateForkType` class and :attr:`auto_fork_type`
 
     Attributes
     ----------
-    dag : VariablesDAG
+    dag : :class:`~leaspy.variables.dag.VariablesDAG`
         The stateless DAG which the state instance will hold values for.
-    auto_fork_type : :class:`.StateForkType` or None
+
+    auto_fork_type : :class:`~leaspy.variables.state.StateForkType` or None
         If not `StateForkType.NONE` each dictionary assignment will lead to the partial caching
         of previous value and all its children, so they can be reverted without computation.
         The exact caching strategy depends on flag (caching by reference or by copy)
         Can be manually set or via `auto_fork` context manager.
+
     _values : MutableMapping[VarName, Optional[VarValue]]
         Private cache for values (computations are lazy thus some values may be None).
         All not None values are always self-consistent with respect to DAG dependencies.
+
     _last_fork : None or Mapping[VarName, Optional[VarValue]]
         If not None, holds the previous partial state values so they may be `.revert()`.
         Automatically populated on assignment operations as soon as `auto_fork_type` is not `NONE`.
@@ -90,28 +101,57 @@ class State(MutableMapping):
     ):
         self.dag = dag
         self.auto_fork_type = auto_fork_type
-        self._tracked_variables: set[str, ...] = set()
+        self._tracked_variables: set[VariableName, ...] = set()
         self._values: VariablesLazyValuesRW = {}
         self._last_fork: Optional[VariablesLazyValuesRO] = None
         self.clear()
 
     @property
-    def tracked_variables(self) -> set[str, ...]:
+    def tracked_variables(self) -> set[VariableName, ...]:
+        """Returns a set of names for the variables that are tracked by the State."""
         return self._tracked_variables
 
-    def track_variables(self, variable_names: Iterable[str]) -> None:
+    def track_variables(self, variable_names: Iterable[VariableName]) -> None:
+        """Add some variables to the tracked variables.
+
+        Parameters
+        ----------
+        variable_names : :class:`~typing.Iterable` of :class:`~leaspy.variables.specs.VariableName`
+            The names of the variables to be added to the tracked variables.
+        """
         for variable_name in variable_names:
             self.track_variable(variable_name)
 
-    def track_variable(self, variable_name: str) -> None:
+    def track_variable(self, variable_name: VariableName) -> None:
+        """Add a single variable to the tracked variables.
+
+        Parameters
+        ----------
+        variable_name : :class:`~leaspy.variables.specs.VariableName`
+            The name of the variable to be added to the tracked variables.
+        """
         if variable_name in self.dag:
             self._tracked_variables.add(variable_name)
 
-    def untrack_variables(self, variable_names: Iterable[str]) -> None:
+    def untrack_variables(self, variable_names: Iterable[VariableName]) -> None:
+        """Remove some variables from the tracked variables.
+
+        Parameters
+        ----------
+        variable_names : :class:`~typing.Iterable` of :class:`~leaspy.variables.specs.VariableName`
+            The names of the variables to be removed from the tracked variables.
+        """
         for variable_name in variable_names:
             self.untrack_variable(variable_name)
 
-    def untrack_variable(self, variable_name: str) -> None:
+    def untrack_variable(self, variable_name: VariableName) -> None:
+        """Remove a single variable from the tracked variables.
+
+        Parameters
+        ----------
+        variable_name : :class:`~leaspy.variables.specs.VariableName`
+            The name of the variable to be removed from the tracked variables.
+        """
         if variable_name in self.dag:
             self._tracked_variables.discard(variable_name)
 
@@ -126,7 +166,23 @@ class State(MutableMapping):
     def clone(
         self, *, disable_auto_fork: bool = False, keep_last_fork: bool = False
     ) -> State:
-        """Clone current state (no copy of DAG)."""
+        """Clone current state (no copy of DAG).
+
+        Parameters
+        ----------
+        disable_auto_fork : :obj:`bool`, optional
+            Whether to allow auto-fork or not.
+            Default=False.
+
+        keep_last_fork : :obj:`bool`, optional
+            Whether to keep the last fork or not.
+            Default=False.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.state.Sate` :
+            The new cloned state instance.
+        """
         cloned = State(
             self.dag, auto_fork_type=None if disable_auto_fork else self.auto_fork_type
         )
@@ -154,101 +210,104 @@ class State(MutableMapping):
         """Get number of variables."""
         return len(self._values)
 
-    def _check_key_exists(self, k: VarName) -> None:
-        if k not in self.dag:
-            raise LeaspyInputError(f"'{k}' is not a valid variable")
+    def _check_key_exists(self, name: VariableName) -> None:
+        if name not in self.dag:
+            raise LeaspyInputError(f"'{name}' is not a valid variable")
 
     def _get_or_compute_and_cache(
         self,
-        k: VarName,
+        name: VariableName,
         *,
         force_computation: bool = False,
         why: str = " to proceed",
-    ) -> VarValue:
-        """
-        Retrieve cached value (unless `force_computation`) or compute it,
-        assuming node exists and all its ancestors have cached values.
-        """
+    ) -> VariableValue:
+        """Retrieve cached value (unless `force_computation`) or compute it, assuming node exists and all its ancestors have cached values."""
         if not force_computation:
-            if (val := self._values[k]) is not None:
-                return val
-
-        val = self.dag[k].compute(self._values)
-        if val is None:
+            if (value := self._values[name]) is not None:
+                return value
+        value = self.dag[name].compute(self._values)
+        if value is None:
             raise LeaspyInputError(
-                f"'{k}' is an independent variable which is required{why}"
+                f"'{name}' is an independent variable which is required{why}"
             )
-        self._values[k] = val
-        return val
+        self._values[name] = value
+        return value
 
-    def __getitem__(self, k: VarName) -> VarValue:
-        """
-        Retrieve cached variable value or compute it and cache it
-        (as well as all intermediate computations that were needed).
-        """
-        if (val := self._get_value_from_cache(k)) is not None:
-            return val
-        for a in self.dag.sorted_ancestors[k]:
-            self._get_or_compute_and_cache(a, why=f" to get '{k}'")
-        return self._get_or_compute_and_cache(k, force_computation=True)
+    def __getitem__(self, name: VariableName) -> VariableValue:
+        """Retrieve cached variable value or compute it and cache it (as well as all intermediate computations that were needed)."""
+        if (value := self._get_value_from_cache(name)) is not None:
+            return value
+        for parent in self.dag.sorted_ancestors[name]:
+            self._get_or_compute_and_cache(parent, why=f" to get '{name}'")
+        return self._get_or_compute_and_cache(name, force_computation=True)
 
-    def __contains__(self, k: VarName) -> bool:
-        return k in self.dag
+    def __contains__(self, name: VariableName) -> bool:
+        return name in self.dag
 
-    def _get_value_from_cache(self, k: VarName) -> Optional[VarValue]:
-        """Get the value for variable named k from the cache. Raise if not in DAG."""
-        self._check_key_exists(k)
-        return self._values[k]
+    def _get_value_from_cache(self, name: VariableName) -> Optional[VariableValue]:
+        """Get the value for the provided variable name from the cache. Raise if not in DAG."""
+        self._check_key_exists(name)
+        return self._values[name]
 
-    def is_variable_set(self, k: VarName) -> bool:
+    def is_variable_set(self, name: VariableName) -> bool:
         """Returns True if the variable is in the DAG and if its value is not None."""
-        return self._get_value_from_cache(k) is not None
+        return self._get_value_from_cache(name) is not None
 
-    def are_variables_set(self, variable_names: Iterable[VarName]) -> bool:
+    def are_variables_set(self, variable_names: Iterable[VariableName]) -> bool:
         """Returns True if all the variables are in the DAG with values different from None."""
-        return all(self.is_variable_set(k) for k in variable_names)
+        return all(self.is_variable_set(name) for name in variable_names)
 
-    def __setitem__(self, k: VarName, v: Optional[VarValue]) -> None:
-        """Smart and protected assignment of a variable value."""
-        self._check_key_exists(k)
-        if not self.dag[k].is_settable:
-            raise LeaspyInputError(f"'{k}' is not intended to be set")
-        sorted_children = self.dag.sorted_children[k]
+    def __setitem__(self, name: VariableName, value: Optional[VariableValue]) -> None:
+        """Smart and protected assignment of a variable value.
+
+        Parameters
+        ----------
+        name : :class:`~leaspy.variables.specs.VariableName`
+            The name of the variable to be set.
+
+        value : :class:`~leaspy.variables.specs.VariableValue`
+            The value of the variable to set.
+        """
+        self._check_key_exists(name)
+        if not self.dag[name].is_settable:
+            raise LeaspyInputError(f"'{name}' is not intended to be set")
+        sorted_children = self.dag.sorted_children[name]
         # automatically fork partial state to easily revert it
         if self.auto_fork_type is not None:
             self._last_fork = self.auto_fork_type.to_cache(
-                {c: self._values[c] for c in (k,) + sorted_children}
+                {child: self._values[child] for child in (name,) + sorted_children}
             )
         # TODO? we do not "validate" / "check" input data for now
         #  (it could be a stateless variable method) to remain light
-        self._values[k] = v
+        self._values[name] = value
         # we reset values of all children of the node we just assigned a value to
         # (we postpone the evaluation of their new values when they will really be needed)
-        for c in sorted_children:
-            self._values[c] = None
+        for child in sorted_children:
+            self._values[child] = None
 
     def put(
         self,
-        variable_name: VarName,
-        variable_value: VarValue,
+        variable_name: VariableName,
+        variable_value: VariableValue,
         *,
         indices: tuple[int, ...] = (),
         accumulate: bool = False,
     ) -> None:
-        """
-        Smart and protected assignment of a variable value, but potentially on a subset of indices,
-        adding (accumulating) values and OUT-OF-PLACE.
+        """Smart and protected assignment of a variable value, but potentially on a subset of indices, adding (accumulating) values and OUT-OF-PLACE.
 
         Parameters
         ----------
-        variable_name : VarName
+        variable_name : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable.
-        variable_value : torch.Tensor
+
+        variable_value : :class:`~leaspy.variables.specs.VariableValue`
             The new value to put in the variable name.
-        indices : Tuple of int, optional
+
+        indices : :obj:`tuple` of :obj:`int`, optional
             If set, the operation will happen on a subset of indices.
             Default=()
-        accumulate : bool, optional
+
+        accumulate : :obj:`bool`, optional
             If set to True, the new variable value will be added
             to the old value. Otherwise, it will be assigned.
             Default=False
@@ -268,7 +327,7 @@ class State(MutableMapping):
             accumulate=accumulate,
         )
 
-    def __delitem__(self, k: VarName) -> None:
+    def __delitem__(self, name: VariableName) -> None:
         raise NotImplementedError("Key removal is not allowed")
 
     def precompute_all(self) -> None:
@@ -286,14 +345,13 @@ class State(MutableMapping):
     #    self.precompute_all()
 
     def revert(
-        self, subset: Optional[torch.Tensor] = None, *, right_broadcasting: bool = True
+        self, subset: Optional[VariableValue] = None, *, right_broadcasting: bool = True
     ) -> None:
-        """
-        Revert state to previous forked state, efficiently (forked state is then reset).
+        """Revert state to previous forked state, efficiently (forked state is then reset).
 
         Parameters
         ----------
-        subset : None (default) or VarValue[bool]
+        subset : :class:`~leaspy.variables.specs.VariableValue` or None
             If not None, the reversion is only partial:
             * subset = True <=> revert previous state for those indices
             * subset = False <=> keep current state for those indices
@@ -301,21 +359,21 @@ class State(MutableMapping):
             `subset` shape (i.e. valid broadcasting) for the forked node and all of its children.
            <!> When the current OR forked state is not set (value = None) on a particular node of forked DAG,
            then the reverted result is always None.
-        right_broadcasting : bool (default True)
+
+        right_broadcasting : :obj:`bool`, optional
             If True and if `subset` is not None, then the subset of indices to revert uses right-broadcasting,
             instead of the standard left-broadcasting.
+            Default=True.
         """
         if self._last_fork is None:
             raise LeaspyInputError(
                 "No forked state to revert from, please use within `.auto_fork()` context, "
                 "or set `.auto_fork_type` to  `StateForkType.REF` or `StateForkType.COPY`."
             )
-
         if subset is None:
             self._values.update(self._last_fork)
             self._last_fork = None
             return
-
         to_revert = subset.to(torch.bool)
         to_keep = ~to_revert
         for k, old_v in self._last_fork.items():
@@ -336,12 +394,11 @@ class State(MutableMapping):
         self._last_fork = None
 
     def to_device(self, device: torch.device) -> None:
-        """
-        Move values to the specified device (in-place).
+        """Move values to the specified device (in-place).
 
         Parameters
         ----------
-        device : torch.device
+        device : :class:`torch.device`
         """
         for k, v in self._values.items():
             if v is not None:
@@ -417,12 +474,12 @@ class State(MutableMapping):
 
         Parameters
         ----------
-        output_folder : str
-            The path to the output folder in which the state's tracked variables
-            should be saved.
-        iteration : int, optional
-            The iteration number when this method is called from an
-            algorithm. This iteration number will appear at the beginning of the row.
+        output_folder : :obj:`str`
+            The path to the output folder in which the state's tracked variables should be saved.
+
+        iteration : :obj:`int`, optional
+            The iteration number when this method is called from an algorithm.
+            This iteration number will appear at the beginning of the row.
         """
         output_folder = Path(output_folder)
         for variable in self._tracked_variables:
@@ -436,7 +493,9 @@ class State(MutableMapping):
                     writer = csv.writer(filename)
                     writer.writerow(value)
 
-    def _get_value_as_dict_of_lists(self, variable_name: str) -> dict[str, list[float]]:
+    def _get_value_as_dict_of_lists(
+        self, variable_name: VariableName
+    ) -> dict[VariableName, list[float]]:
         """Return the value of the given variable as a dictionary of list of floats."""
         value = self.__getitem__(variable_name)
         if isinstance(value, WeightedTensor):
@@ -460,12 +519,36 @@ class State(MutableMapping):
                 f"which is not supported. The value is: {value}."
             )
 
-    def get_tensor_value(self, variable_name: str) -> torch.Tensor:
+    def get_tensor_value(self, variable_name: VariableName) -> VariableValue:
+        """Return the value of the provided variable as a torch tensor.
+
+        Parameters
+        ----------
+        variable_name : :class:`~leaspy.variables.specs.VariableName`
+            The name of the variable for which to retrieve the value.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.VariableValue` :
+            The value of the variable.
+        """
         if isinstance(self[variable_name], WeightedTensor):
             return self[variable_name].weighted_value
         return self[variable_name]
 
     def get_tensor_values(
-        self, variable_names: Iterable[str]
-    ) -> tuple[torch.Tensor, ...]:
+        self, variable_names: Iterable[VariableName]
+    ) -> tuple[VariableValue, ...]:
+        """Return the values of the provided variables as torch tensors.
+
+        Parameters
+        ----------
+        variable_names : :class:`~typing.Iterable` of :class:`~leaspy.variables.specs.VariableName`
+            The names of the variables for which to retrieve the values.
+
+        Returns
+        -------
+        :obj:`tuple` of :class:`~leaspy.variables.specs.VariableValue` :
+            The values of the variables.
+        """
         return tuple(self.get_tensor_value(name) for name in variable_names)
