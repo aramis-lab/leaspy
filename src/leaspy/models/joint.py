@@ -1,3 +1,6 @@
+import warnings
+from typing import Optional
+
 import pandas as pd
 import torch
 from lifelines import WeibullFitter
@@ -6,7 +9,7 @@ from leaspy.exceptions import LeaspyInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super  # doc_with_
 from leaspy.utils.functional import Exp, MatMul, Sum
-from leaspy.utils.typing import DictParams, KwargsType, Optional
+from leaspy.utils.typing import DictParams, KwargsType
 from leaspy.utils.weighted_tensor import WeightedTensor
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
@@ -15,7 +18,7 @@ from leaspy.variables.specs import (
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
-    VariablesValuesRO,
+    VariableNameToValueMapping,
 )
 from leaspy.variables.state import State
 
@@ -219,7 +222,7 @@ class JointModel(LogisticMultivariateModel):
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariableNameToValueMapping:
         from leaspy.models.utilities import torch_round
 
         params = super()._compute_initial_values_for_model_parameters(dataset, method)
@@ -259,7 +262,9 @@ class JointModel(LogisticMultivariateModel):
         with state.auto_fork(None):
             state.put_individual_latent_variables(df=df_ind)
 
-    def _estimate_initial_event_parameters(self, dataset: Dataset) -> VariablesValuesRO:
+    def _estimate_initial_event_parameters(
+        self, dataset: Dataset
+    ) -> VariableNameToValueMapping:
         log_rho_mean = [0] * self.nb_events
         n_log_nu_mean = [0] * self.nb_events
 

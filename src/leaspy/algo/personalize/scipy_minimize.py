@@ -14,7 +14,11 @@ from leaspy.io.data import Data, Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
-from leaspy.variables.specs import IndividualLatentVariable, LatentVariable, VarName
+from leaspy.variables.specs import (
+    IndividualLatentVariable,
+    LatentVariable,
+    VariableName,
+)
 from leaspy.variables.state import State
 
 from ..base import AlgorithmName
@@ -60,8 +64,8 @@ class _AffineScalings1D:
     together in a single 1D tensor (in order).
     """
 
-    scalings: dict[VarName, _AffineScaling]
-    slices: dict[VarName, slice] = field(init=False, repr=False, compare=False)
+    scalings: dict[VariableName, _AffineScaling]
+    slices: dict[VariableName, slice] = field(init=False, repr=False, compare=False)
     length: int = field(init=False, repr=False, compare=False)
 
     def __post_init__(self):
@@ -80,7 +84,7 @@ class _AffineScalings1D:
     def __len__(self) -> int:
         return self.length
 
-    def stack(self, x: dict[VarName, torch.Tensor]) -> torch.Tensor:
+    def stack(self, x: dict[VariableName, torch.Tensor]) -> torch.Tensor:
         """
         Stack the provided mapping in a multidimensional numpy array.
 
@@ -96,7 +100,7 @@ class _AffineScalings1D:
         """
         return torch.cat([x[n].float() for n, _ in self.scalings.items()])
 
-    def unstack(self, x: torch.Tensor) -> dict[VarName, torch.Tensor]:
+    def unstack(self, x: torch.Tensor) -> dict[VariableName, torch.Tensor]:
         """ "
         Unstack the provided concatenated array.
 
@@ -112,7 +116,7 @@ class _AffineScalings1D:
         """
         return {n: x[None, self.slices[n]].float() for n, _ in self.scalings.items()}
 
-    def unscaling(self, x: np.ndarray) -> dict[VarName, torch.Tensor]:
+    def unscaling(self, x: np.ndarray) -> dict[VariableName, torch.Tensor]:
         """
         Unstack the concatenated array and unscale
         each element to bring it back to its natural scale.
@@ -136,7 +140,7 @@ class _AffineScalings1D:
         )
         return self.unstack(x_unscaled)
 
-    def scaling(self, x: dict[VarName, torch.Tensor]) -> np.ndarray:
+    def scaling(self, x: dict[VariableName, torch.Tensor]) -> np.ndarray:
         """
         Scale and concatenate provided mapping of values
         from their natural scale to the defined scale.
