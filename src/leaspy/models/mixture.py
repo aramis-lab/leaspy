@@ -10,25 +10,25 @@ from typing import Iterable, Optional
 #from sympy.codegen.cnodes import union
 #from torch.distributions import MixtureSameFamily
 
-from src.leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, unsqueeze_right
-from src.leaspy.utils.docs import doc_with_super
-from src.leaspy.utils.functional import Exp, Sqr, OrthoBasis, MatMul, Sum, Prod
-from src.leaspy.utils.typing import KwargsType, Optional
+from leaspy.utils.weighted_tensor import WeightedTensor, TensorOrWeightedTensor, unsqueeze_right
+from leaspy.utils.docs import doc_with_super
+from leaspy.utils.functional import Exp, Sqr, OrthoBasis, MatMul, Sum, Prod
+from leaspy.utils.typing import KwargsType, Optional
 
-from src.leaspy.exceptions import LeaspyModelInputError, LeaspyInputError
+from leaspy.exceptions import LeaspyModelInputError, LeaspyInputError
 
-from src.leaspy.models.base import InitializationMethod
-from src.leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
-from src.leaspy.models.abstract_model import AbstractModel, InitializationMethod
-from src.leaspy.models.obs_models import observation_model_factory, MixtureGaussianObservationModel, FullGaussianObservationModel
+from leaspy.models.base import InitializationMethod
+from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
+from leaspy.models.abstract_model import AbstractModel, InitializationMethod
+from leaspy.models.obs_models import observation_model_factory, MixtureGaussianObservationModel, FullGaussianObservationModel
 from src.leaspy.models.multivariate import LogisticMultivariateModel
 
-from src.leaspy.io.data.dataset import Dataset
+from leaspy.io.data.dataset import Dataset
 
-from src.leaspy.variables.distributions import MultinomialDistribution as Multinomial
-from src.leaspy.variables.distributions import Normal, MixtureNormal, Categorical
-from src.leaspy.variables.state import State
-from src.leaspy.variables.specs import (
+from leaspy.variables.distributions import MultinomialDistribution as Multinomial
+from leaspy.variables.distributions import Normal, MixtureNormal, Categorical
+from leaspy.variables.state import State
+from leaspy.variables.specs import (
     NamedVariables,
     ModelParameter,
     PopulationLatentVariable,
@@ -126,8 +126,8 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
-            #probs_ind=LinkedVariable(self.compute_probs_ind),
-            #probs = LinkedVariable(self.compute_probs)
+            #probs_ind=LinkedVariable(self.compute_probs_ind), -> passed to the observational model
+            #probs = LinkedVariable(self.compute_probs) -> passed to the observational model
 
         )
 

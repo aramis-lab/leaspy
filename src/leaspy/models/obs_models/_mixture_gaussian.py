@@ -6,17 +6,17 @@ from typing import (
 
 import torch
 
-from src.leaspy.models.utilities import compute_std_from_variance
-from src.leaspy.variables.distributions import Categorical, Normal, MixtureNormal
-from src.leaspy.utils.weighted_tensor import (
+from leaspy.models.utilities import compute_std_from_variance
+from leaspy.variables.distributions import Categorical, Normal, MixtureNormal
+from srceaspy.utils.weighted_tensor import (
     WeightedTensor,
     sum_dim,
     wsum_dim_return_weighted_sum_only,
     wsum_dim_return_sum_of_weights_only,
     wsum_dim,
 )
-from src.leaspy.utils.functional import Sqr, Prod
-from src.leaspy.variables.specs import (
+from leaspy.utils.functional import Sqr, Prod
+from leaspy.variables.specs import (
     VarName,
     VariableInterface,
     LinkedVariable,
@@ -24,8 +24,8 @@ from src.leaspy.variables.specs import (
     Collect,
     LVL_FT, Hyperparameter,
 )
-from src.leaspy.io.data.dataset import Dataset
-from src.leaspy.variables.state import State
+from leaspy.io.data.dataset import Dataset
+from leaspy.variables.state import State
 
 from ._gaussian import FullGaussianObservationModel
 
