@@ -80,9 +80,6 @@ LVL_FT = -1
 class VariableInterface:
     """Interface for variable specifications."""
 
-    # description: str
-    """Description of variable, for documentation purposes."""
-
     is_settable: ClassVar[bool]
     """Is True if and only if state of variables is intended to be manually modified by user."""
 
@@ -91,8 +88,8 @@ class VariableInterface:
 
     @abstractmethod
     def compute(self, state: VariableNameToValueMapping) -> Optional[VariableValue]:
-        """
-        Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
+        """Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
+
         If not relevant for variable type return None.
 
         Parameters
@@ -158,8 +155,13 @@ class Hyperparameter(IndepVariable):
     """Hyperparameters that can not be reset."""
 
     value: VariableValue
+    """The hyperparameter value."""
+
     fixed_shape: ClassVar = True
+    """Whether the variable has a fixed shape or not. For hyperparameters this is True."""
+
     is_settable: ClassVar = False
+    """Whether the variable is mutable or not. For hyperparameters this is False."""
 
     def __post_init__(self):
         if not isinstance(self.value, (torch.Tensor, WeightedTensor)):

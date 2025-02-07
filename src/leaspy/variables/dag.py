@@ -37,36 +37,6 @@ class VariablesDAG(Mapping):
         The nodes that are directly connected (in-going edge) to a given node.
         Use :meth:`~leaspy.variables.dag.VariablesDAG.from_dict()` class method to use the natural dependencies of linked variables for those.
 
-    Attributes
-    ----------
-    variables : :class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`]
-        The specifications of DAG nodes.
-
-        .. note::
-        The user should rather access them using the convenient `Mapping`
-        interface provided by class. (in addition the class loop order corresponds to
-        `sorted_variables_names` unlike the one of `.variables`)
-
-    sorted_variables_names : :obj:`tuple` [ :class:`~leaspy.variables.specs.VariableName`, ...]
-        A topological sorting of variables (non-unique), from roots (no ancestors) to
-        leaves (no children). The iteration order corresponds to this sorting.
-
-    direct_children : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
-        Mapping of variable names to their direct children.
-
-    direct_ancestors : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
-        The edges out-going (children) and in-going (ancestors) from a given node
-        (at most one edge per node and no self-loop).
-
-    sorted_children : :class:`~typing.Mapping` [ :class:`~leaspy.variables.specs.VariableName`, :obj:`tuple` [ :class:`~leaspy.variables.specs.VariableName`, ...]]
-        All children of a given node (never includes itself), in topological order (from "closest to furthest bottom").
-
-    sorted_ancestors : :class:`~typing.Mapping` [ :class:`~leaspy.variables.specs.VariableName`, :obj:`tuple` [ :class:`~leaspy.variables.specs.VariableName`, ...]]
-        All ancestors of a given node (never includes itself), in topological order (from "furthest top to closest").
-
-    sorted_variables_by_type : :class:`~typing.Mapping` [ Type[ VariableInterface], :class:`~typing.Mapping` [ :class:`~leaspy.variables.specs.VariableName`, VariableInterface]]
-        The sorted variables, but stratified per variable type, to easily access them.
-
     Notes
     -----
     In general this DAG is not a tree (the graph may not be totally connected and have multiple roots),
@@ -81,8 +51,10 @@ class VariablesDAG(Mapping):
 
     We do not store children or ancestor in a specific node class to avoid cross-references in such nodes
 
-    TODO? pre-compute roots (no ancestors) and leaves (no children) as well?
-    TODO? stratify variables dictionary per variable class?
+    todo
+    ----
+    - pre-compute roots (no ancestors) and leaves (no children) as well?
+    - stratify variables dictionary per variable class?
 
     References
     ----------
@@ -98,25 +70,36 @@ class VariablesDAG(Mapping):
     """
 
     variables: TMapping[VariableName, VariableInterface]
+    """The specifications of DAG nodes."""
+
     direct_ancestors: VariablesToFrozenSet = field(repr=False)
+    """The edges out-going (children) and in-going (ancestors) from a given node (at most one edge per node and no self-loop)."""
 
     # pre-computed data that only depend on frozen attributes of dataclass
     direct_children: VariablesToFrozenSet = field(init=False, repr=False, compare=False)
+    """Mapping of variable names to their direct children."""
+
     sorted_variables_names: tuple[VariableName, ...] = field(
         init=False, repr=False, compare=False
     )
+    """A topological sorting of variables (non-unique), from roots (no ancestors) to leaves (no children). The iteration order corresponds to this sorting."""
     # path_matrix: torch.Tensor = field(init=False, repr=False, compare=False)  # big and useless?
     sorted_children: TMapping[VariableName, tuple[VariableName, ...]] = field(
         init=False, repr=False, compare=False
     )
+    """All children of a given node (never includes itself), in topological order (from "closest to furthest bottom")."""
+
     sorted_ancestors: TMapping[VariableName, tuple[VariableName, ...]] = field(
         init=False, repr=False, compare=False
     )
+    """All ancestors of a given node (never includes itself), in topological order (from "furthest top to closest")."""
+
     sorted_variables_by_type: TMapping[
         # a better type hint would be nice here: Type[cls] -> Mapping[VariableName, cls]
         Type[VariableInterface],
         TMapping[VariableName, VariableInterface],
     ] = field(init=False, repr=False, compare=False)
+    """The sorted variables, but stratified per variable type, to easily access them."""
 
     @classmethod
     def from_dict(cls, input_dictionary: TMapping[VariableName, VariableInterface]):
@@ -126,7 +109,7 @@ class VariablesDAG(Mapping):
 
         Parameters
         ----------
-        input_dictionary : TMapping[VarName, VariableInterface]
+        input_dictionary : :class:`~typing.Mapping` [:class:`~leaspy.variables.specs.VariableName` , :class:`~leaspy.variables.specs.VariableInterface`]
             The dictionary to use to create the DAG.
         """
         direct_ancestors = {
@@ -206,10 +189,7 @@ class VariablesDAG(Mapping):
         }
 
     def __iter__(self):
-        """
-        Iterates on keys in topological order (.keys(), .values() and .items()
-        methods are automatically provided by `Mapping`).
-        """
+        """Iterates on keys in topological order (.keys(), .values() and .items() methods are automatically provided by `Mapping`)."""
         return iter(self.sorted_variables_names)
 
     def __len__(self) -> int:
