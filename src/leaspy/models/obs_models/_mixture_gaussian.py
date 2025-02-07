@@ -109,7 +109,7 @@ class MixtureGaussianObservationModel(FullGaussianObservationModel):
                 f"Number of clusters should be an integer >= 2. You provided {n_clusters}."
             )
 
-        return cls(noise_std=cls.probs_specs(n_clusters))
+        return cls(probs=cls.probs_specs(n_clusters))
 
     def to_string(self) -> str:
         """method for parameter saving"""
