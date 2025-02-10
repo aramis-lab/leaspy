@@ -409,5 +409,7 @@ def algorithm_factory(settings: AlgorithmSettings) -> AbstractAlgo:
         The wanted algorithm if it exists and is compatible with algorithm family.
     """
     algorithm = get_algorithm_class(settings.name)(settings)
+    if settings.logs is None and algorithm.family == "fit":
+        settings.set_logs()
     algorithm.set_output_manager(settings.logs)
     return algorithm
