@@ -117,8 +117,7 @@ class OutputsSettings:
         path = settings.get('path', None)
 
         if path is None and self.save_periodicity:
-            warnings.warn("You did not provide a path for your logs outputs whereas you want to save convergence data. "
-                          f"The default path '{self.DEFAULT_LOGS_DIR}' will be used (relative to the current working directory).")
+            warnings.warn(f"Outputs will be saved in '{self.DEFAULT_LOGS_DIR}' relative to the current working directory", stacklevel=2)
             path = self.DEFAULT_LOGS_DIR
 
         if path == self.DEFAULT_LOGS_DIR:
@@ -136,7 +135,7 @@ class OutputsSettings:
         # Check if the folder does not exist: if not, create (and its parent)
         if not os.path.exists(abs_path):
             warnings.warn(f"The logs path you provided ({settings['path']}) does not exist. "
-                          "Needed paths will be created (and their parents if needed).")
+                          "Needed paths will be created (and their parents if needed).", stacklevel=2)
         elif settings.get('overwrite_logs_folder', False):
             warnings.warn(f"Overwriting '{path}' folder...")
             self._clean_folder(abs_path)
