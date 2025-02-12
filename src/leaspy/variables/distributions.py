@@ -9,11 +9,11 @@ import torch
 from torch import Tensor
 from torch.autograd import grad
 
-from src.leaspy.constants import constants
-from src.leaspy.exceptions import LeaspyInputError
-from src.leaspy.utils.distributions import MultinomialDistribution
-from src.leaspy.utils.functional import NamedInputFunction
-from src.leaspy.utils.weighted_tensor import WeightedTensor, sum_dim
+from leaspy.constants import constants
+from leaspy.exceptions import LeaspyInputError
+from leaspy.utils.distributions import MultinomialDistribution
+from leaspy.utils.functional import NamedInputFunction
+from leaspy.utils.weighted_tensor import WeightedTensor, sum_dim
 
 __all__ = [
     "StatelessDistributionFamily",

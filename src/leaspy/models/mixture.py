@@ -21,7 +21,7 @@ from leaspy.models.base import InitializationMethod
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.abstract_model import AbstractModel, InitializationMethod
 from leaspy.models.obs_models import observation_model_factory, MixtureGaussianObservationModel, FullGaussianObservationModel
-from src.leaspy.models.multivariate import LogisticMultivariateModel
+from leaspy.models.multivariate import LogisticMultivariateModel
 
 from leaspy.io.data.dataset import Dataset
 
