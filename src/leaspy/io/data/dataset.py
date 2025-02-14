@@ -258,7 +258,7 @@ class Dataset:
 
         return values_with_nans
 
-    def to_pandas(self) -> pd.DataFrame:
+    def to_pandas(self, apply_headers: bool = False) -> pd.DataFrame:
         """
         Convert dataset to a `DataFrame` with ['ID', 'TIME'] index.
 
@@ -287,14 +287,14 @@ class Dataset:
                     self.headers, self.event_time_name, self.event_bool_name
                 )
             )
-        return pd.concat(to_concat).sort_index()
+        df = pd.concat(to_concat).sort_index()
 
-    def hearders_to_pandas(self):
-        df = self.to_pandas()[self.headers]
-        if not df.index.is_unique:
-            raise LeaspyInputError("Index of DataFrame is not unique.")
-        if not df.index.to_frame().notnull().all(axis=None):
-            raise LeaspyInputError("Index of DataFrame contains unvalid values.")
+        if apply_headers:
+            df = df[self.headers]
+            if not df.index.is_unique:
+                raise LeaspyInputError("Index of DataFrame is not unique.")
+            if not df.index.to_frame().notnull().all(axis=None):
+                raise LeaspyInputError("Index of DataFrame contains invalid values.")
         return df
 
     def move_to_device(self, device: torch.device) -> None:
