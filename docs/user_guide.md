@@ -1,5 +1,7 @@
 # User guide
 
+This page presents the user guide of Leaspy.
+
 TODO
 
 ```{toctree}
