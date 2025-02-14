@@ -26,7 +26,7 @@ __all__ = ["VariablesDAG"]
 
 @dataclass(frozen=True)
 class VariablesDAG(Mapping):
-    """Directed acyclic graph of symbolic variables used in a model (efficient topologically sorted bidirectional access).
+    """Directed acyclic graph of symbolic variables used in a leaspy model with efficient topologically sorted bidirectional access.
 
     Parameters
     ----------
@@ -35,7 +35,7 @@ class VariablesDAG(Mapping):
 
     direct_ancestors : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
         The nodes that are directly connected (in-going edge) to a given node.
-        Use :meth:`~leaspy.variables.dag.VariablesDAG.from_dict()` class method to use the natural dependencies of linked variables for those.
+        Use :meth:`~leaspy.variables.dag.VariablesDAG.from_dict()` class method to reach the natural dependencies of linked variables.
 
     Notes
     -----
@@ -73,7 +73,7 @@ class VariablesDAG(Mapping):
     """The specifications of DAG nodes."""
 
     direct_ancestors: VariablesToFrozenSet = field(repr=False)
-    """The edges out-going (children) and in-going (ancestors) from a given node (at most one edge per node and no self-loop)."""
+    """Mapping of variable names to their direct ancestors."""
 
     # pre-computed data that only depend on frozen attributes of dataclass
     direct_children: VariablesToFrozenSet = field(init=False, repr=False, compare=False)
@@ -82,17 +82,17 @@ class VariablesDAG(Mapping):
     sorted_variables_names: tuple[VariableName, ...] = field(
         init=False, repr=False, compare=False
     )
-    """A topological sorting of variables (non-unique), from roots (no ancestors) to leaves (no children). The iteration order corresponds to this sorting."""
+    """A topological sorting of variables from roots to leaves. The iteration order corresponds to this sorting."""
     # path_matrix: torch.Tensor = field(init=False, repr=False, compare=False)  # big and useless?
     sorted_children: TMapping[VariableName, tuple[VariableName, ...]] = field(
         init=False, repr=False, compare=False
     )
-    """All children of a given node (never includes itself), in topological order (from "closest to furthest bottom")."""
+    """Mapping of all children of a given variable in a topological order."""
 
     sorted_ancestors: TMapping[VariableName, tuple[VariableName, ...]] = field(
         init=False, repr=False, compare=False
     )
-    """All ancestors of a given node (never includes itself), in topological order (from "furthest top to closest")."""
+    """Mapping of all ancestor of a given variable in a topological order."""
 
     sorted_variables_by_type: TMapping[
         # a better type hint would be nice here: Type[cls] -> Mapping[VariableName, cls]
@@ -265,8 +265,8 @@ class VariablesDAG(Mapping):
 
         Notes
         -----
-        The complexity in time of the algorithm is linear with the number of edges + number of nodes.
-        Input nodes are sorted by name so to have fully reproducible output, independently
+        The algorithm has linear complexity with the O(number of edges + number of nodes).
+        Input nodes are sorted by name in order to have fully reproducible output
         of the initial order of nodes and edges.
         (Thus renaming nodes may change the output, due to non-uniqueness of topological order)
         """
@@ -320,7 +320,7 @@ class VariablesDAG(Mapping):
         dict[VariableName, tuple[VariableName, ...]],
         dict[VariableName, tuple[VariableName, ...]],
     ]:
-        """Produce node-wise topologically sorted children and ancestors from provided nodes full order and corresponding path matrix.
+        """Produce node-wise topologically sorted children and ancestors from provided nodes.
 
         Parameters
         ----------
