@@ -69,8 +69,6 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
         -------
         individual_parameters : :class:`.IndividualParameters`
             Contains individual parameters.
-        noise_std : float
-            TODO: always 0 for now
         """
 
         # always overwrite model features (no fit process)
@@ -88,7 +86,7 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
 
             ip.add_individual_parameters(str(idx), ind_ip)
 
-        return ip, None  # TODO? evaluate rmse?
+        return ip
 
     def _get_individual_last_values(
         self, times: np.ndarray, values: np.ndarray, *, fts: list[FeatureType]

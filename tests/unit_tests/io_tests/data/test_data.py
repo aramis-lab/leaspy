@@ -1,28 +1,25 @@
+import pandas as pd
 import pytest
 
-import pandas as pd
-
-from leaspy.io.data.data import Data
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
+from leaspy.io.data.data import Data
 from leaspy.utils.typing import Tuple
-
 from tests import LeaspyTestCase
 
 
 class DataTest(LeaspyTestCase):
-
     def load_multivariate_data(self):
-        path_to_data = self.get_test_data_path('data_mock', 'multivariate_data.csv')
+        path_to_data = self.get_test_data_path("data_mock", "multivariate_data.csv")
         return Data.from_csv_file(path_to_data)
 
     def test_constructor_univariate(self):
-        path_to_data = self.get_test_data_path('data_mock', 'univariate_data.csv')
+        path_to_data = self.get_test_data_path("data_mock", "univariate_data.csv")
         data = Data.from_csv_file(path_to_data)
         individual = data[2]
 
-        self.assertEqual(data.iter_to_idx[0], '100_S_0006')
-        self.assertEqual(data.iter_to_idx[len(data.iter_to_idx)-1], '130_S_0232')
-        self.assertEqual(data.headers, ['MMSE'])
+        self.assertEqual(data.iter_to_idx[0], "100_S_0006")
+        self.assertEqual(data.iter_to_idx[len(data.iter_to_idx) - 1], "130_S_0232")
+        self.assertEqual(data.headers, ["MMSE"])
         self.assertEqual(data.dimension, 1)
         self.assertEqual(data.n_individuals, 7)
         self.assertEqual(data.n_visits, 33)
@@ -30,7 +27,7 @@ class DataTest(LeaspyTestCase):
         self.assertEqual(data.event_time_name, None)
         self.assertEqual(data.event_bool_name, None)
 
-        self.assertEqual(individual.idx, '027_S_0179')
+        self.assertEqual(individual.idx, "027_S_0179")
         self.assertEqual(individual.timepoints.tolist(), [80.9, 81.9, 82.4, 82.8])
         self.assertEqual(individual.observations.tolist(), [[0.2], [0.2], [0.3], [0.5]])
 
@@ -38,9 +35,9 @@ class DataTest(LeaspyTestCase):
         data = self.load_multivariate_data()
         individual = data[3]
 
-        self.assertEqual(data.iter_to_idx[0], '007_S_0041')
-        self.assertEqual(data.iter_to_idx[len(data.iter_to_idx)-1], '128_S_0138')
-        self.assertEqual(data.headers, ['ADAS11', 'ADAS13', 'MMSE'])
+        self.assertEqual(data.iter_to_idx[0], "007_S_0041")
+        self.assertEqual(data.iter_to_idx[len(data.iter_to_idx) - 1], "128_S_0138")
+        self.assertEqual(data.headers, ["ADAS11", "ADAS13", "MMSE"])
         self.assertEqual(data.dimension, 3)
         self.assertEqual(data.n_individuals, 5)
         self.assertEqual(data.n_visits, 18)
@@ -48,9 +45,11 @@ class DataTest(LeaspyTestCase):
         self.assertEqual(data.event_time_name, None)
         self.assertEqual(data.event_bool_name, None)
 
-        self.assertEqual(individual.idx, '130_S_0102')
+        self.assertEqual(individual.idx, "130_S_0102")
         self.assertEqual(individual.timepoints.tolist(), [71.3, 71.8])
-        self.assertEqual(individual.observations.tolist(), [[0.3, 0.4, 0.5], [0.4, 0.5, 0.6]])
+        self.assertEqual(
+            individual.observations.tolist(), [[0.3, 0.4, 0.5], [0.4, 0.5, 0.6]]
+        )
 
     def check_sub_data(self, data, sub_data, individual, sub_individual):
         """Helper to check the compliant behaviour of sliced data
@@ -73,8 +72,12 @@ class DataTest(LeaspyTestCase):
         self.assertEqual(data.cofactors, sub_data.cofactors)
 
         self.assertEqual(individual.idx, sub_individual.idx)
-        self.assertEqual(individual.timepoints.tolist(), sub_individual.timepoints.tolist())
-        self.assertEqual(individual.observations.tolist(), sub_individual.observations.tolist())
+        self.assertEqual(
+            individual.timepoints.tolist(), sub_individual.timepoints.tolist()
+        )
+        self.assertEqual(
+            individual.observations.tolist(), sub_individual.observations.tolist()
+        )
         self.assertEqual(individual.cofactors, sub_individual.cofactors)
 
     def test_data_slicing(self):
@@ -103,22 +106,27 @@ class DataTest(LeaspyTestCase):
         # Unsupported slicing
         with pytest.raises(LeaspyTypeError):
             _ = data[{}]
- 
+
         # Membership
         assert individual.idx in data
         assert data[0].idx not in sub_data_slice
 
         # Unsupported membership
         with pytest.raises(LeaspyTypeError):
-            _ = (0 in data)
+            _ = 0 in data
 
     def test_data_iteration(self):
         data = self.load_multivariate_data()
         for iter, individual in enumerate(data):
             expected_individual = data[iter]
             self.assertEqual(individual.idx, expected_individual.idx)
-            self.assertEqual(individual.timepoints.tolist(), expected_individual.timepoints.tolist())
-            self.assertEqual(individual.observations.tolist(), expected_individual.observations.tolist())
+            self.assertEqual(
+                individual.timepoints.tolist(), expected_individual.timepoints.tolist()
+            )
+            self.assertEqual(
+                individual.observations.tolist(),
+                expected_individual.observations.tolist(),
+            )
             if iter > 4:
                 break
 
@@ -129,7 +137,7 @@ class DataTest(LeaspyTestCase):
         cofactors_df = pd.DataFrame(
             index=idx_list,
             data=[(idx[0], idx[-1]) for idx in idx_list],
-            columns=cofactors_list
+            columns=cofactors_list,
         )
         cofactors_df.index.name = "ID"
         data.load_cofactors(cofactors_df, cofactors=None)
@@ -162,12 +170,11 @@ class DataTest(LeaspyTestCase):
         data, cofactors_df = self.get_data_and_cofactors_df()
         df = data.to_dataframe(cofactors="all")
         self.assertEqual(
-            df.shape,
-            (data.n_visits, len(data.headers + data.cofactors) + 2)
+            df.shape, (data.n_visits, len(data.headers + data.cofactors) + 2)
         )
         self.assertEqual(
             df.loc[df["ID"] == data[3].idx, "Cofactor_1"].to_list(),
-            [data[3].idx[0] for _ in range(len(data[3].timepoints))]
+            [data[3].idx[0] for _ in range(len(data[3].timepoints))],
         )
 
     def test_data_cofactors_to_dataframe_error(self):
@@ -187,35 +194,35 @@ class DataTest(LeaspyTestCase):
 
     def test_data_with_event(self):
         # Load data
-        path_to_data = self.get_test_data_path('data_mock', 'event_univariate_data.csv')
-        df = pd.read_csv(path_to_data, sep = ';')
-        data = Data.from_dataframe(df, data_type = 'joint')
+        path_to_data = self.get_test_data_path("data_mock", "event_univariate_data.csv")
+        df = pd.read_csv(path_to_data, sep=";")
+        data = Data.from_dataframe(df, data_type="joint")
         individual = data[2]
 
         # Assert everything ok for univariate
-        self.assertEqual(data.iter_to_idx[0], '100_S_0006')
-        self.assertEqual(data.iter_to_idx[len(data.iter_to_idx) - 1], '130_S_0232')
-        self.assertEqual(data.headers, ['MMSE'])
+        self.assertEqual(data.iter_to_idx[0], "100_S_0006")
+        self.assertEqual(data.iter_to_idx[len(data.iter_to_idx) - 1], "130_S_0232")
+        self.assertEqual(data.headers, ["MMSE"])
         self.assertEqual(data.dimension, 1)
         self.assertEqual(data.n_individuals, 7)
         self.assertEqual(data.n_visits, 33)
         self.assertEqual(data.cofactors, [])
 
-        self.assertEqual(individual.idx, '027_S_0179')
+        self.assertEqual(individual.idx, "027_S_0179")
         self.assertEqual(individual.timepoints.tolist(), [80.9, 81.9, 82.4, 82.8])
         self.assertEqual(individual.observations.tolist(), [[0.2], [0.2], [0.3], [0.5]])
 
         # Test events
-        self.assertEqual(data.event_time_name, 'EVENT_TIME')
-        self.assertEqual(data.event_bool_name, 'EVENT_BOOL')
+        self.assertEqual(data.event_time_name, "EVENT_TIME")
+        self.assertEqual(data.event_bool_name, "EVENT_BOOL")
         self.assertEqual(individual.event_time, 83)
         self.assertEqual(individual.event_bool, False)
 
     def test_data_only_event(self):
         # Load data
-        path_to_data = self.get_test_data_path('data_mock', 'event_data.csv')
-        df = pd.read_csv(path_to_data, sep = ';')
-        data = Data.from_dataframe(df, data_type = 'event')
+        path_to_data = self.get_test_data_path("data_mock", "event_data.csv")
+        df = pd.read_csv(path_to_data, sep=";")
+        data = Data.from_dataframe(df, data_type="event")
         individual = data[2]
 
         # Data attributes
@@ -226,42 +233,36 @@ class DataTest(LeaspyTestCase):
         self.assertEqual(data.n_individuals, 5)
         self.assertEqual(data.n_visits, None)
         self.assertEqual(data.cofactors, [])
-        self.assertEqual(data.event_time_name, 'EVENT_TIME')
-        self.assertEqual(data.event_bool_name, 'EVENT_BOOL')
+        self.assertEqual(data.event_time_name, "EVENT_TIME")
+        self.assertEqual(data.event_bool_name, "EVENT_BOOL")
 
         # Check individual
         self.assertEqual(individual.idx, 2)
         self.assertEqual(individual.timepoints, None)
         self.assertEqual(individual.observations, None)
-        self.assertEqual(individual.event_time, round(1.4975665315766469,6))
+        self.assertEqual(individual.event_time, round(1.4975665315766469, 6))
         self.assertEqual(individual.event_bool, True)
 
     def test_error_events(self):
-
         # If different bool for the same patient
-        df = pd.DataFrame([[0.        , 2.23357831, 1.        ],
-       [0.        , 2.23357831, 0.        ]])
+        df = pd.DataFrame([[0.0, 2.23357831, 1.0], [0.0, 2.23357831, 0.0]])
 
         with pytest.raises(LeaspyDataInputError):
             data = Data.from_dataframe(df)
 
         # If boolean not 0 or 1
-        df = pd.DataFrame([[0., 2.23357831, 2],
-                           [0., 2.23357831, 0.]])
+        df = pd.DataFrame([[0.0, 2.23357831, 2], [0.0, 2.23357831, 0.0]])
 
         with pytest.raises(LeaspyDataInputError):
             data = Data.from_dataframe(df)
 
-        df = pd.DataFrame([[0., 2.23357831, True],
-                           [0., 2.23357831, 0.]])
+        df = pd.DataFrame([[0.0, 2.23357831, True], [0.0, 2.23357831, 0.0]])
 
         with pytest.raises(LeaspyDataInputError):
             data = Data.from_dataframe(df)
 
         # If event below 0
-        df = pd.DataFrame([[0., -2.23357831, 1.],
-                           [0., 2.23357831, 0.]])
+        df = pd.DataFrame([[0.0, -2.23357831, 1.0], [0.0, 2.23357831, 0.0]])
 
         with pytest.raises(LeaspyDataInputError):
             data = Data.from_dataframe(df)
-

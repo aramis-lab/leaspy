@@ -1,14 +1,12 @@
-import re
 import doctest
+import re
 
 import leaspy.utils.docs as lsp_docs
 from leaspy.utils.docs import doc_with, doc_with_super
-
 from tests.utils import LeaspyTestCase
 
 
 class A:
-
     @classmethod
     def cm(cls):
         """Class method of A"""
@@ -43,6 +41,7 @@ class A:
         """
         return x
 
+
 class B:
     """Class B"""
 
@@ -54,19 +53,16 @@ class B:
         """Bar from B"""
         ...
 
-@doc_with_super(mapping={'A':'C', 'B':'C'})
-class C(A, B):
 
+@doc_with_super(mapping={"A": "C", "B": "C"})
+class C(A, B):
     @classmethod
-    def cm(cls):
-        ...
+    def cm(cls): ...
 
     @staticmethod
-    def sm():
-        ...
+    def sm(): ...
 
-    def m(self):
-        ...
+    def m(self): ...
 
     def foo(self, x):
         return
@@ -74,21 +70,29 @@ class C(A, B):
     def bar(self):
         return
 
-@doc_with(A.foo, {'say': 'hear', 'word': '***', 'less': '!?', "I'm": "you're"}, flags=re.IGNORECASE)
+
+@doc_with(
+    A.foo,
+    {"say": "hear", "word": "***", "less": "!?", "I'm": "you're"},
+    flags=re.IGNORECASE,
+)
 def bar():
     return
 
+
 class TestDocstringUtils(LeaspyTestCase):
-
     def test_doc_with(self):
-
         # doc_with
-        self.assertEqual(bar.__doc__.strip(), "Can't hear the *** `!?` since you're wordless. ***-")
+        self.assertEqual(
+            bar.__doc__.strip(), "Can't hear the *** `!?` since you're wordless. ***-"
+        )
 
         # doc_with_super
         self.assertEqual(C.__doc__, "Class C")
 
-        self.assertEqual(C.foo.__doc__.strip(), "Can't say the word `less` since I'm wordless. Word-")
+        self.assertEqual(
+            C.foo.__doc__.strip(), "Can't say the word `less` since I'm wordless. Word-"
+        )
         self.assertEqual(C.bar.__doc__, """Bar from C""")
 
         # not replaced methods (because not re-implemented at all)
@@ -105,32 +109,36 @@ class TestDocstringUtils(LeaspyTestCase):
         doctest.testmod(lsp_docs)
 
     def test_behavior_when_signatures_mismatch(self):
-
         class Super:
             def mismatch_of_signature(x, *, y):
                 """Hello"""
 
-        with self.assertRaisesRegex(ValueError, 'has a different signature than its parent'):
-            @doc_with_super(if_other_signature='raise')
-            class Child(Super):
-                def mismatch_of_signature(x, y):
-                    ...
+        with self.assertRaisesRegex(
+            ValueError, "has a different signature than its parent"
+        ):
 
-        with self.assertWarnsRegex(UserWarning, 'has a different signature than its parent'):
-            @doc_with_super(if_other_signature='warn')
+            @doc_with_super(if_other_signature="raise")
             class Child(Super):
-                def mismatch_of_signature(x, *, y=None):
-                    ...
+                def mismatch_of_signature(x, y): ...
+
+        with self.assertWarnsRegex(
+            UserWarning, "has a different signature than its parent"
+        ):
+
+            @doc_with_super(if_other_signature="warn")
+            class Child(Super):
+                def mismatch_of_signature(x, *, y=None): ...
+
         self.assertEqual(Child.mismatch_of_signature.__doc__, "Hello")
 
-        @doc_with_super(if_other_signature='skip')
+        @doc_with_super(if_other_signature="skip")
         class Child(Super):
-            def mismatch_of_signature(x, *, other_name):
-                ...
+            def mismatch_of_signature(x, *, other_name): ...
+
         self.assertIsNone(Child.mismatch_of_signature.__doc__)
 
-        @doc_with_super(if_other_signature='force')
+        @doc_with_super(if_other_signature="force")
         class Child(Super):
-            def mismatch_of_signature(x, *, other_name):
-                ...
+            def mismatch_of_signature(x, *, other_name): ...
+
         self.assertEqual(Child.mismatch_of_signature.__doc__, "Hello")

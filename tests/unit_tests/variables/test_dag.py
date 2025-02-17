@@ -1,4 +1,5 @@
 import re
+
 import pytest
 
 
@@ -25,9 +26,9 @@ def test_empty_dag():
 
 def test_dag_error_with_single_variable():
     """Assert that an error is raised when trying to create a DAG with a single node."""
+    from leaspy.exceptions import LeaspyInputError
     from leaspy.variables.dag import VariablesDAG
     from leaspy.variables.specs import IndepVariable
-    from leaspy.exceptions import LeaspyInputError
 
     with pytest.raises(
         LeaspyInputError,
@@ -49,11 +50,11 @@ def test_basic_dag_with_two_nodes():
     )
 
     assert len(d.variables) == 2
-    assert d.direct_ancestors == {'x': frozenset(), 'y': frozenset({'x'})}
-    assert d.direct_children == {'x': frozenset({'y'}), 'y': frozenset()}
+    assert d.direct_ancestors == {"x": frozenset(), "y": frozenset({"x"})}
+    assert d.direct_children == {"x": frozenset({"y"}), "y": frozenset()}
     assert d.sorted_variables_names == ("x", "y")
-    assert d.sorted_children == {'x': ('y',), 'y': ()}
-    assert d.sorted_ancestors == {'x': (), 'y': ('x',)}
+    assert d.sorted_children == {"x": ("y",), "y": ()}
+    assert d.sorted_ancestors == {"x": (), "y": ("x",)}
     assert len(d.sorted_variables_by_type) == 2
     assert set(d.sorted_variables_by_type.keys()) == {IndepVariable, LinkedVariable}
     assert "x" in d.sorted_variables_by_type[IndepVariable]
@@ -69,8 +70,12 @@ def test_basic_dag_with_two_nodes():
 def test_advanced_dag_with_seven_nodes():
     """Tests with a DAG containing 7 nodes on 3 levels."""
     from leaspy.variables.dag import VariablesDAG
-    from leaspy.variables.specs import IndepVariable, LinkedVariable, IndividualLatentVariable
     from leaspy.variables.distributions import Normal
+    from leaspy.variables.specs import (
+        IndepVariable,
+        IndividualLatentVariable,
+        LinkedVariable,
+    )
 
     d = VariablesDAG.from_dict(
         {
@@ -103,7 +108,7 @@ def test_advanced_dag_with_seven_nodes():
         "Y_x_Z": frozenset({"model"}),
         "V": frozenset({"model"}),
     }
-    assert d.sorted_variables_names == ('V', 'X', 'Y', 'Z', 'X_x_Y', 'Y_x_Z', 'model')
+    assert d.sorted_variables_names == ("V", "X", "Y", "Z", "X_x_Y", "Y_x_Z", "model")
     assert d.sorted_children == {
         "V": ("model",),
         "X": ("X_x_Y", "model"),
@@ -123,7 +128,11 @@ def test_advanced_dag_with_seven_nodes():
         "model": ("V", "X", "Y", "Z", "X_x_Y", "Y_x_Z"),
     }
     assert len(d.sorted_variables_by_type) == 3
-    assert set(d.sorted_variables_by_type.keys()) == {IndepVariable, IndividualLatentVariable, LinkedVariable}
+    assert set(d.sorted_variables_by_type.keys()) == {
+        IndepVariable,
+        IndividualLatentVariable,
+        LinkedVariable,
+    }
     for variable in ("V", "Y"):
         assert variable in d.sorted_variables_by_type[IndepVariable]
         assert variable not in d.sorted_variables_by_type[LinkedVariable]
@@ -181,7 +190,16 @@ def test_dag_with_multiple_components():
         "model2": frozenset(),
         "C": frozenset({"C_plus_D"}),
     }
-    assert d.sorted_variables_names == ('A', 'B', 'C', 'D', 'E', 'model1', 'C_plus_D', 'model2')
+    assert d.sorted_variables_names == (
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "model1",
+        "C_plus_D",
+        "model2",
+    )
     assert d.sorted_children == {
         "A": ("model1",),
         "B": ("model1",),
@@ -218,9 +236,9 @@ def test_dag_with_multiple_components():
 
 def test_dag_error_with_a_single_node_component():
     """Test that an error is raised when one component is made of a single node."""
+    from leaspy.exceptions import LeaspyInputError
     from leaspy.variables.dag import VariablesDAG
     from leaspy.variables.specs import IndepVariable, LinkedVariable
-    from leaspy.exceptions import LeaspyInputError
 
     with pytest.raises(
         LeaspyInputError,

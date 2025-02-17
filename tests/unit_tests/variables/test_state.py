@@ -1,18 +1,20 @@
-import pytest
 import re
+
+import pytest
 import torch
-from leaspy.variables.state import State
+
 from leaspy.variables.dag import VariablesDAG
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
+    DataVariable,
     Hyperparameter,
     IndividualLatentVariable,
+    LatentVariableInitType,
     LinkedVariable,
-    DataVariable,
-    PopulationLatentVariable,
     NamedVariables,
+    PopulationLatentVariable,
 )
-from leaspy.variables.specs import LatentVariableInitType
+from leaspy.variables.state import State
 
 
 def _assert_empty_state(state: State):
@@ -118,9 +120,7 @@ def test_state_precompute_all_error(state):
 
     with pytest.raises(
         LeaspyInputError,
-        match=re.escape(
-            "'t' is an independent variable which is required to proceed"
-        ),
+        match=re.escape("'t' is an independent variable which is required to proceed"),
     ):
         state.precompute_all()
 
@@ -161,7 +161,9 @@ def test_state_precompute_with_put_population_latent_variables(state, method):
 
     assert torch.allclose(
         state["x"],
-        torch.tensor(100.0337 if method == LatentVariableInitType.PRIOR_SAMPLES else 100.0)
+        torch.tensor(
+            100.0337 if method == LatentVariableInitType.PRIOR_SAMPLES else 100.0
+        ),
     )
     assert state["mean"] == torch.tensor(100)
     assert state["nll_regul_ind_sum_ind"] == torch.tensor(0)
@@ -170,5 +172,7 @@ def test_state_precompute_with_put_population_latent_variables(state, method):
     assert state["nll_regul_ind_sum"] == torch.tensor(0)
     assert torch.allclose(
         state["model"],
-        torch.tensor(200.0673 if method == LatentVariableInitType.PRIOR_SAMPLES else 200.0)
+        torch.tensor(
+            200.0673 if method == LatentVariableInitType.PRIOR_SAMPLES else 200.0
+        ),
     )
