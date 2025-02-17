@@ -157,18 +157,6 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
 
         return d
 
-    def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
-        df = dataset.to_pandas().dropna(how="all").sort_index()[dataset.headers]
-        if not df.index.is_unique:
-            raise LeaspyInputError("Index of DataFrame is not unique.")
-        if not df.index.to_frame().notnull().all(axis=None):
-            raise LeaspyInputError("Index of DataFrame contains unvalid values.")
-        if self.features != df.columns.tolist():
-            raise LeaspyInputError(
-                f"Features mismatch between model and dataset: {self.features} != {df.columns}"
-            )
-        return df
-
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:

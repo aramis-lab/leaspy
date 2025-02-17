@@ -258,9 +258,15 @@ class Dataset:
 
         return values_with_nans
 
-    def to_pandas(self) -> pd.DataFrame:
+    def to_pandas(self, apply_headers: bool=False) -> pd.DataFrame:
         """
-        Convert dataset to a `DataFrame` with ['ID', 'TIME'] index.
+        Convert dataset to a `DataFrame` with ['ID', 'TIME'] index, with all covariates, events and repeated measures if
+        apply_headers is False, and only the repeated measures otherwise.
+
+         Parameters
+        ----------
+        apply_headers : bool
+            Enable to select only the columns that are needed for leaspy fit (headers attribute)
 
         Returns
         -------
@@ -287,7 +293,15 @@ class Dataset:
                     self.headers, self.event_time_name, self.event_bool_name
                 )
             )
-        return pd.concat(to_concat)
+        df = pd.concat(to_concat).sort_index()
+
+        if apply_headers:
+            df = df[self.headers]
+            if not df.index.is_unique:
+                raise LeaspyInputError("Index of DataFrame is not unique.")
+            if not df.index.to_frame().notnull().all(axis=None):
+                raise LeaspyInputError("Index of DataFrame contains invalid values.")
+        return df
 
     def move_to_device(self, device: torch.device) -> None:
         """
