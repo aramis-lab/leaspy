@@ -38,7 +38,7 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
     :meth:`.Leaspy.personalize`
     """
 
-    family = "personalize"
+    family: AlgorithmType = AlgorithmType.PERSONALIZE
 
     def run_impl(
         self, model: AbstractModel, dataset: Dataset

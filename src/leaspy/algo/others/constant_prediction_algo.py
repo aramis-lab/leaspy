@@ -69,8 +69,6 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
         -------
         individual_parameters : :class:`.IndividualParameters`
             Contains individual parameters.
-        noise_std : float
-            TODO: always 0 for now
         """
 
         # always overwrite model features (no fit process)

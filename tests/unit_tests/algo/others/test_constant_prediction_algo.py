@@ -69,12 +69,13 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
             self.assertEqual(ind_ip, res)
 
     def test_run_last(self):
-        results = [
+        self.b___ = [
             ("last", {"1": {"A": 3.0, "B": float("nan")}}),
             ("last_known", {"1": {"A": 3, "B": 3.0}}),
             ("max", {"1": {"A": 4.0, "B": 3.0}}),
             ("mean", {"1": {"A": 3.0, "B": 2.0}}),
         ]
+        results = self.b___
 
         for pred_type, res in results:
             settings = AlgorithmSettings(
@@ -83,7 +84,7 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
             algo = ConstantPredictionAlgorithm(settings)
             model = ConstantModel("constant")
 
-            ip = algo.run(model, self.dataset, return_loss=True)
+            ip = algo.run(model, self.dataset)
             self.assertListEqual(ip._indices, ["1"])
             self.assertDictEqual(ip._parameters_shape, {"A": (), "B": ()})
             self.assertEqual(ip._default_saving_type, "csv")

@@ -75,7 +75,7 @@ class OutputsSettings:
         # only create folders if the user want to save data or plots and provided a valid path!
         self._create_root_folder(settings)
 
-    def _set_param_as_int_or_ignore(self, settings, param: str):
+    def _set_param_as_int_or_ignore(self, settings: dict, param: str):
         """Inplace set of parameter (as int) from settings."""
         if param not in settings:
             return
@@ -97,13 +97,13 @@ class OutputsSettings:
         # Update the attribute of self in-place
         setattr(self, param, val)
 
-    def _set_print_periodicity(self, settings):
+    def _set_print_periodicity(self, settings: dict):
         self._set_param_as_int_or_ignore(settings, "print_periodicity")
 
-    def _set_save_periodicity(self, settings):
+    def _set_save_periodicity(self, settings: dict):
         self._set_param_as_int_or_ignore(settings, "save_periodicity")
 
-    def _set_plot_periodicity(self, settings):
+    def _set_plot_periodicity(self, settings: dict):
         self._set_param_as_int_or_ignore(settings, "plot_periodicity")
 
         if self.plot_periodicity is not None:
@@ -118,7 +118,7 @@ class OutputsSettings:
                     "The `plot_periodicity` should be a multiple of `save_periodicity`."
                 )
 
-    def _create_root_folder(self, settings):
+    def _create_root_folder(self, settings: dict):
         # Get the path to put the outputs
         path = settings.get("path", None)
 
@@ -138,11 +138,11 @@ class OutputsSettings:
             return
 
         # store the absolute path in settings
-        abs_path = os.path.abspath(path)
+        abs_path = Path.cwd() / path
         settings["path"] = abs_path
 
         # Check if the folder does not exist: if not, create (and its parent)
-        if not os.path.exists(abs_path):
+        if not abs_path.exists():
             warnings.warn(
                 f"The logs path you provided ({settings['path']}) does not exist. "
                 "Needed paths will be created (and their parents if needed).",
@@ -161,7 +161,7 @@ class OutputsSettings:
             )
 
     @staticmethod
-    def _check_folder_is_empty_or_create_it(path_folder) -> bool:
+    def _check_folder_is_empty_or_create_it(path_folder: Path) -> bool:
         if os.path.exists(path_folder):
             if (
                 os.path.islink(path_folder)
@@ -502,7 +502,7 @@ class AlgorithmSettings:
         with open(path, "w") as json_file:
             json.dump(json_settings, json_file, **kwargs)
 
-    def set_logs(self, path: Optional[str] = None, **kwargs):
+    def set_logs(self, path: Optional[Union[str, Path]] = None, **kwargs):
         """
         Use this method to monitor the convergence of a model fit.
 
