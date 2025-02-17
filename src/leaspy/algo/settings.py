@@ -506,7 +506,7 @@ class AlgorithmSettings:
         """
         Use this method to monitor the convergence of a model fit.
 
-        It create graphs and csv files of the values of the population parameters (fixed effects) during the fit
+        It creates graphs and csv files of the values of the population parameters (fixed effects) during the fit
 
         Parameters
         ----------

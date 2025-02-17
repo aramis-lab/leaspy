@@ -178,13 +178,10 @@ class AbstractAlgo(ABC):
                 f"The `{self.name}` algorithm was not properly created."
             )
 
-        # Set seed if needed
         self._initialize_seed(self.seed)
 
-        # Init the run
         time_beginning = time.time()
 
-        # Get the results
         output = self.run_impl(model, *args, **extra_kwargs)
 
         # Print run infos
@@ -414,7 +411,7 @@ def algorithm_factory(settings: AlgorithmSettings) -> AbstractAlgo:
         The wanted algorithm if it exists and is compatible with algorithm family.
     """
     algorithm = get_algorithm_class(settings.name)(settings)
-    if settings.logs is None and algorithm.family == "fit":
+    if settings.logs is None and algorithm.family == AlgorithmType.FIT:
         settings.set_logs()
     algorithm.set_output_manager(settings.logs)
     return algorithm
