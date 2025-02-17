@@ -49,8 +49,6 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
         -------
         individual_parameters : :class:`.IndividualParameters`
             Contains individual parameters.
-        noise_std : float
-            The estimated noise
         """
 
         ip = IndividualParameters()
