@@ -121,28 +121,24 @@ class OutputsSettings:
     def _create_root_folder(self, settings: dict):
         # Get the path to put the outputs
         path = settings.get("path", None)
-
-        if path is None and self.save_periodicity:
-            warnings.warn(
-                f"Outputs will be saved in '{self.DEFAULT_LOGS_DIR}' relative to the current working directory",
-                stacklevel=2,
-            )
-            path = self.DEFAULT_LOGS_DIR
-
-        if path == self.DEFAULT_LOGS_DIR:
-            if os.path.exists(path):
-                self._clean_folder(path)
-
         if path is None:
-            # No folder will be created and no convergence data shall be saved
-            return
+            if self.save_periodicity:
+                warnings.warn(
+                    f"Outputs will be saved in '{self.DEFAULT_LOGS_DIR}' relative to the current working directory",
+                    stacklevel=2,
+                )
+                path = Path.cwd() / self.DEFAULT_LOGS_DIR
+                if path.exists():
+                    self._clean_folder(path)
+            else:
+                return
+        else:
+            path = Path.cwd() / path
 
-        # store the absolute path in settings
-        abs_path = Path.cwd() / path
-        settings["path"] = str(abs_path)
+        settings["path"] = str(path)
 
         # Check if the folder does not exist: if not, create (and its parent)
-        if not abs_path.exists():
+        if not path.exists():
             warnings.warn(
                 f"The logs path you provided ({settings['path']}) does not exist. "
                 "Needed paths will be created (and their parents if needed).",
@@ -150,9 +146,9 @@ class OutputsSettings:
             )
         elif settings.get("overwrite_logs_folder", False):
             warnings.warn(f"Overwriting '{path}' folder...")
-            self._clean_folder(abs_path)
+            self._clean_folder(path)
 
-        all_ok = self._check_needed_folders_are_empty_or_create_them(abs_path)
+        all_ok = self._check_needed_folders_are_empty_or_create_them(path)
 
         if not all_ok:
             raise LeaspyAlgoInputError(
@@ -168,7 +164,6 @@ class OutputsSettings:
                 or not path_folder.is_dir()
                 or len([f for f in path_folder.iterdir()]) > 0
             ):
-                # path is a link, or not a directory, or a directory containing something
                 return False
         else:
             path_folder.mkdir(parents=True, exist_ok=True)
@@ -178,7 +173,7 @@ class OutputsSettings:
     @staticmethod
     def _clean_folder(path: Path):
         shutil.rmtree(path)
-        os.makedirs(path)
+        path.mkdir(exist_ok=True, parents=True)
 
     def _check_needed_folders_are_empty_or_create_them(self, path: Path) -> bool:
         self.root_path = path

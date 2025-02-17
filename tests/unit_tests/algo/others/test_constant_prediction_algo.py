@@ -69,13 +69,12 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
             self.assertEqual(ind_ip, res)
 
     def test_run_last(self):
-        self.b___ = [
+        results = [
             ("last", {"1": {"A": 3.0, "B": float("nan")}}),
             ("last_known", {"1": {"A": 3, "B": 3.0}}),
             ("max", {"1": {"A": 4.0, "B": 3.0}}),
             ("mean", {"1": {"A": 3.0, "B": 2.0}}),
         ]
-        results = self.b___
 
         for pred_type, res in results:
             settings = AlgorithmSettings(

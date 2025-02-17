@@ -11,8 +11,9 @@ import torch
 from matplotlib import colormaps
 from matplotlib.lines import Line2D
 
-from leaspy.io.data.dataset import Dataset
 from leaspy.models.abstract_model import AbstractModel
+
+from ..data import Dataset
 
 
 class FitOutputManager:
@@ -210,8 +211,8 @@ class FitOutputManager:
             The current iteration
         model : :class:`~.models.abstract_model.AbstractModel`
             The model used by the computation
-        data : :class:`.Data`
-            The data used by the computation
+        data : :class:`.Dataset`
+            The dataset used by the computation
         """
         number_of_patient_plot = min(self.nb_of_patients_to_plot, data.n_individuals)
         individual_parameters_dict = {
@@ -246,10 +247,10 @@ class FitOutputManager:
             )
 
             last_time_point = times_patient[-1]
-            last_reconsutruction_value = reconstruction_values_patient.flatten()[-1]
+            last_reconstruction_value = reconstruction_values_patient.flatten()[-1]
             ax.text(
                 last_time_point,
-                last_reconsutruction_value,
+                last_reconstruction_value,
                 data.indices[i],
                 color=colors[i],
             )
