@@ -185,7 +185,7 @@ class OrdinalMultivariateModel(LogisticMultivariateModel, OrdinalModelMixin):
         parameters = super()._compute_initial_values_for_model_parameters(
             dataset, method
         )
-        df = dataset.to_pandas(apply_headers = True)
+        df = dataset.to_pandas(apply_headers=True)
 
         deltas = {}
         for ft, s in df.items():  # preserve feature order
