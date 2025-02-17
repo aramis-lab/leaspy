@@ -1,11 +1,12 @@
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
+import os
+import platform
 from unittest import skip
+
+from leaspy.utils.typing import Dict, List, Optional, Union
 
 from .test_api_fit import LeaspyFitTestMixin
 from .test_api_personalize import LeaspyPersonalizeTestMixin
-import os
-import platform
-from leaspy.utils.typing import Optional, Dict, List, Union
 from .test_api_simulate import LeaspySimulateTest_Mixin
 
 # Simulation algos are broken for now due to new observation models
@@ -13,8 +14,9 @@ from .test_api_simulate import LeaspySimulateTest_Mixin
 RUN_SIMULATION_TESTS = False
 
 
-class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimulateTest_Mixin):
-
+class LeaspyAPITest(
+    LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimulateTest_Mixin
+):
     def generic_usecase(
         self,
         model_name: str,
@@ -101,11 +103,16 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
         )
 
         if RUN_SIMULATION_TESTS:
-            simulation_settings = self.get_algo_settings(name=simulate_algo, **simulate_algo_params)
-            simulation_results = leaspy.simulate(individual_parameters, data, simulation_settings)
-            if (
-                platform.system() == "Linux"
-                and model_codename in ("logistic_ordinal_b", "logistic_ordinal", "logistic_diag_noise")
+            simulation_settings = self.get_algo_settings(
+                name=simulate_algo, **simulate_algo_params
+            )
+            simulation_results = leaspy.simulate(
+                individual_parameters, data, simulation_settings
+            )
+            if platform.system() == "Linux" and model_codename in (
+                "logistic_ordinal_b",
+                "logistic_ordinal",
+                "logistic_diag_noise",
             ):
                 model_codename = f"{model_codename}_linux"
             self.check_consistency_of_simulation_results(
@@ -128,7 +135,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo_params={"n_iter": 200, "seed": 0},
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
+                "delay_btw_visits": lambda n: [0.5] * min(n, 2) + [1.0] * max(0, n - 2),
                 "number_of_subjects": 100,
             },
         )
@@ -142,17 +149,17 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo_params={"n_iter": 200, "seed": 0},
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": lambda n: [.5] * min(n, 2) + [1.] * max(0, n - 2),
+                "delay_btw_visits": lambda n: [0.5] * min(n, 2) + [1.0] * max(0, n - 2),
                 "number_of_subjects": 100,
             },
         )
 
     def test_usecase_logistic_diagonal_noise(self):
         custom_delays_vis = {
-            "mean": 1.,
-            "min": .2,
-            "max": 2.,
-            "std": 1.,
+            "mean": 1.0,
+            "min": 0.2,
+            "max": 2.0,
+            "std": 1.0,
         }
         simulation_parameters = {
             "seed": 0,
@@ -188,14 +195,14 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
 
     def test_usecase_logistic_binary(self):
         self.generic_usecase(
-            'logistic',
+            "logistic",
             model_codename="logistic_binary",
             obs_models="bernoulli",
             source_dimension=2,
             personalization_algo="mean_real",
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": .5,
+                "delay_btw_visits": 0.5,
                 "number_of_subjects": 100,
                 "reparametrized_age_bounds": (50, 85),
             },
@@ -212,7 +219,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mean_real",
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": .5,
+                "delay_btw_visits": 0.5,
                 "number_of_subjects": 100,
                 "reparametrized_age_bounds": (50, 85),
             },
@@ -234,7 +241,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mean_real",
             simulate_algo_params={
                 "seed": 123,
-                "delay_btw_visits": .5,
+                "delay_btw_visits": 0.5,
                 "number_of_subjects": 10,
                 "reparametrized_age_bounds": (50, 85),
             },
@@ -250,7 +257,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mean_real",
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": .5,
+                "delay_btw_visits": 0.5,
                 "number_of_subjects": 100,
                 "reparametrized_age_bounds": (50, 85),
             },
@@ -267,7 +274,7 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             fit_algo_params={"n_iter": 200, "seed": 0},
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": .5,
+                "delay_btw_visits": 0.5,
                 "number_of_subjects": 100,
                 "reparametrized_age_bounds": (50, 85),
             },
@@ -283,10 +290,9 @@ class LeaspyAPITest(LeaspyFitTestMixin, LeaspyPersonalizeTestMixin, LeaspySimula
             personalization_algo="mode_real",
             simulate_algo_params={
                 "seed": 0,
-                "delay_btw_visits": .5,
+                "delay_btw_visits": 0.5,
                 "number_of_subjects": 100,
                 "reparametrized_age_bounds": (50, 85),
             },
             batch_deltas_ordinal=True,
         )
-

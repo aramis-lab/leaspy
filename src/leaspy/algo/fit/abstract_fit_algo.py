@@ -63,7 +63,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         """
         Main method, run the algorithm.
 
-        Basically, it initializes the :class:`~.io.realizations.collection_realization.CollectionRealization` object,
+        Basically, it initializes the :class:`~.leaspy.variables.state.State` object,
         updates it using the `iteration` method then returns it.
 
         TODO fix proper abstract class
@@ -79,7 +79,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         -------
         2-tuple:
             * state : :class:`.State`
-            * loss : Any
         """
 
         with self._device_manager(model, dataset):

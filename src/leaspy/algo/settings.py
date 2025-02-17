@@ -49,12 +49,13 @@ class OutputsSettings:
     ------
     :exc:`.LeaspyAlgoInputError`
     """
+
     # TODO mettre les variables par défaut à None
     # TODO: Réfléchir aux cas d'usages : est-ce qu'on veut tout ou rien,
     # TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
     # TODO: Aussi, bien définir la création du path
 
-    DEFAULT_LOGS_DIR = '_outputs'  # logs
+    DEFAULT_LOGS_DIR = "_outputs"  # logs
 
     def __init__(self, settings):
         self.print_periodicity = None
@@ -86,38 +87,46 @@ class OutputsSettings:
                 val = int(val)
                 assert val >= 1
             except Exception:
-                warnings.warn(f"The '{param}' parameter you provided is not castable to an int > 0. "
-                              "Ignoring its value.", UserWarning)
+                warnings.warn(
+                    f"The '{param}' parameter you provided is not castable to an int > 0. "
+                    "Ignoring its value.",
+                    UserWarning,
+                )
                 return
 
         # Update the attribute of self in-place
         setattr(self, param, val)
 
     def _set_print_periodicity(self, settings):
-        self._set_param_as_int_or_ignore(settings, 'print_periodicity')
+        self._set_param_as_int_or_ignore(settings, "print_periodicity")
 
     def _set_save_periodicity(self, settings):
-        self._set_param_as_int_or_ignore(settings, 'save_periodicity')
+        self._set_param_as_int_or_ignore(settings, "save_periodicity")
 
     def _set_plot_periodicity(self, settings):
-        self._set_param_as_int_or_ignore(settings, 'plot_periodicity')
+        self._set_param_as_int_or_ignore(settings, "plot_periodicity")
 
         if self.plot_periodicity is not None:
             if self.save_periodicity is None:
-                raise LeaspyAlgoInputError('You can not define a `plot_periodicity` without defining `save_periodicity`. '
-                                           'Note that the `plot_periodicity` should be a multiple of `save_periodicity`.')
+                raise LeaspyAlgoInputError(
+                    "You can not define a `plot_periodicity` without defining `save_periodicity`. "
+                    "Note that the `plot_periodicity` should be a multiple of `save_periodicity`."
+                )
 
             if self.plot_periodicity % self.save_periodicity != 0:
-                raise LeaspyAlgoInputError('The `plot_periodicity` should be a multiple of `save_periodicity`.')
-
+                raise LeaspyAlgoInputError(
+                    "The `plot_periodicity` should be a multiple of `save_periodicity`."
+                )
 
     def _create_root_folder(self, settings):
-
         # Get the path to put the outputs
-        path = settings.get('path', None)
+        path = settings.get("path", None)
 
         if path is None and self.save_periodicity:
-            warnings.warn(f"Outputs will be saved in '{self.DEFAULT_LOGS_DIR}' relative to the current working directory", stacklevel=2)
+            warnings.warn(
+                f"Outputs will be saved in '{self.DEFAULT_LOGS_DIR}' relative to the current working directory",
+                stacklevel=2,
+            )
             path = self.DEFAULT_LOGS_DIR
 
         if path == self.DEFAULT_LOGS_DIR:
@@ -130,26 +139,35 @@ class OutputsSettings:
 
         # store the absolute path in settings
         abs_path = os.path.abspath(path)
-        settings['path'] = abs_path
+        settings["path"] = abs_path
 
         # Check if the folder does not exist: if not, create (and its parent)
         if not os.path.exists(abs_path):
-            warnings.warn(f"The logs path you provided ({settings['path']}) does not exist. "
-                          "Needed paths will be created (and their parents if needed).", stacklevel=2)
-        elif settings.get('overwrite_logs_folder', False):
+            warnings.warn(
+                f"The logs path you provided ({settings['path']}) does not exist. "
+                "Needed paths will be created (and their parents if needed).",
+                stacklevel=2,
+            )
+        elif settings.get("overwrite_logs_folder", False):
             warnings.warn(f"Overwriting '{path}' folder...")
             self._clean_folder(abs_path)
 
         all_ok = self._check_needed_folders_are_empty_or_create_them(abs_path)
 
         if not all_ok:
-            raise LeaspyAlgoInputError(f"The logs folder '{path}' already exists and is not empty! "
-                                       "Give another path or use keyword argument `overwrite_logs_folder=True`.")
+            raise LeaspyAlgoInputError(
+                f"The logs folder '{path}' already exists and is not empty! "
+                "Give another path or use keyword argument `overwrite_logs_folder=True`."
+            )
 
     @staticmethod
     def _check_folder_is_empty_or_create_it(path_folder) -> bool:
         if os.path.exists(path_folder):
-            if os.path.islink(path_folder) or not os.path.isdir(path_folder) or len(os.listdir(path_folder)) > 0:
+            if (
+                os.path.islink(path_folder)
+                or not os.path.isdir(path_folder)
+                or len(os.listdir(path_folder)) > 0
+            ):
                 # path is a link, or not a directory, or a directory containing something
                 return False
         else:
@@ -165,11 +183,13 @@ class OutputsSettings:
     def _check_needed_folders_are_empty_or_create_them(self, path) -> bool:
         self.root_path = path
 
-        self.parameter_convergence_path = os.path.join(path, 'parameter_convergence')
-        self.plot_path = os.path.join(path, 'plots')
-        self.patients_plot_path = os.path.join(self.plot_path, 'patients')
+        self.parameter_convergence_path = os.path.join(path, "parameter_convergence")
+        self.plot_path = os.path.join(path, "plots")
+        self.patients_plot_path = os.path.join(self.plot_path, "patients")
 
-        all_ok = self._check_folder_is_empty_or_create_it(self.parameter_convergence_path)
+        all_ok = self._check_folder_is_empty_or_create_it(
+            self.parameter_convergence_path
+        )
         all_ok &= self._check_folder_is_empty_or_create_it(self.plot_path)
         all_ok &= self._check_folder_is_empty_or_create_it(self.patients_plot_path)
 
@@ -521,27 +541,38 @@ class AlgorithmSettings:
         # TODO: all this logic should be delegated in dedicated OutputSettings class...!
 
         settings = {
-            'path': path,
-            'print_periodicity': None,
-            'save_periodicity': 10,
-            'plot_periodicity': 50,
-            'overwrite_logs_folder': False,
-            'nb_of_patients_to_plot': 5
+            "path": path,
+            "print_periodicity": None,
+            "save_periodicity": 10,
+            "plot_periodicity": 50,
+            "overwrite_logs_folder": False,
+            "nb_of_patients_to_plot": 5,
         }
 
         for k, v in kwargs.items():
-            if k in ['print_periodicity', 'plot_periodicity', 'save_periodicity', 'nb_of_patients_to_plot']:
+            if k in [
+                "print_periodicity",
+                "plot_periodicity",
+                "save_periodicity",
+                "nb_of_patients_to_plot",
+            ]:
                 if v is not None and not isinstance(v, int):
-                    raise LeaspyAlgoInputError(f'You must provide a integer to the input <{k}>! '
-                                               f'You provide {v} of type {type(v)}.')
+                    raise LeaspyAlgoInputError(
+                        f"You must provide a integer to the input <{k}>! "
+                        f"You provide {v} of type {type(v)}."
+                    )
                 settings[k] = v
-            elif k in ['overwrite_logs_folder']:
+            elif k in ["overwrite_logs_folder"]:
                 if not isinstance(v, bool):
-                    raise LeaspyAlgoInputError(f'You must provide a boolean to the input <{k}>! '
-                                               f'You provide {v} of type {type(v)}.')
+                    raise LeaspyAlgoInputError(
+                        f"You must provide a boolean to the input <{k}>! "
+                        f"You provide {v} of type {type(v)}."
+                    )
                 settings[k] = v
             else:
-                warnings.warn(f"The kwarg '{k}' you provided is not valid and was skipped.")
+                warnings.warn(
+                    f"The kwarg '{k}' you provided is not valid and was skipped."
+                )
 
         self.logs = OutputsSettings(settings)
 

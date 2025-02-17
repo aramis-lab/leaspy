@@ -11,21 +11,20 @@ Using:
 - https://github.com/numpy/numpydoc/blob/main/numpydoc/validate.py
 """
 
+import importlib
+import inspect
+import pkgutil
 import re
 import sys
+import warnings
+from collections import Counter
 from enum import Enum
 from inspect import signature
-import pkgutil
-import inspect
-import importlib
-from types import ModuleType
-from typing import Optional, List, Tuple, Union, Iterable, Callable
-from collections import Counter
 from pathlib import Path
-import warnings
+from types import ModuleType
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 import pytest
-
 
 pytest.skip("V2 API is unstable for now.", allow_module_level=True)
 
@@ -37,15 +36,15 @@ MODULES_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 MODULES_PREFIX = ""
 MODULES_EXCLUDED = [
     # exclude folders
-    'docs',
-    'tests',
-    'example',
-    'browser',
+    "docs",
+    "tests",
+    "example",
+    "browser",
     # exclude some sub-pkgs
-    'leaspy.io.logs.visualization',  # TODO
-    'leaspy.io.data.individual_data',  # TODO
+    "leaspy.io.logs.visualization",  # TODO
+    "leaspy.io.data.individual_data",  # TODO
 ]
-MODULES_EXCLUDE_PATTERN = fr"(^(setup|conftest|{'|'.join(MODULES_EXCLUDED)})|(\.|^)_)"
+MODULES_EXCLUDE_PATTERN = rf"(^(setup|conftest|{'|'.join(MODULES_EXCLUDED)})|(\.|^)_)"
 
 # Some objects to ignore
 CLASSES_TO_IGNORE = {
@@ -53,8 +52,8 @@ CLASSES_TO_IGNORE = {
 }
 CLASS_METHODS_TO_IGNORE = {
     # TODO: remove these 2 lines when the proper inheritance will be fixed (cf. TODO there)
-    'leaspy.algo.abstract_algo.AbstractAlgo.run',
-    'leaspy.algo.abstract_algo.AbstractAlgo.run_impl',
+    "leaspy.algo.abstract_algo.AbstractAlgo.run",
+    "leaspy.algo.abstract_algo.AbstractAlgo.run_impl",
 }
 FUNCTIONS_TO_IGNORE = set()
 # the only magic methods with a variable number of arguments
@@ -97,17 +96,25 @@ DISPLAY_DOCSTRING_IN_ERROR = False
 # - SS03: Summary does not end with a period
 # - SS05: Summary must start with infinitive verb, not third person (e.g. use "Generate" instead of "Generates")
 # - SS06: Summary should fit in a single line
-IGNORED_CODES = ["SA01", "SA04",
-                 "ES01",
-                 "EX01",
-                 "GL09",
-                 "PR08", "PR09",
-                 "RT02", "RT03", "RT04", "RT05",
-                 "SS03", "SS05", "SS06",
-                ]
+IGNORED_CODES = [
+    "SA01",
+    "SA04",
+    "ES01",
+    "EX01",
+    "GL09",
+    "PR08",
+    "PR09",
+    "RT02",
+    "RT03",
+    "RT04",
+    "RT05",
+    "SS03",
+    "SS05",
+    "SS06",
+]
 
 # Following codes are only taken into account for the top level class docstrings:
-IGNORED_CODES_BUT_FOR_MAIN_CLASS_DOCSTRING = []  #["EX01", "SA01", "ES01"]
+IGNORED_CODES_BUT_FOR_MAIN_CLASS_DOCSTRING = []  # ["EX01", "SA01", "ES01"]
 
 # We ignore following error code for class properties
 # - PR02: Unknown parameters for properties.
@@ -192,7 +199,6 @@ def get_all_objects(
 
 
 def _is_checked_class(item: object):
-
     if getattr(item, "__name__", "_").startswith("_"):
         return False
 
@@ -229,11 +235,15 @@ def get_all_methods(klasses: Iterable[Tuple[str, object]]):
                 # do not parse __init__ method if it has, as required, no docstring
                 # (a dummy docstring is added by Python and then mistakenly parsed by numpydoc)
                 continue
-            if name.startswith("_") and not name in PRIVATE_METHODS_NOT_IGNORED: # and method_obj.__doc__ is None:
+            if (
+                name.startswith("_") and name not in PRIVATE_METHODS_NOT_IGNORED
+            ):  # and method_obj.__doc__ is None:
                 # skip private methods unless whitelisted (or its docstring is not None)
                 continue
             if hasattr(method_obj, "__call__") or isinstance(method_obj, property):
-                if method_obj.__doc__ and re.search(IGNORE_DOCSTRING_REGEX, method_obj.__doc__):
+                if method_obj.__doc__ and re.search(
+                    IGNORE_DOCSTRING_REGEX, method_obj.__doc__
+                ):
                     continue
                 methods.append(name)
 
@@ -245,7 +255,6 @@ def get_all_methods(klasses: Iterable[Tuple[str, object]]):
 
 
 def _is_checked_function(item: object):
-
     if not inspect.isfunction(item):
         return False
 
@@ -272,16 +281,20 @@ def get_all_functions_names(modules: Iterable[ModuleType]):
         yield name
 
 
-def filter_errors(errors: List[Tuple[str, str]], method_or_func: Optional[str], klass=None):
+def filter_errors(
+    errors: List[Tuple[str, str]], method_or_func: Optional[str], klass=None
+):
     """Ignore (and add) some errors based on the method type."""
     ## Add errors
     # Parameters should be in class top-level docstring not in __init__ method
     if NO_INIT_DOCSTRING and klass is not None and method_or_func == "__init__":
-        yield "XX01", "Class constructor should be documented in class top-level docstring, not in __init__ method."
+        yield (
+            "XX01",
+            "Class constructor should be documented in class top-level docstring, not in __init__ method.",
+        )
 
     ## Filter errors
     for code, message in errors:
-
         if code in IGNORED_CODES:
             continue
 
@@ -363,13 +376,11 @@ def repr_errors(res: dict, method_or_func: Optional[str] = None, *, klass=None) 
         msg.append(f'{Path(res["file"]).relative_to(MODULES_ROOT)}:{res["file_line"]}')
 
     if DISPLAY_DOCSTRING_IN_ERROR:
-        msg += [
-            '"""',
-            res["docstring"],
-            '"""'
-        ]
+        msg += ['"""', res["docstring"], '"""']
 
-    list_of_errors = "\n".join(f"- {code}: {message}" for code, message in res["errors"])
+    list_of_errors = "\n".join(
+        f"- {code}: {message}" for code, message in res["errors"]
+    )
     msg.append(list_of_errors)
 
     return "\n".join(msg)
@@ -382,8 +393,8 @@ def _filter_format_and_log_error(res, *, log_to_file: Path = None, **repr_kws):
         only_warning = all(code in WARNING_CODES for code, _ in res["errors"])
         msg = repr_errors(res, **repr_kws)
         if log_to_file and (not only_warning or LOG_WARNINGS_IN_FILE):
-            with log_to_file.open('a') as logf:
-                logf.write(msg + '\n')
+            with log_to_file.open("a") as logf:
+                logf.write(msg + "\n")
         if only_warning:
             warnings.warn(msg)
         else:
@@ -398,7 +409,9 @@ def check_function_docstring(function_name, request=None, *, log_to_file: Path =
         )
 
     res = numpydoc_validation.validate(function_name)
-    _filter_format_and_log_error(res, log_to_file=log_to_file, method_or_func=function_name)
+    _filter_format_and_log_error(
+        res, log_to_file=log_to_file, method_or_func=function_name
+    )
 
 
 def check_class_docstring(klass, method, request=None, *, log_to_file: Path = None):
@@ -420,7 +433,9 @@ def check_class_docstring(klass, method, request=None, *, log_to_file: Path = No
         )
 
     res = numpydoc_validation.validate(import_path)
-    _filter_format_and_log_error(res, log_to_file=log_to_file, method_or_func=method, klass=klass)
+    _filter_format_and_log_error(
+        res, log_to_file=log_to_file, method_or_func=method, klass=klass
+    )
 
 
 def get_objects_to_test(list_paths: List[Union[Path, str]]):
@@ -442,7 +457,7 @@ if RUN_FROM_PYTEST:
     # Run the pytest on all sub-modules (test/lib mode).
 
     log_to_file = Path(__file__).with_suffix(".log") if LOG_FILE else None
-    #if log_to_file.exists():
+    # if log_to_file.exists():
     #    log_to_file.unlink()
 
     # Be sure to have MODULES_ROOT first in Python path for relative imports

@@ -38,9 +38,11 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
     :meth:`.Leaspy.personalize`
     """
 
-    family = 'personalize'
+    family = "personalize"
 
-    def run_impl(self, model: AbstractModel, dataset: Dataset) -> Tuple[IndividualParameters, torch.Tensor]:
+    def run_impl(
+        self, model: AbstractModel, dataset: Dataset
+    ) -> Tuple[IndividualParameters, torch.Tensor]:
         r"""
         Main personalize function, wraps the abstract :meth:`._get_individual_parameters` method.
 
@@ -69,7 +71,9 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
         return individual_parameters
 
     @abstractmethod
-    def _get_individual_parameters(self, model: AbstractModel, data: Dataset) -> IndividualParameters:
+    def _get_individual_parameters(
+        self, model: AbstractModel, data: Dataset
+    ) -> IndividualParameters:
         """
         Estimate individual parameters from a `Dataset`.
 
@@ -84,4 +88,3 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
         -------
         :class:`.IndividualParameters`
         """
-

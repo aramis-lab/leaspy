@@ -1,6 +1,7 @@
 import re
-from typing import Optional, Set, Callable
-from leaspy.utils.functional import get_named_parameters, MatMul
+from typing import Callable, Optional, Set
+
+from leaspy.utils.functional import MatMul, get_named_parameters
 from tests import LeaspyTestCase
 
 
@@ -52,14 +53,18 @@ class ArgumentCheckerTest(LeaspyTestCase):
             ValueError,
             re.escape("Some mandatory kws are not allowed: ['foo']."),
         ):
-            self.get_checker(nb_arguments=2, mandatory_kws={"foo"}, possible_kws={"bar", "baz"})
+            self.get_checker(
+                nb_arguments=2, mandatory_kws={"foo"}, possible_kws={"bar", "baz"}
+            )
 
     def test_mandatory_kws_not_in_possible_kws(self):
         with self.assertRaisesRegex(
             ValueError,
             re.escape("Some mandatory kws are not allowed: ['baz', 'foo']."),
         ):
-            self.get_checker(nb_arguments=2, mandatory_kws={"foo", "baz"}, possible_kws={"bar"})
+            self.get_checker(
+                nb_arguments=2, mandatory_kws={"foo", "baz"}, possible_kws={"bar"}
+            )
 
     def test_single_name_expected_for_positional_parameters_empty_input(self):
         with self.assertRaisesRegex(
@@ -156,7 +161,6 @@ class ArgumentCheckerTest(LeaspyTestCase):
 
 
 class GetNamedParametersTest(LeaspyTestCase):
-
     def test_get_named_parameters_error(self):
         def func(x, y, foo=3):
             return x + y + foo

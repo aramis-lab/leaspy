@@ -144,7 +144,9 @@ class AbstractAlgo(ABC):
         :class:`.SimulationAlgorithm`
         """
 
-    def run(self, model: AbstractModel, *args, return_loss: bool = False, **extra_kwargs) -> Any:
+    def run(
+        self, model: AbstractModel, *args, return_loss: bool = False, **extra_kwargs
+    ) -> Any:
         """
         Main method, run the algorithm.
 
@@ -172,7 +174,9 @@ class AbstractAlgo(ABC):
 
         # Check algo is well-defined
         if self.algo_parameters is None:
-            raise LeaspyAlgoInputError(f'The `{self.name}` algorithm was not properly created.')
+            raise LeaspyAlgoInputError(
+                f"The `{self.name}` algorithm was not properly created."
+            )
 
         # Set seed if needed
         self._initialize_seed(self.seed)
@@ -185,10 +189,12 @@ class AbstractAlgo(ABC):
 
         # Print run infos
         duration_in_seconds = time.time() - time_beginning
-        if self.algo_parameters.get('progress_bar'):
+        if self.algo_parameters.get("progress_bar"):
             # new line for clarity
             print()
-        print(f"\n{self.family.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}")
+        print(
+            f"\n{self.family.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
+        )
 
         return output
 
@@ -302,7 +308,6 @@ class AbstractAlgo(ABC):
                     f"|{'#'*nbar}{'-'*(n_step - nbar)}|   {iteration_plus_1}/{n_iter} {suffix}"
                 )
                 sys.stdout.flush()
-
 
     @staticmethod
     def _duration_to_str(seconds: float, *, seconds_fmt=".0f") -> str:

@@ -74,7 +74,6 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
 
             ip.add_individual_parameters(str(idx), ind_ip)
 
-
         return ip
 
     @staticmethod

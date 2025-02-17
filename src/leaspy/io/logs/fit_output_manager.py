@@ -1,16 +1,18 @@
 import csv
+import math
 import os
 import time
-import math
-import pandas as pd
-from matplotlib import colormaps
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+from matplotlib import colormaps
+from matplotlib.lines import Line2D
+
 from leaspy.io.data.dataset import Dataset
 from leaspy.models.abstract_model import AbstractModel
-from matplotlib.lines import Line2D
-import numpy as np
-from pathlib import Path
-import torch
 
 
 class FitOutputManager:
@@ -54,8 +56,12 @@ class FitOutputManager:
             self.path_output = Path(outputs.root_path)
             self.path_plot = Path(outputs.plot_path)
             self.path_plot_patients = Path(outputs.patients_plot_path)
-            self.path_save_model_parameters_convergence = Path(outputs.parameter_convergence_path)
-            self.path_plot_convergence_model_parameters = self.path_plot / "convergence_parameters.pdf"
+            self.path_save_model_parameters_convergence = Path(
+                outputs.parameter_convergence_path
+            )
+            self.path_plot_convergence_model_parameters = (
+                self.path_plot / "convergence_parameters.pdf"
+            )
         self.time = time.time()
 
     def iteration(
@@ -85,7 +91,7 @@ class FitOutputManager:
         iteration = algo.current_iteration
 
         if self.path_output is None:
-                return
+            return
 
         if self.periodicity_print is not None:
             if iteration == 0 or iteration % self.periodicity_print == 0:
@@ -225,22 +231,37 @@ class FitOutputManager:
             true_values_patient = data.get_values_patient(i).cpu().detach().numpy()
             ip_patient = {pn: pv[i] for pn, pv in individual_parameters_dict.items()}
 
-            reconstruction_values_patient = model.compute_individual_trajectory(
-                times_patient, ip_patient
-            ).squeeze(0).numpy()
+            reconstruction_values_patient = (
+                model.compute_individual_trajectory(times_patient, ip_patient)
+                .squeeze(0)
+                .numpy()
+            )
             ax.plot(times_patient, reconstruction_values_patient, c=colors[i])
-            ax.plot(times_patient, true_values_patient, c=colors[i], linestyle="--", marker="o")
+            ax.plot(
+                times_patient,
+                true_values_patient,
+                c=colors[i],
+                linestyle="--",
+                marker="o",
+            )
 
             last_time_point = times_patient[-1]
             last_reconsutruction_value = reconstruction_values_patient.flatten()[-1]
-            ax.text(last_time_point, last_reconsutruction_value, data.indices[i], color=colors[i])
+            ax.text(
+                last_time_point,
+                last_reconsutruction_value,
+                data.indices[i],
+                color=colors[i],
+            )
 
         min_time, max_time = np.percentile(
             data.timepoints[data.timepoints > 0.0].cpu().detach().numpy(),
             [10, 90],
         )
         timepoints_np = np.linspace(min_time, max_time, 100)
-        model_values_np = model.compute_mean_traj(torch.tensor(np.expand_dims(timepoints_np, 0)))
+        model_values_np = model.compute_mean_traj(
+            torch.tensor(np.expand_dims(timepoints_np, 0))
+        )
 
         for feature in range(model.dimension):
             ax.plot(
@@ -251,12 +272,11 @@ class FitOutputManager:
                 alpha=0.3,
             )
 
-
         line_rec = Line2D([0], [0], label="Reconstructions", color="black")
         line_real = Line2D(
             [0], [0], label="Real feature values", color="black", linestyle="--"
         )
-        line_avg = Line2D([0], [0], label='Global avg. features', color='gray')
+        line_avg = Line2D([0], [0], label="Global avg. features", color="gray")
 
         handles, labels = ax.get_legend_handles_labels()
         handles.extend([line_rec, line_real, line_avg])

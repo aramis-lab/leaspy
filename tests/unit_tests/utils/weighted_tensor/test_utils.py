@@ -1,4 +1,5 @@
 import torch
+
 from tests import LeaspyTestCase
 
 
@@ -31,7 +32,9 @@ class UtilityTest(LeaspyTestCase):
         self.assertEqual(_get_dim(torch.ones(2, 3, 6), dim=None, but_dim=1), (0, 2))
         self.assertEqual(_get_dim(torch.ones(2, 3, 6), dim=None, but_dim=2), (0, 1))
         self.assertEqual(_get_dim(torch.ones(2, 3, 6), dim=None, but_dim=6), (0, 1, 2))
-        self.assertEqual(_get_dim(torch.ones(2, 3, 6), dim=None, but_dim=1000), (0, 1, 2))
+        self.assertEqual(
+            _get_dim(torch.ones(2, 3, 6), dim=None, but_dim=1000), (0, 1, 2)
+        )
 
         self.assertEqual(_get_dim(torch.ones(2, 3), dim=(1, 2), but_dim=None), (1, 2))
         self.assertEqual(_get_dim(torch.ones(2, 3), dim=None, but_dim=(1, 2)), (0,))
