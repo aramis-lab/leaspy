@@ -548,12 +548,12 @@ class AlgorithmSettings:
         }
 
         for k, v in kwargs.items():
-            if k in [
+            if k in (
                 "print_periodicity",
                 "plot_periodicity",
                 "save_periodicity",
                 "nb_of_patients_to_plot",
-            ]:
+            ):
                 if v is not None and not isinstance(v, int):
                     raise LeaspyAlgoInputError(
                         f"You must provide a integer to the input <{k}>! "
