@@ -63,7 +63,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         """
         Main method, run the algorithm.
 
-        Basically, it initializes the :class:`~.io.realizations.collection_realization.CollectionRealization` object,
+        Basically, it initializes the :class:`~.leaspy.variables.state.State` object,
         updates it using the `iteration` method then returns it.
 
         TODO fix proper abstract class
@@ -79,8 +79,8 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         -------
         2-tuple:
             * state : :class:`.State`
-            * loss : Any
         """
+
         with self._device_manager(model, dataset):
             state = self._initialize_algo(model, dataset)
 
@@ -88,13 +88,9 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                 self._display_progress_bar(
                     -1, self.algo_parameters["n_iter"], suffix="iterations"
                 )
-            if self.logs:
-                state.save(self.logs.parameter_convergence_path, iteration=0)
 
             for self.current_iteration in range(1, self.algo_parameters["n_iter"] + 1):
                 self.iteration(model, state)
-                if self.logs:
-                    self.log_current_iteration(state)
 
                 if self.output_manager is not None:
                     # print/plot first & last iteration!
@@ -109,8 +105,17 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                         suffix="iterations",
                     )
 
-        loss = self._terminate_algo(model, state)
-        return state, loss
+        model.fit_metrics = self._get_fit_metrics()
+        model_state = state.clone()
+        with model_state.auto_fork(None):
+            # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
+            # Thus we reset population latent variables to their mode
+            model_state.put_population_latent_variables(
+                LatentVariableInitType.PRIOR_MODE
+            )
+        model.state = model_state
+
+        return state
 
     def log_current_iteration(self, state: State):
         if (

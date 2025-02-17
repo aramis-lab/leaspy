@@ -171,14 +171,19 @@ class AbstractAlgo(ABC):
         :class:`.AbstractPersonalizeAlgo`
         :class:`.SimulationAlgorithm`
         """
+
         # Check algo is well-defined
         if self.algo_parameters is None:
             raise LeaspyAlgoInputError(
                 f"The `{self.name}` algorithm was not properly created."
             )
+
         self._initialize_seed(self.seed)
+
         time_beginning = time.time()
-        output, loss = self.run_impl(model, *args, **extra_kwargs)
+
+        output = self.run_impl(model, *args, **extra_kwargs)
+
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get("progress_bar"):
             # new line for clarity
@@ -186,21 +191,8 @@ class AbstractAlgo(ABC):
         print(
             f"\n{self.family.value.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
         )
-        if loss is not None:
-            loss_type, loss_scalar_fmt = getattr(
-                getattr(model, "noise_model", None),
-                "canonical_loss_properties",
-                ("standard-deviation of the noise", ".2%"),
-            )
-            loss_repr = self._loss_repr(
-                loss, features=model.features, loss_scalar_fmt=loss_scalar_fmt
-            )
-            print(f"The {loss_type} at the end of the {self.family} is: {loss_repr}")
-        # Return only output part
-        if return_loss:
-            return output, loss
-        else:
-            return output
+
+        return output
 
     def load_parameters(self, parameters: dict):
         """
@@ -264,7 +256,7 @@ class AbstractAlgo(ABC):
         >>> my_algo = algorithm_factory(algo_settings)
         >>> settings = {
             'path': 'brouillons',
-            'console_print_periodicity': 50,
+            'print_periodicity': 50,
             'plot_periodicity': 100,
             'save_periodicity': 50
         }
@@ -312,60 +304,6 @@ class AbstractAlgo(ABC):
                     f"|{'#'*nbar}{'-'*(n_step - nbar)}|   {iteration_plus_1}/{n_iter} {suffix}"
                 )
                 sys.stdout.flush()
-
-    @staticmethod
-    def _loss_repr(
-        loss: Union[np.ndarray, torch.FloatTensor], features: list, loss_scalar_fmt: str
-    ) -> str:
-        """
-        Get a nice string representation of loss for a given model.
-
-        TODO? move this code into a NoiseModel helper class
-
-        Parameters
-        ----------
-        loss : :class:`torch.FloatTensor`
-            Loss value (tensor).
-        features : list[str]
-            Model features (to be used for multivariate losses).
-        loss_scalar_fmt : str
-            Format for elements of loss.
-
-        Returns
-        -------
-        str
-
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            If multivariate loss and model dimension are inconsistent.
-        """
-        loss_elts = (
-            np.array(loss).reshape(-1).tolist()
-        )  # can be torch tensor or numpy array (LME, constant model ...)
-        loss_elts_nb = len(loss_elts)
-
-        if loss_elts_nb != 1:
-            if loss_elts_nb != len(features):
-                raise LeaspyModelInputError(
-                    f"Number of features ({len(features)}) does not match with "
-                    f"number of terms in loss ({loss_elts_nb})."
-                )
-
-            loss_map = {
-                ft_name: f"{ft_loss:{loss_scalar_fmt}}"
-                for ft_name, ft_loss in zip(features, loss_elts)
-            }
-            print_loss = (
-                repr(loss_map).replace("'", "").replace("{", "").replace("}", "")
-            )
-            print_loss = "\n- " + "\n- ".join(print_loss.split(", "))
-        else:
-            if hasattr(loss, "item"):
-                loss = loss.item()
-            print_loss = f"{loss:{loss_scalar_fmt}}"
-
-        return print_loss
 
     @staticmethod
     def _duration_to_str(seconds: float, *, seconds_fmt=".0f") -> str:
@@ -472,5 +410,7 @@ def algorithm_factory(settings: AlgorithmSettings) -> AbstractAlgo:
         The wanted algorithm if it exists and is compatible with algorithm family.
     """
     algorithm = get_algorithm_class(settings.name)(settings)
+    if settings.logs is None and algorithm.family == AlgorithmType.FIT:
+        settings.set_logs()
     algorithm.set_output_manager(settings.logs)
     return algorithm

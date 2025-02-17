@@ -11,7 +11,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
         logs = OutputsSettings(
             {
                 "path": None,
-                "console_print_periodicity": 42,
+                "print_periodicity": 42,
                 "save_periodicity": None,
                 "plot_periodicity": None,
                 "overwrite_logs_folder": False,
@@ -19,7 +19,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
         )
 
         self.assertIsNone(logs.root_path)
-        self.assertEqual(logs.console_print_periodicity, 42)
+        self.assertEqual(logs.print_periodicity, 42)
         self.assertIsNone(logs.save_periodicity)
         self.assertIsNone(logs.plot_periodicity)
 
@@ -31,7 +31,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
             logs = OutputsSettings(
                 {
                     "path": self.get_test_tmp_path("fake"),
-                    "console_print_periodicity": 42,
+                    "print_periodicity": 42,
                     "save_periodicity": None,
                     "plot_periodicity": 50,
                     "overwrite_logs_folder": False,
@@ -43,7 +43,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
             logs = OutputsSettings(
                 {
                     "path": self.get_test_tmp_path("fake"),
-                    "console_print_periodicity": 42,
+                    "print_periodicity": 42,
                     "save_periodicity": 60,
                     "plot_periodicity": 50,
                     "overwrite_logs_folder": False,
@@ -61,7 +61,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
             logs = OutputsSettings(
                 {
                     "path": None,
-                    "console_print_periodicity": None,
+                    "print_periodicity": None,
                     "save_periodicity": 20,
                     "plot_periodicity": 40,
                     "overwrite_logs_folder": False,
@@ -76,7 +76,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
         shutil.rmtree(default_logs_path)
 
         self.assertEqual(Path(logs.root_path), default_logs_path)
-        self.assertIsNone(logs.console_print_periodicity)
+        self.assertIsNone(logs.print_periodicity)
         self.assertEqual(logs.save_periodicity, 20)
         self.assertEqual(logs.plot_periodicity, 40)
 
@@ -89,7 +89,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
             logs = OutputsSettings(
                 {
                     "path": str(path),
-                    "console_print_periodicity": 42,
+                    "print_periodicity": 42,
                     "save_periodicity": 23,
                     "plot_periodicity": 46,
                     "overwrite_logs_folder": False,
@@ -98,13 +98,13 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
 
         self.assertTrue(path.is_dir())
         self.assertEqual(Path(logs.root_path), path)
-        self.assertEqual(logs.console_print_periodicity, 42)
+        self.assertEqual(logs.print_periodicity, 42)
         self.assertEqual(logs.save_periodicity, 23)
         self.assertEqual(logs.plot_periodicity, 46)
 
         # only test __init__ method
         fm = FitOutputManager(logs)
-        self.assertEqual(fm.path_output, logs.root_path)
+        self.assertEqual(fm.path_output, Path(logs.root_path))
         self.assertEqual(fm.periodicity_print, 42)
         self.assertEqual(fm.periodicity_save, 23)
         self.assertEqual(fm.periodicity_plot, 46)
@@ -113,18 +113,17 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
         for bad_val in [-1, 0, "bad_type", ()]:
             with self.subTest(bad_val=bad_val):
                 with self.assertWarnsRegex(
-                    UserWarning,
-                    "The 'console_print_periodicity' parameter you provided",
+                    UserWarning, "The 'print_periodicity' parameter you provided"
                 ):
                     logs = OutputsSettings(
                         {
                             "path": None,
-                            "console_print_periodicity": bad_val,
+                            "print_periodicity": bad_val,
                             "save_periodicity": None,
                             "plot_periodicity": None,
                             "overwrite_logs_folder": False,
                         }
                     )
-                self.assertIsNone(logs.console_print_periodicity)
+                self.assertIsNone(logs.print_periodicity)
                 fm = FitOutputManager(logs)
                 self.assertIsNone(fm.periodicity_print)

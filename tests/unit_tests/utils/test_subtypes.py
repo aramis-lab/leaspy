@@ -1,11 +1,10 @@
 from leaspy.utils.subtypes import suffixed_method
-
 from tests.utils import LeaspyTestCase
 
-class MockClass:
 
-    name = 'mock_name'
-    _subtype_suffix = '_one'
+class MockClass:
+    name = "mock_name"
+    _subtype_suffix = "_one"
 
     @suffixed_method
     def get(self):
@@ -14,8 +13,8 @@ class MockClass:
     def get_one(self):
         return 1
 
-class TestSuffixMethod(LeaspyTestCase):
 
+class TestSuffixMethod(LeaspyTestCase):
     def test_suffix_ok(self):
         m = MockClass()
         self.assertEqual(m.get(), 1)
@@ -23,7 +22,7 @@ class TestSuffixMethod(LeaspyTestCase):
     def test_bad_suffix(self):
         m = MockClass()
 
-        m._subtype_suffix = '_two'
+        m._subtype_suffix = "_two"
         with self.assertRaises(NotImplementedError):
             m.get()
 
