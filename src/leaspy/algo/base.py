@@ -184,13 +184,12 @@ class AbstractAlgo(ABC):
 
         output = self.run_impl(model, *args, **extra_kwargs)
 
-        # Print run infos
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get("progress_bar"):
             # new line for clarity
             print()
         print(
-            f"\n{self.family.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
+            f"\n{self.family.value.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
         )
 
         return output

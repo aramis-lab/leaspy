@@ -55,7 +55,7 @@ class OutputsSettings:
     # TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
     # TODO: Aussi, bien définir la création du path
 
-    DEFAULT_LOGS_DIR = "_outputs"  # logs
+    DEFAULT_LOGS_DIR = "_outputs"
 
     def __init__(self, settings):
         self.print_periodicity = None
@@ -139,7 +139,7 @@ class OutputsSettings:
 
         # store the absolute path in settings
         abs_path = Path.cwd() / path
-        settings["path"] = abs_path
+        settings["path"] = str(abs_path)
 
         # Check if the folder does not exist: if not, create (and its parent)
         if not abs_path.exists():
@@ -162,31 +162,29 @@ class OutputsSettings:
 
     @staticmethod
     def _check_folder_is_empty_or_create_it(path_folder: Path) -> bool:
-        if os.path.exists(path_folder):
+        if path_folder.exists():
             if (
                 os.path.islink(path_folder)
-                or not os.path.isdir(path_folder)
-                or len(os.listdir(path_folder)) > 0
+                or not path_folder.is_dir()
+                or len([f for f in path_folder.iterdir()]) > 0
             ):
                 # path is a link, or not a directory, or a directory containing something
                 return False
         else:
-            os.makedirs(path_folder)
+            path_folder.mkdir(parents=True, exist_ok=True)
 
         return True
 
     @staticmethod
-    def _clean_folder(path):
+    def _clean_folder(path: Path):
         shutil.rmtree(path)
         os.makedirs(path)
 
-    def _check_needed_folders_are_empty_or_create_them(self, path) -> bool:
+    def _check_needed_folders_are_empty_or_create_them(self, path: Path) -> bool:
         self.root_path = path
-
-        self.parameter_convergence_path = os.path.join(path, "parameter_convergence")
-        self.plot_path = os.path.join(path, "plots")
-        self.patients_plot_path = os.path.join(self.plot_path, "patients")
-
+        self.parameter_convergence_path = path / "parameter_convergence"
+        self.plot_path = path / "plots"
+        self.patients_plot_path = self.plot_path / "patients"
         all_ok = self._check_folder_is_empty_or_create_it(
             self.parameter_convergence_path
         )
