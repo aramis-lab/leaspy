@@ -121,8 +121,11 @@ class AbstractMultivariateMixtureModel(AbstractModel):
             xi_std=ModelParameter.for_ind_std("xi", shape=(self.n_clusters,)),
 
             # LATENT VARS
-            xi=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("xi_mean", "xi_std"))), # change to probs only after correct calculations in the observational model
-            tau=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("tau_mean", "tau_std"))),
+            #xi=IndividualLatentVariable(MixtureNormal("probs","xi_mean","xi_std"))
+            #xi=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("xi_mean", "xi_std"))), # change to probs only after correct calculations in the observational model
+            xi= IndividualLatentVariable(MixtureNormal("xi_mean","xi_std","probs")),
+            tau=IndividualLatentVariable(MixtureNormal("tau_mean", "tau_std", "probs")),
+            #tau=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("tau_mean", "tau_std"))),
 
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
@@ -148,7 +151,8 @@ class AbstractMultivariateMixtureModel(AbstractModel):
                 betas=PopulationLatentVariable(Normal("betas_mean", "betas_std"),
                                                sampling_kws={"scale": .5},
                                                 ),
-                sources=IndividualLatentVariable(MixtureNormal(Categorical("probs"),Normal("sources_mean", "sources_std"))),
+                #sources=IndividualLatentVariable(MixtureNormal(Categorical("probs"),Normal("sources_mean", "sources_std"))),
+                sources=IndividualLatentVariable(MixtureNormal("sources_mean", "sources_std", "probs")),
 
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(MatMul("orthonormal_basis", "betas").then(torch.t)),  # shape: (Ns, Nfts)

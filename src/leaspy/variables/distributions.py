@@ -422,12 +422,40 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     The component_distribution is the probability distribution of each cluster - in our case Normal(loc,scale)
     """
 
-    parameters: ClassVar = ("mixture_distribution", "component_distribution")
+    parameters: ClassVar = ("loc","scale","probs")
     # probs = torch.ones(n_clusters)/n_clusters
     # mixture_distribution = torch.distributions.Categorical(probs),
     # component_distribution = torch.distributions.Normal(torch.randn(n_clusters, ), torch.rand(n_clusters, ))
-    dist_factory: ClassVar = torch.distributions.MixtureSameFamily
+    dist_mixture: ClassVar = torch.distributions.mixture_same_family.MixtureSameFamily
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
+
+    @classmethod
+    def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
+        """
+        Validate consistency of distribution parameters,
+        returning them with out-of-place modifications if needed.
+
+        Parameters
+        ----------
+        params : Any
+            The parameters to pass to the distribution factory.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, ...] :
+            The validated parameters.
+        """
+        raise NotImplementedError("Validate parameters not implemented")
+
+    @classmethod
+    def sample(
+        cls,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        probs: torch.Tensor,
+        sample_shape: tuple[int, ...] = (),
+    ) -> torch.Tensor:
+        return cls.dist_mixture(Categorical(probs),Normal(loc,scale)).sample(sample_shape)
 
     @classmethod
     def set_component_distribution(
@@ -440,42 +468,42 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         Ensure that the component distribution is an instance of the torch.distributions.Normal.
         """
 
-        if not isinstance(component_distribution, torch.distributions.Normal):
+        if not isinstance(cls.dist_mixture.component_distribution, torch.distributions.Normal):
             raise ValueError(
                 "The Component distribution need to be an "
                 "instance of torch.distributions.Normal"
                 "Setting the distribution to Normal"
             )
-        component_distribution = torch.distributions.Normal(loc, scale)
-        return component_distribution
+        cls.dist_mixture.component_distribution = torch.distributions.Normal(loc, scale)
+        return cls.dist_mixture.component_distribution
 
     @classmethod
-    def mean(cls, *params: torch.Tensor) -> torch.Tensor:
+    def mean(cls, *params: torch.tensor) -> torch.Tensor:
         """
-        Return the mean of the distribution, given the component distribution.
+        Returns the mean of the component distribution.
         """
-        return cls.set_component_distribution.mean
+        return cls.dist_mixture.mean
 
     @classmethod
-    def stddev(cls, *params: torch.Tensor) -> torch.Tensor:
+    def stddev(cls, *params: torch.tensor) -> torch.Tensor:
         """"
-        Return the standard deviation of the distribution, given the component distribution.
+        Returns the standard deviation of the component distribution.
         """
-        return cls.set_component_distribution.scale
+        return cls.dist_mixture.stddev
 
     @classmethod
-    def extract_probs(cls, mixture_distribution) -> torch.Tensor:
+    def mode(cls, *params: torch.tensor) -> torch.Tensor:
+        """
+        Returns the mode of the component distribution.
+        """
+        return cls.dist_mixture.mode
+
+    @classmethod
+    def extract_probs(cls, *params: Any) -> torch.Tensor:
         """
         Return the probabilities of the distribution, given the mixture distribution.
         """
-        return mixture_distribution.probs
-
-    @classmethod
-    def extract_n_clusters(cls, mixture_distribution) -> int:
-        """
-        Return the number of clusters in the distribution, given the mixture distribution.
-        """
-        return mixture_distribution.probs.size()[0]
+        return cls.dist_mixture.mixture_distribution.probs
 
     @classmethod
     def extract_cluster_parameters(
@@ -499,24 +527,75 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             x: WeightedTensor,
     ) -> WeightedTensor:
 
+        """Compute neg log-likelihood per cluster"""
+
         prob, loc, scale = cls.extract_cluster_parameters(which_cluster)
-        nll_cluster =  (prob * 0.5 * ((x.value - loc) / scale) ** 2 +
+        nll_cluster =  -1 * (prob * 0.5 * ((x.value - loc) / scale) ** 2 +
                         prob * torch.log(scale) +
                         prob * cls.nll_constant_standard)
 
         return WeightedTensor(nll_cluster, x.weight)
 
     @classmethod
-    def _nll(cls, x: WeightedTensor,
-        *params: torch.Tensor,
+    def _nll(
+            cls,
+            x: WeightedTensor,
+            loc: torch.Tensor,
+            scale: torch.Tensor,
+            probs: torch.Tensor,
+            *params: torch.Tensor,
     ) -> WeightedTensor:
 
-        n_clusters = int(cls.extract_n_clusters)
+        """Compute total neg log-likelihood, for all the clusters"""
+
+        n_clusters = cls.extract_probs.size(0)
         weighted_nll = 0
         for c in range(n_clusters):
-            weighted_nll = weighted_nll + cls.compute_nll_cluster(x,c)
+            weighted_nll = weighted_nll + cls.compute_nll_cluster(x, c)
 
         return weighted_nll
+
+    @classmethod
+    def _nll_jacobian_cluster(
+        cls,
+        x: WeightedTensor,
+        which_cluster: int,
+    ) -> WeightedTensor:
+
+        prob, loc, scale = cls.extract_cluster_parameters(which_cluster)
+        return WeightedTensor(-1 * prob * (x.value - loc) / scale**2, x.weight)
+
+    @classmethod
+    def _nll_jacobian(
+            cls,
+            x: WeightedTensor,
+            loc: torch.Tensor,
+            scale: torch.Tensor,
+            probs: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> WeightedTensor:
+
+
+        n_clusters = cls.extract_probs.size(0)
+        weighted_jacobian = 0
+        for c in range(n_clusters):
+            weighted_jacobian = weighted_jacobian + cls._nll_jacobian_cluster(x, c)
+
+        return weighted_jacobian
+
+
+    @classmethod
+    def _nll_and_jacobian(
+            cls,
+            x: WeightedTensor,
+            loc: torch.Tensor,
+            scale: torch.Tensor,
+            probs: torch.Tensor,
+            *params: torch.Tensor,
+    ) -> tuple[WeightedTensor, WeightedTensor]:
+        return cls._nll(x, loc, scale, probs), cls._nll_jacobian(x, loc, scale, probs)
+
+
 
 """
     @classmethod
