@@ -550,7 +550,7 @@ class LinearMultivariateInitializationMixin:
             torch_round,
         )
 
-        df = self._get_dataframe_from_dataset(dataset)
+        df = dataset.to_pandas(apply_headers = True)
         times = df.index.get_level_values("TIME").values
         t0 = times.mean()
 
@@ -650,7 +650,7 @@ class LogisticMultivariateInitializationMixin:
             torch_round,
         )
 
-        df = self._get_dataframe_from_dataset(dataset)
+        df = dataset.to_pandas(apply_headers=True)
         slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
         values_mu, values_sigma = compute_patient_values_distribution(df)
         time_mu, time_sigma = compute_patient_time_distribution(df)
