@@ -650,7 +650,7 @@ class LogisticMultivariateInitializationMixin:
             torch_round,
         )
 
-        df = dataset.to_pandas(apply_headers = True)
+        df = dataset.to_pandas(apply_headers=True)
         slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
         values_mu, values_sigma = compute_patient_values_distribution(df)
         time_mu, time_sigma = compute_patient_time_distribution(df)

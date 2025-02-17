@@ -258,9 +258,15 @@ class Dataset:
 
         return values_with_nans
 
-    def to_pandas(self, apply_headers: bool = False) -> pd.DataFrame:
+    def to_pandas(self, apply_headers: bool=False) -> pd.DataFrame:
         """
-        Convert dataset to a `DataFrame` with ['ID', 'TIME'] index.
+        Convert dataset to a `DataFrame` with ['ID', 'TIME'] index, with all covariates, events and repeated measures if
+        apply_headers is False, and only the repeated measures otherwise.
+
+         Parameters
+        ----------
+        apply_headers : bool
+            Enable to select only the columns that are needed for leaspy fit (headers attribute)
 
         Returns
         -------
