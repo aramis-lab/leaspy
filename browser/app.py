@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
-from flask import Flask
-from flask import render_template, request
 import json
 
+from flask import Flask, render_template, request
 
-application = Flask(__name__, template_folder='templates')
-application._static_folder = 'static'
+application = Flask(__name__, template_folder="templates")
+application._static_folder = "static"
 
 
 @application.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@application.route("/model/load", methods=['POST'])
+@application.route("/model/load", methods=["POST"])
 def load_model():
     from models.utils import get_model_derived_parameters
 
@@ -23,7 +22,7 @@ def load_model():
     return json.dumps(model_derived_parameters, allow_nan=False)
 
 
-@application.route("/model/personalize", methods=['POST'])
+@application.route("/model/personalize", methods=["POST"])
 def personalize():
     from models.personalize import get_individual_parameters
 

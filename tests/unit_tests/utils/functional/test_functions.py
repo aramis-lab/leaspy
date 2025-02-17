@@ -1,7 +1,9 @@
 import re
+
 import torch
+
+from leaspy.utils.functional import Exp, Identity, MatMul, Mean, Std
 from tests import LeaspyTestCase
-from leaspy.utils.functional import Identity, Exp, MatMul, Mean, Std
 
 
 class FunctionsTest(LeaspyTestCase):
@@ -27,8 +29,7 @@ class FunctionsTest(LeaspyTestCase):
             func(bar=2)
 
         with self.assertRaisesRegex(
-            ValueError,
-            "Single name expected for positional parameters"
+            ValueError, "Single name expected for positional parameters"
         ):
             Identity("foo", "bar")
 
