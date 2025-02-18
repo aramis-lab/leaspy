@@ -553,7 +553,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             "mean_real",
         )
 
-    # @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
+    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
     def test_multivariate_ordinal_scipy_minimize(self):
         self._personalize_generic(
             "logistic_ordinal_b",
