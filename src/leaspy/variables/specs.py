@@ -206,11 +206,11 @@ class Collect:
 
 @dataclass(frozen=True)
 class ModelParameter(IndepVariable):
-    """Variable for model parameters with a maximization rule. This variable shouldn't be sampled and it shouldn't be data, a hyperparameter or a linked variable.
+    """Variable for model parameters with a maximization rule. This variable shouldn't be sampled and it shouldn't be data, a hyperparameter or a linked variable."""
 
     shape: tuple[int, ...]
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
-
+    """
     The symbolic update functions will take variadic `suff_stats` values,
     in order to re-use NamedInputFunction logic: e.g. update_rule=Std('xi')
 
