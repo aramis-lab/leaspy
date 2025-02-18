@@ -47,7 +47,7 @@ test: install
 
 .PHONY: test.cov
 test.cov: install
-	coverage run -m pytest -v tests --junitxml=report.xml
+	coverage run --source=src -m pytest -v tests --junitxml=report.xml
 	
 .PHONY: cov
 cov: test.cov
