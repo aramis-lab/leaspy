@@ -107,7 +107,7 @@ class VariablesDAG(Mapping):
     def from_dict(cls, input_dictionary: TMapping[VariableName, VariableInterface]):
         """Instantiate a new DAG of variables from a dictionary of variables.
 
-        This method is using linked variables dependencies as direct ancestors.
+        This method is using :class:`~leaspy.variables.specs.LinkedVariable` dependencies as direct ancestors.
 
         Parameters
         ----------
