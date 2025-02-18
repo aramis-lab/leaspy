@@ -62,6 +62,8 @@ class VariablesDAG(Mapping):
 
     Examples
     --------
+    >>> from leaspy.variables import VariablesDAG
+    >>> from leaspy.variables.specs import IndepVariable, LinkedVariable
     >>> d_vars = {
         "x": IndepVariable(),
         "y": LinkedVariable(lambda *, x: -x),

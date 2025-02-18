@@ -20,7 +20,6 @@ from typing import (
 import torch
 
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.models.utilities import compute_ind_param_std_from_suff_stats
 from leaspy.utils.functional import (
     Identity,
     Mean,
@@ -40,6 +39,7 @@ from leaspy.utils.weighted_tensor import (
 )
 
 from .distributions import SymbolicDistribution
+from .utilities import compute_individual_parameter_std_from_sufficient_statistics
 
 __all__ = [
     "VariableName",
@@ -210,7 +210,7 @@ class ModelParameter(IndepVariable):
 
     shape: tuple[int, ...]
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
-    """
+
     The symbolic update functions will take variadic `suff_stats` values,
     in order to re-use NamedInputFunction logic: e.g. update_rule=Std('xi')
 
@@ -324,7 +324,7 @@ class ModelParameter(IndepVariable):
         """Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian prior of an individual latent variable."""
         ind_var_sqr_name = f"{ind_var_name}_sqr"
         update_rule_normal = NamedInputFunction(
-            compute_ind_param_std_from_suff_stats,
+            compute_individual_parameter_std_from_sufficient_statistics,
             parameters=("state", ind_var_name, ind_var_sqr_name),
             kws=dict(ip_name=ind_var_name, dim=LVL_IND, **tol_kw),
         )
