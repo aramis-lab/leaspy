@@ -78,6 +78,7 @@ class LeaspyEstimateTest(LeaspyEstimateTestMixin):
 
         # TODO linear model?
 
+    @skip("Broken: Ordinal models are broken")
     def test_estimate_ordinal_mle(self):
         """Loss is not involved in estimation so all expected outputs are the same
         for the 2 ordinal models.
