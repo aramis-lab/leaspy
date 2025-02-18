@@ -208,7 +208,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def mean(cls, *params: torch.Tensor) -> torch.Tensor:
-        """Mean of distribution (if defined), given distribution parameters.
+        """Return the mean of the distribution, if defined.
 
         Parameters
         ----------
@@ -224,7 +224,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def stddev(cls, *params: torch.Tensor) -> torch.Tensor:
-        """Return the standard-deviation of the distribution, given distribution parameters.
+        """Return the standard-deviation of the distribution.
 
         Parameters
         ----------
@@ -421,7 +421,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
 
     @classmethod
     def mode(cls, *params: torch.Tensor) -> torch.Tensor:
-        """Mode of distribution (returning first value if discrete ties), given distribution parameters.
+        """Return the mode of the distribution (returning first value if discrete ties).
 
         Parameters
         ----------
@@ -443,7 +443,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         xi: torch.Tensor,
         tau: torch.Tensor,
     ) -> torch.Tensor:
-        """Mean of distribution (if defined), given distribution parameters.
+        """Return the mean of the distribution, if defined.
 
         Parameters
         ----------

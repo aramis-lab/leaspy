@@ -268,7 +268,7 @@ class ModelParameter(IndepVariable):
         suff_stats: SuffStatsRO,
         burn_in: bool,
     ) -> VariableValue:
-        """Update rule (maximization step) for the model parameter.
+        """Compute the updated value for the model parameter using a maximization step.
 
         Parameters
         ----------
@@ -298,8 +298,6 @@ class ModelParameter(IndepVariable):
             **state_kw,
             **{k: suff_stats[k] for k in self._update_rule_parameters if k != "state"},
         )
-
-    # Special factories for typical cases (shortcuts)
 
     @classmethod
     def for_pop_mean(cls, pop_var_name: VariableName, shape: tuple[int, ...]):
