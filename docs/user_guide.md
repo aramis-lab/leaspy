@@ -8,7 +8,7 @@ TODO
 
 ```{toctree}
    :numbered:
-   :maxdepth: 2
+   :maxdepth: 3
 
 get_started 
 mathematics
