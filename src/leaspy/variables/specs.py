@@ -206,7 +206,7 @@ class Collect:
 
 @dataclass(frozen=True)
 class ModelParameter(IndepVariable):
-    """Variable for model parameters, with a maximization rule (not to be sampled but is not data / nor hyperparameter, nor linked)."""
+    """Variable for model parameters with a maximization rule. This variable shouldn't be sampled and it shouldn't be data, a hyperparameter or a linked variable.
 
     shape: tuple[int, ...]
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
@@ -398,7 +398,7 @@ class LatentVariable(IndepVariable):
     def get_regularity_variables(
         self, value_name: VariableName
     ) -> dict[VariableName, LinkedVariable]:
-        """Automatically get extra linked variables to compute regularity term for this latent variable."""
+        """Get extra linked variables to compute regularity term for this latent variable."""
         # return {
         #    # Not really useful... directly sum it to be memory efficient...
         #    f"nll_regul_{value_name}_full": LinkedVariable(
@@ -531,7 +531,7 @@ class IndividualLatentVariable(LatentVariable):
 
 @dataclass(frozen=True)
 class LinkedVariable(VariableInterface):
-    """Variable which is a deterministic expression of other variables (we directly use variables names instead of boring mappings: kws <-> vars)."""
+    """Variable which is a deterministic expression of other variables (we directly use variables names instead of mappings: kws <-> vars)."""
 
     f: Callable[..., VariableValue]
     parameters: frozenset[VariableName] = field(init=False)

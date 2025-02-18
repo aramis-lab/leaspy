@@ -1,10 +1,10 @@
 """This module defines the State of stateful models.
 
-A state contains both the relationships between the variables through a :class:`~leaspy.variables.dag.VariablesDAG`,
-and the values each variable of the DAG as a mapping between variable names and their values.
+A state contains 2 main components:
+1. The relationships between the variables through a :class:`~leaspy.variables.dag.VariablesDAG`
+2. The values of each variable of the DAG as a mapping between variable names and their values
 
-This class is very important for stateful models as it contains the logic to efficiently retrieve variable values
-and only compute the needed variables in doing so. It relies on a caching mechanism that enables quick queries.
+The State class is crucial for stateful models with its logic for efficiently retrieving variable values. This class relies on a caching mechanism that enables quick queries.
 """
 
 from __future__ import annotations
@@ -221,7 +221,7 @@ class State(MutableMapping):
         force_computation: bool = False,
         why: str = " to proceed",
     ) -> VariableValue:
-        """Retrieve cached value (unless `force_computation`) or compute it, assuming node exists and all its ancestors have cached values."""
+        """Retrieve the cached value of a variable (unless `force_computation` is True) or compute it, assuming node exists and all its ancestors have cached values."""
         if not force_computation:
             if (value := self._values[name]) is not None:
                 return value
@@ -234,7 +234,7 @@ class State(MutableMapping):
         return value
 
     def __getitem__(self, name: VariableName) -> VariableValue:
-        """Retrieve cached variable value or compute it and cache it (as well as all intermediate computations that were needed)."""
+        """Retrieve the cached value of a variable or compute it and then cache it (as well as all intermediate computations that were needed)."""
         if (value := self._get_value_from_cache(name)) is not None:
             return value
         for parent in self.dag.sorted_ancestors[name]:
@@ -245,7 +245,7 @@ class State(MutableMapping):
         return name in self.dag
 
     def _get_value_from_cache(self, name: VariableName) -> Optional[VariableValue]:
-        """Get the value for the provided variable name from the cache. Raise if not in DAG."""
+        """Get the value for the provided variable name from the cache. Raise an error if the value is not in the DAG."""
         self._check_key_exists(name)
         return self._values[name]
 
@@ -347,7 +347,7 @@ class State(MutableMapping):
     def revert(
         self, subset: Optional[VariableValue] = None, *, right_broadcasting: bool = True
     ) -> None:
-        """Revert state to previous forked state, efficiently (forked state is then reset).
+        """Revert state to previous forked state. Forked state is then reset.
 
         Parameters
         ----------
@@ -496,7 +496,7 @@ class State(MutableMapping):
     def _get_value_as_dict_of_lists(
         self, variable_name: VariableName
     ) -> dict[VariableName, list[float]]:
-        """Return the value of the given variable as a dictionary of list of floats."""
+        """Return the value of the given variable as a dictionary with list of floats."""
         value = self.__getitem__(variable_name)
         if isinstance(value, WeightedTensor):
             value = value.weighted_value
