@@ -21,7 +21,7 @@ class SimulationAlgorithm(AbstractAlgo):
         self.visit_type = settings.parameters["visit_type"] 
         self.features = settings.parameters["features"]      
         self.load_parameters(settings.parameters["load_parameters"])  
-        
+
     ## --- SET PARAMETERS ---
     def load_parameters(self, dict_param):
         self.set_param_repeated_measure(dict_param["repeated_measure"])
@@ -259,9 +259,17 @@ class SimulationAlgorithm(AbstractAlgo):
                 print(mu)
                 var = self.param_rm["parameters"]["noise_std"][i] ** 2
 
-            alpha_param = mu * ((mu * (1 - mu) / var) - 1)
-            beta_param = (1 - mu) * ((mu * (1 - mu) / var) - 1)
+            # Mean and sample size
+            alpha_param = mu * var
+            beta_param = (1 - mu) * var
 
+            # Mean and variance parametrization
+            # alpha_param = mu * ((mu * (1 - mu) / var) - 1)
+            # beta_param = (1 - mu) * ((mu * (1 - mu) / var) - 1)
+
+            # Mode and concentration parametrization
+            # alpha_param = mu * (var - 2) + 1
+            # beta_param = (1 - mu) * (var - 2) + 1
             df_long[feat] = beta.rvs(alpha_param, beta_param)
 
         dict_rm_rename = {
