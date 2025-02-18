@@ -438,8 +438,8 @@ class Leaspy:
 
     def simulate(
         self,
-        individual_parameters: IndividualParameters,
-        data: Data,
+        # individual_parameters: IndividualParameters,
+        # data: Data,
         settings: AlgorithmSettings,
     ):
         r"""
@@ -547,7 +547,8 @@ class Leaspy:
         self.check_if_initialized()
         algorithm = algorithm_factory(settings)
         # <!> The `AbstractAlgo.run` signature is not respected for simulation algorithm...
-        simulated_data: Result = algorithm.run(self.model, individual_parameters, data)
+        #simulated_data: Result = algorithm.run(self.model, individual_parameters, data)
+        simulated_data: Result = algorithm.run(self.model)
         return simulated_data
 
     @classmethod
