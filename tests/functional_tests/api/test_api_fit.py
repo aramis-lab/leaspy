@@ -407,7 +407,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             source_dimension=2,
         )
 
-    # @skip("Ordinal observation models are not implemented yet.")
+    @skip("Ordinal observation models are not implemented yet.")
     def test_fit_logistic_ordinal_batched(self):
         self.generic_fit(
             "logistic_ordinal",
