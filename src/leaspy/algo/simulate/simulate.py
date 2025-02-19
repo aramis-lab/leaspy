@@ -1,6 +1,7 @@
 import json
 from abc import ABC
 
+from enum import Enum
 import numpy as np
 import pandas as pd
 from scipy.stats import beta
@@ -10,17 +11,134 @@ from leaspy.io.outputs import IndividualParameters
 from leaspy.algo.base import AbstractAlgo, AlgorithmType
 from leaspy.io.outputs.result import Result
 from leaspy.io.data.data import Data
+from leaspy.exceptions import LeaspyAlgoInputError
+
+
+class VisitType(Enum):
+    DATAFRAME = "dataframe"   # Dataframe of visits
+    REGULAR = "regular"       # Regular spaced visits
+    RANDOM = "random"         # Random spaced visits
 
 class SimulationAlgorithm(AbstractAlgo):
 
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
 
+
+    _PARAM_REQUIREMENTS = {
+        "dataframe": [
+            ("df_visits", pd.DataFrame),
+        ],
+        "regular": [
+            ("pat_nb", int),
+            ("regular_visit", (int, float)),
+            ("fv_mean", (int, float)),
+            ("fv_std", (int, float)),
+            ("tf_mean", (int, float)),
+            ("tf_std", (int, float)),
+        ],
+        "random": [
+            ("pat_nb", int),
+            ("fv_mean", (int, float)),
+            ("fv_std", (int, float)),
+            ("tf_mean", (int, float)),
+            ("tf_std", (int, float)),
+            ("distv_mean", (int, float)),
+            ("distv_std", (int, float)),
+        ]
+    }
+
     def __init__(self, settings):
         super().__init__(settings)
-        self.visit_type = settings.parameters["visit_type"] 
-        self.features = settings.parameters["features"]      
-        self.load_parameters(settings.parameters["load_parameters"])  
+        self.visit_type = settings.parameters["visit_type"]
+        self.features = settings.parameters["features"]
+        self.load_parameters(settings.parameters["load_parameters"])
+        self._validate_algo_parameters() 
+
+    ## --- CHECKS ---
+    def _check_visit_type(self):
+        if not isinstance(self.visit_type, str):
+            raise LeaspyAlgoInputError(
+                f"Visit type need to be a string and not : {type(self.visit_type).__name__}"
+            )
+        try:
+            VisitType(self.visit_type)
+        except ValueError as e:
+            allowed_types = [vt.value for vt in VisitType]
+            raise LeaspyAlgoInputError(
+                f"Invalid visit type : '{self.visit_type}'. "
+                f"Authorized typz : {', '.join(allowed_types)}"
+            ) from e
+
+
+    def _check_features(self):
+        if not isinstance(self.features, list):
+            raise LeaspyAlgoInputError(
+                f"Features need to a be a list and not : {type(self.features).__name__}"
+            )
+        if len(self.features) == 0:
+            raise LeaspyAlgoInputError("List can't be empty")
+        
+        for i, feature in enumerate(self.features):
+            if not isinstance(feature, str):
+                raise LeaspyAlgoInputError(
+                    f"Invalide feature at position {i}: need to be a string. "
+                    f"And not : {type(feature).__name__}"
+                )
+            if not feature.strip():
+                raise LeaspyAlgoInputError(f"Empty feature at the position {i}")
+
+    def _check_params(self, requirements):
+        missing_params = []
+        type_errors = []
+        value_errors = []
+
+        for param, expected_types in requirements:
+            if param not in self.param_study:
+                missing_params.append(param)
+                continue
+            value = self.param_study[param]
+            if not isinstance(value, expected_types):
+                type_names = [t.__name__ for t in expected_types] if isinstance(expected_types, tuple) else expected_types.__name__
+                type_errors.append(
+                    f"Parameter '{param}': Expected type {type_names}, given {type(value).__name__}"
+                )
+            if param == 'pat_nb' and value <= 0:
+                value_errors.append("Patient number (pat_nb) need to be a positive integer")
+                
+            if param.endswith('_std') and value < 0:
+                value_errors.append(f"Standard deviation ({param}) can't be negative")
+
+        errors = []
+        if missing_params:
+            errors.append(f"Missing parameters : {', '.join(missing_params)}")
+        if type_errors:
+            errors.append("Type problems :\n- " + "\n- ".join(type_errors))
+        if value_errors:
+            errors.append("Invalid value :\n- " + "\n- ".join(value_errors))
+
+        if errors:
+            raise LeaspyAlgoInputError("\n".join(errors))
+
+    def _validate_algo_parameters(self):
+        self._check_visit_type()
+        self._check_features()
+        
+        requirements = self._PARAM_REQUIREMENTS.get(self.visit_type)
+        if not requirements:
+            raise LeaspyAlgoInputError(f"No configuration for this type of visit '{self.visit_type}'")
+        
+        self._check_params(requirements)
+
+        if self.visit_type == "dataframe":
+            df = self.param_study["df_visits"]
+            if "ID" not in df.columns or "TIME" not in df.columns:
+                raise LeaspyAlgoInputError("Le dataframe doit contenir les colonnes 'ID' et 'TIME'")
+            
+            if df["TIME"].isnull().any():
+                raise LeaspyAlgoInputError("Le dataframe contient des valeurs nulles dans la colonne TIME")
+
+
 
     ## --- SET PARAMETERS ---
     def load_parameters(self, dict_param):
@@ -98,7 +216,7 @@ class SimulationAlgorithm(AbstractAlgo):
         df_sim = self.generate_dataset(dict_timepoints, df_ip_rm)
 
         simulated_data = Data.from_dataframe(df_sim)
-        # result_obj = Result(data = simulated_data, 
+        # result_obj = Result(data = simulated_data,
         #                     individual_parameters = df_ip_rm,
         #                     noise_std = noise_std_used,
         # )
