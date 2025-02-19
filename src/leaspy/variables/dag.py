@@ -39,17 +39,17 @@ class VariablesDAG(Mapping):
 
     Notes
     -----
-    In general this DAG is not a tree (the graph may not be totally connected and have multiple roots),
-    nor a multi-tree (there may be multiple directed paths to between two nodes -
-    e.g. `logistic_model = f[g, b(g), ...]`) but we do assume that no cycle is present in our graph
-    (not checked), which is equivalent to be topologically sortable.
+    In general the VariablesDAG is not a tree because the graph may not be totally connected and may have multiple roots.
+    It is not a multi-tree either since there may be multiple directed paths between two nodes - e.g. `logistic_model = f[g, b(g), ...]`.
+    However, we do assume that there is no cycle in the graph (not checked currently), which is equivalent to be topologically sortable.
 
-    We pre-compute node-wise sorted children and ancestors once for all for efficiency,
-    in particular in order to:
-    - perform computations and caching of intermediate variable dependencies in order
+    In order to improve the efficiency of the algorithms, a node-wise sorted children and ancestors mappings are computed.
+    These mappings are useful to:
+
+    - perform computations and caching of intermediate variable dependencies
     - quickly reset all dependent nodes upon a modification
 
-    We do not store children or ancestor in a specific node class to avoid cross-references in such nodes
+    Finally, we do not store children nor ancestors in a specific node class to avoid cross-references in such nodes.
 
     todo
     ----
