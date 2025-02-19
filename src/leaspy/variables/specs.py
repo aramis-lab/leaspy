@@ -300,38 +300,57 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_pop_mean(cls, pop_var_name: VariableName, shape: tuple[int, ...]):
+    def for_pop_mean(
+        cls, population_variable_name: VariableName, shape: tuple[int, ...]
+    ):
         """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of a population latent variable."""
         return cls(
             shape,
-            suff_stats=Collect(pop_var_name),
-            update_rule=Identity(pop_var_name),
+            suff_stats=Collect(population_variable_name),
+            update_rule=Identity(population_variable_name),
         )
 
     @classmethod
-    def for_ind_mean(cls, ind_var_name: VariableName, shape: tuple[int, ...]):
+    def for_ind_mean(
+        cls, individual_variable_name: VariableName, shape: tuple[int, ...]
+    ):
         """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of an individual latent variable."""
         return cls(
             shape,
-            suff_stats=Collect(ind_var_name),
-            update_rule=Mean(ind_var_name, dim=LVL_IND),
+            suff_stats=Collect(individual_variable_name),
+            update_rule=Mean(individual_variable_name, dim=LVL_IND),
         )
 
     @classmethod
-    def for_ind_std(cls, ind_var_name: VariableName, shape: tuple[int, ...], **tol_kw):
+    def for_ind_std(
+        cls, individual_variable_name: VariableName, shape: tuple[int, ...], **tol_kw
+    ):
         """Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian prior of an individual latent variable."""
-        ind_var_sqr_name = f"{ind_var_name}_sqr"
+        individual_variance_sqr_name = f"{individual_variable_name}_sqr"
         update_rule_normal = NamedInputFunction(
             compute_individual_parameter_std_from_sufficient_statistics,
-            parameters=("state", ind_var_name, ind_var_sqr_name),
-            kws=dict(ip_name=ind_var_name, dim=LVL_IND, **tol_kw),
+            parameters=(
+                "state",
+                individual_variable_name,
+                individual_variance_sqr_name,
+            ),
+            kws=dict(
+                individual_parameter_name=individual_variable_name,
+                dim=LVL_IND,
+                **tol_kw,
+            ),
         )
         return cls(
             shape,
             suff_stats=Collect(
-                ind_var_name, **{ind_var_sqr_name: LinkedVariable(Sqr(ind_var_name))}
+                individual_variable_name,
+                **{
+                    individual_variance_sqr_name: LinkedVariable(
+                        Sqr(individual_variable_name)
+                    )
+                },
             ),
-            update_rule_burn_in=Std(ind_var_name, dim=LVL_IND),
+            update_rule_burn_in=Std(individual_variable_name, dim=LVL_IND),
             update_rule=update_rule_normal,
         )
 
