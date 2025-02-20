@@ -133,10 +133,10 @@ class SimulationAlgorithm(AbstractAlgo):
         if self.visit_type == "dataframe":
             df = self.param_study["df_visits"]
             if "ID" not in df.columns or "TIME" not in df.columns:
-                raise LeaspyAlgoInputError("Le dataframe doit contenir les colonnes 'ID' et 'TIME'")
+                raise LeaspyAlgoInputError("Dataframe needs to have columns 'ID' and 'TIME'")
             
             if df["TIME"].isnull().any():
-                raise LeaspyAlgoInputError("Le dataframe contient des valeurs nulles dans la colonne TIME")
+                raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
 
 
 
