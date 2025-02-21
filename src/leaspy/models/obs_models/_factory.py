@@ -108,16 +108,16 @@ def observation_model_factory(
                 kwargs=kwargs
             )
         if model == ObservationModelNames.MIXTURE_GAUSSIAN:
-            if n_clusters is None:
-                raise NotImplementedError(
-                    "WIP: number of clusters should be provided to "
-                    f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
-                )
-            if dimension is None:
-                raise NotImplementedError(
-                    "WIP: dimension / features should be provided to "
-                    f"init the obs_model = {ObservationModelNames.GAUSSIAN_DIAGONAL}."
-                )
+            #if n_clusters is None:
+            #    raise NotImplementedError(
+            #        "WIP: number of clusters should be provided to "
+            #        f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
+            #    )
+            #if dimension is None:
+            #    raise NotImplementedError(
+            #        "WIP: dimension / features should be provided to "
+            #        f"init the obs_model = {ObservationModelNames.GAUSSIAN_DIAGONAL}."
+            #    )
             return MixtureGaussianObservationModel.with_probs(dimension, n_clusters)
         return OBSERVATION_MODELS[model](**kwargs)
     raise LeaspyModelInputError(
