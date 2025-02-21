@@ -92,7 +92,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         return probs_ind
 
     @classmethod
-    def compute_probs(cls) -> torch.Tensor:
+    def compute_probs(cls, *, probs_ind: torch.Tensor) -> torch.Tensor:
         """
         Update rule for the probabilities of occurrence of each cluster.
         -------
@@ -101,14 +101,13 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         probs : an 1D tensor (n_cluster)
         with the probabilities of occurrence of each cluster
         """
-        probs_ind = cls.compute_probs_ind
         n_inds = probs_ind.size()[0]
         probs = probs_ind.sum(dim=0) / n_inds
 
         return probs
 
     @classmethod
-    def probs_specs(cls, n_clusters:int):
+    def probs_specs(cls):
         """
         Default specifications for probs parameter.
         """
@@ -228,7 +227,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
                 ),
             }
 
-        return cls(probs=cls.probs_specs(n_clusters), noise_std=cls.noise_std_specs(dimension), **extra_vars)
+        return cls(probs=cls.probs_specs, noise_std=cls.noise_std_specs(dimension), **extra_vars)
 
     @classmethod
     def compute_rmse(

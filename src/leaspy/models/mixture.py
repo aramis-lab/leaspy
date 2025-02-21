@@ -72,7 +72,7 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
     @property
     def sources_mean(self) -> torch.Tensor:
-        return torch.zeos(self.source_dimension, self.n_clusters) #be careful with the dimensions
+        return torch.zeros(self.source_dimension, self.n_clusters) #be careful with the dimensions
 
     @property
     def sources_std(self) -> torch.Tensor:
@@ -335,6 +335,8 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
             "nll_tot",
             #specific to the mixture model :
             #"probs_ind", ---> transfered to the obervational model
+            "probs",
+            "probs_ind",
             "nll_attach_y",
             "nll_regul_tau",
             "nll_regul_tau_ind",
@@ -460,6 +462,21 @@ class LogisticMultivariateMixtureInitializationMixin:
         probs = probs_ind.sum(axis=0)/n_inds
 
         df = self._get_dataframe_from_dataset(dataset)
+        slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
+        values_mu, values_sigma = compute_patient_values_distribution(df)
+
+        if method == InitializationMethod.DEFAULT:
+            slopes = slopes_mu
+            values = values_mu
+            betas = torch.zeros((self.dimension - 1, self.source_dimension))
+
+        if method == InitializationMethod.RANDOM:
+            slopes = torch.normal(slopes_mu, slopes_sigma)
+            values = torch.normal(values_mu, values_sigma)
+            betas = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample(
+                sample_shape=(self.dimension - 1, self.source_dimension)
+            )
+
         probs_ind_df = pd.concat([pd.DataFrame({"ID": np.arange(1, n_inds+1,1)}),
                                   pd.DataFrame(probs_ind)], axis=1, join="outer")
         for c in range(n_clusters):
@@ -474,52 +491,35 @@ class LogisticMultivariateMixtureInitializationMixin:
         for c in range(n_clusters):
             ids_cluster = ids.loc[start:step * (c + 1), 'ID']  # get the IDs of the cluster
             df_cluster = df.loc[ids_cluster.values]  # get all the dataframe for the cluster
-            slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df_cluster)
-            values_mu, values_sigma = compute_patient_values_distribution(df_cluster)
             time_mu, time_sigma = compute_patient_time_distribution(df_cluster)
 
             if method == InitializationMethod.DEFAULT:
-                slopes_c = slopes_mu
-                values_c = values_mu
-                log_velocities_c = get_log_velocities(slopes_c, self.features)
                 t0_c = time_mu
-                betas_c = torch.zeros((self.dimension - 1, self.source_dimension))
 
             if method == InitializationMethod.RANDOM:
-                slopes_c = torch.normal(slopes_mu, slopes_sigma)
-                values_c = torch.normal(values_mu, values_sigma)
-                log_velocities_c = get_log_velocities(slopes_c, self.features) #transfer here because the function has a problem with the extra dimension
                 t0_c = torch.normal(time_mu, time_sigma)
-                betas_c = torch.distributions.normal.Normal(loc=0., scale=1.).sample(
-                    sample_shape=(self.dimension - 1, self.source_dimension)
-                )
+
             start = step * (c + 1) + 1
 
             #stock the values for all the clusters
             if c == 0:
-                slopes = slopes_c.unsqueeze(-2)
-                values = values_c.unsqueeze(-2)
-                log_velocities = log_velocities_c.unsqueeze(-2)
                 t0 = t0_c.unsqueeze(-2)
-                betas = betas_c.unsqueeze(0)
             else:
-                slopes = torch.cat((slopes, slopes_c.unsqueeze(-2)), dim=0)
-                values = torch.cat((values, values_c.unsqueeze(-2)), dim=0)
-                log_velocities = torch.cat((log_velocities, log_velocities_c.unsqueeze(-2)), dim=0)
-                t0 = torch.cat((t0, t0_c.unsqueeze(-2)), dim=0)
-                betas = torch.cat((betas, betas_c.unsqueeze(0)), dim=0)
+                t0 = torch.tensor(np.append(t0, t0_c.item()))
 
         # Enforce values are between 0 and 1
         values = values.clamp(min=1e-2, max=1 - 1e-2)  # always "works" for ordinal (values >= 1)
 
         parameters = {
             "log_g_mean": torch.log(1. / values - 1.),
-            #"log_v0_mean": get_log_velocities(slopes, self.features), #problem with the dimension
-            "log_v0_mean": log_velocities,
+            "log_v0_mean": get_log_velocities(slopes, self.features),
+            #"log_v0_mean": log_velocities,
             "tau_mean": t0,
             "tau_std": self.tau_std,
             "xi_mean": self.xi_mean,
             "xi_std": self.xi_std,
+            "probs_ind": probs_ind,
+            "probs": probs
         }
         if self.source_dimension >= 1:
             parameters["betas_mean"] = betas
