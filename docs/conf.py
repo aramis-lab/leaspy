@@ -61,7 +61,14 @@ extensions = [
 
 autoapi_dirs = ["../src"]
 autoapi_root = "reference/api"
-
+autodoc_typehints = "description"
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
+]
 
 # this is needed for some reason...
 # see https://github.com/numpy/numpydoc/issues/69
