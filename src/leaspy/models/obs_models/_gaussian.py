@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    Callable,
-    Dict,
-)
+from typing import Callable
 
 import torch
 
@@ -24,7 +21,7 @@ from leaspy.variables.specs import (
     LinkedVariable,
     ModelParameter,
     VariableInterface,
-    VarName,
+    VariableName,
 )
 from leaspy.variables.state import State
 
@@ -41,10 +38,10 @@ class GaussianObservationModel(ObservationModel):
 
     def __init__(
         self,
-        name: VarName,
+        name: VariableName,
         getter: Callable[[Dataset], WeightedTensor],
-        loc: VarName,
-        scale: VarName,
+        loc: VariableName,
+        scale: VariableName,
         **extra_vars: VariableInterface,
     ):
         super().__init__(name, getter, Normal(loc, scale), extra_vars=extra_vars)
@@ -84,7 +81,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         return WeightedTensor(dataset.values, weight=dataset.mask.to(torch.bool))
 
     @classmethod
-    def noise_std_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
+    def noise_std_suff_stats(cls) -> dict[VariableName, LinkedVariable]:
         """Dictionary of sufficient statistics needed for `noise_std` (when directly a model parameter)."""
         return dict(
             y_x_model=LinkedVariable(Prod("y", "model")),
