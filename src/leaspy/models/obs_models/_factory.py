@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Dict, Type, Union
 
-from leaspy.exceptions import LeaspyModelInputError
+from src.leaspy.exceptions import LeaspyModelInputError
 
 from ._base import ObservationModel
 from ._bernoulli import BernoulliObservationModel
@@ -13,6 +13,7 @@ from ._weibull import (
     WeibullRightCensoredObservationModel,
     WeibullRightCensoredWithSourcesObservationModel,
 )
+from ._mixture_gaussian import MixtureGaussianObservationModel
 
 __all__ = [
     "ObservationModelNames",
@@ -31,6 +32,7 @@ class ObservationModelNames(Enum):
     ORDINAL = "ordinal"
     WEIBULL_RIGHT_CENSORED = "weibull-right-censored"
     WEIBULL_RIGHT_CENSORED_WITH_SOURCES = "weibull-right-censored-with-sources"
+    MIXTURE_GAUSSIAN  = "mixture-gaussian"
 
     @classmethod
     def from_string(cls, model_name: str):
@@ -52,6 +54,7 @@ OBSERVATION_MODELS: Dict[ObservationModelNames, Type[ObservationModel]] = {
     ObservationModelNames.ORDINAL: OrdinalObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED: WeibullRightCensoredObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED_WITH_SOURCES: WeibullRightCensoredWithSourcesObservationModel,
+    ObservationModelNames.MIXTURE_GAUSSIAN: MixtureGaussianObservationModel,
 }
 
 
@@ -81,6 +84,7 @@ def observation_model_factory(
         If `model` is not supported.
     """
     dimension = kwargs.pop("dimension", None)
+    n_clusters = kwargs.pop("n_clusters", None)
     if isinstance(model, ObservationModel):
         return model
     if isinstance(model, str):
@@ -103,6 +107,18 @@ def observation_model_factory(
             return WeibullRightCensoredWithSourcesObservationModel.default_init(
                 kwargs=kwargs
             )
+        if model == ObservationModelNames.MIXTURE_GAUSSIAN:
+            #if n_clusters is None:
+            #    raise NotImplementedError(
+            #        "WIP: number of clusters should be provided to "
+            #        f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
+            #    )
+            #if dimension is None:
+            #    raise NotImplementedError(
+            #        "WIP: dimension / features should be provided to "
+            #        f"init the obs_model = {ObservationModelNames.GAUSSIAN_DIAGONAL}."
+            #    )
+            return MixtureGaussianObservationModel.with_probs(dimension, n_clusters)
         return OBSERVATION_MODELS[model](**kwargs)
     raise LeaspyModelInputError(
         "The provided `model` should be a valid instance of `ObservationModel`, "

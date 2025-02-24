@@ -16,6 +16,7 @@ from .ordinal_multivariate_model import OrdinalMultivariateModel
 from .settings import ModelSettings
 from .univariate import LinearUnivariateModel, LogisticUnivariateModel
 from .univariate_joint import UnivariateJointModel
+from .mixture import LogisticMultivariateMixtureModel
 
 __all__ = [
     "ModelName",
@@ -37,4 +38,5 @@ __all__ = [
     "UnivariateJointModel",
     "JointModel",
     "OrdinalMultivariateModel",
+    "LogisticMultivariateMixtureModel",
 ]
