@@ -495,6 +495,37 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         return prob, loc, scale
 
     @classmethod
+    def compute_probs_ind(cls, *, state: State) -> torch.Tensor:
+        probs_ind = state['probs_ind']  # from the previous iteration
+        n_inds = probs_ind.size()[0]
+        n_clusters = probs_ind.size()[1]
+        probs = probs_ind.sum(dim=0) / n_inds  # from the previous iteration
+        nll_ind = state['nll_attach_y']
+        nll_random = probs * (
+                state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
+
+        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
+        nominator = probs * nll_ind * nll_random
+        for c in range(n_clusters):
+            probs_ind[:, c] = nominator[:, c] / denominator
+
+        return probs_ind
+
+    @classmethod
+    def compute_probs(cls) -> torch.Tensor:
+        """
+        Update rule for the probabilities of occurrence of each cluster.
+        -------
+        Returns
+        -------
+        probs : an 1D tensor (n_cluster)
+        with the probabilities of occurrence of each cluster
+        """
+        probs_ind = cls.compute_probs_ind(state=State)
+
+        return probs_ind.sum(dim=0) / probs_ind.size()[0]
+
+    @classmethod
     def compute_nll_cluster(
             cls,
             which_cluster: int,

@@ -335,7 +335,7 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
             "nll_tot",
             #specific to the mixture model :
             #"probs_ind", ---> transfered to the obervational model
-            "probs",
+            #"probs",
             "probs_ind",
             "nll_attach_y",
             "nll_regul_tau",
@@ -455,11 +455,10 @@ class LogisticMultivariateMixtureInitializationMixin:
             torch_round,
         )
 
-        #initialize a df with the probabilities of each individual belonging to each cluster
         n_inds = dataset.to_pandas().reset_index('TIME').groupby('ID').min().shape[0]
         n_clusters = self.n_clusters
         probs_ind = torch.ones(n_inds,n_clusters)/n_clusters
-        probs = probs_ind.sum(axis=0)/n_inds
+        probs = torch.ones(n_clusters)/n_clusters
 
         df = self._get_dataframe_from_dataset(dataset)
         slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
