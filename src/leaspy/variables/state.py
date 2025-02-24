@@ -166,7 +166,7 @@ class State(MutableMapping):
     def clone(
         self, *, disable_auto_fork: bool = False, keep_last_fork: bool = False
     ) -> State:
-        """Clone current state (no copy of DAG).
+        """Clone current state without copying the DAG.
 
         Parameters
         ----------
