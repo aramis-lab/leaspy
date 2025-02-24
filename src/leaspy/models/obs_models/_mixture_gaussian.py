@@ -31,7 +31,7 @@ from ._base import ObservationModel
 __all__ = [
     "MixtureGaussianObservationModel",
 ]
-class GaussianObservationModel(ObservationModel):
+class AbstractMixtureGaussianObservationModel(ObservationModel):
     """Specialized `ObservationModel` for noisy observations with Gaussian residuals assumption."""
 
     def __init__(
@@ -40,49 +40,40 @@ class GaussianObservationModel(ObservationModel):
         getter: Callable[[Dataset], WeightedTensor],
         loc: VarName,
         scale: VarName,
+        cluster_probabilities: VarName,
         **extra_vars: VariableInterface,
     ):
-        super().__init__(name, getter, Normal(loc, scale), extra_vars=extra_vars)
+        super().__init__(name, getter, MixtureNormal(loc, scale, cluster_probabilities), extra_vars=extra_vars)
 
-class MixtureGaussianObservationModel(GaussianObservationModel):
+class MixtureGaussianObservationModel(AbstractMixtureGaussianObservationModel):
     """
     Specialized observational model when the data come from a mixture normal distribution.
     """
 
-    def __init__(self, noise_std: VariableInterface, probs: VariableInterface, **extra_vars: VariableInterface):
+    def __init__(self,
+                 noise_std: VariableInterface,
+                 probs: VariableInterface,
+                 **extra_vars: VariableInterface):
+
         super().__init__(
             name="y",
             getter=self.y_getter,
             loc="model",
             scale="noise_std",
             noise_std=noise_std,
-            probs=probs,
+            cluster_probabilities="probs",
+            probs = probs,
             **extra_vars,
         )
 
     @classmethod
     def compute_probs_ind(cls, *, state: State) -> torch.Tensor:
-        """
-        Update rule for the individual probabilities of each individual i to belong to the cluster c.
-        It uses the parts pf the likelihood corresponding to the data attachment and the attachment to the
-        random effects, as calculated in the previous iteration.
-        ----------
-        Parameters
-        ----------
-        state
-
-        Returns
-        -------
-        probs_ind : a 2D tensor (n_individuals x n_clusters)
-        with the corresponding probabilities of each individual i to belong to the cluster i
-        """
-        probs_ind = state['probs_ind'] #from the previous iteration
-        n_inds = probs_ind.size()[0]
-        n_clusters = probs_ind.size()[1]
-        probs = probs_ind.sum(dim=0) / n_inds #from the previous iteration
+        probs_ind = state['probs_ind']  # from the previous iteration
+        n_inds = state['n_individuals']
+        n_clusters = state['n_clusters']
+        probs = probs_ind.sum(axis=0) / n_inds  # from the previous iteration
         nll_ind = state['nll_attach_y']
-        nll_random = probs * (
-                state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
+        nll_random = state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind']
 
         denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
         nominator = probs * nll_ind * nll_random
@@ -92,7 +83,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         return probs_ind
 
     @classmethod
-    def compute_probs(cls, *, probs_ind: torch.Tensor) -> torch.Tensor:
+    def compute_probs(cls) -> torch.Tensor:
         """
         Update rule for the probabilities of occurrence of each cluster.
         -------
@@ -101,18 +92,33 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
         probs : an 1D tensor (n_cluster)
         with the probabilities of occurrence of each cluster
         """
-        n_inds = probs_ind.size()[0]
-        probs = probs_ind.sum(dim=0) / n_inds
+        probs_ind = cls.compute_probs_ind(state=State)
 
-        return probs
+        return probs_ind.sum(dim=0) / probs_ind.size()[0]
+
+    """
+    @classmethod
+    def probs_ind_specs(cls) -> LinkedVariable:
+        return LinkedVariable(cls.compute_probs_ind(state=State))
+
+    """
+    def get_variables_specs(
+        self,
+        named_attach_vars: bool = True,
+    ) -> Dict[VarName, VariableInterface]:
+        """Automatic specifications of variables for this observation model."""
+
+        specs = super().get_variables_specs(named_attach_vars)
+
+        specs['probs'] = LinkedVariable(
+            self.dist.get_func('compute_probs', self.name)
+        )
+
+        return specs
 
     @classmethod
-    def probs_specs(cls):
-        """
-        Default specifications for probs parameter.
-        """
-
-        return LinkedVariable(cls.compute_probs)
+    def probs_specs(cls) -> Dict[VarName, VariableInterface]:
+        return LinkedVariable(cls.compute_probs())
 
     @staticmethod
     def y_getter(dataset: Dataset) -> WeightedTensor:
@@ -227,7 +233,7 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
                 ),
             }
 
-        return cls(probs=cls.probs_specs, noise_std=cls.noise_std_specs(dimension), **extra_vars)
+        return cls(probs=cls.probs_specs(), noise_std=cls.noise_std_specs(dimension), **extra_vars)
 
     @classmethod
     def compute_rmse(
@@ -256,3 +262,37 @@ class MixtureGaussianObservationModel(GaussianObservationModel):
     def to_string(self) -> str:
         """method for parameter saving"""
         return "mixture-gaussian"
+
+    """
+    
+    @classmethod
+    def probs_ind_update(cls, *, state: State) -> torch.Tensor:
+
+        Update rule for the individual probabilities of each individual i to belong to the cluster c.
+        It uses the parts pf the likelihood corresponding to the data attachment and the attachment to the
+        random effects, as calculated in the previous iteration.
+        ----------
+        Parameters
+        ----------
+        state
+
+        Returns
+        -------
+        probs_ind : a 2D tensor (n_individuals x n_clusters)
+        with the corresponding probabilities of each individual i to belong to the cluster i
+
+        probs_ind = state['probs_ind'] #from the previous iteration
+        n_inds = probs_ind.size()[0]
+        n_clusters = probs_ind.size()[1]
+        probs = probs_ind.sum(dim=0) / n_inds #from the previous iteration
+        nll_ind = state['nll_attach_y']
+        nll_random = probs * (
+                state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
+
+        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
+        nominator = probs * nll_ind * nll_random
+        for c in range(n_clusters):
+            probs_ind[:, c] = nominator[:, c] / denominator
+
+        return probs_ind
+    """
