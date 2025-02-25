@@ -1,16 +1,3 @@
-docs-build:
-  image: "python:3.11"
-  script:
-    - python -V
-    - pip install pipx
-    - pipx ensurepath
-    - source ~/.bashrc
-    - pipx install poetry
-    - poetry install --with docs
-    - source `poetry env info --path`/bin/activate
-    - pip freeze
-    - make doc
-
 release-pypi:
   image: "python:3.11"
   rules:
