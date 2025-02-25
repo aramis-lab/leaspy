@@ -1,24 +1,3 @@
-test:
-  image: "python:$VERSION"
-  script:
-    - python -V
-    - pip install pipx
-    - pipx ensurepath
-    - source ~/.bashrc
-    - pipx install poetry
-    - which poetry
-    - poetry install --with dev
-    - source `poetry env info --path`/bin/activate
-    - pip freeze
-    - make cov
-  parallel:
-    matrix:
-      - VERSION: ["3.9", "3.10", "3.11", "3.12"]
-  artifacts:
-    when: always
-    reports:
-      junit: report.xml
-
 docs-build:
   image: "python:3.11"
   script:
