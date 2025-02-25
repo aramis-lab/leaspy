@@ -34,7 +34,13 @@
  
 ## Model Selection and Evaluation
 
-### Metrics (likelihood and others?)
+### Convergence diagnosis
+
+### Likelihood based metrics
+
+### Reconstruction metrics
+
+### Prediction metrics
 
 ## Visualization
 
