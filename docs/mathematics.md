@@ -1,6 +1,6 @@
-# Mathematical aspects
+# Mathematical Background
 
-## Maixed effect models
+## Mixed effect models
 
 *Talk about mixed-effect models and their ability to handle missing values*
 

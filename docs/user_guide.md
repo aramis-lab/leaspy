@@ -6,9 +6,13 @@ This page presents the user guide of Leaspy.
 
 ```{toctree}
    :numbered:
-   :maxdepth: 4
+   :maxdepth: 3
 
 get_started
 mathematics
-tutorial_easy
+models
+algorithms
+models_evaluation
+tutorials
+to_go_further
 ```
