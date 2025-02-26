@@ -138,6 +138,8 @@ class SimulationAlgorithm(AbstractAlgo):
             if df["TIME"].isnull().any():
                 raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
 
+
+
     ## --- SET PARAMETERS ---
     def save_parameters(self, model, path_save): # TODO
         total_params = {
