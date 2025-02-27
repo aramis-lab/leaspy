@@ -23,6 +23,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
+<<<<<<< Updated upstream
 
 
     _PARAM_REQUIREMENTS = {
@@ -140,6 +141,15 @@ class SimulationAlgorithm(AbstractAlgo):
 
 
 
+=======
+
+    def __init__(self, settings):
+        super().__init__(settings)
+        self.visit_type = settings.parameters["visit_type"] 
+        self.features = settings.parameters["features"]      
+        self.load_parameters(settings.parameters["load_parameters"])  
+
+>>>>>>> Stashed changes
     ## --- SET PARAMETERS ---
     def load_parameters(self, dict_param):
         self.set_param_repeated_measure(dict_param["repeated_measure"])
@@ -220,8 +230,12 @@ class SimulationAlgorithm(AbstractAlgo):
         #                     individual_parameters = df_ip_rm,
         #                     noise_std = noise_std_used,
         # )
+<<<<<<< Updated upstream
         return df_sim, None
 
+=======
+        return df_sim
+>>>>>>> Stashed changes
 
     ## ---- IP ---
     def get_ip_rm(self):
@@ -318,7 +332,10 @@ class SimulationAlgorithm(AbstractAlgo):
                 self.param_study["tf_std"],
                 self.param_study["pat_nb"],
             )
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
             ## Generate visit ages for each patients
             dict_timepoints = {}
 
@@ -412,5 +429,9 @@ class SimulationAlgorithm(AbstractAlgo):
         df_sim.set_index(["ID", "TIME"], inplace=True)
         df_sim = df_sim[~df_sim.index.duplicated()]
 
+<<<<<<< Updated upstream
         return df_sim
 
+=======
+        return df_sim
+>>>>>>> Stashed changes
