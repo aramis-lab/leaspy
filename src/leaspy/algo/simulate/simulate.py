@@ -24,6 +24,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
+<<<<<<< Updated upstream
 
     _PARAM_REQUIREMENTS = {
         "dataframe": [
@@ -140,6 +141,15 @@ class SimulationAlgorithm(AbstractAlgo):
 
 
 
+=======
+
+    def __init__(self, settings):
+        super().__init__(settings)
+        self.visit_type = settings.parameters["visit_type"] 
+        self.features = settings.parameters["features"]      
+        self.load_parameters(settings.parameters["load_parameters"])  
+
+>>>>>>> Stashed changes
     ## --- SET PARAMETERS ---
     def save_parameters(self, model, path_save): # TODO
         total_params = {
@@ -198,11 +208,24 @@ class SimulationAlgorithm(AbstractAlgo):
         df_sim = self.generate_dataset(model,dict_timepoints, df_ip_rm)
 
         simulated_data = Data.from_dataframe(df_sim)
+<<<<<<< HEAD
         result_obj = Result(data = simulated_data,
                             individual_parameters = df_ip_rm,
                             noise_std = model.parameters["noise_std"].numpy() * 100
          )
         return result_obj
+=======
+        # result_obj = Result(data = simulated_data,
+        #                     individual_parameters = df_ip_rm,
+        #                     noise_std = noise_std_used,
+        # )
+<<<<<<< Updated upstream
+        return df_sim, None
+
+=======
+        return df_sim
+>>>>>>> Stashed changes
+>>>>>>> 7a08bcde (conflicts resolution)
 
     ## ---- IP ---
     def get_ip_rm(self, model):
@@ -312,6 +335,13 @@ class SimulationAlgorithm(AbstractAlgo):
                 self.param_study["tf_std"],
                 self.param_study["pat_nb"],
             )
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+
+=======
+>>>>>>> Stashed changes
+>>>>>>> 7a08bcde (conflicts resolution)
             ## Generate visit ages for each patients
             dict_timepoints = {}
 
@@ -412,4 +442,13 @@ class SimulationAlgorithm(AbstractAlgo):
         df_sim.set_index(["ID", "TIME"], inplace=True)
         df_sim = df_sim[~df_sim.index.duplicated()]
 
+<<<<<<< HEAD
         return df_sim
+=======
+<<<<<<< Updated upstream
+        return df_sim
+
+=======
+        return df_sim
+>>>>>>> Stashed changes
+>>>>>>> 7a08bcde (conflicts resolution)
