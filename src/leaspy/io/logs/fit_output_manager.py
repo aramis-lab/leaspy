@@ -4,11 +4,13 @@ import os
 import time
 from pathlib import Path
 
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 from matplotlib import colormaps
+from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
 
 from leaspy.models.abstract_model import AbstractModel
@@ -22,29 +24,29 @@ class FitOutputManager:
 
     Parameters
     ----------
-    outputs : :class:`~.io.settings.outputs_settings.OutputsSettings`
+    outputs : :class:`~leaspy.algo.OutputsSettings`
         Initialize the `FitOutputManager` class attributes, like the logs paths, the console print periodicity and so forth.
 
     Attributes
     ----------
-    path_output : str
+    path_output : :obj:`str`
         Path of the folder containing all the outputs
-    path_plot : str
+    path_plot : :obj:`str`
         Path of the subfolder of path_output containing the logs plots
-    path_plot_convergence_model_parameters : str
+    path_plot_convergence_model_parameters : :obj:`str`
         Path of the first plot of the convergence of the model's parameters (in the subfolder path_plot)
-    path_plot_patients : str
+    path_plot_patients : :obj:`str`
         Path of the subfolder of path_plot containing the plot of the reconstruction of the patients' longitudinal
         trajectory by the model
-    nb_of_patients_to_plot : int
+    nb_of_patients_to_plot : :obj:`int`
         Number of patients for whom the reconstructions will be plotted.
-    path_save_model_parameters_convergence : str
+    path_save_model_parameters_convergence : :obj:`str`
         Path of the subfolder of path_output containing the progression of the model's parameters convergence
-    periodicity_plot : int (default 100)
+    periodicity_plot : :obj:`int` (default 100)
         Set the frequency of the display of the plots
-    periodicity_print : int
+    periodicity_print : :obj:`int`
         Set the frequency of the display of the statistics
-    periodicity_save : int
+    periodicity_save : :obj:`int`
         Set the frequency of the saves of the model's parameters
     """
 
@@ -53,6 +55,7 @@ class FitOutputManager:
         self.periodicity_save = outputs.save_periodicity
         self.periodicity_plot = outputs.plot_periodicity
         self.nb_of_patients_to_plot = outputs.nb_of_patients_to_plot
+        self.plot_sourcewise = outputs.plot_sourcewise
         if outputs.root_path is not None:
             self.path_output = Path(outputs.root_path)
             self.path_plot = Path(outputs.plot_path)
@@ -79,7 +82,7 @@ class FitOutputManager:
         ----------
         algo : :class:`.AbstractAlgo`
             The running algorithm
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The model used by the computation
         data : :class:`.Dataset`
             The data used by the computation
@@ -123,7 +126,7 @@ class FitOutputManager:
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The model used by the computation
         """
         print(model)
@@ -147,7 +150,7 @@ class FitOutputManager:
 
         Parameters
         ----------
-        iteration : int
+        iteration : :obj:`int`
             The current iteration
         model : :class:`~.models.abstract_model.AbstractModel`
             The model used by the computation
@@ -159,41 +162,145 @@ class FitOutputManager:
 
     def save_plot_convergence_model_parameters(self, model: AbstractModel):
         """
-        Saves figures of the model parameters' convergence in one pdf file
+        Saves figures of the model parameters' convergence in multiple pages of a PDF.
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The model used by the computation
         """
         width = 10
         height_per_row = 3.5
 
-        to_skip = {"betas", "sources", "space_shifts", "mixing_matrix", "xi", "tau"}
-        if getattr(model, "is_ordinal", False):
+        to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "xi_mean"}
+        if model.name == "ordinal":
             to_skip.add("deltas")
-        params_to_plot = model.state.tracked_variables - to_skip
+        params_with_feature_labels = ["g", "v0"]
+        params_with_sources = ["mixing_matrix"]
+        params_with_events = []
+        if model.name == "joint":
+            to_skip.add("survival_shifts")
+            params_with_sources.append("zeta")
+            params_with_events += ["nu", "rho"]
 
-        n_plots = len(params_to_plot)
+        params_to_plot = list(model.state.tracked_variables - to_skip)
+
+        files = os.listdir(self.path_save_model_parameters_convergence)
+        files_to_plot = [
+            file
+            for file in files
+            if any(file.startswith(param) for param in params_to_plot)
+        ]
+        # To plot related parameters close to each other, we sort the list
+        files_to_plot.sort()
+
+        n_plots = len(files_to_plot)
         n_rows = math.ceil(n_plots / 2)
-        _, ax = plt.subplots(n_rows, 2, figsize=(width, n_rows * height_per_row))
 
-        for i, parameter_name in enumerate(params_to_plot):
-            df_convergence = pd.read_csv(
-                self.path_save_model_parameters_convergence / f"{parameter_name}.csv",
-                index_col=0,
-                header=None,
-            )
-            df_convergence.index.rename("iter", inplace=True)
+        # If plot sourcewise is true, new sourcewise csv files will be created
+        if self.plot_sourcewise:
+            new_files = []
+            for param_name in params_with_sources:
+                related_files = [
+                    file for file in files_to_plot if file.startswith(param_name)
+                ]
+                if not related_files:
+                    continue
+                related_files.sort()
 
-            x_position = i // 2
-            y_position = i % 2
-            df_convergence.plot(ax=ax[x_position][y_position], legend=False)
-            ax[x_position][y_position].set_title(parameter_name)
+                num_sources = model.source_dimension
 
-        plt.tight_layout()
-        plt.savefig(self.path_plot_convergence_model_parameters)
-        plt.close()
+                for source_idx in range(num_sources):
+                    combined_data = []
+
+                    for file_name in related_files:
+                        file_path = (
+                            self.path_save_model_parameters_convergence / file_name
+                        )
+                        df = pd.read_csv(file_path, index_col=0, header=None)
+
+                        combined_data.append(df.iloc[:, source_idx])
+
+                    combined_df = pd.concat(combined_data, axis=1, join="inner")
+                    new_file_name = "sourcewise_" f"{param_name}_{source_idx + 1}.csv"
+                    combined_df.to_csv(
+                        self.path_save_model_parameters_convergence / new_file_name,
+                        header=False,
+                    )
+                    new_files.append(new_file_name)
+            files_to_plot = [
+                file
+                for file in files_to_plot
+                if not any(param in file for param in params_with_sources)
+            ]
+            files_to_plot.extend(new_files)
+
+        n_plots = len(files_to_plot)
+        n_rows = math.ceil(n_plots / 2)
+        with PdfPages(self.path_plot_convergence_model_parameters) as pdf:
+            for page in range(0, n_plots, 6):
+                # 6 plots per page
+                _, ax = plt.subplots(3, 2, figsize=(width, 3 * height_per_row))
+                ax = ax.flatten()
+
+                for i, file_name in enumerate(files_to_plot[page : page + 6]):
+                    file_path = self.path_save_model_parameters_convergence / file_name
+                    parameter_name = file_name.split(".csv")[0]
+
+                    if parameter_name != "v0":
+                        if parameter_name[-1].isdigit():
+                            # if there are more than 10 files (ex: mixing_matrix_10)
+                            if parameter_name[-2].isdigit():
+                                feature_index = int(parameter_name[-2:])
+                                parameter_name = parameter_name[:-3]
+                            else:
+                                feature_index = int(parameter_name[-1])
+                                parameter_name = parameter_name[:-2]
+
+                    df_convergence = pd.read_csv(file_path, index_col=0, header=None)
+                    ax[i].plot(df_convergence)
+
+                    if parameter_name == "mixing_matrix":
+                        ax[i].set_title(
+                            parameter_name + " " + model.features[feature_index]
+                        )
+                    elif parameter_name == "zeta":
+                        ax[i].set_title(
+                            parameter_name
+                            + " "
+                            + "event"
+                            + " "
+                            + str(feature_index + 1)
+                        )
+                    elif parameter_name.startswith("sourcewise"):
+                        ax[i].set_title(
+                            parameter_name.replace("sourcewise_", "")
+                            + " "
+                            + "source"
+                            + " "
+                            + str(feature_index)
+                        )
+                        ax[i].legend(model.features, loc="best")
+                    else:
+                        ax[i].set_title(parameter_name)
+
+                    if parameter_name in params_with_feature_labels:
+                        ax[i].legend(model.features, loc="best")
+                    if parameter_name in params_with_sources:
+                        sources = [
+                            "Source" + " " + str(i + 1)
+                            for i in range(model.source_dimension)
+                        ]
+                        ax[i].legend(sources, loc="best")
+                    if parameter_name in params_with_events:
+                        events = [
+                            "Event" + " " + str(i + 1) for i in range(model.nb_events)
+                        ]
+                        ax[i].legend(events, loc="best")
+
+                plt.tight_layout()
+                pdf.savefig()
+                plt.close()
 
     def save_plot_patient_reconstructions(
         self,
@@ -207,11 +314,11 @@ class FitOutputManager:
 
         Parameters
         ----------
-        iteration : int
+        iteration : :obj:`int`
             The current iteration
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The model used by the computation
-        data : :class:`.Dataset`
+        data : :class:`~leaspy.io.data.Dataset`
             The dataset used by the computation
         """
         number_of_patient_plot = min(self.nb_of_patients_to_plot, data.n_individuals)
