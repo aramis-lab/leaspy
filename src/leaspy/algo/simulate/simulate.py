@@ -5,6 +5,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 from scipy.stats import beta
+import torch
 
 from leaspy.api import Leaspy
 from leaspy.io.outputs import IndividualParameters
@@ -23,8 +24,6 @@ class SimulationAlgorithm(AbstractAlgo):
 
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
-<<<<<<< Updated upstream
-
 
     _PARAM_REQUIREMENTS = {
         "dataframe": [
@@ -51,10 +50,10 @@ class SimulationAlgorithm(AbstractAlgo):
 
     def __init__(self, settings):
         super().__init__(settings)
-        self.visit_type = settings.parameters["visit_type"]
         self.features = settings.parameters["features"]
-        self.load_parameters(settings.parameters["load_parameters"])
-        self._validate_algo_parameters() 
+        self.visit_type = settings.parameters["visit_parameters"]["visit_type"]
+        self.set_param_study(settings.parameters["visit_parameters"])
+        self._validate_algo_parameters()
 
     ## --- CHECKS ---
     def _check_visit_type(self):
@@ -139,46 +138,16 @@ class SimulationAlgorithm(AbstractAlgo):
             if df["TIME"].isnull().any():
                 raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
 
-
-
-=======
-
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.visit_type = settings.parameters["visit_type"] 
-        self.features = settings.parameters["features"]      
-        self.load_parameters(settings.parameters["load_parameters"])  
-
->>>>>>> Stashed changes
     ## --- SET PARAMETERS ---
-    def load_parameters(self, dict_param):
-        self.set_param_repeated_measure(dict_param["repeated_measure"])
-        self.set_param_study(dict_param["study"])
-
-    def save_parameters(self, path_save):
+    def save_parameters(self, model, path_save): # TODO
         total_params = {
-            "repeated_measure": self.param_rm,
-            "study": self.param_study
+            "study": self.param_study,
+             "model": model.parameters
         }
         with open(f"{path_save}params_simulated.json", "w") as outfile:
             json.dump(total_params, outfile)
 
-    def set_param_repeated_measure(self, dict_param):
-        self.param_rm = dict_param
-
     def set_param_study(self, dict_param):
-        self.param_study = {
-            "pat_nb": dict_param.get("pat_nb", None),
-            "regular_visit": dict_param.get("regular_visit", None),
-            "df_visits": dict_param.get("df_visits", None),
-            "fv_mean": dict_param.get("fv_mean", None),
-            "fv_std": dict_param.get("fv_std", None),
-            "tf_mean": dict_param.get("tf_mean", None),
-            "tf_std": dict_param.get("tf_std", None),
-            "distv_mean": dict_param.get("distv_mean", None),
-            "distv_std": dict_param.get("distv_std", None),
-        }
-
         if self.visit_type == "dataframe":
             pat_nb = dict_param["df_visits"].groupby("ID").size().shape[0]
 
@@ -209,47 +178,47 @@ class SimulationAlgorithm(AbstractAlgo):
             }
 
     ## ---- SIMULATE ---
-    def run_impl(self,model):
+    def run_impl(self, model):
         # if seed is not None:
         #     np.random.seed(seed)
 
         # Simulate RE for RM
-        df_ip_rm = self.get_ip_rm()
+        df_ip_rm = self.get_ip_rm(model)
+        # model.parameters['xi_mean']
 
         # G
-        self.get_leaspy_model()
+        self.get_leaspy_model(model)
 
         # Generate visits ages
         dict_timepoints = self.generate_visit_ages(df_ip_rm)
 
         # Get all visits observations
-        df_sim = self.generate_dataset(dict_timepoints, df_ip_rm)
+        df_sim = self.generate_dataset(model,dict_timepoints, df_ip_rm)
 
         simulated_data = Data.from_dataframe(df_sim)
-        # result_obj = Result(data = simulated_data,
-        #                     individual_parameters = df_ip_rm,
-        #                     noise_std = noise_std_used,
-        # )
-<<<<<<< Updated upstream
-        return df_sim, None
-
-=======
-        return df_sim
->>>>>>> Stashed changes
+        result_obj = Result(data = simulated_data,
+                            individual_parameters = df_ip_rm,
+                            noise_std = model.parameters["noise_std"].numpy() * 100
+         )
+        return result_obj
 
     ## ---- IP ---
-    def get_ip_rm(self):
-        xi_rm = np.random.normal(
-            self.param_rm["parameters"]["xi_mean"],
-            self.param_rm["parameters"]["xi_std"],
+    def get_ip_rm(self, model):
+        xi_rm = torch.tensor(np.random.normal(
+            #self.param_rm["parameters"]["xi_mean"],
+            model.parameters['xi_mean'],
+            model.parameters['xi_std'],
+            #self.param_rm["parameters"]["xi_std"],
             self.param_study["pat_nb"],
-        )
+        ))
 
-        tau_rm = np.random.normal(
-            self.param_rm["parameters"]["tau_mean"],
-            self.param_rm["parameters"]["tau_std"],
+        tau_rm = torch.tensor(np.random.normal(
+            #self.param_rm["parameters"]["tau_mean"],
+            #self.param_rm["parameters"]["tau_std"],
+            model.parameters['tau_mean'],
+            model.parameters['tau_std'],
             self.param_study["pat_nb"],
-        )
+        ))
 
         if self.visit_type == "dataframe":
             df_ip_rm = pd.DataFrame(
@@ -265,36 +234,45 @@ class SimulationAlgorithm(AbstractAlgo):
                 columns=[str(i) for i in range(0, self.param_study["pat_nb"])],
             ).T
 
-        for i in range(self.param_rm["source_dimension"]):
-            df_ip_rm[f"sources_{i}"] = np.random.normal(
-                0.0, 1.0, self.param_study["pat_nb"]
-            )  # skewnorm.rvs(3,size = self.param_study['pat_nb'])#
-            # print(df_ip_rm[f'sources_{i}'].mean(), df_ip_rm[f'sources_{i}'].std())
+        # # Space shifts
+        # mat = model.state.get_tensor_value("mixing_matrix")
+        # #mat = np.array(self.param_rm["parameters"]["mixing_matrix"])
+        # #mat = mat.reshape(mat.shape[0], mat.shape[1], 1)
+        # mat = mat.unsqueeze(-1)
+        # df_wn = pd.DataFrame(
+        #     #mat.T.dot(pat)[0, :, :, 0].T,
+        #     columns=[f"w_{i}" for i in range(len(self.features))],
+        #     index=df_ip_rm.index,
+        # )
+
+        # Generate the source tensors
+        for i in range(model.source_dimension):
+            df_ip_rm[f"sources_{i}"] = torch.tensor(
+                np.random.normal(0.0, 1.0, self.param_study["pat_nb"]), dtype=torch.float32
+            )
             df_ip_rm[f"sources_{i}"] = (
                 df_ip_rm[f"sources_{i}"] - df_ip_rm[f"sources_{i}"].mean()
             ) / df_ip_rm[f"sources_{i}"].std()
 
-        pat = df_ip_rm[
-            [f"sources_{i}" for i in range(self.param_rm["source_dimension"])]
-        ].values
-        pat = pat.reshape(pat.shape[0], pat.shape[1], 1)
+        pat = torch.stack([torch.tensor(df_ip_rm[f"sources_{i}"].values, dtype=torch.float32) for i in range(model.source_dimension)], dim=1)
+        mat = model.state.get_tensor_value("mixing_matrix")
+        result = torch.matmul(mat.transpose(0, 1), pat.transpose(0, 1))
 
-        # Space shifts
-        mat = np.array(self.param_rm["parameters"]["mixing_matrix"])
-        mat = mat.reshape(mat.shape[0], mat.shape[1], 1)
+        # Convert the result to a DataFrame
         df_wn = pd.DataFrame(
-            mat.T.dot(pat)[0, :, :, 0].T,
+            result.T,
             columns=[f"w_{i}" for i in range(len(self.features))],
             index=df_ip_rm.index,
         )
 
         return pd.concat([df_ip_rm, df_wn], axis=1)
 
-    ## ---- MODEL ---
-    def get_leaspy_model(self):
-        self.model = Leaspy(
-            "logistic", source_dimension=self.param_rm["source_dimension"]
-        ).load(self.param_rm)
+    # ---- MODEL ---
+    def get_leaspy_model(self,model):
+        self.leaspy = Leaspy(
+            "logistic", source_dimension = model.source_dimension
+        )
+        self.leaspy.model = model
 
     ## ---- RM ---
     def generate_visit_ages(self, df):
@@ -316,7 +294,7 @@ class SimulationAlgorithm(AbstractAlgo):
             )  # noqa: F841
 
             df_ind["AGE_AT_BASELINE"] = (
-                df_ind["tau"]
+                df_ind["tau"].apply(lambda x: x.numpy())
                 + pd.DataFrame(
                     np.random.normal(
                         self.param_study["fv_mean"],
@@ -332,10 +310,6 @@ class SimulationAlgorithm(AbstractAlgo):
                 self.param_study["tf_std"],
                 self.param_study["pat_nb"],
             )
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
             ## Generate visit ages for each patients
             dict_timepoints = {}
 
@@ -360,13 +334,14 @@ class SimulationAlgorithm(AbstractAlgo):
 
         return dict_timepoints
 
-    def generate_dataset(self, dict_timepoints, df_ip_rm):
-        values = self.model.estimate(
+    def generate_dataset(self, model, dict_timepoints, df_ip_rm):
+        values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
                 df_ip_rm[
                     ["xi", "tau"]
-                    + [f"sources_{i}" for i in range(self.param_rm["source_dimension"])]
+                    #+ [f"sources_{i}" for i in range(self.param_rm["source_dimension"])]
+                    + [f"sources_{i}" for i in range(model.source_dimension)]
                 ]
             ),
         )
@@ -385,26 +360,27 @@ class SimulationAlgorithm(AbstractAlgo):
         )
 
         for i, feat in enumerate(self.features):
-            if np.isscalar(self.param_rm["parameters"]["noise_std"]):
+            #if np.isscalar(self.param_rm["parameters"]["noise_std"]):
+            if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
-                print(mu)
-                var = self.param_rm["parameters"]["noise_std"] ** 2
+                #var = self.param_rm["parameters"]["noise_std"] ** 2
+                var = model.parameters["noise_std"].numpy() * 1000
             else:
                 mu = df_long[feat + "_no_noise"]
-                print(mu)
-                var = self.param_rm["parameters"]["noise_std"][i] ** 2
+                #var = self.param_rm["parameters"]["noise_std"][i] ** 2
+                var = model.parameters["noise_std"][i].numpy() * 1000
 
-            # Mean and sample size
-            alpha_param = mu * var
-            beta_param = (1 - mu) * var
+            # Mean and sample size (P-E simulations)
+            #alpha_param = mu * var
+            #beta_param = (1 - mu) * var
 
             # Mean and variance parametrization
-            # alpha_param = mu * ((mu * (1 - mu) / var) - 1)
-            # beta_param = (1 - mu) * ((mu * (1 - mu) / var) - 1)
+            #alpha_param = mu * ((mu * (1 - mu) / var) - 1)
+            #beta_param = (1 - mu) * ((mu * (1 - mu) / var) - 1)
 
             # Mode and concentration parametrization
-            # alpha_param = mu * (var - 2) + 1
-            # beta_param = (1 - mu) * (var - 2) + 1
+            alpha_param = mu * (var - 2) + 1
+            beta_param = (1 - mu) * (var - 2) + 1
             df_long[feat] = beta.rvs(alpha_param, beta_param)
 
         dict_rm_rename = {
@@ -421,17 +397,13 @@ class SimulationAlgorithm(AbstractAlgo):
 
         # Put everything in one dataframe
         df_ip_rm = df_ip_rm.rename(columns=dict_rm_rename)
-        df_sim = df_long.join(df_ip_rm, on="ID")
+        # df_sim = df_long.join(df_ip_rm, on="ID")
+        df_sim = df_long[self.features]
 
         # Drop too close visits
         df_sim.reset_index(inplace=True)
-        df_sim["TIME"] = df_sim["TIME"].round(3)
+        df_sim.loc[:, "TIME"] = df_sim["TIME"].round(3)
         df_sim.set_index(["ID", "TIME"], inplace=True)
         df_sim = df_sim[~df_sim.index.duplicated()]
 
-<<<<<<< Updated upstream
         return df_sim
-
-=======
-        return df_sim
->>>>>>> Stashed changes
