@@ -4,19 +4,9 @@
   "algorithm_initialization_method": null,
   "parameters": {
     "prefix":"Generated_subject_",
-    "number_of_subjects": 100,
-    "bandwidth_method": 0.2,
-    "noise": "inherit_struct",
-    "mean_number_of_visits": 6,
-    "std_number_of_visits": 3,
-    "min_number_of_visits": 1,
-    "max_number_of_visits": null,
-    "delay_btw_visits": 0.5,
     "cofactor": null,
     "cofactor_state": null,
-    "sources_method": "full_kde",
-    "reparametrized_age_bounds": null,
-    "features_bounds": false,
-    "features_bounds_nb_subjects_factor": 10
+    "features": null,
+    "visit_parameters": null
   }
 }
