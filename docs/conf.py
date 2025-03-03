@@ -52,7 +52,7 @@ extensions = [
     "sphinx_rtd_theme",
     # 'sphinx.ext.napoleon',
     # 'pytsdtwdoc',
-    # 'sphinx_gallery.gen_gallery',
+    "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
 ]
@@ -78,6 +78,11 @@ autoapi_options = [
     "show-module-summary",
     "imported-members",
 ]
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+}
 
 # this is needed for some reason...
 # see https://github.com/numpy/numpydoc/issues/69
