@@ -19,6 +19,10 @@ print(alzheimer_df.head())
 # The data correspond to repeated visits (`TIME` index) of different participants (`ID` index).
 # Each visit corresponds to the measurement of 4 different variables : the MMSE, the RAVLT, the FAQ and the FDG PET.
 # If plotted, the data would look like the following:
+#
+# .. image:: /_static/images/alzheimer-observations.png
+#     :width: 400
+#     :alt: Alzeimer observations
 
 # %%
 # Where each color corresponds to a variable, and the connected dots corresponds to the repeated visits of a single participant.
@@ -42,7 +46,7 @@ model = LogisticMultivariateModel(name="test-model", source_dimension=2)
 
 from leaspy.algo import AlgorithmSettings, algorithm_factory
 
-fit_settings = AlgorithmSettings("mcmc_saem", seed=0, n_iter=8000)
+fit_settings = AlgorithmSettings("mcmc_saem", seed=42, n_iter=800)
 algorithm = algorithm_factory(fit_settings)
 model.initialize(dataset, fit_settings.model_initialization_method)
 algorithm.run(model, dataset)
