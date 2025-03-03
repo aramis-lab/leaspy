@@ -20,7 +20,7 @@ print(alzheimer_df.head())
 # Each visit corresponds to the measurement of 4 different variables : the MMSE, the RAVLT, the FAQ and the FDG PET.
 # If plotted, the data would look like the following:
 #
-# .. image:: ../_static/images/alzheimer-observations.png
+# .. image:: ../../_static/images/alzheimer-observations.png
 #     :width: 400
 #     :alt: Alzeimer observations
 
@@ -46,7 +46,9 @@ model = LogisticMultivariateModel(name="test-model", source_dimension=2)
 
 from leaspy.algo import AlgorithmSettings, algorithm_factory
 
-fit_settings = AlgorithmSettings("mcmc_saem", seed=42, n_iter=800, progress_bar=False)
+fit_settings = AlgorithmSettings(
+    "mcmc_saem", seed=42, n_iter=800, progress_bar=False, save_periodicity=None
+)
 algorithm = algorithm_factory(fit_settings)
 model.initialize(dataset, fit_settings.model_initialization_method)
 algorithm.run(model, dataset)
