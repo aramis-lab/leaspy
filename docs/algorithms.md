@@ -5,11 +5,12 @@
    - Data format and preprocessing steps.
 ### Running Task
    - How to run the fit algorithm.
-   - Example commands and code snippets.
+   - Example commands and code snippets. 
 ### Output
    - What results to expect from the fitting process.
    - DataFrame object 
    - Plotting object 
+<<<<<<< HEAD
 ### Setting Options (Different Models)
    - How to set specific options for different types of models.
    - Customizing parameters for logistic, joint, mixture, and covariate models.
@@ -160,9 +161,37 @@ Refer to the docstring for further details.
 - not enough patients 
 - parameters don't converge 
 - score don't progress
+<<<<<<< HEAD
 
 ## References
 
 ```{bibliography}
 :filter: docname in docnames
 ```
+=======
+=======
+### Diagnosis
+   - parameters don't converge
+   - Send to metrics section?
+### Setting Options (Different Models)
+   - How to set specific options for different types of models.
+   - Customizing parameters for logistic, joint, mixture, and covariate models.
+
+## Personalize
+### Prerequisites
+### Running Task
+### Output
+### Diagnosis
+
+### Setting Options (Different Models)
+## Estimate
+### Prerequisites
+### Running Task
+### Output
+### Diagnosis
+
+## Simulate
+### Prerequisites
+### Running Task
+### Output
+### Diagnosis
