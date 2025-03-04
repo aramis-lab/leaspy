@@ -166,3 +166,4 @@ Refer to the docstring for further details.
 ```{bibliography}
 :filter: docname in docnames
 ```
+>>>>>>> dc1e1354 (plan proposition for the user guide)
