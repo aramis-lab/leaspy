@@ -68,9 +68,8 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         Main method to run the algorithm.
 
         Basically, it initializes the :class:`~leaspy.variables.state.State` object,
-        updates it using the `iteration` method then returns it.
+        updates it using the :meth:`~leaspy.algo.AbstractFitAlgo.iteration` method then returns it.
 
-        TODO fix proper abstract class
 
         Parameters
         ----------
