@@ -144,9 +144,7 @@ class AbstractAlgo(ABC):
         :class:`.SimulationAlgorithm`
         """
 
-    def run(
-        self, model: AbstractModel, *args, return_loss: bool = False, **extra_kwargs
-    ) -> Any:
+    def run(self, model: AbstractModel, *args, **extra_kwargs) -> Any:
         """
         Main method, run the algorithm.
 
@@ -158,8 +156,6 @@ class AbstractAlgo(ABC):
             The used model.
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
-        return_loss : :obj:`bool` (default False), keyword only
-            Should the algorithm return main output and optional loss output as a 2-tuple?
 
         Returns
         -------
@@ -196,13 +192,13 @@ class AbstractAlgo(ABC):
 
     def load_parameters(self, parameters: dict):
         """
-        Update the algorithm's parameters by the ones in the given dictionary. The keys in the io which does not
-        belong to the algorithm's parameters keys are ignored.
+        Update the algorithm's parameters by the ones in the given dictionary. The keys in the input which does not
+        belong to the algorithm's parameters are ignored.
 
         Parameters
         ----------
         parameters : :obj:`dict`
-            Contains the pairs (key, value) of the wanted parameters
+            Contains the pairs (key, value) of the requested parameters
 
         Examples
         --------
@@ -296,9 +292,9 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        iteration : :obj:`int` >= 0 or -1
+        iteration : :obj:`int` >= 0
             Current iteration of the algorithm.
-            The final iteration should be `n_iter - 1`
+            The final current iteration should be `n_iter - 1`
         n_iter : :obj:`int`
             Total iterations' number of the algorithm.
         suffix : :obj:`str`
