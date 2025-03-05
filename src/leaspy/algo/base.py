@@ -60,19 +60,16 @@ class AbstractAlgo(ABC):
 
     Attributes
     ----------
-    name : :obj:`str`
+    name : :class:`~leaspy.algo.base.AlgorithmName`
         Name of the algorithm.
-    family : :obj:`str`
-        Family of the algorithm. For now, valid families are:
-            * ``'fit'``
-            * ``'personalize'``
-            * ``'simulate'``
+    family : :class:`~leaspy.algo.base.AlgorithmType`
+        Family of the algorithm.
     deterministic : :obj:`bool`
-        True, if and only if algorithm does not involve in randomness.
+        True, if and only if algorithm does not involve randomness.
         Setting a seed will have no effect on such algorithms.
     algo_parameters : :obj:`dict`
         Contains the algorithm's parameters. Those are controlled by
-        the :attr:`leaspy.algo..AlgorithmSettings.parameters` class attribute.
+        the :attr:`leaspy.algo.AlgorithmSettings.parameters` class attribute.
     seed : :obj:`int`, optional
         Seed used by :mod:`numpy` and :mod:`torch`.
     output_manager : :class:`~leaspy.io.logs.fit_output_manager.FitOutputManager`
@@ -126,7 +123,6 @@ class AbstractAlgo(ABC):
         """
         Run the algorithm (actual implementation), to be implemented in children classes.
 
-        TODO fix proper abstract class
 
         Parameters
         ----------
@@ -383,7 +379,8 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
 
     Parameters
     ----------
-    name : :obj:`str`
+    name : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`
+        The name of the algorithm.
 
     Returns
     -------
@@ -403,7 +400,8 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
 
     Parameters
     ----------
-    name : :obj:`str`
+    name : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`
+         The name of the algorithm.
 
     Returns
     -------
