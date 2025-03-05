@@ -1,3 +1,5 @@
+"""This module defines the `AbstractFitMCMC` class."""
+
 from random import shuffle
 
 from leaspy.io.data import Dataset
@@ -20,26 +22,26 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.AlgorithmSettings`
         MCMC fit algorithm settings
 
     Attributes
     ----------
-    samplers : dict[ str, :class:`~.algo.utils.samplers.abstract_sampler.AbstractSampler` ]
+    samplers : :obj:`dict` [:obj:`str`, :class:`~leaspy.samplers.AbstractSampler` ]
         Dictionary of samplers per each variable
 
-    random_order_variables : bool (default True)
+    random_order_variables : :obj:`bool` (default True)
         This attribute controls whether we randomize the order of variables at each iteration.
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
 
-    temperature : float
-    temperature_inv : float
-        Temperature and its inverse (modified during algorithm when using annealing)
+    temperature : :obj:`float`
+    temperature_inv : :obj:`float`
+        Temperature and its inverse are modified during algorithm if annealing is used
 
     See Also
     --------
-    :mod:`leaspy.algo.utils.samplers`
+    :mod:`leaspy.samplers`
     """
 
     def _initialize_algo(
@@ -71,8 +73,8 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
-        state : :class:`.State`
+        model : :class:`~leaspy.models.AbstractModel`
+        state : :class:`~leaspy.variables.state.State`
         """
         vars_order = list(
             state.dag.sorted_variables_by_type[PopulationLatentVariable]

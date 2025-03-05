@@ -258,10 +258,10 @@ class VariablesDAG(Mapping):
 
         Returns
         -------
-        sorted_nodes : :obj:`tuple` [:class:`~leaspy.variables.specs.VarName`, ...]
+        sorted_nodes : :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]
             Nodes in a topological order.
 
-        path_matrix : : class:`torch.Tensor`[:obj:`bool`]
+        path_matrix : :class:`torch.Tensor` [:obj:`bool`]
             Boolean triangle superior (strict) matrix indicating whether
             there is a (directed) path between nodes.
 
@@ -326,17 +326,17 @@ class VariablesDAG(Mapping):
 
         Parameters
         ----------
-        sorted_nodes : :obj:`tuple` of :class:`~leaspy.variables.specs.VarName`
+        sorted_nodes : :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName`
             The sorted nodes.
 
         path_matrix : :class:`torch.Tensor`
 
         Returns
         -------
-        sorted_children : :obj:`dict` [:class:`~leaspy.variables.specs.VarName`, :obj:`tuple` [:class:`~leaspy.variables.specs.VarName`, ...]]
+        sorted_children : :obj:`dict` [:class:`~leaspy.variables.specs.VariableName`, :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]]
             The sorted children.
 
-        sorted_ancestors : :obj:`dict` [:class:`~leaspy.variables.specs.VarName`, :obj:`tuple` [:class:`~leaspy.variables.specs.VarName`, ...]]
+        sorted_ancestors : :obj:`dict` [:class:`~leaspy.variables.specs.VariableName`, :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]]
             The sorted ancestors.
         """
         sorted_children = {
@@ -361,7 +361,7 @@ class VariablesDAG(Mapping):
 
         Returns
         -------
-        :obj:`tuple` of :class:`~leaspy.variables.specs.VarName` :
+        :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName` :
             The individual variable names.
         """
         try:

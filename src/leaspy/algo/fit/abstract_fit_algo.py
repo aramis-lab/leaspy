@@ -1,3 +1,5 @@
+"""This module defines the `AbstractFitAlgo` class used for fitting algorithms."""
+
 from abc import abstractmethod
 from typing import Any, Dict, Optional
 
@@ -16,30 +18,36 @@ __all__ = ["AbstractFitAlgo"]
 
 
 class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
-    """
+    r"""
     Abstract class containing common method for all `fit` algorithm classes.
+
+    The algorithm is proven to converge if the sequence `burn_in_step` is positive, with an
+    infinite sum :math:`\sum_k \epsilon_k = +\infty` and a finite sum of the squares
+    :math:`\sum_k \epsilon_k^2 < \infty` (see following paper).
+
+    `Construction of Bayesian Deformable Models via a Stochastic Approximation Algorithm: A Convergence Study <https://arxiv.org/abs/0706.0787>`_
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
-        The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
+    settings : :class:`~leaspy.algo.AlgorithmSettings`
+        The specifications of the algorithm as a :class:`~leaspy.algo.AlgorithmSettings` instance.
 
     Attributes
     ----------
-    algorithm_device : str
-        Valid torch device
-    current_iteration : int, default 0
+    algorithm_device : :obj:`str`
+        Valid :class:`torch.device`
+    current_iteration : :obj:`int`, default 0
         The number of the current iteration.
         The first iteration will be 1 and the last one `n_iter`.
-    sufficient_statistics : dict[str, `torch.FloatTensor`] or None
-        The previous step sufficient statistics.
+    sufficient_statistics : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`] or None
+        Sufficient statistics of the previous step.
         It is None during all the burn-in phase.
     Inherited attributes
-        From :class:`.AbstractAlgo`
+        From :class:`~leaspy.algo.AbstractAlgo`
 
     See Also
     --------
-    :meth:`.Leaspy.fit`
+    :meth:`leaspy.api.Leaspy.fit`
     """
 
     family = AlgorithmType.FIT
@@ -47,10 +55,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
     def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
         self.logs = settings.logs
-        # The algorithm is proven to converge if the sequence `burn_in_step` is positive, with an infinite sum \sum
-        # (\sum_k \epsilon_k = + \infty) but a finite sum of the squares (\sum_k \epsilon_k^2 < \infty )
-        # cf page 657 of the book that contains the paper
-        # "Construction of Bayesian deformable models via a stochastic approximation algorithm: a convergence study"
         if not (0.5 < self.algo_parameters["burn_in_step_power"] <= 1):
             raise LeaspyAlgoInputError(
                 "The parameter `burn_in_step_power` should be in ]0.5, 1] in order to "
@@ -61,24 +65,24 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
     def run_impl(self, model: AbstractModel, dataset: Dataset):
         """
-        Main method, run the algorithm.
+        Main method to run the algorithm.
 
-        Basically, it initializes the :class:`~.leaspy.variables.state.State` object,
+        Basically, it initializes the :class:`~leaspy.variables.state.State` object,
         updates it using the `iteration` method then returns it.
 
         TODO fix proper abstract class
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The used model.
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.Dataset`
             Contains the subjects' observations in torch format to speed up computation.
 
         Returns
         -------
         2-tuple:
-            * state : :class:`.State`
+            * state : :class:`~leaspy.variables.state.State`
         """
 
         with self._device_manager(model, dataset):
@@ -170,9 +174,9 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The used model.
-        state : :class:`.State`
+        state : ::class:`~leaspy.variables.state.State`
             During the fit, this state holds all model variables, together with dataset observations.
         """
 
@@ -182,12 +186,12 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`.AbstractModel`
-        dataset : :class:`.Dataset`
+        model : :class:~leaspy.models.AbstractModel
+        dataset : :class:`~leaspy.io.data.Dataset`
 
         Returns
         -------
-        state : :class:`.State`
+        state : :class:`~leaspy.variables.state.State`
         """
 
         # WIP: Would it be relevant to fit on a dedicated algo state?
@@ -198,64 +202,15 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         return state
 
-    def _terminate_algo(
-        self, model: AbstractModel, state: State
-    ) -> Any:  # torch.Tensor?
-        """
-        Perform the last steps upon terminaison of algorithm (cleaning stuff, ...).
-
-        Parameters
-        ----------
-        model : :class:`.AbstractModel`
-        state : :class:`.State`
-
-        Returns
-        -------
-        loss : Any
-        """
-
-        # TODO: finalize metrics handling
-        # we store metrics after the fit so they can be exported along with model
-        # parameters & hyper-parameters for archive...
-        model.fit_metrics = self._get_fit_metrics()
-
-        ## TODO: Shouldn't we always return (nll_tot, nll_attach, nll_regul_tot or nll_regul_{ind_param},
-        ##  and parameters of noise-model if any)
-        ## If noise-model is a 1-parameter distribution family final loss is the value of this parameter
-        ## Otherwise we use the negative log-likelihood as measure of goodness-of-fit
-        # if len(model.noise_model.free_parameters) == 1:
-        #    loss = next(iter(model.noise_model.parameters.values()))
-        # else:
-        #    # TODO? rather return nll_tot (unlike previously)
-        #    loss = self.sufficient_statistics.get("nll_attach", -1.)
-        #
-        loss = -1.0
-
-        # WIP: cf. interrogation about internal state in model or not...
-        model_state = state.clone()
-        # TODO? Should those cleaning steps be performed here, or in the model.state setter instead?
-        with model_state.auto_fork(None):
-            # model.reset_data_variables(model_state)
-            # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
-            # Thus we reset population latent variables to their mode, and we remove individual latent variables
-            model_state.put_population_latent_variables(
-                LatentVariableInitType.PRIOR_MODE
-            )
-            # model_state.put_individual_latent_variables(None)
-        model.state = model_state
-
-        return loss
-
     def _maximization_step(self, model: AbstractModel, state: State):
         """
-        Maximization step as in the EM algorithm. In practice parameters are set to current realizations (burn-in phase),
-        or as a barycenter with previous realizations.
+        Maximization step as in the EM algorithm. In practice parameters are set to current state (burn-in phase),
+        or as a barycenter with previous state.
 
         Parameters
         ----------
-        dataset : :class:`.Dataset`
-        model : :class:`.AbstractModel`
-        realizations : :class:`.CollectionRealization`
+        model : :class:`~leaspy.models.AbstractModel`
+        state : :class:`~leaspy.variables.state.State`
         """
         # TODO/WIP: not 100% clear to me whether model methods should take a state param, or always use its internal state...
         sufficient_statistics = model.compute_sufficient_statistics(state)
