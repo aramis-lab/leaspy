@@ -1,3 +1,5 @@
+"""This module defines the `AlgorithmType`, `AlgorithmName` and `AbstractAlgo` classes"""
+
 import random
 import sys
 import time
@@ -26,6 +28,8 @@ __all__ = [
 
 
 class AlgorithmType(str, Enum):
+    """The type of the algorithms."""
+
     FIT = "fit"
     PERSONALIZE = "personalize"
     SIMULATE = "simulate"
@@ -47,31 +51,31 @@ class AlgorithmName(str, Enum):
 class AbstractAlgo(ABC):
     """
     Abstract class containing common methods for all algorithm classes.
-    These classes are child classes of `AbstractAlgo`.
+    These classes are children of `AbstractAlgo`.
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
-        The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
+    settings : :class:`~leaspy.algo.AlgorithmSettings`
+        The specifications of the algorithm as a :class:`~leaspy.algo.AlgorithmSettings` instance.
 
     Attributes
     ----------
-    name : str
+    name : :obj:`str`
         Name of the algorithm.
-    family : str
+    family : :obj:`str`
         Family of the algorithm. For now, valid families are:
-            * ``'fit'```
-            * ``'personalize'```
+            * ``'fit'``
+            * ``'personalize'``
             * ``'simulate'``
-    deterministic : bool
+    deterministic : :obj:`bool`
         True, if and only if algorithm does not involve in randomness.
-        Setting a seed and such algorithms will be useless.
-    algo_parameters : dict
+        Setting a seed will have no effect on such algorithms.
+    algo_parameters : :obj:`dict`
         Contains the algorithm's parameters. Those are controlled by
-        the :attr:`.AlgorithmSettings.parameters` class attribute.
-    seed : int, optional
+        the :attr:`leaspy.algo..AlgorithmSettings.parameters` class attribute.
+    seed : :obj:`int`, optional
         Seed used by :mod:`numpy` and :mod:`torch`.
-    output_manager : :class:`~.io.logs.fit_output_manager.FitOutputManager`
+    output_manager : :class:`~leaspy.io.logs.fit_output_manager.FitOutputManager`
         Optional output manager of the algorithm
     """
 
@@ -118,7 +122,7 @@ class AbstractAlgo(ABC):
         model: AbstractModel,
         *args,
         **extra_kwargs,
-    ) -> Tuple[Any, Optional[torch.FloatTensor]]:
+    ) -> tuple[Any, Optional[torch.Tensor]]:
         """
         Run the algorithm (actual implementation), to be implemented in children classes.
 
@@ -126,9 +130,9 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The used model.
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
 
         Returns
@@ -154,11 +158,11 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~leaspy.models.AbstractModel`
             The used model.
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
-        return_loss : bool (default False), keyword only
+        return_loss : :obj:`bool` (default False), keyword only
             Should the algorithm return main output and optional loss output as a 2-tuple?
 
         Returns
@@ -201,7 +205,7 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        parameters : dict
+        parameters : :obj:`dict`
             Contains the pairs (key, value) of the wanted parameters
 
         Examples
@@ -209,29 +213,49 @@ class AbstractAlgo(ABC):
         >>> from leaspy.algo import AlgorithmSettings, algorithm_factory, OutputsSettings
         >>> my_algo = algorithm_factory(AlgorithmSettings("mcmc_saem"))
         >>> my_algo.algo_parameters
-        {'n_iter': 10000,
-         'n_burn_in_iter': 9000,
-         'eps': 0.001,
-         'L': 10,
-         'sampler_ind': 'Gibbs',
-         'sampler_pop': 'Gibbs',
-         'annealing': {'do_annealing': False,
-          'initial_temperature': 10,
-          'n_plateau': 10,
-          'n_iter': 200}}
+        {'progress_bar': True,
+        'n_iter': 10000,
+        'n_burn_in_iter': 9000,
+        'n_burn_in_iter_frac': 0.9,
+        'burn_in_step_power': 0.8,
+        'random_order_variables': True,
+        'sampler_ind': 'Gibbs',
+        'sampler_ind_params': {'acceptation_history_length': 25,
+        'mean_acceptation_rate_target_bounds': [0.2, 0.4],
+        'adaptive_std_factor': 0.1},
+        'sampler_pop': 'Gibbs',
+        'sampler_pop_params': {'random_order_dimension': True,
+        'acceptation_history_length': 25,
+        'mean_acceptation_rate_target_bounds': [0.2, 0.4],
+        'adaptive_std_factor': 0.1},
+        'annealing': {'do_annealing': False,
+         'initial_temperature': 10,
+         'n_plateau': 10,
+         'n_iter': None,
+         'n_iter_frac': 0.5}}
         >>> parameters = {'n_iter': 5000, 'n_burn_in_iter': 4000}
         >>> my_algo.load_parameters(parameters)
         >>> my_algo.algo_parameters
-        {'n_iter': 5000,
-         'n_burn_in_iter': 4000,
-         'eps': 0.001,
-         'L': 10,
-         'sampler_ind': 'Gibbs',
-         'sampler_pop': 'Gibbs',
-         'annealing': {'do_annealing': False,
-          'initial_temperature': 10,
-          'n_plateau': 10,
-          'n_iter': 200}}
+        {'progress_bar': True,
+        'n_iter': 5000,
+        'n_burn_in_iter': 4000,
+        'n_burn_in_iter_frac': 0.9,
+        'burn_in_step_power': 0.8,
+        'random_order_variables': True,
+        'sampler_ind': 'Gibbs',
+        'sampler_ind_params': {'acceptation_history_length': 25,
+        'mean_acceptation_rate_target_bounds': [0.2, 0.4],
+        'adaptive_std_factor': 0.1},
+        'sampler_pop': 'Gibbs',
+        'sampler_pop_params': {'random_order_dimension': True,
+        'acceptation_history_length': 25,
+        'mean_acceptation_rate_target_bounds': [0.2, 0.4],
+        'adaptive_std_factor': 0.1},
+        'annealing': {'do_annealing': False,
+         'initial_temperature': 10,
+         'n_plateau': 10,
+         'n_iter': None,
+         'n_iter_frac': 0.5}}
         """
         for k, v in parameters.items():
             if k in self.algo_parameters.keys():
@@ -242,11 +266,11 @@ class AbstractAlgo(ABC):
 
     def set_output_manager(self, output_settings: OutputsSettings) -> None:
         """
-        Set a :class:`~.io.logs.fit_output_manager.FitOutputManager` object for the run of the algorithm
+        Set a :class:`~leaspy.io.logs.FitOutputManager` object for the run of the algorithm
 
         Parameters
         ----------
-        output_settings : :class:`~.io.settings.outputs_settings.OutputsSettings`
+        output_settings : :class:`~leaspy.algo.OutputsSettings`
             Contains the logs settings for the computation run (console print periodicity, plot periodicity ...)
 
         Examples
@@ -276,16 +300,16 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        iteration : int >= 0 or -1
+        iteration : :obj:`int` >= 0 or -1
             Current iteration of the algorithm.
             The final iteration should be `n_iter - 1`
-        n_iter : int
+        n_iter : :obj:`int`
             Total iterations' number of the algorithm.
-        suffix : str
+        suffix : :obj:`str`
             Used to differentiate types of algorithms:
                 * for fit algorithms: ``suffix = 'iterations'``
                 * for personalization algorithms: ``suffix = 'subjects'``.
-        n_step_default : int, default 50
+        n_step_default : :obj:`int`, default 50
             The size of the progression bar.
         """
         n_step = min(n_step_default, n_iter)
@@ -315,7 +339,7 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        seconds : float
+        seconds : :obj:`float`
             Computation time
 
         Returns
@@ -354,6 +378,17 @@ class AbstractAlgo(ABC):
 
 
 def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
+    """
+    Return the algorithm type.
+
+    Parameters
+    ----------
+    name : :obj:`str`
+
+    Returns
+    -------
+    algorithm type: :class:`leaspy.algo.AlgorithmType`
+    """
     name = AlgorithmName(name)
     if name in (AlgorithmName.FIT_LME, AlgorithmName.FIT_MCMC_SAEM):
         return AlgorithmType.FIT
@@ -363,6 +398,17 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
 
 
 def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
+    """
+    Return the algorithm class.
+
+    Parameters
+    ----------
+    name : :obj:`str`
+
+    Returns
+    -------
+    algorithm class: :class:`leaspy.algo.AbstractAlgo`
+    """
     name = AlgorithmName(name)
     if name == AlgorithmName.FIT_MCMC_SAEM:
         from .fit import TensorMCMCSAEM
@@ -398,16 +444,17 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
 
 def algorithm_factory(settings: AlgorithmSettings) -> AbstractAlgo:
     """
-    Return the wanted algorithm.
+    Return the requested algorithm based on the provided settings.
 
     Parameters
-    settings : :class:`.AlgorithmSettings`
+    ----------
+    settings : :class:`leaspy.algo.AlgorithmSettingss`
         The algorithm settings.
 
     Returns
     -------
-    algorithm : child class of :class:`.AbstractAlgo`
-        The wanted algorithm if it exists and is compatible with algorithm family.
+    algorithm : child class of :class:`leaspy.algo.AbstractAlgo`
+        The requested algorithm. If it exists, it will be compatible with algorithm family.
     """
     algorithm = get_algorithm_class(settings.name)(settings)
     if settings.logs is None and algorithm.family == AlgorithmType.FIT:
