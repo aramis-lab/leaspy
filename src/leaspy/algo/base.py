@@ -144,7 +144,9 @@ class AbstractAlgo(ABC):
         :class:`.SimulationAlgorithm`
         """
 
-    def run(self, model: AbstractModel, *args, **extra_kwargs) -> Any:
+    def run(
+        self, model: AbstractModel, *args, return_loss: bool = False, **extra_kwargs
+    ) -> Any:
         """
         Main method, run the algorithm.
 
@@ -292,7 +294,7 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        iteration : :obj:`int` >= 0
+        iteration : :obj:`int` >= 0 or -1
             Current iteration of the algorithm.
             The final current iteration should be `n_iter - 1`
         n_iter : :obj:`int`
