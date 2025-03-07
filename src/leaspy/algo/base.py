@@ -296,6 +296,7 @@ class AbstractAlgo(ABC):
         ----------
         iteration : :obj:`int` >= 0 or -1
             Current iteration of the algorithm.
+            If a positive integer, it is the current iteration of the algorithm. If equals to '-1' then it initialises the bar.
             The final current iteration should be `n_iter - 1`
         n_iter : :obj:`int`
             Total iterations' number of the algorithm.
