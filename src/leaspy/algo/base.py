@@ -144,9 +144,7 @@ class AbstractAlgo(ABC):
         :class:`.SimulationAlgorithm`
         """
 
-    def run(
-        self, model: AbstractModel, *args, return_loss: bool = False, **extra_kwargs
-    ) -> Any:
+    def run(self, model: AbstractModel, *args, **extra_kwargs) -> Any:
         """
         Main method, run the algorithm.
 
