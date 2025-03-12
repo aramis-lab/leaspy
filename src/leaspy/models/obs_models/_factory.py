@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Dict, Type, Union
 
-from src.leaspy.exceptions import LeaspyModelInputError
+from leaspy.exceptions import LeaspyModelInputError
 
 from ._base import ObservationModel
 from ._bernoulli import BernoulliObservationModel
