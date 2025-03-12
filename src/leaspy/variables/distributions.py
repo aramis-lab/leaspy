@@ -526,6 +526,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         n_inds = probs_ind.size()[0]
         n_clusters = probs_ind.size()[1]
         probs = probs_ind.sum(dim=0) / n_inds  # from the previous iteration
+        #probs = state['probs'] #maybe this?
         nll_ind = state['nll_attach_y']
         nll_random = probs * (
                 state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])

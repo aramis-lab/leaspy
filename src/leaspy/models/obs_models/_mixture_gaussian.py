@@ -50,6 +50,8 @@ class MixtureGaussianObservationModel(AbstractMixtureGaussianObservationModel):
     Specialized observational model when the data come from a mixture normal distribution.
     """
 
+    tol_noise_variance = 1e-5
+
     def __init__(self,
                  noise_std: VariableInterface,
                  probs: VariableInterface,
@@ -72,8 +74,10 @@ class MixtureGaussianObservationModel(AbstractMixtureGaussianObservationModel):
         n_inds = state['n_individuals']
         n_clusters = state['n_clusters']
         probs = probs_ind.sum(axis=0) / n_inds  # from the previous iteration
+        #probs = state['probs'] #maybe this?
         nll_ind = state['nll_attach_y']
         nll_random = state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind']
+        #nll_random = state['nll_regul_ind_sum'] maybe this?
 
         denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
         nominator = probs * nll_ind * nll_random
@@ -102,9 +106,10 @@ class MixtureGaussianObservationModel(AbstractMixtureGaussianObservationModel):
         return LinkedVariable(cls.compute_probs_ind(state=State))
 
     """
+
     def get_variables_specs(
-        self,
-        named_attach_vars: bool = True,
+            self,
+            named_attach_vars: bool = True,
     ) -> Dict[VarName, VariableInterface]:
         """Automatic specifications of variables for this observation model."""
 
