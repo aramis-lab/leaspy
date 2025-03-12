@@ -9,12 +9,14 @@
     "y": "gaussian-scalar",
     "event": "weibull-right-censored"
   },
-  "parameters": {
+  "hyperparameters": {
     "log_g_std": 0.009999999776482582,
     "log_rho_std": 0.009999999776482582,
     "log_v0_std": 0.009999999776482582,
     "n_log_nu_std": 0.009999999776482582,
-    "xi_mean": 0.0,
+    "xi_mean": 0.0
+  },
+  "parameters": {
     "log_g_mean": [
       0.10702177882194519
     ],
@@ -27,21 +29,23 @@
     "n_log_nu_mean": [
       -1.8258718252182007
     ],
-    "noise_std": 0.0899266692502864,
+    "noise_std": [
+      0.08992666751146317
+    ],
     "tau_mean": [
-      77.5994242343876
+      77.59942626953125
     ],
     "tau_std": [
-      5.537686313904192
+      5.537686347961426
     ],
     "xi_std": [
-      0.0893102242663068
+      0.08931022137403488
     ]
   },
   "fit_metrics": {
-    "nll_attach": -110.91681255071992,
+    "nll_attach": -110.9168132823749,
     "nll_regul_ind_sum": 36.429902011905924,
-    "nll_tot": -74.486910538814
+    "nll_tot": -74.48691127046897
   },
   "source_dimension": 0,
   "nb_events": 1
