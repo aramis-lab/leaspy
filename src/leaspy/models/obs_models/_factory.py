@@ -8,12 +8,12 @@ from leaspy.exceptions import LeaspyModelInputError
 from ._base import ObservationModel
 from ._bernoulli import BernoulliObservationModel
 from ._gaussian import FullGaussianObservationModel
+from ._mixture_gaussian import MixtureGaussianObservationModel
 from ._ordinal import OrdinalObservationModel
 from ._weibull import (
     WeibullRightCensoredObservationModel,
     WeibullRightCensoredWithSourcesObservationModel,
 )
-from ._mixture_gaussian import MixtureGaussianObservationModel
 
 __all__ = [
     "ObservationModelNames",
@@ -32,7 +32,7 @@ class ObservationModelNames(Enum):
     ORDINAL = "ordinal"
     WEIBULL_RIGHT_CENSORED = "weibull-right-censored"
     WEIBULL_RIGHT_CENSORED_WITH_SOURCES = "weibull-right-censored-with-sources"
-    MIXTURE_GAUSSIAN  = "mixture-gaussian"
+    MIXTURE_GAUSSIAN = "mixture-gaussian"
 
     @classmethod
     def from_string(cls, model_name: str):
@@ -108,12 +108,12 @@ def observation_model_factory(
                 kwargs=kwargs
             )
         if model == ObservationModelNames.MIXTURE_GAUSSIAN:
-            #if n_clusters is None:
+            # if n_clusters is None:
             #    raise NotImplementedError(
             #        "WIP: number of clusters should be provided to "
             #        f"init the obs_model = {ObservationModelNames.MIXTURE_GAUSSIAN}."
             #    )
-            #if dimension is None:
+            # if dimension is None:
             #    raise NotImplementedError(
             #        "WIP: dimension / features should be provided to "
             #        f"init the obs_model = {ObservationModelNames.GAUSSIAN_DIAGONAL}."
