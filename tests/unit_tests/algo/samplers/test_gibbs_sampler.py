@@ -5,12 +5,12 @@ from unittest import skip
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.io.realizations import CollectionRealization, VariableType
 from leaspy.samplers import (
     IndividualGibbsSampler,
     PopulationGibbsSampler,
     sampler_factory,
 )
+from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 from tests import LeaspyTestCase
 
 
@@ -71,7 +71,7 @@ class SamplerTest(LeaspyTestCase):
             ]
             sampler = sampler_factory(
                 sampler_name,
-                VariableType.INDIVIDUAL,
+                IndividualLatentVariable,
                 scale=self.scale_ind,
                 n_patients=n_patients,
                 name=var_name,
@@ -109,7 +109,7 @@ class SamplerTest(LeaspyTestCase):
                 )
                 sampler = sampler_factory(
                     sampler_name,
-                    VariableType.POPULATION,
+                    PopulationLatentVariable,
                     scale=self.scale_pop,
                     name=var_name,
                     shape=rv_info["shape"],
@@ -164,7 +164,7 @@ class SamplerTest(LeaspyTestCase):
                 )
                 sampler = sampler_factory(
                     sampler_name,
-                    VariableType.INDIVIDUAL,
+                    IndividualLatentVariable,
                     scale=self.scale_ind,
                     n_patients=n_patients,
                     name=var_name,
@@ -191,7 +191,7 @@ class SamplerTest(LeaspyTestCase):
             ) in acceptation_for_draws.items():
                 sampler = sampler_factory(
                     sampler_name,
-                    VariableType.POPULATION,
+                    PopulationLatentVariable,
                     scale=self.scale_pop,
                     name=var_name,
                     shape=self.leaspy.model.state[var_name].shape,
@@ -265,7 +265,7 @@ class SamplerTest(LeaspyTestCase):
         ]
         sampler = sampler_factory(
             "Gibbs",
-            VariableType.INDIVIDUAL,
+            IndividualLatentVariable,
             scale=self.scale_ind,
             n_patients=n_patients,
             name=var_name,
