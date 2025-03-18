@@ -1,42 +1,40 @@
 {
-  "leaspy_version": "2.0.0-dev",
-  "name": "univariate_logistic",
-  "features": [
-    "Y0"
-  ],
-  "dimension": 1,
-  "obs_models": {
-    "y": "gaussian-scalar"
-  },
-  "hyperparameters": {
-    "log_g_std": 0.009999999776482582,
-    "log_v0_std": 0.009999999776482582,
-    "xi_mean": 0.0
-  },
-  "parameters": {
-    "log_g_mean": [
-      0.11712858825922012
+    "leaspy_version": "2.0.0-dev",
+    "name": "univariate_logistic",
+    "features": [
+        "Y0"
     ],
-    "log_v0_mean": [
-      -3.3841781616210938
-    ],
-    "noise_std": [
-      0.07028277218341827
-    ],
-    "tau_mean": [
-      78.34759521484375
-    ],
-    "tau_std": [
-      6.294102191925049
-    ],
-    "xi_std": [
-      0.4893237352371216
-    ]
-  },
-  "fit_metrics": {
-    "nll_attach": -194.07257080078125,
-    "nll_regul_ind_sum": 67.42412567138672,
-    "nll_tot": -126.64844512939453
-  },
-  "source_dimension": 0
+    "dimension": 1,
+    "obs_models": {
+        "y": "gaussian-scalar"
+    },
+    "hyperparameters": {
+        "log_g_std": 0.009999999776482582,
+        "log_v0_std": 0.009999999776482582,
+        "xi_mean": 0.0
+    },
+    "parameters": {
+        "log_g_mean": [
+            0.11712858825922012
+        ],
+        "log_v0_mean": [
+            -3.3841781616210938
+        ],
+        "noise_std": 0.07028277218341827,
+        "tau_mean": [
+            78.34759521484375
+        ],
+        "tau_std": [
+            6.294102191925049
+        ],
+        "xi_std": [
+            0.4893237352371216
+        ]
+    },
+    "fit_metrics": {
+        "nll_attach": -194.07257080078125,
+        "nll_regul_ind_sum": 67.42412567138672,
+        "nll_tot": -126.64844512939453
+    },
+    "source_dimension": 0
 }
