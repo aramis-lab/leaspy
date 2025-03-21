@@ -382,7 +382,7 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
             # "probs_ind", ---> transfered to the obervational model
             "probs",
             "probs_ind",
-            "nll_attach_y",
+            "nll_attach_ind",
             "nll_regul_tau",
             "nll_regul_tau_ind",
             "nll_regul_xi",
@@ -515,8 +515,9 @@ class LogisticMultivariateMixtureInitializationMixin:
         # initialize a df with the probabilities of each individual belonging to each cluster
         n_inds = dataset.to_pandas().reset_index("TIME").groupby("ID").min().shape[0]
         n_clusters = self.n_clusters
-        probs_ind = torch.ones(n_inds, n_clusters) / n_clusters
-        probs = probs_ind.sum(axis=0) / n_inds
+        #probs_ind = torch.ones(n_inds, n_clusters) / n_clusters
+        #probs = probs_ind.sum(axis=0) / n_inds
+        probs = torch.ones(n_clusters) / n_clusters
 
         df = self._get_dataframe_from_dataset(dataset)
         slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
@@ -534,18 +535,18 @@ class LogisticMultivariateMixtureInitializationMixin:
                 sample_shape=(self.dimension - 1, self.source_dimension)
             )
 
-        probs_ind_df = pd.concat(
-            [
-                pd.DataFrame({"ID": np.arange(1, n_inds + 1, 1)}),
-                pd.DataFrame(probs_ind),
-            ],
-            axis=1,
-            join="outer",
-        )
-        for c in range(n_clusters):
-            probs_ind_df = probs_ind_df.rename(
-                columns={c: "prob_cluster_" + str(c + 1)}
-            )
+        #probs_ind_df = pd.concat(
+        #    [
+        #        pd.DataFrame({"ID": np.arange(1, n_inds + 1, 1)}),
+        #        pd.DataFrame(probs_ind),
+        #    ],
+        #    axis=1,
+        #    join="outer",
+        #)
+        #for c in range(n_clusters):
+        #    probs_ind_df = probs_ind_df.rename(
+        #        columns={c: "prob_cluster_" + str(c + 1)}
+        #    )
 
         # df = pd.concat([df, probs_ind_df], axis=1, join="outer")
 
@@ -591,7 +592,7 @@ class LogisticMultivariateMixtureInitializationMixin:
             "tau_std": self.tau_std,
             "xi_mean": self.xi_mean,
             "xi_std": self.xi_std,
-            "probs_ind": probs_ind,
+            #"probs_ind": probs_ind,
             "probs": probs,
         }
         if self.source_dimension >= 1:
