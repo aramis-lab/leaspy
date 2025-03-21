@@ -15,18 +15,25 @@ from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.algo.simulate import SimulationAlgorithm
 
 class SimulateAlgoTest(LeaspyTestCase):
+    
+    @classmethod
+    def setUpClass(cls):
 
-    def example_model(self):
+        temp_instance = cls()
+
         putamen_df = load_dataset("parkinson-multivariate")
         data = Data.from_dataframe(putamen_df[['MDS1_total','MDS2_total','MDS3_off_total', 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L']])
-        model_loaded = Leaspy('logistic', dimension = 10, source_dimension=2)
+        
+        cls.model_loaded = Leaspy('logistic', dimension=10, source_dimension=2)
         fit_settings = AlgorithmSettings('mcmc_saem', seed=0, n_iter=50)
-        model_loaded.fit(data, fit_settings)
-
-        return model_loaded
+        
+        auto_path_logs = temp_instance.get_test_tmp_path("model-logs")
+        fit_settings.set_logs(path=auto_path_logs)
+        
+        cls.model_loaded.fit(data, fit_settings)
 
     def test_regular_visits(self):
-        model_loaded = self.example_model()
+        model_loaded = self.model_loaded
         settings = AlgorithmSettings(
                                     "simulation",
                                     seed=0,
@@ -57,7 +64,7 @@ class SimulateAlgoTest(LeaspyTestCase):
             assert np.allclose(np.diff(times), 1.0, atol=0.1)
     
     def test_random_visits(self):
-        model_loaded = self.example_model()
+        model_loaded = self.model_loaded
         settings = AlgorithmSettings(
                                     "simulation",
                                     seed=0,
@@ -89,7 +96,7 @@ class SimulateAlgoTest(LeaspyTestCase):
             self.assertGreater(np.std(diffs), 0)
 
     def test_dataframe_visits(self):
-        model_loaded = self.example_model()
+        model_loaded = self.model_loaded
         df_input = pd.DataFrame({
             "ID": ["p1", "p1", "p2"],
             "TIME": [50.0, 51.0, 52.0]
