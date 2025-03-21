@@ -210,8 +210,8 @@ class AbstractIndividualSampler(AbstractSampler):
         )
 
         # Initialize the acceptation history
-        if self.ndim != 1:
-            raise LeaspyModelInputError("Dimension of individual variable should be 1")
+        #if self.ndim != 1:
+        #    raise LeaspyModelInputError("Dimension of individual variable should be 1")
 
 
 class AbstractPopulationSampler(AbstractSampler):

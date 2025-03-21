@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, ClassVar, Type
 
 import torch
+# from pkg_resources import dist_factory
 from torch import Tensor
 from torch.autograd import grad
 from torch.distributions.mixture_same_family import MixtureSameFamily
@@ -439,12 +440,18 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         scale: torch.Tensor,
         probs: torch.Tensor,
     ) -> MixtureSameFamily:
-        from torch.distributions import Categorical
+        from torch.distributions import Categorical, Normal
 
         return MixtureSameFamily(
             Categorical(probs),
             Normal(loc, scale),
         )
+
+    @classmethod
+    def sample(cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()) -> torch.Tensor:
+        dist = cls.dist_factory(*params)
+
+        return dist.sample(sample_shape)
 
     @classmethod
     def set_component_distribution(
@@ -518,14 +525,14 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         probs_ind = cls.compute_probs_ind(state=State)
 
         return probs_ind.sum(dim=0) / probs_ind.size()[0]
-
+    """
     @classmethod
     def compute_nll_cluster(
         cls,
         which_cluster: int,
         x: WeightedTensor,
     ) -> WeightedTensor:
-        """Compute neg log-likelihood per cluster"""
+        
         prob, loc, scale = cls.extract_cluster_parameters(which_cluster)
         nll_cluster = -1 * (
             prob * 0.5 * ((x.value - loc) / scale) ** 2
@@ -543,7 +550,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         probs: torch.Tensor,
         *params: torch.Tensor,
     ) -> WeightedTensor:
-        """Compute total neg log-likelihood, for all the clusters"""
+        
         n_clusters = cls.extract_n_clusters(loc, scale, probs)
         weighted_nll = 0
         for cluster_id in range(n_clusters):
@@ -586,8 +593,6 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     ) -> tuple[WeightedTensor, WeightedTensor]:
         return cls._nll(x, loc, scale, probs), cls._nll_jacobian(x, loc, scale, probs)
 
-
-"""
     @classmethod
     def compute_nll_cluster_random_effects(
             cls,
