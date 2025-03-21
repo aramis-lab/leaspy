@@ -23,6 +23,7 @@ from leaspy.variables.specs import (
     Collect,
     Hyperparameter,
     LinkedVariable,
+    NamedVariables,
     ModelParameter,
     VariableInterface,
     VarName,
@@ -62,8 +63,12 @@ class MixtureGaussianObservationModel(ObservationModel):
         )
 
     @classmethod
-    def compute_individual_probabilities(
-        cls, *, state: State, probs_ind: torch.Tensor
+    def individual_probabilities_update(
+            cls,
+            *,
+            state: State, #probs_ind: torch.Tensor
+            nll_cluster_ind: WeightedTensor[float],
+
     ) -> torch.Tensor:
         """Update rule for the individual probabilities of each individual i to belong to the cluster c.
 
@@ -79,21 +84,16 @@ class MixtureGaussianObservationModel(ObservationModel):
         probs_ind : a 2D tensor (n_individuals x n_clusters)
         with the corresponding probabilities of each individual i to belong to the cluster i
         """
-        # probs_ind = state['probs_ind'] #from the previous iteration
-        n_inds = probs_ind.size()[0]
+        probs_ind = state['probs_ind'] #from the previous iteration
+        #n_inds = probs_ind.size()[0]
         n_clusters = probs_ind.size()[1]
-        probs = probs_ind.sum(dim=0) / n_inds  # from the previous iteration
-        nll_ind = state["nll_attach_y"]
-        nll_random = probs * (
-            state["nll_regul_xi_ind"]
-            + state["nll_regul_tau_ind"]
-            + state["nll_regul_sources_ind"]
-        )
+        #probs = probs_ind.sum(dim=0) / n_inds  # from the previous iteration
+        #nll_ind = state["nll_attach_ind"]
+        #nll_random = probs * (state["nll_regul_xi_ind"] + state["nll_regul_tau_ind"]+ state["nll_regul_sources_ind"])
+        #nll_random = state['nll_regul_ind_sum_ind']
 
-        denominator = (probs * nll_ind * nll_random).sum(
-            dim=1
-        )  # sum for all the clusters
-        nominator = probs * nll_ind * nll_random
+        denominator = nll_cluster_ind.sum(dim=1)  # sum for all the clusters
+        nominator = nll_cluster_ind
         for c in range(n_clusters):
             probs_ind[:, c] = nominator[:, c] / denominator
 
@@ -115,9 +115,77 @@ class MixtureGaussianObservationModel(ObservationModel):
         return probs_ind.sum(dim=0) / n_individuals
 
     @classmethod
+    def cluster_probabilities_update(cls,
+                                     *,
+                                     state: State,  # probs_ind: torch.Tensor
+                                     nll_cluster: WeightedTensor[float],) -> torch.Tensor:
+        probs_ind = state['probs_ind']
+        n_clusters = probs_ind.size()[1]
+        n_individuals = probs_ind.size()[0]
+        denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
+        nominator = nll_cluster
+        for c in range(n_clusters):
+            probs_ind[:, c] = nominator[:, c] / denominator
+
+        return probs_ind.sum(dim=0) / n_individuals
+    """
+    @classmethod
     def probs_specs(cls):
-        """Default specifications for probs parameter."""
         return LinkedVariable(cls.compute_cluster_probabilities)
+    """
+
+    @classmethod
+    def probs_suff_stats(cls)-> Dict[VarName, LinkedVariable]:
+        return dict(
+            nll_cluster=LinkedVariable(Prod("probs", "nll_attach_ind", "nll_regul_ind_sum_ind")),
+        )
+
+    @classmethod
+    def probs_specs(cls, n_clusters: int)-> ModelParameter:
+        return ModelParameter(
+            shape=(n_clusters,),
+            suff_stats=Collect(**cls.probs_suff_stats()),
+            update_rule=cls.cluster_probabilities_update,
+        )
+    """
+    @classmethod
+    def probs_ind_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
+        return dict(
+            nll_cluster_ind=LinkedVariable(Prod("probs", "nll_attach_ind", "nll_regul_ind_sum_ind")),
+        )
+    
+    @classmethod
+    def probs_ind_specs(cls,
+                        #state: State, #probs_ind: torch.Tensor
+                        #n_individuals : int,
+                        #n_clusters : int
+                        ) -> ModelParameter:
+
+        #n_individuals = state['y'].shape[0]
+        #return ModelParameter(
+        #    shape = (n_individuals, n_clusters,),
+        #    suff_stats= Collect(**cls.probs_ind_suff_stats()),
+        #    update_rule=cls.individual_probabilities_update
+        #)
+        return IndividualLatentVariable(Categorical("probs"))
+
+
+    def get_variables_specs(
+            self,
+            named_attach_vars: bool = True,
+    ) -> Dict[VarName, VariableInterface]:
+        
+        d = super().get_variables_specs(named_attach_vars)
+        d.update(
+            probs_ind= self.probs_ind_specs()
+        )
+
+        return d
+    
+    @classmethod
+    def probs_ind_specs(cls):
+        return LinkedVariable(cls.compute_individual_probabilities)
+    """
 
     @staticmethod
     def y_getter(dataset: Dataset) -> WeightedTensor:
@@ -221,7 +289,7 @@ class MixtureGaussianObservationModel(ObservationModel):
             }
 
         return cls(
-            probs=cls.probs_specs(),
+            probs=cls.probs_specs(n_clusters),
             noise_std=cls.noise_std_specs(dimension),
             **extra_vars,
         )
