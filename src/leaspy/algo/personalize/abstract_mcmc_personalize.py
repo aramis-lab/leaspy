@@ -1,3 +1,5 @@
+"""This module defines the `AbstractMCMCPersonalizeAlgo` class used for sampler based personalize algorithms."""
+
 from abc import abstractmethod
 from random import shuffle
 

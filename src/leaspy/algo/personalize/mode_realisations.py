@@ -1,3 +1,5 @@
+"""This module defines the `ModeReal` sampler based personalize algorithm."""
+
 import torch
 
 from leaspy.utils.typing import DictParamsTorch
