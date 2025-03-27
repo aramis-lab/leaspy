@@ -39,7 +39,7 @@ class ModeReal(AbstractMCMCPersonalizeAlgo):
 
         Parameters
         ----------
-        realizations : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
+        realizations : :obj:`dict`[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
             The stacked history of realizations for individual latent variables.
         attachments : `torch.Tensor[float]` of shape (n_iter, n_individuals)
             The stacked history of attachments (per individual).
@@ -48,7 +48,7 @@ class ModeReal(AbstractMCMCPersonalizeAlgo):
 
         Returns
         -------
-        dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
+        :obj:`dict`[ind_var_name: :obj:`str`, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
         """
         # Indices of iterations where loss (= negative log-likelihood) was minimal
         # (per individual, but tradeoff on ALL individual parameters)

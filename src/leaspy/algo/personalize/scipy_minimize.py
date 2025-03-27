@@ -149,7 +149,7 @@ class _AffineScalings1D:
 
         Parameters
         ----------
-        x : Dict[VarName, torch.Tensor]
+        x : :obj:`dict`[VarName, torch.Tensor]
             The mapping to unscale.
 
         Return
@@ -202,23 +202,23 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
     Attributes
     ----------
-    scipy_minimize_params : dict
+    scipy_minimize_params : :obj:`dict`
         Keyword arguments to be passed to :func:`scipy.optimize.minimize`.
         A default setting depending on whether using jacobian or not is applied
         (cf. `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN`
          and `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
         You may customize it by setting the `custom_scipy_minimize_params` algorithm parameter.
 
-    format_convergence_issues : str
+    format_convergence_issues : :obj:`str`
         Formatting of convergence issues.
         It should be a formattable string using any of those variables:
-           * patient_id: str
-           * optimization_result_pformat: str
+           * patient_id: :obj:`str`
+           * optimization_result_pformat: :obj:`str`
            * (optimization_result_obj: dict-like)
         cf. `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES` for the default format.
         You may customize it by setting the `custom_format_convergence_issues` algorithm parameter.
 
-    logger : None or callable str -> None
+    logger : None or callable :obj:`str` -> None
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
         By default we print the convergences issues if and only if we do not use BFGS optimization method.
         You can customize it at initialization by defining a `logger` attribute to your `AlgorithmSettings` instance.
@@ -313,7 +313,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         model : :class:`.AbstractModel`
             Model used to compute the group average parameters.
 
-        individual_parameters : dict[str, :class:`torch.Tensor` [n_ind,n_dims_param]]
+        individual_parameters : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [n_ind,n_dims_param]]
             Individual parameters as a dict
 
         Returns
@@ -322,7 +322,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             Regularity of the patient(s) corresponding to the given individual parameters.
             (Sum on all parameters)
 
-        regularity_grads : dict[param_name: str, :class:`torch.Tensor` [n_individuals, n_dims_param]]
+        regularity_grads : :obj:`dict`[param_name: :obj:`str`, :class:`torch.Tensor` [n_individuals, n_dims_param]]
             Gradient of regularity term with respect to individual parameters.
         """
         d_regularity, d_regularity_grads = (
@@ -341,7 +341,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         Parameters
         ----------
         x : numpy.ndarray
-            Individual **standardized** parameters
+            Individual standardized parameters
             At initialization x is full of zeros (mode of priors, scaled by std-dev)
         state : :class:`.State`
             The cloned model state that is dedicated to the current individual.
@@ -351,7 +351,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         Returns
         -------
-        objective : float
+        objective : :obj:`float`
             Value of the loss function (negative log-likelihood).
         """
 
@@ -382,7 +382,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         Returns
         -------
         2-tuple (as expected by :func:`scipy.optimize.minimize` when ``jac=True``)
-            * objective : float
+            * objective : :obj:`float`
             * gradient : array-like[float] with same length as `x` (= all dimensions of individual latent variables, concatenated)
         """
         raise NotImplementedError("TODO...")
@@ -447,14 +447,14 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             In particular, data variables for the current individual are already loaded into it.
         scaling : _AffineScalings1D
             The scaling to be used for individual latent variables.
-        with_jac : bool
+        with_jac : :obj:`bool`
             Should we speed-up the minimization by sending exact gradient of optimized function?
-        patient_id : str
+        patient_id : :obj:`str`
             ID of patient (essentially here for logging purposes when no convergence)
 
         Returns
         -------
-        pyt_individual_params : dict[str, :class:`torch.Tensor` [1,n_dims_param]]
+        pyt_individual_params : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [1,n_dims_param]]
             Individual parameters as a dict of tensors.
         reconstruction_loss : :class:`torch.Tensor`
             Model canonical loss (content & shape depend on noise model).
@@ -517,9 +517,10 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             The scaling to be used for individual latent variables.
         progress : tuple[int >= 0, int > 0]
             Current progress in loop (n, out-of-N).
-        with_jac : bool
+        with_jac : :obj:`bool`
             Should we speed-up the minimization by sending exact gradient of optimized function?
-        patient_id : str
+            Should we speed-up the minimization by sending exact gradient of optimized function?
+        patient_id : :obj:`str`
             ID of patient (essentially here for logging purposes when no convergence)
 
         Returns
