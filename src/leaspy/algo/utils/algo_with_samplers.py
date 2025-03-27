@@ -3,7 +3,6 @@ from typing import Optional
 
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data import Dataset
-from leaspy.io.realizations import VariableType
 from leaspy.samplers import AbstractSampler, sampler_factory
 from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 from leaspy.variables.state import State
@@ -138,7 +137,7 @@ class AlgoWithSamplersMixin:
 
             self.samplers[var_name] = sampler_factory(
                 sampler,
-                VariableType.INDIVIDUAL,
+                IndividualLatentVariable,
                 n_patients=n_individuals,
                 **var_kws,
                 **sampler_kws,
@@ -172,5 +171,5 @@ class AlgoWithSamplersMixin:
             # TODO: mask logic?
 
             self.samplers[var_name] = sampler_factory(
-                sampler, VariableType.POPULATION, **var_kws, **sampler_kws
+                sampler, PopulationLatentVariable, **var_kws, **sampler_kws
             )
