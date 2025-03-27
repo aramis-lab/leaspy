@@ -960,12 +960,13 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                 # we have no information so high incertitude when stochastic perso algo
                 from leaspy.variables.specs import IndividualLatentVariable
 
+                all_params = lsp.model.parameters | lsp.model.hyperparameters
                 allclose_custom = {
                     p: dict(
                         atol=(
                             math.ceil(
                                 coeff_tol_per_param_std
-                                * lsp.model.parameters[f"{p}_std"].item()
+                                * all_params[f"{p}_std"].item()
                                 / general_tol
                             )
                             * general_tol

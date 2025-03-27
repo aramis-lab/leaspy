@@ -192,12 +192,12 @@ class AbstractModel(BaseModel):
     @property
     def parameters(self) -> DictParamsTorch:
         """Dictionary of values for model parameters."""
-        return {
-            p: self._state[p]
-            # TODO: a separated method for hyperparameters?
-            # include hyperparameters as well for now to micmic old behavior
-            for p in self.hyperparameters_names + self.parameters_names
-        }
+        return {p: self._state[p] for p in self.parameters_names}
+
+    @property
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        return {p: self._state[p] for p in self.hyperparameters_names}
 
     @abstractmethod
     def to_dict(self) -> KwargsType:
@@ -218,6 +218,9 @@ class AbstractModel(BaseModel):
                 obs_model.name: obs_model.to_string() for obs_model in self.obs_models
             },
             # 'obs_models': export_obs_models(self.obs_models),
+            "hyperparameters": {
+                k: tensor_to_list(v) for k, v in (self.hyperparameters or {}).items()
+            },
             "parameters": {
                 k: tensor_to_list(v) for k, v in (self.parameters or {}).items()
             },
