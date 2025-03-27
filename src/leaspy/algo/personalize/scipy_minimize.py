@@ -371,7 +371,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         Parameters
         ----------
         x : numpy.ndarray
-            Individual **standardized** parameters
+            Individual standardized parameters
             At initialization x is full of zeros (mode of priors, scaled by std-dev)
         state : :class:`.State`
             The cloned model state that is dedicated to the current individual.

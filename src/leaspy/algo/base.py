@@ -41,8 +41,8 @@ class AlgorithmName(str, Enum):
     FIT_MCMC_SAEM = "mcmc_saem"
     FIT_LME = "lme_fit"
     PERSONALIZE_SCIPY_MINIMIZE = "scipy_minimize"
-    PERSONALIZE_MEAN_REAL = "mean_real"
-    PERSONALIZE_MODE_REAL = "mode_real"
+    PERSONALIZE_MEAN_POST = "mean_post"
+    PERSONALIZE_MODE_POST = "mode_post"
     PERSONALIZE_CONSTANT = "constant_prediction"
     PERSONALIZE_LME = "lme_personalize"
     SIMULATE = "simulation"
@@ -417,14 +417,14 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
         from .personalize import ScipyMinimize
 
         return ScipyMinimize
-    if name == AlgorithmName.PERSONALIZE_MEAN_REAL:
-        from .personalize import MeanReal
+    if name == AlgorithmName.PERSONALIZE_MEAN_POST:
+        from .personalize import MeanPost
 
-        return MeanReal
-    if name == AlgorithmName.PERSONALIZE_MODE_REAL:
-        from .personalize import ModeReal
+        return MeanPost
+    if name == AlgorithmName.PERSONALIZE_MODE_POST:
+        from .personalize import ModePost
 
-        return ModeReal
+        return ModePost
     if name == AlgorithmName.PERSONALIZE_CONSTANT:
         from .others import ConstantPredictionAlgorithm
 

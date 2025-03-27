@@ -27,7 +27,7 @@ class AbstractMCMCPersonalizeAlgo(
     """
     Base class for MCMC-based personalization algorithms.
 
-    Individual parameters are derived from realizations of individual variables of the model.
+    Individual parameters are derived from values of individual variables of the model.
 
     Parameters
     ----------
@@ -38,17 +38,17 @@ class AbstractMCMCPersonalizeAlgo(
     @abstractmethod
     def _compute_individual_parameters_from_samples_torch(
         self,
-        realizations: DictParamsTorch,
+        values: DictParamsTorch,
         attachments: torch.Tensor,
         regularities: torch.Tensor,
     ) -> DictParamsTorch:
         """
-        Compute dictionary of individual parameters from stacked realizations, attachments and regularities.
+        Compute dictionary of individual parameters from stacked values, attachments and regularities.
 
         Parameters
         ----------
-        realizations : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
-            The stacked history of realizations for individual latent variables.
+        values : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
+            The stacked history of values for individual latent variables.
         attachments : `torch.Tensor[float]` of shape (n_iter, n_individuals)
             The stacked history of attachments (per individual).
         regularities : `torch.Tensor[float]` of shape (n_iter, n_individuals)
@@ -119,8 +119,8 @@ class AbstractMCMCPersonalizeAlgo(
             ind_vars_names = ["tau", "xi", "sources"]
         # END TMP
 
-        # Initialize realizations storage object
-        realizations_history = {ip: [] for ip in ind_vars_names}
+        # Initialize values storage object
+        values_history = {ip: [] for ip in ind_vars_names}
         attachment_history = []
         regularity_history = []
 
@@ -141,10 +141,10 @@ class AbstractMCMCPersonalizeAlgo(
                         state, temperature_inv=self.temperature_inv
                     )
 
-                # Append current realizations if "burn-in phase" is finished
+                # Append current values if "burn-in phase" is finished
                 if not self._is_burn_in():
                     for ip in ind_vars_names:
-                        realizations_history[ip].append(state[ip])
+                        values_history[ip].append(state[ip])
                     attachment_history.append(state.get_tensor_value("nll_attach_ind"))
                     regularity_history.append(
                         state.get_tensor_value("nll_regul_ind_sum_ind")
@@ -160,22 +160,21 @@ class AbstractMCMCPersonalizeAlgo(
                         self.current_iteration - 1, n_iter, suffix="iterations"
                     )
 
-            # Stack tensor realizations as well as attachments and tot_regularities
-            torch_realizations = {
-                ip: torch.stack(ip_realizations)
-                for ip, ip_realizations in realizations_history.items()
+            # Stack tensor values as well as attachments and tot_regularities
+            torch_values = {
+                ip: torch.stack(ip_values) for ip, ip_values in values_history.items()
             }
             torch_attachments = torch.stack(attachment_history)
             torch_tot_regularities = torch.stack(regularity_history)
 
             # TODO? we could also return the full posterior when credible intervals are needed
             # (but currently it would not fit with `IndividualParameters` structure, which expects point-estimates)
-            # return torch_realizations, torch_attachments, torch_tot_regularities
+            # return torch_values, torch_attachments, torch_tot_regularities
 
-            # Derive individual parameters from `realizations_history` list
+            # Derive individual parameters from `values_history` list
             individual_parameters_torch = (
                 self._compute_individual_parameters_from_samples_torch(
-                    torch_realizations, torch_attachments, torch_tot_regularities
+                    torch_values, torch_attachments, torch_tot_regularities
                 )
             )
 
