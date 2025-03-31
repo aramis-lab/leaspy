@@ -22,7 +22,7 @@ from leaspy.variables.specs import (
 from .abstract_model import AbstractModel
 from .obs_models import observation_model_factory
 
-__all__ = ["AbstractMultivariateModel"]
+__all__ = ["CovariateAbstractMultivariateModel"]
 
 
 @doc_with_super()
