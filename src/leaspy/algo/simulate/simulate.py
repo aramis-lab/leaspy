@@ -204,6 +204,21 @@ class SimulationAlgorithm(AbstractAlgo):
 
     ## ---- IP ---
     def get_ip_rm(self, model):
+
+         """
+        Get the Individual Parameters from repeated measures (from leaspy model parameters)
+
+        Parameters
+        ----------
+        model: :obj:`LeaspyModel`
+            Description of parameter1.
+
+        Returns
+        -------
+        :obj:`pd.Dataframe` :
+            Df with all the IP (tau, xi and space shifts)
+        """
+
         xi_rm = torch.tensor(np.random.normal(
             #self.param_rm["parameters"]["xi_mean"],
             model.parameters['xi_mean'],
