@@ -386,8 +386,7 @@ class SimulationAlgorithm(AbstractAlgo):
             invalid_mask = (alpha_param < 0) | (beta_param < 0)
             valid_samples = beta.rvs(alpha_param[~invalid_mask], beta_param[~invalid_mask])
             df_long.loc[~invalid_mask, feat] = valid_samples
-
-
+            
         dict_rm_rename = {
             "tau": "RM_TAU",
             "xi": "RM_XI",
