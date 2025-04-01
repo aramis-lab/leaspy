@@ -6,7 +6,7 @@ import torch
 
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, OrthoBasis, Sqr
+from leaspy.utils.functional import Exp, OrthoBasis, Sqr, Sum
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
@@ -178,8 +178,8 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
             ),
             # LINKED VARS
             log_v0=LinkedVariable(
-                "phi_mod_v0" + "phi_ref_v0"
-            ),  # est ce qu'on peut faire une LinkeVar à partir de Latent ?
+                Sum("phi_mod_v0", "phi_ref_v0")
+            ),  # est ce qu'on peut faire une Linked à partir de Latent ?
             # DERIVED VARS
             v0=LinkedVariable(
                 Exp("log_v0"),
@@ -374,9 +374,15 @@ class CovariateLogisticMultivariateInitializationMixin:
         )  # always "works" for ordinal (values >= 1)
 
         parameters = {
-            "log_g_mean": torch.log(1.0 / values - 1.0),
-            "log_v0_mean": get_log_velocities(slopes, self.features),
-            "tau_mean": t0,
+            "phi_mod_g_mean": torch.full_like(values, 0.01),
+            "phi_ref_g_mean": torch.log(1.0 / values - 1.0),
+            "phi_mod_v0_mean": torch.full_like(slopes, 0.01),
+            "phi_ref_v0_mean": get_log_velocities(slopes, self.features),
+            "phi_mod_t0_mean": torch.full_like(t0, 0.1),
+            "phi_ref_t0_mean": t0,
+            # "log_g_mean": torch.log(1.0 / values - 1.0),
+            # "log_v0_mean": get_log_velocities(slopes, self.features),
+            # "tau_mean": t0,
             "tau_std": self.tau_std,
             "xi_std": self.xi_std,
         }
@@ -427,7 +433,7 @@ class CovariateLogisticMultivariateModel(
             phi_ref_g=PopulationLatentVariable(
                 Normal("phi_ref_g_mean", "phi_ref_g_std")
             ),
-            log_g=LinkedVariable("phi_mod_g" + "phi_ref_g"),
+            log_g=LinkedVariable(Sum("phi_mod_g", "phi_ref_g")),
             g=LinkedVariable(Exp("log_g")),
         )
 

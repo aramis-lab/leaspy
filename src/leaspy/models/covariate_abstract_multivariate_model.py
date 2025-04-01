@@ -7,7 +7,7 @@ import torch
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, MatMul
+from leaspy.utils.functional import Exp, MatMul, Sum
 from leaspy.utils.typing import KwargsType
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
@@ -129,14 +129,17 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 Normal("phi_ref_t0_mean", "phi_ref_t0_std")
             ),
             # LINKED VARS
-            log_t0_mean=LinkedVariable("phi_mod_t0_mean" + "phi_ref_t0_mean"),
+            log_t0_mean=LinkedVariable(Sum("phi_mod_t0_mean", "phi_ref_t0_mean")),
+            t0_mean=LinkedVariable(Exp("log_t0_mean")),
             ## INDIVIDUAL PARAMETERS
             # PRIORS
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
             # LATENT VARS
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
-            tau=IndividualLatentVariable(Normal("log_t0_mean", "tau_std")),
+            tau=IndividualLatentVariable(
+                Normal("t0_mean", "tau_std")
+            ),  # t0_mean ou log_t0_mean ?
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
         )
