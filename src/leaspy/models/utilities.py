@@ -6,6 +6,18 @@ import torch
 
 from leaspy.exceptions import LeaspyConvergenceError
 from leaspy.utils.weighted_tensor import WeightedTensor
+from leaspy.utils.functional import (
+    Identity,
+    Mean,
+    Prod,
+    NamedInputFunction,
+    Sqr,
+    Std,
+    Sum,
+    SumDim,
+    MatMul,
+    get_named_parameters,
+)
 
 __all__ = [
     "tensor_to_list",
@@ -17,6 +29,10 @@ __all__ = [
     "compute_patient_time_distribution",
     "get_log_velocities",
     "torch_round",
+    "compute_ind_param_mean_from_suff_stats_mixture",
+    "compute_ind_param_std_from_suff_stats_mixture",
+    "compute_ind_param_std_from_suff_stats_mixture_burn_in",
+    "compute_probs_from_state",
 ]
 
 
@@ -99,6 +115,85 @@ def compute_ind_param_std_from_suff_stats(
     ip_var_update = torch.mean(ip_sqr_values, dim=dim) - 2 * ip_old_mean * ip_cur_mean
     ip_var = ip_var_update + ip_old_mean**2
     return compute_std_from_variance(ip_var, varname=f"{ip_name}_std", **kws)
+
+def compute_ind_param_mean_from_suff_stats_mixture(
+        state: Dict[str, torch.Tensor],
+        *,
+        ip_name: str,
+) -> torch.Tensor:
+
+    ind_var = state[f"{ip_name}"]
+    probs = state["probs"]
+
+    if ip_name == 'sources' : #special treatement due to the extra dimension
+        ind_var_expanded = ind_var.unsqueeze(-1)
+        probs_expanded = probs.view(1,1,-1)
+        result = ind_var_expanded * probs_expanded
+    else:
+        result = probs * ind_var
+
+    return result.mean(dim=0)
+
+def compute_ind_param_std_from_suff_stats_mixture(
+    state: Dict[str, torch.Tensor],
+    ip_values: torch.Tensor,
+    ip_sqr_values: torch.Tensor,
+    *,
+    ip_name: str,
+    dim: int,
+    **kws,
+):
+
+    ip_old_mean = state[f"{ip_name}_mean"]
+    ip_cur_mean = torch.mean(ip_values, dim=0)
+    ip_var_update = torch.mean(ip_sqr_values, dim=0) - 2 * ip_old_mean * ip_cur_mean
+    ip_var = ip_var_update + ip_old_mean**2
+    std = ip_var.sqrt()
+
+    probs = state["probs"]
+
+    result = probs * std
+
+    return result
+
+def compute_ind_param_std_from_suff_stats_mixture_burn_in(
+        state: Dict[str, torch.Tensor],
+        *,
+        ip_name: str,
+) -> torch.Tensor:
+
+    ind_var = state[f"{ip_name}"]
+    probs = state["probs"]
+
+    result = probs * ind_var
+
+    return result.std(dim=0)
+
+def compute_probs_from_state(
+        state: Dict[str, torch.Tensor],
+) -> torch.Tensor:
+
+    probs = state["probs"]
+    n_clusters = probs.shape[0]
+    nll_attach_ind = state["nll_attach_ind"]
+    n_inds = nll_attach_ind.shape[0]
+    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+
+    probs = probs.view(1, n_clusters)
+    nll_attach_ind = nll_attach_ind.view(n_inds, 1)
+    nll_cluster = probs * nll_attach_ind * nll_regul_ind_sum_ind
+
+    nominator = nll_cluster
+    denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
+    probs_list = []
+
+    for id_cluster in range(nominator.shape[1]):
+        probs_ind_cluster = nominator[:, id_cluster] / denominator
+        probs_list.append(probs_ind_cluster)
+
+    probs_ind = torch.stack(probs_list, dim=1)
+
+    return probs_ind.sum(dim=0) / n_inds
 
 
 def compute_patient_slopes_distribution(

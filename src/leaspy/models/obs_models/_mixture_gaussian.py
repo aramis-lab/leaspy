@@ -9,7 +9,7 @@ import torch
 
 from leaspy.io.data.dataset import Dataset
 from leaspy.models.utilities import compute_std_from_variance
-from leaspy.utils.functional import Prod, Sqr
+from leaspy.utils.functional import Prod, Sqr, Identity, Sum
 from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     sum_dim,
@@ -17,7 +17,7 @@ from leaspy.utils.weighted_tensor import (
     wsum_dim_return_sum_of_weights_only,
     wsum_dim_return_weighted_sum_only,
 )
-from leaspy.variables.distributions import MixtureNormal
+from leaspy.variables.distributions import MixtureNormal, Normal
 from leaspy.variables.specs import (
     LVL_FT,
     Collect,
@@ -35,6 +35,8 @@ from ._base import ObservationModel
 __all__ = [
     "MixtureGaussianObservationModel",
 ]
+
+from ...utils.functional import Identity
 
 
 class MixtureGaussianObservationModel(ObservationModel):
@@ -58,10 +60,12 @@ class MixtureGaussianObservationModel(ObservationModel):
         super().__init__(
             name="y",
             getter=self.y_getter,
-            dist=MixtureNormal("model", "noise_std", "probs"),
+
+            dist = Normal("model", "noise_std"),
             extra_vars=extra_vars,
         )
 
+    ## dist=MixtureNormal("model", "noise_std", "probs"),
     @classmethod
     def individual_probabilities_update(
             cls,
@@ -100,54 +104,62 @@ class MixtureGaussianObservationModel(ObservationModel):
         return probs_ind
 
     @classmethod
-    def compute_cluster_probabilities(cls, *, probs_ind: torch.Tensor) -> torch.Tensor:
-        """Update rule for the probabilities of occurrence of each cluster.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        probs : an 1D tensor (n_cluster)
-        with the probabilities of occurrence of each cluster
-        """
-        n_individuals = probs_ind.size()[0]
-        return probs_ind.sum(dim=0) / n_individuals
-
-    @classmethod
-    def cluster_probabilities_update(cls,
+    def compute_cluster_probabilities(cls,
                                      *,
-                                     state: State,  # probs_ind: torch.Tensor
-                                     nll_cluster: WeightedTensor[float],) -> torch.Tensor:
-        probs_ind = state['probs_ind']
-        n_clusters = probs_ind.size()[1]
-        n_individuals = probs_ind.size()[0]
-        denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
-        nominator = nll_cluster
-        for c in range(n_clusters):
-            probs_ind[:, c] = nominator[:, c] / denominator
+                                     nll_regul_ind_sum_ind: WeightedTensor[float], ) -> torch.Tensor:
+        n_individuals = nll_regul_ind_sum_ind.shape[0]
+        denominator = nll_regul_ind_sum_ind.sum(dim=1)  # sum for all the clusters
+        nominator = nll_regul_ind_sum_ind
+        probs_list = []
+
+        for id_cluster in range(nominator.shape[1]):
+            probs_ind_cluster = nominator[:, id_cluster] / denominator
+            probs_list.append(probs_ind_cluster.value)
+
+        probs_ind = torch.stack(probs_list, dim=1)
 
         return probs_ind.sum(dim=0) / n_individuals
     """
     @classmethod
     def probs_specs(cls):
         return LinkedVariable(cls.compute_cluster_probabilities)
+    
+
+    @classmethod
+    def cluster_probabilities_update(cls,
+                                     *,
+                                     nll_cluster: torch.Tensor,) -> torch.Tensor:
+        n_individuals = nll_cluster.shape[0]
+        denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
+        nominator = nll_cluster
+        probs_list = []
+
+        for id_cluster in range(nominator.shape[1]):
+            probs_ind_cluster = nominator[:, id_cluster] / denominator
+            probs_list.append(probs_ind_cluster.value)
+
+        probs_ind = torch.stack(probs_list, dim=1)
+
+        return probs_ind.sum(dim=0) / n_individuals
     """
 
     @classmethod
     def probs_suff_stats(cls)-> Dict[VarName, LinkedVariable]:
         return dict(
-            nll_cluster=LinkedVariable(Prod("probs", "nll_attach_ind", "nll_regul_ind_sum_ind")),
+            nll_cluster=LinkedVariable(Prod("probs","nll_attach_ind","nll_regul_ind_sum_ind")),
         )
 
     @classmethod
-    def probs_specs(cls, n_clusters: int)-> ModelParameter:
+    def probs_specs(cls, n_clusters: int) -> ModelParameter:
         return ModelParameter(
             shape=(n_clusters,),
-            suff_stats=Collect(**cls.probs_suff_stats()),
+            #suff_stats=Collect(**cls.probs_suff_stats()),
+            suff_stats = Collect("probs", "nll_attach_ind", "nll_attach_ind"),
             update_rule=cls.cluster_probabilities_update,
         )
+
     """
+        
     @classmethod
     def probs_ind_suff_stats(cls) -> Dict[VarName, LinkedVariable]:
         return dict(

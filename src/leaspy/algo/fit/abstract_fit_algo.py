@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Dict, Optional
+import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.dataset import Dataset
@@ -13,6 +14,8 @@ from ..settings import AlgorithmSettings
 from ..utils import AlgoWithDeviceMixin
 
 __all__ = ["AbstractFitAlgo"]
+
+from ...utils.weighted_tensor import WeightedTensor
 
 
 class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
@@ -144,7 +147,9 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             # (scalars only)
             k: v.item()
             for k, v in self.sufficient_statistics.items()
-            if k.startswith("nll_")
+            if k.startswith("nll_") and isinstance(v, torch.Tensor) # a problem with nll_cluster in the mixture model
+            #it's a weighted tensor and it doesn't have .item()
+            #not really necessary for the print though
         }
 
     def __str__(self) -> str:
