@@ -160,16 +160,26 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
         d = super().get_variables_specs()
         d.update(
             # PRIORS
-            log_v0_mean=ModelParameter.for_pop_mean(
-                "log_v0",
-                shape=(self.dimension,),
+            phi_mod_v0_mean=ModelParameter.for_pop_mean(
+                "phi_mod_v0", shape=(self.dimension,)
             ),
-            log_v0_std=Hyperparameter(0.01),
+            phi_mod_v0_std=Hyperparameter(0.001),
+            phi_ref_v0_mean=ModelParameter.for_pop_mean(
+                "phi_ref_v0", shape=(self.dimension,)
+            ),
+            phi_ref_v0_std=Hyperparameter(0.01),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
-            log_v0=PopulationLatentVariable(
-                Normal("log_v0_mean", "log_v0_std"),
+            phi_mod_v0=PopulationLatentVariable(
+                Normal("phi_mod_v0_mean", "phi_mod_v0_std")
             ),
+            phi_ref_v0=PopulationLatentVariable(
+                Normal("phi_ref_v0_mean", "phi_ref_v0_std")
+            ),
+            # LINKED VARS
+            log_v0=LinkedVariable(
+                "phi_mod_v0" + "phi_ref_v0"
+            ),  # est ce qu'on peut faire une LinkeVar à partir de Latent ?
             # DERIVED VARS
             v0=LinkedVariable(
                 Exp("log_v0"),
@@ -403,9 +413,21 @@ class CovariateLogisticMultivariateModel(
         """
         d = super().get_variables_specs()
         d.update(
-            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
-            log_g_std=Hyperparameter(0.01),
-            log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
+            phi_mod_g_mean=ModelParameter.for_pop_mean(
+                "phi_mod_g", shape=(self.dimension,)
+            ),
+            phi_mod_g_std=Hyperparameter(0.001),
+            phi_ref_g_mean=ModelParameter.for_pop_mean(
+                "phi_ref_g", shape=(self.dimension,)
+            ),
+            phi_ref_g_std=Hyperparameter(0.01),
+            phi_mod_g=PopulationLatentVariable(
+                Normal("phi_mod_g_mean", "phi_mod_g_std")
+            ),
+            phi_ref_g=PopulationLatentVariable(
+                Normal("phi_ref_g_mean", "phi_ref_g_std")
+            ),
+            log_g=LinkedVariable("phi_mod_g" + "phi_ref_g"),
             g=LinkedVariable(Exp("log_g")),
         )
 
