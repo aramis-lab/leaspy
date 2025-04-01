@@ -8,10 +8,12 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, ClassVar, Type
 
 import torch
+from pkg_resources import dist_factory
 # from pkg_resources import dist_factory
 from torch import Tensor
 from torch.autograd import grad
 from torch.distributions.mixture_same_family import MixtureSameFamily
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 from leaspy.constants import constants
 from leaspy.exceptions import LeaspyInputError
@@ -34,6 +36,7 @@ __all__ = [
     "WeibullRightCensoredWithSources",
     # "CategoricalFamily",
     "MixtureNormalFamily",
+    "MultivariateNormalFamily"
 ]
 
 
@@ -142,7 +145,12 @@ class StatelessDistributionFamily(ABC):
         *params: torch.Tensor,
     ) -> WeightedTensor[float]:
         """Negative log-likelihood of value, given distribution parameters."""
-        return cls._nll(WeightedTensor(x), *params)
+
+        if isinstance (x, Tensor):
+            regul = cls._nll(WeightedTensor(x), *params)
+        else:
+            regul = cls._nll(x, *params)
+        return regul
 
     @classmethod
     def nll_jacobian(
@@ -373,6 +381,105 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     # def sample(cls, loc, scale, *, sample_shape = ()):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
+class MultivariateNormalFamily(StatelessDistributionFamily):
+    """Multivariate Normal family with diagonal covariance (stateless)."""
+
+    parameters: ClassVar = ("loc", "scale")  # scale = stddev for each dim
+    dist_factory: ClassVar = MultivariateNormal
+    nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
+
+    @classmethod
+    def multi_dist_factory(cls,
+                     loc: torch.Tensor,
+                     scale: torch.Tensor,
+                     ) -> MultivariateNormal:
+
+        loc = torch.tensor(loc, dtype=torch.float32)
+        scale = torch.diag(scale)
+        scale = torch.tensor(scale, dtype=torch.float32)
+
+        return MultivariateNormal(loc, scale)
+    """
+    @classmethod
+    def sample(
+        cls,
+        *params: torch.Tensor,
+        sample_shape: tuple[int, ...] = (),
+    ) -> torch.Tensor:
+
+        multi_dist = cls.multi_dist_factory(*params)
+        print(multi_dist)
+
+        return multi_dist.sample(sample_shape)
+    """
+    @classmethod
+    def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        return loc  # mode = mean for Gaussian
+
+    @classmethod
+    def mean(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        return loc
+
+    @classmethod
+    def stddev(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        return scale
+
+    @classmethod
+    def _nll(
+        cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor
+    ) -> WeightedTensor:
+
+        if x.value.ndimension() != loc.ndimension():
+            if loc.ndimension()==1:
+                x_value_expanded = x.value.unsqueeze(1).repeat(1, loc.shape[0], 1, 1)
+                #x_weight_expanded = x.weight.unsqueeze(1).repeat(1, loc.shape[0], 1, 1)
+                x = WeightedTensor(x_value_expanded)
+            else:
+                x_value_expanded = x.value.unsqueeze(1).repeat(1, loc.shape[1], 1, 1)
+                x_weight_expanded = x.weight.unsqueeze(1).repeat(1, loc.shape[1], 1, 1)
+                x = WeightedTensor(x_value_expanded, x_weight_expanded)
+
+        #print('loc.shape : ', loc.shape)
+        z = (x.value - loc) / scale
+        LOG_2PI = torch.log(torch.tensor(2 * torch.pi))
+
+        nll = 0.5 * z ** 2 + torch.log(scale) + LOG_2PI
+        #nll = 0.5 * torch.sum(z**2 + 2 * torch.log(scale) + torch.log(2 * torch.pi), dim=-1)
+        if x.value.ndimension() != nll.ndimension():
+            x_value_expanded = x.value.unsqueeze(1).repeat(1, x.shape[0], 1, 1)
+            x_weight_expanded = x.weight.unsqueeze(1).repeat(1, x.shape[0], 1, 1)
+            x = WeightedTensor(x_value_expanded, x_weight_expanded)
+
+            z = (x.value - loc) / scale
+            LOG_2PI = torch.log(torch.tensor(2 * torch.pi))
+
+            nll = 0.5 * z ** 2 + torch.log(scale) + LOG_2PI
+
+        return WeightedTensor(nll, x.weight)
+
+    @classmethod
+    def _nll_jacobian(
+        cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor
+    ) -> WeightedTensor:
+        # Gradient of NLL w.r.t loc (mean), assumes diagonal covariance
+        grad = (x.value - loc) / scale**2
+        return WeightedTensor(grad, x.weight)
+
+    @classmethod
+    def _nll_and_jacobian(
+        cls,
+        x: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+    ) -> tuple[WeightedTensor, WeightedTensor]:
+        z = (x.value - loc) / scale
+        LOG_2PI = torch.log(torch.tensor(2 * torch.pi))
+
+        nll = 0.5 * z ** 2 + torch.log(scale) + LOG_2PI
+        #nll = 0.5 * torch.sum(z**2 + 2 * torch.log(scale) + torch.log(2 * torch.pi), dim=-1)
+        grad = z / scale
+        return WeightedTensor(nll, x.weight), WeightedTensor(grad, x.weight)
+
 
 # class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
 #    """
@@ -391,7 +498,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 #        return torch.tensor([probs])
 
 
-class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
+class MixtureNormalFamily(StatelessDistributionFamily):
     """
     Mixture normal family (stateless).
     Same functionality with the normal family but we have a set of parameters for every cluster c.
@@ -426,6 +533,7 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         dist = cls.dist_factory(*params)
 
         return dist.sample(sample_shape)
+        #return dist.sample([1])
 
     @classmethod
     def set_component_distribution(
@@ -469,163 +577,97 @@ class MixtureNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         return prob, loc, scale
 
     @classmethod
-    def compute_probs_ind(cls, *, state: State) -> torch.Tensor:
-        probs_ind = state['probs_ind']  # from the previous iteration
-        n_inds = probs_ind.size()[0]
-        n_clusters = probs_ind.size()[1]
-        probs = probs_ind.sum(dim=0) / n_inds  # from the previous iteration
-        #probs = state['probs'] #maybe this?
-        nll_ind = state['nll_attach_y']
-        nll_random = probs * (
-                state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
+    def mode(cls, x: WeightedTensor, probs: torch.Tensor,) -> torch.Tensor:
 
-        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
-        nominator = probs * nll_ind * nll_random
-        for c in range(n_clusters):
-            probs_ind[:, c] = nominator[:, c] / denominator
-
-        return probs_ind
-
-    @classmethod
-    def compute_probs(cls) -> torch.Tensor:
-        """
-        Update rule for the probabilities of occurrence of each cluster.
-        -------
-        Returns
-        -------
-        probs : an 1D tensor (n_cluster)
-        with the probabilities of occurrence of each cluster
-        """
-        probs_ind = cls.compute_probs_ind(state=State)
-
-        return probs_ind.sum(dim=0) / probs_ind.size()[0]
-    """
-    @classmethod
-    def compute_nll_cluster(
-        cls,
-        which_cluster: int,
-        x: WeightedTensor,
-    ) -> WeightedTensor:
-        
-        prob, loc, scale = cls.extract_cluster_parameters(which_cluster)
-        nll_cluster = -1 * (
-            prob * 0.5 * ((x.value - loc) / scale) ** 2
-            + prob * torch.log(scale)
-            + prob * cls.nll_constant_standard
-        )
-        return WeightedTensor(nll_cluster, x.weight)
+        return (probs * x.value).mode(dim=0)
 
     @classmethod
     def _nll(
-        cls,
-        x: WeightedTensor,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
-        probs: torch.Tensor,
-        *params: torch.Tensor,
+            cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor, probs: torch.Tensor,
     ) -> WeightedTensor:
-        
-        n_clusters = cls.extract_n_clusters(loc, scale, probs)
-        weighted_nll = 0
-        for cluster_id in range(n_clusters):
-            weighted_nll = weighted_nll + cls.compute_nll_cluster(cluster_id, x)
-        return weighted_nll
 
-    @classmethod
-    def _nll_jacobian_cluster(
-        cls,
-        x: WeightedTensor,
-        which_cluster: int,
-    ) -> WeightedTensor:
-        prob, loc, scale = cls.extract_cluster_parameters(which_cluster)
-        return WeightedTensor(-1 * prob * (x.value - loc) / scale**2, x.weight)
+        z_list = []
+
+        if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
+            n_clusters = loc.shape[1]
+
+            for i in range(n_clusters):
+                z_cluster = (x.value - loc[:, i]) / scale  # shape: [n_inds, n_sources]
+                z_list.append(z_cluster)
+
+            z = torch.stack(z_list, dim=-1)  # shape: [n_inds, n_sources, n_clusters]
+
+        else:  # for tau and xi
+            n_clusters = loc.shape[0]
+
+            for i in range(n_clusters):
+                #print(scale)
+                z_cluster = ((x.value - loc[i]) / scale[i]).squeeze(1)  # shape: [n_inds]
+                z_list.append(z_cluster)
+
+            z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
+
+        return WeightedTensor((0.5 * probs * z ** 2
+                               + torch.log(scale)
+                               + cls.nll_constant_standard),x.weight,)
 
     @classmethod
     def _nll_jacobian(
-        cls,
-        x: WeightedTensor,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
-        probs: torch.Tensor,
-        *params: torch.Tensor,
+            cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor, probs:torch.Tensor,
     ) -> WeightedTensor:
-        n_clusters = cls.extract_probs.size(0)
-        weighted_jacobian = 0
-        for c in range(n_clusters):
-            weighted_jacobian = weighted_jacobian + cls._nll_jacobian_cluster(x, c)
 
-        return weighted_jacobian
+        z_list = []
+
+        if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
+            n_clusters = loc.shape[1]
+
+            for i in range(n_clusters):
+                z_cluster = (x.value - loc[:, i]) / scale ** 2 # shape: [n_inds, n_sources]
+                z_list.append(z_cluster)
+
+            z = torch.stack(z_list, dim=-1)  # shape: [n_inds, n_sources, n_clusters]
+
+        else:  # for tau and xi
+            n_clusters = loc.shape[0]
+
+            for i in range(n_clusters):
+                z_cluster = ((x.value - loc[i]) / scale[i] ** 2).squeeze(1)  # shape: [n_inds]
+                z_list.append(z_cluster)
+
+            z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
+
+        return WeightedTensor(probs * z, x.weight)
 
     @classmethod
     def _nll_and_jacobian(
-        cls,
-        x: WeightedTensor,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
-        probs: torch.Tensor,
-        *params: torch.Tensor,
-    ) -> tuple[WeightedTensor, WeightedTensor]:
-        return cls._nll(x, loc, scale, probs), cls._nll_jacobian(x, loc, scale, probs)
-
-    @classmethod
-    def compute_nll_cluster_random_effects(
-            cls,
-            probs_ind: torch.Tensor,
-            tau : torch.Tensor,
-            xi : torch.Tensor,
-            sources : torch.Tensor) -> torch.Tensor :
-
-        # the estimated for every cluster
-        tau_std = torch.std(tau)
-        tau_mean = torch.mean(tau)
-        xi_std = torch.std(xi)
-        xi_mean = torch.mean(xi)
-        sources_mean = torch.mean(sources)
-        n_sources = sources_mean.size()[0]
-
-        nll_tau = (probs_ind * torch.log(tau_std) + probs_ind * cls.nll_constant_standard +
-                   (0.5 * probs_ind * ((tau - tau_mean)/tau_std)**2))
-        nll_xi = (probs_ind * torch.log(xi_std) + probs_ind * cls.nll_constant_standard +
-                  (0.5 * probs_ind * ((xi - xi_mean) / xi_std) ** 2))
-        nll_sources =  n_sources * cls.nll_constant_standard + (
-                    0.5 * probs_ind * (sources - sources_mean) ** 2)
-
-        return - nll_tau - nll_xi - nll_sources
-
-    @classmethod
-    def compute_nll_cluster_ind(
             cls,
             x: WeightedTensor,
-            probs: torch.Tensor,
             loc: torch.Tensor,
-            scale: torch.Tensor,) -> torch.Tensor:
+            scale: torch.Tensor,
+            probs: torch.Tensor,
+    ) -> tuple[WeightedTensor, WeightedTensor]:
+        z_list = []
 
-        nll_ind = probs * torch.log(scale) + probs * cls.nll_constant_standard + (0.5 * probs * ((x.value - loc) / scale) ** 2)
+        if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
+            n_clusters = loc.shape[1]
 
-        return -nll_ind
+            for i in range(n_clusters):
+                z_cluster = (x.value - loc[:, i]) / scale  # shape: [n_inds, n_sources]
+                z_list.append(z_cluster)
 
-    @classmethod
-    def compute_prob_ind(cls,
-                         x: WeightedTensor,
-                         probs: torch.Tensor,
-                         loc: torch.Tensor,
-                         scale: torch.Tensor,
-                         tau: torch.Tensor,
-                         xi: torch.Tensor,
-                         sources: torch.Tensor,
-                         probs_ind=None) -> torch.Tensor:
+            z = torch.stack(z_list, dim=-1)  # shape: [n_inds, n_sources, n_clusters]
 
-        n_clusters = probs_ind.size()[1]
-        nll_ind = cls.compute_nll_cluster_ind(x, probs, loc, scale)
-        nll_random = cls.compute_nll_cluster_random_effects(probs, tau, xi, sources)
+        else:  # for tau and xi
+            n_clusters = loc.shape[0]
 
-        denominator = (probs * nll_ind * nll_random).sum(dim=1) #sum for all the clusters
-        nominator = probs * nll_ind * nll_random
-        for c in range(n_clusters):
-            probs_ind[:,c] = nominator[:,c]/denominator
+            for i in range(n_clusters):
+                z_cluster = ((x.value - loc[i]) / scale[i]).squeeze(1)  # shape: [n_inds]
+                z_list.append(z_cluster)
 
-        return probs_ind
-"""
+            z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
+
+        nll = 0.5 * probs * z ** 2 + torch.log(scale) + cls.nll_constant_standard
+        return WeightedTensor(nll, x.weight), WeightedTensor(probs * z / scale, x.weight)
 
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
@@ -1034,6 +1076,25 @@ class SymbolicDistribution:
         """
         return self.get_func("sample", sample_shape=sample_shape)
 
+    def get_func_sample_multivariate(
+        self, sample_shape: tuple[int, ...] = ()
+    ) -> NamedInputFunction[torch.Tensor]:
+        """
+        Factory of symbolic sampling function.
+
+        Parameters
+        ----------
+        sample_shape : tuple of int, optional
+            The shape of the sample.
+            Default=().
+
+        Returns
+        -------
+        NamedInputFunction :
+            The sample function.
+        """
+        return self.get_func("sample", sample_shape=torch.Size([sample_shape]))
+
     def get_func_regularization(
         self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
@@ -1149,6 +1210,7 @@ class SymbolicDistribution:
 Normal = SymbolicDistribution.bound_to(NormalFamily)
 # Categorical = SymbolicDistribution.bound_to(CategoricalFamily)
 MixtureNormal = SymbolicDistribution.bound_to(MixtureNormalFamily)
+MultivariateNormal = SymbolicDistribution.bound_to(MultivariateNormalFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
 WeibullRightCensoredWithSources = SymbolicDistribution.bound_to(
