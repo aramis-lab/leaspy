@@ -1,7 +1,7 @@
 import math
 import warnings
 from abc import abstractmethod
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Dict
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,8 @@ from leaspy.models.abstract_model import AbstractModel, InitializationMethod
 from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.base import InitializationMethod
 from leaspy.models.multivariate import LogisticMultivariateModel
+from pandas import Categorical
+
 from leaspy.models.obs_models import (
     FullGaussianObservationModel,
     MixtureGaussianObservationModel,
@@ -30,9 +32,10 @@ from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import MixtureNormal, Normal
+from leaspy.variables.distributions import MixtureNormal, Normal, MultivariateNormal
+#from torch.distributions import Categorical as TorchCategorical
 from leaspy.variables.distributions import MultinomialDistribution as Multinomial
-from leaspy.variables.specs import (
+from leaspy.variables.specs import (#
     Hyperparameter,
     IndividualLatentVariable,
     LinkedVariable,
@@ -41,6 +44,13 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     SuffStatsRW,
     VariablesValuesRO,
+)
+
+from leaspy.variables.specs import (
+    LVL_FT,
+    Collect,
+    VariableInterface,
+    VarName,
 )
 from leaspy.variables.state import State
 
@@ -62,7 +72,8 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
     @property
     def xi_mean(self) -> torch.Tensor:
-        return torch.tensor([self._xi_mean] * self.n_clusters)
+        #return torch.tensor([self._xi_mean] * self.n_clusters)
+        return torch.tensor([2 if i % 2 == 0 else -2 for i in range(self.n_clusters)])
 
     @property
     def xi_std(self) -> torch.Tensor:
@@ -78,15 +89,26 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
     @property
     def sources_mean(self) -> torch.Tensor:
-        return torch.zeros(
-            self.source_dimension, self.n_clusters
-        )  # be careful with the dimensions
+        #return torch.zeros(self.source_dimension, self.n_clusters)  # be careful with the dimensions
+        return torch.tensor([[1 if (i + j) % 2 == 0 else -1 for j in range(self.n_clusters)]
+                             for i in range(self.source_dimension)])
 
     @property
     def sources_std(self) -> torch.Tensor:
-        return torch.Tensor(
-            [self._sources_std] * self.n_clusters
-        )  # not sure it's working, it was float before
+        return torch.ones(
+            self.source_dimension, self.n_clusters
+        )
+
+        #@property
+    #def sources_std(self) -> torch.Tensor:
+    #    return torch.Tensor(
+    #        [self._sources_std] * self.n_clusters
+    #    )  # not sure it's working, it was float before
+
+    #@property
+    #def sources_std(self) -> float:
+    #    return self._sources_std
+
 
     def __init__(self, name: str, **kwargs):
         # n_clusters = kwargs.get('n_clusters', None)
@@ -101,8 +123,10 @@ class AbstractMultivariateMixtureModel(AbstractModel):
             dimension = len(kwargs["features"])
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
-            observation_models = "mixture-gaussian"
-        if observation_models == "mixture-gaussian":
+            #observation_models = "mixture-gaussian"
+            observation_models = "gaussian-diagonal"
+        #if observation_models == "mixture-gaussian":
+        if observation_models == "gaussian-diagonal":
             if n_clusters < 2:
                 raise LeaspyInputError(
                     "Number of clusters should be at least 2 to fit a mixture model"
@@ -146,20 +170,19 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
         d.update(
             # PRIORS
-            tau_mean=ModelParameter.for_ind_mean("tau", shape=(self.n_clusters,)),
-            tau_std=ModelParameter.for_ind_std("tau", shape=(self.n_clusters,)),
-            xi_mean=ModelParameter.for_ind_mean("xi", shape=(self.n_clusters,)),
-            xi_std=ModelParameter.for_ind_std("xi", shape=(self.n_clusters,)),
+            tau_mean=ModelParameter.for_ind_mean_mixture("tau", shape=(self.n_clusters,)),
+            tau_std=ModelParameter.for_ind_std_mixture("tau", shape=(self.n_clusters,)),
+            xi_mean=ModelParameter.for_ind_mean_mixture("xi", shape=(self.n_clusters,)),
+            xi_std=ModelParameter.for_ind_std_mixture("xi", shape=(self.n_clusters,)),
+            probs = ModelParameter.for_probs(shape=self.n_clusters),
             # LATENT VARS
-            # xi=IndividualLatentVariable(MixtureNormal("probs","xi_mean","xi_std"))
-            # xi=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("xi_mean", "xi_std"))), # change to probs only after correct calculations in the observational model
-            xi=IndividualLatentVariable(MixtureNormal("xi_mean", "xi_std", "probs")),
-            tau=IndividualLatentVariable(MixtureNormal("tau_mean", "tau_std", "probs")),
-            # tau=IndividualLatentVariable(MixtureNormal(Categorical("probs"), Normal("tau_mean", "tau_std"))),
+            xi=IndividualLatentVariable(MixtureNormal("xi_mean", "xi_std", "probs"),
+                                        sampling_kws={"scale": 10},),
+            tau=IndividualLatentVariable(MixtureNormal("tau_mean", "tau_std", "probs"),
+                                         sampling_kws={"scale": 10},),
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
-            # probs_ind=LinkedVariable(self.compute_probs_ind), -> passed to the observational model
-            # probs = LinkedVariable(self.compute_probs) -> passed to the observational model
+            #probs=LinkedVariable(self.compute_probs),
         )
 
         if self.source_dimension >= 1:
@@ -170,20 +193,23 @@ class AbstractMultivariateMixtureModel(AbstractModel):
                     shape=(self.dimension - 1, self.source_dimension),
                 ),
                 betas_std=Hyperparameter(0.01),
-                sources_mean=ModelParameter.for_pop_mean(
-                    pop_var_name="sources",
-                    shape=(self.source_dimension, self.n_clusters),
+                sources_mean=ModelParameter.for_ind_mean_mixture(
+                    "sources",
+                    shape=(self.source_dimension, self.n_clusters,),
                 ),
-                sources_std=Hyperparameter(torch.ones(self.n_clusters)),
+                #sources_std=Hyperparameter(self.sources_std),
+                sources_std=Hyperparameter(1.0),
                 # LATENT VARS
                 betas=PopulationLatentVariable(
                     Normal("betas_mean", "betas_std"),
                     sampling_kws={"scale": 0.5},
                 ),
-                # sources=IndividualLatentVariable(MixtureNormal(Categorical("probs"),Normal("sources_mean", "sources_std"))),
-                sources=IndividualLatentVariable(
-                    MixtureNormal("sources_mean", "sources_std", "probs")
-                ),
+                sources=IndividualLatentVariable(MixtureNormal("sources_mean", "sources_std", "probs"),
+                                                 sampling_kws={"scale": 10}),
+                #sources=IndividualLatentVariable(MultivariateNormal(
+                #    "sources_mean", "sources_std"
+                #)
+                #),
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(
                     MatMul("orthonormal_basis", "betas").then(torch.t)
@@ -194,35 +220,6 @@ class AbstractMultivariateMixtureModel(AbstractModel):
             )
 
         return d
-
-    # PASSED TO OBSERVATIONAL MODEL
-
-    # @staticmethod
-    #    def compute_probs_ind(*, state: State) -> torch.Tensor:
-
-    #        probs_ind = state['probs_ind']
-    #        n_inds = probs_ind.size()[0]
-    #        n_clusters = probs_ind.size()[1]
-    #        probs = probs_ind.sum(dim=0) / n_inds
-    #        nll_ind = state['nll_attach_y']
-    #        nll_random = probs * (
-    #                    state['nll_regul_xi_ind'] + state['nll_regul_tau_ind'] + state['nll_regul_sources_ind'])
-
-    #        denominator = (probs * nll_ind * nll_random).sum(dim=1)  # sum for all the clusters
-    #        nominator = probs * nll_ind * nll_random
-    #        for c in range(n_clusters):
-    #            probs_ind[:, c] = nominator[:, c] / denominator
-
-    #        return probs_ind
-
-    #    @staticmethod
-    #    def compute_probs(*, state: State) -> torch.Tensor:
-
-    #        probs_ind = state['probs_ind']
-    #        n_inds = probs_ind.size()[0]
-    #        probs = probs_ind.sum(dim=0) / n_inds
-
-    #        return probs
 
     def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
         """
@@ -278,6 +275,37 @@ class AbstractMultivariateMixtureModel(AbstractModel):
                 f"Number of clusters should be an integer greater than 2 "
                 f"but you provided `n_clusters` = {self.n_clusters} "
             )
+
+    def put_individual_parameters(self, state: State, dataset: Dataset):
+        df = dataset.to_pandas().reset_index("TIME").groupby("ID").min()
+
+        # Initialise individual parameters if they are not already initialised
+        if not state.are_variables_set(("xi", "tau")):
+            df_ind = df["TIME"].to_frame(name="tau")
+            df_ind["xi"] = 0.0
+        else:
+            df_ind = pd.DataFrame(
+                torch.concat([state["xi"], state["tau"]], axis=1),
+                columns=["xi", "tau"],
+                index=df.index,
+            )
+
+        # Set the right initialisation point fpr barrier methods -JOINTMODEL
+        #df_inter = pd.concat(
+        #    [df["EVENT_TIME"] - self.init_tolerance, df_ind["tau"]], axis=1
+        #)
+        #df_ind["tau"] = df_inter.min(axis=1)
+
+        if self.source_dimension > 0:
+            for i in range(self.source_dimension):
+                df_ind[f"sources_{i}"] = 0.0
+
+        #if self.n_clusters > 0:
+        #    for i in range(self.n_clusters):
+        #        df_ind[f"probs_{i}"] = 1/self.n_clusters
+
+        with state.auto_fork(None):
+            state.put_individual_latent_variables(df=df_ind)
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """
@@ -379,14 +407,13 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
             "nll_regul_all_sum",
             "nll_tot",
             # specific to the mixture model :
-            # "probs_ind", ---> transfered to the obervational model
-            "probs",
-            "probs_ind",
-            "nll_attach_ind",
-            "nll_regul_tau",
-            "nll_regul_tau_ind",
-            "nll_regul_xi",
-            "nll_regul_xi_ind",
+            #"probs",
+            #"probs_ind",
+            ##"nll_attach_ind",
+            ##"nll_regul_tau",
+            ##"nll_regul_tau_ind",
+            ##"nll_regul_xi",
+            ##"nll_regul_xi_ind",
         ]
 
         if self.source_dimension:
@@ -396,12 +423,14 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
                 "mixing_matrix",
                 "space_shifts",
                 "sources_mean",
-                "nll_regul_sources",
-                "nll_regul_sources_ind",
+                ##"nll_regul_sources",
+                ##"nll_regul_sources_ind",
             ]  # specific to the mixture model
 
         variables_to_track = variables_to_track or default_variables_to_track
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
+
+        self.tracked_variables_ordered = variables_to_track
 
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:
@@ -602,7 +631,8 @@ class LogisticMultivariateMixtureInitializationMixin:
                 str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
             }
             obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
-            if isinstance(obs_model, MixtureGaussianObservationModel):
+            #if isinstance(obs_model, MixtureGaussianObservationModel):
+            if isinstance(obs_model, FullGaussianObservationModel):
                 rounded_parameters["noise_std"] = self.noise_std.expand(
                     obs_model.extra_vars["noise_std"].shape
                 )
@@ -658,52 +688,4 @@ class LogisticMultivariateMixtureModel(
         )
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
 
-    @classmethod
-    def compute_nll_cluster_random_effects(
-        cls,
-        probs_ind: torch.Tensor,
-        tau: torch.Tensor,
-        xi: torch.Tensor,
-        sources: torch.Tensor,
-    ) -> torch.Tensor:
-        # the estimated for every cluster
-        tau_std = cls.tau_std
-        tau_mean = cls.tau_mean
-        xi_std = cls.xi_std
-        xi_mean = cls.xi_mean
-        sources_mean = cls.sources_mean
-        n_sources = sources_mean.size()[0]
-        nll_constant_standard = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
-        nll_tau = (
-            probs_ind * torch.log(tau_std)
-            + probs_ind * nll_constant_standard
-            + (0.5 * probs_ind * ((tau - tau_mean) / tau_std) ** 2)
-        )
-        nll_xi = (
-            probs_ind * torch.log(xi_std)
-            + probs_ind * nll_constant_standard
-            + (0.5 * probs_ind * ((xi - xi_mean) / xi_std) ** 2)
-        )
-        nll_sources = n_sources * nll_constant_standard + (
-            0.5 * probs_ind * (sources - sources_mean) ** 2
-        )
-
-        return -nll_tau - nll_xi - nll_sources
-
-    @classmethod
-    def compute_nll_cluster_ind(
-        cls,
-        x: WeightedTensor,
-        probs: torch.Tensor,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
-    ) -> torch.Tensor:
-        nll_constant_standard = 0.5 * torch.log(2 * torch.tensor(math.pi))
-        nll_ind = (
-            probs * torch.log(scale)
-            + probs * nll_constant_standard
-            + (0.5 * probs * ((x.value - loc) / scale) ** 2)
-        )
-
-        return -nll_ind

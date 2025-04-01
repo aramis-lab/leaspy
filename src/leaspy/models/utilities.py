@@ -8,6 +8,18 @@ import torch
 
 from leaspy.exceptions import LeaspyConvergenceError
 from leaspy.utils.weighted_tensor import WeightedTensor
+from leaspy.utils.functional import (
+    Identity,
+    Mean,
+    Prod,
+    NamedInputFunction,
+    Sqr,
+    Std,
+    Sum,
+    SumDim,
+    MatMul,
+    get_named_parameters,
+)
 
 __all__ = [
     "tensorize_2D",
@@ -22,7 +34,101 @@ __all__ = [
     "compute_patient_time_distribution",
     "get_log_velocities",
     "torch_round",
+    "compute_ind_param_mean_from_suff_stats_mixture",
+    "compute_ind_param_std_from_suff_stats_mixture",
+    "compute_ind_param_std_from_suff_stats_mixture_burn_in",
+    "compute_probs_from_state",
 ]
+
+def tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
+    """Convert a scalar or array_like into an, at least 2D, dtype tensor.
+
+    Parameters
+    ----------
+    x : scalar or array_like
+        Element to be tensorized.
+
+    unsqueeze_dim : :obj:`int`
+        Dimension to be unsqueezed (0 or -1).
+        Meaningful for 1D array-like only (for scalar or vector
+        of length 1 it has no matter).
+
+    Returns
+    -------
+    :class:`torch.Tensor`, at least 2D
+
+    Examples
+    --------
+    >>> tensorize_2D([1, 2], 0) == tensor([[1, 2]])
+    >>> tensorize_2D([1, 2], -1) == tensor([[1], [2])
+    """
+    # convert to torch.Tensor if not the case
+    if not isinstance(x, torch.Tensor):
+        x = torch.tensor(x, dtype=dtype)
+    # convert dtype if needed
+    if x.dtype != dtype:
+        x = x.to(dtype)
+    # if tensor is less than 2-dimensional add dimensions
+    while x.dim() < 2:
+        x = x.unsqueeze(dim=unsqueeze_dim)
+    # postcondition: x.dim() >= 2
+    return x
+
+
+def val_to_tensor(val, shape: Optional[tuple] = None):
+    if not isinstance(val, (torch.Tensor, WeightedTensor)):
+        val = torch.tensor(val)
+    if shape is not None:
+        val = val.view(shape)  # no expansion here
+    return val
+
+
+def serialize_tensor(v, *, indent: str = "", sub_indent: str = "") -> str:
+    """Nice serialization of floats, torch tensors (or numpy arrays)."""
+    from torch._tensor_str import PRINT_OPTS as torch_print_opts
+
+    if isinstance(v, (str, bool, int)):
+        return str(v)
+    if isinstance(v, np.ndarray):
+        return str(v.tolist())
+    if isinstance(v, float) or getattr(v, "ndim", -1) == 0:
+        # for 0D tensors / arrays the default behavior is to print all digits...
+        # change this!
+        return f"{v:.{1 + torch_print_opts.precision}g}"
+    if isinstance(v, (list, frozenset, set, tuple)):
+        try:
+            return serialize_tensor(
+                torch.tensor(list(v)), indent=indent, sub_indent=sub_indent
+            )
+        except Exception:
+            return str(v)
+    if isinstance(v, dict):
+        if not len(v):
+            return ""
+        subs = [
+            f"{p} : "
+            + serialize_tensor(vp, indent="  ", sub_indent=" " * len(f"{p} : ["))
+            for p, vp in v.items()
+        ]
+        lines = [indent + _ for _ in "\n".join(subs).split("\n")]
+        return "\n" + "\n".join(lines)
+    # torch.tensor, np.array, ...
+    # in particular you may use `torch.set_printoptions` and `np.set_printoptions` globally
+    # to tune the number of decimals when printing tensors / arrays
+    v_repr = str(v)
+    # remove tensor prefix & possible device/size/dtype suffixes
+    v_repr = re.sub(r"^[^\(]+\(", "", v_repr)
+    v_repr = re.sub(r"(?:, device=.+)?(?:, size=.+)?(?:, dtype=.+)?\)$", "", v_repr)
+    # adjust justification
+    return re.sub(r"\n[ ]+([^ ])", rf"\n{sub_indent}\1", v_repr)
+
+
+def is_array_like(v: Any) -> bool:
+    try:
+        len(v)  # exclude np.array(scalar) or torch.tensor(scalar)
+        return hasattr(v, "__getitem__")  # exclude set
+    except Exception:
+        return False
 
 
 def tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
@@ -184,6 +290,113 @@ def compute_std_from_variance(
         )
 
     return variance.sqrt()
+
+
+def compute_ind_param_std_from_suff_stats(
+    state: Dict[str, torch.Tensor],
+    ip_values: torch.Tensor,
+    ip_sqr_values: torch.Tensor,
+    *,
+    ip_name: str,
+    dim: int,
+    **kws,
+):
+    """
+    Maximization rule, from the sufficient statistics, of the standard-deviation
+    of Gaussian prior for individual latent variables.
+
+    Parameters
+    ----------
+    state : Dict[str, torch.Tensor]
+    ip_values : torch.Tensor
+    ip_sqr_values : torch.Tensor
+    ip_name : str
+    dim : int
+    """
+    ip_old_mean = state[f"{ip_name}_mean"]
+    ip_cur_mean = torch.mean(ip_values, dim=dim)
+    ip_var_update = torch.mean(ip_sqr_values, dim=dim) - 2 * ip_old_mean * ip_cur_mean
+    ip_var = ip_var_update + ip_old_mean**2
+    return compute_std_from_variance(ip_var, varname=f"{ip_name}_std", **kws)
+
+def compute_ind_param_mean_from_suff_stats_mixture(
+        state: Dict[str, torch.Tensor],
+        *,
+        ip_name: str,
+) -> torch.Tensor:
+
+    ind_var = state[f"{ip_name}"]
+    probs = state["probs"]
+
+    if ip_name == 'sources' : #special treatement due to the extra dimension
+        ind_var_expanded = ind_var.unsqueeze(-1)
+        probs_expanded = probs.view(1,1,-1)
+        result = ind_var_expanded * probs_expanded
+    else:
+        result = probs * ind_var
+
+    return result.mean(dim=0)
+
+def compute_ind_param_std_from_suff_stats_mixture(
+    state: Dict[str, torch.Tensor],
+    ip_values: torch.Tensor,
+    ip_sqr_values: torch.Tensor,
+    *,
+    ip_name: str,
+    dim: int,
+    **kws,
+):
+
+    ip_old_mean = state[f"{ip_name}_mean"]
+    ip_cur_mean = torch.mean(ip_values, dim=0)
+    ip_var_update = torch.mean(ip_sqr_values, dim=0) - 2 * ip_old_mean * ip_cur_mean
+    ip_var = ip_var_update + ip_old_mean**2
+    std = ip_var.sqrt()
+
+    probs = state["probs"]
+
+    result = probs * std
+
+    return result
+
+def compute_ind_param_std_from_suff_stats_mixture_burn_in(
+        state: Dict[str, torch.Tensor],
+        *,
+        ip_name: str,
+) -> torch.Tensor:
+
+    ind_var = state[f"{ip_name}"]
+    probs = state["probs"]
+
+    result = probs * ind_var
+
+    return result.std(dim=0)
+
+def compute_probs_from_state(
+        state: Dict[str, torch.Tensor],
+) -> torch.Tensor:
+
+    probs = state["probs"]
+    n_clusters = probs.shape[0]
+    nll_attach_ind = state["nll_attach_ind"]
+    n_inds = nll_attach_ind.shape[0]
+    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+
+    probs = probs.view(1, n_clusters)
+    nll_attach_ind = nll_attach_ind.view(n_inds, 1)
+    nll_cluster = probs * nll_attach_ind * nll_regul_ind_sum_ind
+
+    nominator = nll_cluster
+    denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
+    probs_list = []
+
+    for id_cluster in range(nominator.shape[1]):
+        probs_ind_cluster = nominator[:, id_cluster] / denominator
+        probs_list.append(probs_ind_cluster)
+
+    probs_ind = torch.stack(probs_list, dim=1)
+
+    return probs_ind.sum(dim=0) / n_inds
 
 
 def compute_patient_slopes_distribution(

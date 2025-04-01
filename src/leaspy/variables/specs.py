@@ -20,9 +20,17 @@ from typing import (
 import torch
 
 from leaspy.exceptions import LeaspyModelInputError
+from leaspy.models.utilities import (
+    compute_ind_param_std_from_suff_stats,
+    compute_ind_param_mean_from_suff_stats_mixture,
+    compute_ind_param_std_from_suff_stats_mixture,
+    compute_ind_param_std_from_suff_stats_mixture_burn_in,
+    compute_probs_from_state,
+)
 from leaspy.utils.functional import (
     Identity,
     Mean,
+    Prod,
     NamedInputFunction,
     Sqr,
     Std,
@@ -63,6 +71,7 @@ __all__ = [
     "LinkedVariable",
     "NamedVariables",
 ]
+
 
 VariableName = str
 VariableValue = TensorOrWeightedTensor[float]
@@ -309,12 +318,13 @@ class ModelParameter(IndepVariable):
             suff_stats=Collect(population_variable_name),
             update_rule=Identity(population_variable_name),
         )
-
+    
     @classmethod
     def for_ind_mean(
         cls, individual_variable_name: VariableName, shape: tuple[int, ...]
     ):
         """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of an individual latent variable."""
+
         return cls(
             shape,
             suff_stats=Collect(individual_variable_name),
@@ -322,11 +332,33 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_ind_std(
-        cls, individual_variable_name: VariableName, shape: tuple[int, ...], **tol_kw
-    ):
-        """Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian prior of an individual latent variable."""
-        individual_variance_sqr_name = f"{individual_variable_name}_sqr"
+    def for_ind_mean_mixture(cls,
+                             ind_var_name: VariableName ,shape: Tuple[int, ...],):
+        """
+        Smart automatic definition of `ModelParameter` when it is the mean of a mixture of Gaussians
+        prior of an individual latent variable.
+        Extra handling to keep one mean per cluster
+        """
+        update_rule_mixture = NamedInputFunction(
+            compute_ind_param_mean_from_suff_stats_mixture,
+            parameters = ("state",),
+            kws=dict(ip_name = ind_var_name)
+        )
+
+        return cls(
+            shape,
+            suff_stats=Collect(ind_var_name),
+            update_rule=update_rule_mixture,
+        )
+
+   
+    @classmethod
+    def for_ind_std(cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw):
+        """
+        Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
+        prior of an individual latent variable.
+        """
+        ind_var_sqr_name = f"{ind_var_name}_sqr"
         update_rule_normal = NamedInputFunction(
             compute_individual_parameter_std_from_sufficient_statistics,
             parameters=(
@@ -354,7 +386,46 @@ class ModelParameter(IndepVariable):
             update_rule=update_rule_normal,
         )
 
+    @classmethod
+    def for_ind_std_mixture(cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw):
+        """
+        Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
+        prior of an individual latent variable.
+        """
+        ind_var_sqr_name = f"{ind_var_name}_sqr"
+        update_rule_mixture = NamedInputFunction(
+            compute_ind_param_std_from_suff_stats_mixture,
+            parameters=("state", ind_var_name, ind_var_sqr_name),
+            kws=dict(ip_name=ind_var_name, dim=LVL_IND, **tol_kw),
+        )
+        update_rule_mixture_burn_in =  NamedInputFunction(
+            compute_ind_param_std_from_suff_stats_mixture_burn_in,
+            parameters = ("state",),
+            kws=dict(ip_name = ind_var_name)
+        )
+        return cls(
+            shape,
+            suff_stats=Collect(
+                ind_var_name, **{ind_var_sqr_name: LinkedVariable(Sqr(ind_var_name))}
+            ),
+            update_rule_burn_in=update_rule_mixture_burn_in,
+            update_rule=update_rule_mixture,
+        )
 
+    @classmethod
+    def for_probs(cls, shape: Tuple[int, ...],):
+
+        update_rule_probs = NamedInputFunction(
+            compute_probs_from_state,
+            parameters = ("state",),
+        )
+
+        return cls(
+            shape,
+            suff_stats= Collect(),
+            update_rule= update_rule_probs,
+        )
+    
 @dataclass(frozen=True)
 class DataVariable(IndepVariable):
     """Variables for input data, that may be reset."""
@@ -394,7 +465,23 @@ class LatentVariable(IndepVariable):
                 f"Shapes of some prior distribution parameters are not fixed: {bad_params}"
             )
         params_shapes = {n: named_vars[n].shape for n in self.prior.parameters_names}
-        return self.prior.shape(**params_shapes)
+        res = self.prior.shape(**params_shapes) # before it returned only this
+        # some changes needed to handle the parameters in mixture,
+        # it sampled with shape n_clusters for the individual latent parameters if we leave it as before
+        # the correct sample.size is like in the classic model,
+        # the latent individual variables do not have an extra dimension
+        if 'Mixture' in str(self.prior):
+            name = str([self.prior.parameters_names[0]])
+            if 'sources' in name:
+                shape_to_modif = self.prior.shape(**params_shapes)
+                res = torch.Size(shape_to_modif [:1])
+            if 'tau' in name:
+                shape_to_modif = torch.Size([1])
+                res = shape_to_modif
+            if 'xi' in name:
+                shape_to_modif = torch.Size([1])
+                res = shape_to_modif
+        return res
 
     def _get_init_func_generic(
         self,
@@ -529,20 +616,46 @@ class IndividualLatentVariable(LatentVariable):
         """
         # d = super().get_regularity_variables(value_name)
         d = {}
-        d.update(
-            {
-                f"nll_regul_{variable_name}_ind": LinkedVariable(
-                    # SumDim(f"nll_regul_{value_name}_full", but_dim=LVL_IND)
-                    self.prior.get_func_regularization(variable_name).then(
-                        sum_dim, but_dim=LVL_IND
-                    )
-                ),
-                f"nll_regul_{variable_name}": LinkedVariable(
-                    SumDim(f"nll_regul_{variable_name}_ind")
-                ),
-                # TODO: jacobian as well...
-            }
-        )
+        if 'Mixture' in str(self.prior): #specification for the mixture model : we don't want to sum all dimensions, we need one regularity per cluster
+            if variable_name == 'sources' :
+                d.update(
+                    {
+                        f"nll_regul_{variable_name}_ind": LinkedVariable(
+                            self.prior.get_func_regularization(variable_name).then(
+                                sum_dim, but_dim=(LVL_IND, 2) # sum per source but omit the cluster dimension as well
+                            )
+                        ),
+                        f"nll_regul_{variable_name}": LinkedVariable(
+                            SumDim(f"nll_regul_{variable_name}_ind")
+                        ),
+                    }
+                )
+            else :
+                d.update(
+                    {
+                        f"nll_regul_{variable_name}_ind": LinkedVariable(
+                            self.prior.get_func_regularization(variable_name)
+                        ), # keep it per cluster dont sum all dimensions
+                        f"nll_regul_{variable_name}": LinkedVariable(
+                            SumDim(f"nll_regul_{variable_name}_ind")
+                        ),
+                    }
+                )
+        else:
+            d.update(
+                {
+                    f"nll_regul_{variable_name}_ind": LinkedVariable(
+                        # SumDim(f"nll_regul_{value_name}_full", but_dim=LVL_IND)
+                        self.prior.get_func_regularization(variable_name).then(
+                            sum_dim, but_dim=LVL_IND
+                        )
+                    ),
+                    f"nll_regul_{variable_name}": LinkedVariable(
+                        SumDim(f"nll_regul_{variable_name}_ind")
+                    ),
+                    # TODO: jacobian as well...
+                }
+            )
         return d
 
 
