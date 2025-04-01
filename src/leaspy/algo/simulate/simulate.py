@@ -363,26 +363,30 @@ class SimulationAlgorithm(AbstractAlgo):
             #if np.isscalar(self.param_rm["parameters"]["noise_std"]):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
-                #var = self.param_rm["parameters"]["noise_std"] ** 2
-                var = model.parameters["noise_std"].numpy() * 1000
+                var = model.parameters["noise_std"].numpy() ** 2
+                #var = model.parameters["noise_std"].numpy()
             else:
                 mu = df_long[feat + "_no_noise"]
-                #var = self.param_rm["parameters"]["noise_std"][i] ** 2
-                var = model.parameters["noise_std"][i].numpy() * 1000
+                var = model.parameters["noise_std"][i].numpy() ** 2
+                #var = model.parameters["noise_std"][i].numpy()
 
             # Mean and sample size (P-E simulations)
             #alpha_param = mu * var
             #beta_param = (1 - mu) * var
 
             # Mean and variance parametrization
-            #alpha_param = mu * ((mu * (1 - mu) / var) - 1)
-            #beta_param = (1 - mu) * ((mu * (1 - mu) / var) - 1)
+            alpha_param = mu * ((mu * (1 - mu) / var) - 1)
+            beta_param = (1 - mu) * ((mu * (1 - mu) / var) - 1)
 
             # Mode and concentration parametrization
-            alpha_param = mu * (var - 2) + 1
-            beta_param = (1 - mu) * (var - 2) + 1
-            df_long[feat] = beta.rvs(alpha_param, beta_param)
+            # alpha_param = mu * (var - 2) + 1
+            # beta_param = (1 - mu) * (var - 2) + 1
 
+            # Add noise for values in the right range
+            invalid_mask = (alpha_param < 0) | (beta_param < 0)
+            valid_samples = beta.rvs(alpha_param[~invalid_mask], beta_param[~invalid_mask])
+            df_long.loc[~invalid_mask, feat] = valid_samples
+            
         dict_rm_rename = {
             "tau": "RM_TAU",
             "xi": "RM_XI",
