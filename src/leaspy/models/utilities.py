@@ -326,16 +326,21 @@ def compute_ind_param_mean_from_suff_stats_mixture(
 ) -> torch.Tensor:
 
     ind_var = state[f"{ip_name}"]
-    probs = state["probs"]
+    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+    nll_cluster = - nll_regul_ind_sum_ind
+
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
     if ip_name == 'sources' : #special treatement due to the extra dimension
         ind_var_expanded = ind_var.unsqueeze(-1)
-        probs_expanded = probs.view(1,1,-1)
+        probs_expanded = probs_ind.unsqueeze(1)
         result = ind_var_expanded * probs_expanded
     else:
-        result = probs * ind_var
+        result = probs_ind * ind_var
 
-    return result.mean(dim=0)
+    result = result.sum(dim=0) / probs_ind.sum(dim=0)
+
+    return result
 
 def compute_ind_param_std_from_suff_stats_mixture(
     state: Dict[str, torch.Tensor],
@@ -353,9 +358,12 @@ def compute_ind_param_std_from_suff_stats_mixture(
     ip_var = ip_var_update + ip_old_mean**2
     std = ip_var.sqrt()
 
-    probs = state["probs"]
+    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+    nll_cluster = - nll_regul_ind_sum_ind
 
-    result = probs * std
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+
+    result = (probs_ind * std).sum(dim=0) /probs_ind.sum(dim=0)
 
     return result
 
@@ -365,36 +373,41 @@ def compute_ind_param_std_from_suff_stats_mixture_burn_in(
         ip_name: str,
 ) -> torch.Tensor:
 
-    ind_var = state[f"{ip_name}"]
-    probs = state["probs"]
+    ind_var = state[f"{ip_name}"].std(dim=0)
+    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+    nll_cluster = - nll_regul_ind_sum_ind
 
-    result = probs * ind_var
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
-    return result.std(dim=0)
+    result = (probs_ind * ind_var).sum(dim=0) / probs_ind.sum(dim=0)
+
+    return result
 
 def compute_probs_from_state(
         state: Dict[str, torch.Tensor],
 ) -> torch.Tensor:
 
-    probs = state["probs"]
-    n_clusters = probs.shape[0]
-    nll_attach_ind = state["nll_attach_ind"]
-    n_inds = nll_attach_ind.shape[0]
+    #probs = state["probs"]
+    #n_clusters = probs.shape[0]
+    #nll_attach_ind = state["nll_attach_ind"]
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+    n_inds = nll_regul_ind_sum_ind.shape[0]
+    #n_clusters = nll_regul_ind_sum_ind.shape[1]
 
-    probs = probs.view(1, n_clusters)
-    nll_attach_ind = nll_attach_ind.view(n_inds, 1)
-    nll_cluster = probs * nll_attach_ind * nll_regul_ind_sum_ind
+    #probs = probs.view(1, n_clusters)
+    #nll_attach_ind = nll_attach_ind.view(n_inds, 1)
+    nll_cluster = - nll_regul_ind_sum_ind
 
-    nominator = nll_cluster
-    denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
-    probs_list = []
+    #nominator = nll_cluster
+    #denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
+    #probs_list = []
 
-    for id_cluster in range(nominator.shape[1]):
-        probs_ind_cluster = nominator[:, id_cluster] / denominator
-        probs_list.append(probs_ind_cluster)
+    #for id_cluster in range(nominator.shape[1]):
+    #    probs_ind_cluster = nominator[:, id_cluster] / denominator
+    #    probs_list.append(probs_ind_cluster)
 
-    probs_ind = torch.stack(probs_list, dim=1)
+    #probs_ind = torch.stack(probs_list, dim=1)
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
     return probs_ind.sum(dim=0) / n_inds
 
