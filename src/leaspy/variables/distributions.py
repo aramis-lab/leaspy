@@ -633,7 +633,7 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
             z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
 
-        return WeightedTensor((0.5 * probs * z ** 2
+        return WeightedTensor((0.5 * z ** 2
                                + torch.log(scale)
                                + cls.nll_constant_standard),x.weight,)
 
@@ -662,7 +662,7 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
             z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
 
-        return WeightedTensor(probs * z, x.weight)
+        return WeightedTensor(z, x.weight)
 
     @classmethod
     def _nll_and_jacobian(
@@ -692,8 +692,8 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
             z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
 
-        nll = 0.5 * probs * z ** 2 + torch.log(scale) + cls.nll_constant_standard
-        return WeightedTensor(nll, x.weight), WeightedTensor(probs * z / scale, x.weight)
+        nll = 0.5 * z ** 2 + torch.log(scale) + cls.nll_constant_standard
+        return WeightedTensor(nll, x.weight), WeightedTensor(z / scale, x.weight)
 
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
