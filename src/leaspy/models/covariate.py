@@ -375,9 +375,9 @@ class CovariateLogisticMultivariateInitializationMixin:
 
         parameters = {
             "phi_mod_g_mean": torch.full_like(values, 0.01),
-            "phi_ref_g_mean": torch.log(1.0 / values - 1.0),
+            "phi_ref_g_mean": 1.0 / values - 1.0,
             "phi_mod_v0_mean": torch.full_like(slopes, 0.01),
-            "phi_ref_v0_mean": get_log_velocities(slopes, self.features),
+            "phi_ref_v0_mean": slopes,  # du coup on retire le warning quand il y a une valeur négative
             "phi_mod_t0_mean": torch.full_like(t0, 0.1),
             "phi_ref_t0_mean": t0,
             # "log_g_mean": torch.log(1.0 / values - 1.0),

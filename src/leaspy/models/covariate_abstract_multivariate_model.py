@@ -129,8 +129,7 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 Normal("phi_ref_t0_mean", "phi_ref_t0_std")
             ),
             # LINKED VARS
-            log_t0_mean=LinkedVariable(Sum("phi_mod_t0_mean", "phi_ref_t0_mean")),
-            t0_mean=LinkedVariable(Exp("log_t0_mean")),
+            t0_mean=LinkedVariable(Sum("phi_mod_t0_mean", "phi_ref_t0_mean")),
             ## INDIVIDUAL PARAMETERS
             # PRIORS
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
