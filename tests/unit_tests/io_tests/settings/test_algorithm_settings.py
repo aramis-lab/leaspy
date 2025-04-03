@@ -47,7 +47,7 @@ class AlgorithmSettingsTest(LeaspyTestCase):
 
         with self.assertWarnsRegex(UserWarning, "seed"):
             # bad seed
-            a = AlgorithmSettings("mode_post", seed="not-castable-to-int")
+            a = AlgorithmSettings("mode_posterior", seed="not-castable-to-int")
         self.assertIsNone(a.seed)
 
         with self.assertWarnsRegex(UserWarning, "model_initialization_method"):
@@ -126,7 +126,7 @@ class AlgorithmSettingsTest(LeaspyTestCase):
         # unknown algo parameters
         with self.assertWarns(UserWarning):
             algo_settings = AlgorithmSettings(
-                "mode_post", unknown_param_1=1, unknown_param_2={"2": 2}
+                "mode_posterior", unknown_param_1=1, unknown_param_2={"2": 2}
             )
 
         # but we set the parameters nonetheless (possibly needed for backward compat / "hidden" params)

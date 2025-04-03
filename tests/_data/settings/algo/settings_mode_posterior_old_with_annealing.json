@@ -1,5 +1,5 @@
 {
-  "name": "mode_post",
+  "name": "mode_posterior",
   "seed": 0,
   "algorithm_initialization_method": null,
   "device": "cpu",

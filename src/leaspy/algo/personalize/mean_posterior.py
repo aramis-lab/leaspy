@@ -1,4 +1,4 @@
-"""This module defines the `MeanPost` sampler based personalize algorithm."""
+"""This module defines the `MeanPosterior` sampler based personalize algorithm."""
 
 import torch
 
@@ -7,10 +7,10 @@ from leaspy.utils.typing import DictParamsTorch
 from ..base import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
-__all__ = ["MeanPost"]
+__all__ = ["MeanPosterior"]
 
 
-class MeanPost(AbstractMCMCPersonalizeAlgo):
+class MeanPosterior(AbstractMCMCPersonalizeAlgo):
     """
     Sampler based algorithm, individual parameters are derived as the mean posterior for `n_iter` samplings.
 
@@ -20,7 +20,7 @@ class MeanPost(AbstractMCMCPersonalizeAlgo):
         Settings of the algorithm.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_MEAN_POST
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_MEAN_POSTERIOR
 
     def _compute_individual_parameters_from_samples_torch(
         self,

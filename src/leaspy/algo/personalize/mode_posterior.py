@@ -1,4 +1,4 @@
-"""This module defines the `ModePost` sampler based personalize algorithm."""
+"""This module defines the `ModePosterior` sampler based personalize algorithm."""
 
 import torch
 
@@ -7,10 +7,10 @@ from leaspy.utils.typing import DictParamsTorch
 from ..base import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
-__all__ = ["ModePost"]
+__all__ = ["ModePosterior"]
 
 
-class ModePost(AbstractMCMCPersonalizeAlgo):
+class ModePosterior(AbstractMCMCPersonalizeAlgo):
     """
     Sampler based algorithm, individual parameters are derived as the most frequent posterior value for `n_iter` samplings.
 
@@ -22,7 +22,7 @@ class ModePost(AbstractMCMCPersonalizeAlgo):
         Settings of the algorithm.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_MODE_POST
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_MODE_POSTERIOR
     regularity_factor: float = 1.0
     """Weighting of regularity term in the final loss to be minimized."""
 

@@ -1,5 +1,5 @@
 {
-  "name": "mean_post",
+  "name": "mode_posterior",
   "seed": null,
   "algorithm_initialization_method": null,
   "device": "cpu",
