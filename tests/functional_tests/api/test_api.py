@@ -38,7 +38,7 @@ class LeaspyAPITest(
         1 - Data loading
         2 - Fit logistic model with MCMC algorithm
         3 - Save parameters & reload (remove created files to keep the repo clean)
-        4 - Personalize model with 'mode_real' algorithm
+        4 - Personalize model with 'mode_posterior' algorithm
         (5 - Plot results)
         6 - Simulate new patients
 
@@ -131,7 +131,7 @@ class LeaspyAPITest(
             obs_models="gaussian-scalar",
             source_dimension=2,
             fit_check_kws={"atol": 1e-2, "rtol": 1e-2},
-            personalization_algo="mode_real",
+            personalization_algo="mode_posterior",
             personalization_algo_params={"n_iter": 200, "seed": 0},
             simulate_algo_params={
                 "seed": 0,
@@ -145,7 +145,7 @@ class LeaspyAPITest(
             "univariate_joint",
             model_codename="univariate_joint",
             fit_check_kws={"atol": 1e-2, "rtol": 1e-2},
-            personalization_algo="mode_real",
+            personalization_algo="mode_posterior",
             personalization_algo_params={"n_iter": 200, "seed": 0},
             simulate_algo_params={
                 "seed": 0,
@@ -199,7 +199,7 @@ class LeaspyAPITest(
             model_codename="logistic_binary",
             obs_models="bernoulli",
             source_dimension=2,
-            personalization_algo="mean_real",
+            personalization_algo="mean_posterior",
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": 0.5,
@@ -216,7 +216,7 @@ class LeaspyAPITest(
             obs_models="ordinal",
             source_dimension=2,
             fit_algo_params={"n_iter": 200, "seed": 0},
-            personalization_algo="mean_real",
+            personalization_algo="mean_posterior",
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": 0.5,
@@ -239,7 +239,7 @@ class LeaspyAPITest(
             obs_models="ordinal",
             source_dimension=2,
             fit_check_kws={"atol": 0.005},
-            personalization_algo="mean_real",
+            personalization_algo="mean_post",
             simulate_algo_params={
                 "seed": 123,
                 "delay_btw_visits": 0.5,
@@ -255,7 +255,7 @@ class LeaspyAPITest(
             "univariate_logistic",
             model_codename="univariate_logistic_ordinal",
             obs_models="ordinal",
-            personalization_algo="mean_real",
+            personalization_algo="mean_post",
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": 0.5,
@@ -271,7 +271,7 @@ class LeaspyAPITest(
             model_codename="logistic_ordinal_ranking",
             obs_models="ordinal-ranking",
             source_dimension=2,
-            personalization_algo="mean_real",
+            personalization_algo="mean_posterior",
             fit_algo_params={"n_iter": 200, "seed": 0},
             simulate_algo_params={
                 "seed": 0,
@@ -288,7 +288,7 @@ class LeaspyAPITest(
             model_codename="logistic_ordinal_ranking_b",
             obs_models="ordinal-ranking",
             source_dimension=2,
-            personalization_algo="mode_real",
+            personalization_algo="mode_posterior",
             simulate_algo_params={
                 "seed": 0,
                 "delay_btw_visits": 0.5,

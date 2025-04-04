@@ -82,7 +82,7 @@ class LeaspyPersonalizeTestMixin(LeaspyTestCase):
 
 
 class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
-    def test_personalize_mean_real_logistic_old(self):
+    def test_personalize_mean_posterior_logistic_old(self):
         """
         Load logistic model from file, and personalize it to data from ...
         """
@@ -91,7 +91,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         # was not equally weighted during all the sampling of individual variables.
         # We test this old "buggy" behavior to check past consistency (but we raise a warning now)
         path_settings = self.get_test_data_path(
-            "settings", "algo", "settings_mean_real_old_with_annealing.json"
+            "settings", "algo", "settings_mean_posterior_old_with_annealing.json"
         )
         with self.assertWarnsRegex(UserWarning, r"[Aa]nnealing"):
             ips, _ = self.generic_personalization(
@@ -99,13 +99,13 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             )
         self.check_consistency_of_personalization_outputs(ips)
 
-    def test_personalize_mode_real_logistic_old(self):
+    def test_personalize_mode_posterior_logistic_old(self):
         """
         Load logistic model from file, and personalize it to data from ...
         """
         # cf. mean_real notice
         path_settings = self.get_test_data_path(
-            "settings", "algo", "settings_mode_real_old_with_annealing.json"
+            "settings", "algo", "settings_mode_posterior_old_with_annealing.json"
         )
         with self.assertWarnsRegex(UserWarning, r"[Aa]nnealing"):
             ips, _ = self.generic_personalization(
@@ -158,11 +158,11 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_multivariate_logistic_mode_real(self):
-        self._personalize_generic("logistic_scalar_noise", "mode_real")
+    def test_multivariate_logistic_mode_posterior(self):
+        self._personalize_generic("logistic_scalar_noise", "mode_posterior")
 
-    def test_multivariate_logistic_mean_real(self):
-        self._personalize_generic("logistic_scalar_noise", "mean_real")
+    def test_multivariate_logistic_mean_posterior(self):
+        self._personalize_generic("logistic_scalar_noise", "mean_posterior")
 
     def test_multivariate_logistic_diagonal_id_scipy_minimize(self):
         self._personalize_generic(
@@ -179,16 +179,16 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_multivariate_logistic_diagonal_id_mode_real(self):
+    def test_multivariate_logistic_diagonal_id_mode_posterior(self):
         self._personalize_generic(
             "logistic_diag_noise_id",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_multivariate_logistic_diagonal_id_mean_real(self):
+    def test_multivariate_logistic_diagonal_id_mean_posterior(self):
         self._personalize_generic(
             "logistic_diag_noise_id",
-            "mean_real",
+            "mean_posterior",
         )
 
     def test_multivariate_logistic_diagonal_scipy_minimize(self):
@@ -204,16 +204,16 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_multivariate_logistic_diagonal_mode_real(self):
+    def test_multivariate_logistic_diagonal_mode_erior(self):
         self._personalize_generic(
             "logistic_diag_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_multivariate_logistic_diagonal_mean_real(self):
+    def test_multivariate_logistic_diagonal_mean_posterior(self):
         self._personalize_generic(
             "logistic_diag_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_MODELS_WITH_JACOBIAN, SKIP_LOGISTIC_MODELS_WITH_JACOBIAN)
@@ -226,16 +226,16 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_multivariate_logistic_diagonal_no_source_mode_real(self):
+    def test_multivariate_logistic_diagonal_no_source_mode_posterior(self):
         self._personalize_generic(
             "logistic_diag_noise_no_source",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_multivariate_logistic_diagonal_no_source_mean_real(self):
+    def test_multivariate_logistic_diagonal_no_source_mean_posterior(self):
         self._personalize_generic(
             "logistic_diag_noise_no_source",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -260,17 +260,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_mode_real(self):
+    def test_multivariate_logistic_parallel_mode_posterior(self):
         self._personalize_generic(
             "logistic_parallel_scalar_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_mean_real(self):
+    def test_multivariate_logistic_parallel_mean_posterior(self):
         self._personalize_generic(
             "logistic_parallel_scalar_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -295,17 +295,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_diagonal_mode_real(self):
+    def test_multivariate_logistic_parallel_diagonal_mode_posterior(self):
         self._personalize_generic(
             "logistic_parallel_diag_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_diagonal_mean_real(self):
+    def test_multivariate_logistic_parallel_diagonal_mean_posterior(self):
         self._personalize_generic(
             "logistic_parallel_diag_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     ################################################################
@@ -326,16 +326,16 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_univariate_logistic_mode_real(self):
+    def test_univariate_logistic_mode_posterior(self):
         self._personalize_generic(
             "univariate_logistic",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_univariate_logistic_mean_real(self):
+    def test_univariate_logistic_mean_posterior(self):
         self._personalize_generic(
             "univariate_logistic",
-            "mean_real",
+            "mean_posterior",
         )
 
     ################################################################
@@ -356,16 +356,16 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_univariate_joint_mode_real(self):
+    def test_univariate_joint_mode_posterior(self):
         self._personalize_generic(
             "univariate_joint",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_univariate_joint_mean_real(self):
+    def test_univariate_joint_mean_posterior(self):
         self._personalize_generic(
             "univariate_joint",
-            "mean_real",
+            "mean_posterior",
         )
 
     def test_joint_scipy_minimize(self):
@@ -383,16 +383,16 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_joint_mode_real(self):
+    def test_joint_mode_erior(self):
         self._personalize_generic(
             "joint_diagonal",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_joint_mean_real(self):
+    def test_joint_mean_posterior(self):
         self._personalize_generic(
             "joint_diagonal",
-            "mean_real",
+            "mean_posterior",
         )
 
     ################################################################
@@ -415,17 +415,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
-    def test_univariate_linear_mode_real(self):
+    def test_univariate_linear_mode_posterior(self):
         self._personalize_generic(
             "univariate_linear",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
-    def test_univariate_linear_mean_real(self):
+    def test_univariate_linear_mean_posterior(self):
         self._personalize_generic(
             "univariate_linear",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -445,17 +445,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
-    def test_multivariate_linear_mode_real(self):
+    def test_multivariate_linear_mode_posterior(self):
         self._personalize_generic(
             "linear_scalar_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
-    def test_multivariate_linear_mean_real(self):
+    def test_multivariate_linear_mean_posterior(self):
         self._personalize_generic(
             "linear_scalar_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -475,17 +475,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
-    def test_multivariate_linear_diagonal_mode_real(self):
+    def test_multivariate_linear_diagonal_mode_posterior(self):
         self._personalize_generic(
             "linear_diag_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
-    def test_multivariate_linear_diagonal_mean_real(self):
+    def test_multivariate_linear_diagonal_mean_posterior(self):
         self._personalize_generic(
             "linear_diag_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_BINARY_MODELS, SKIP_LOGISTIC_BINARY_MODELS)
@@ -505,17 +505,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LOGISTIC_BINARY_MODELS, SKIP_LOGISTIC_BINARY_MODELS)
-    def test_multivariate_binary_mode_real(self):
+    def test_multivariate_binary_mode_posterior(self):
         self._personalize_generic(
             "logistic_binary",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_BINARY_MODELS, SKIP_LOGISTIC_BINARY_MODELS)
-    def test_multivariate_binary_mean_real(self):
+    def test_multivariate_binary_mean_posterior(self):
         self._personalize_generic(
             "logistic_binary",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -540,17 +540,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_parallel_binary_mode_real(self):
+    def test_multivariate_parallel_binary_mode_posterior(self):
         self._personalize_generic(
             "logistic_parallel_binary",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_parallel_binary_mean_real(self):
+    def test_multivariate_parallel_binary_mean_posterior(self):
         self._personalize_generic(
             "logistic_parallel_binary",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -570,17 +570,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_mode_real(self):
+    def test_multivariate_ordinal_mode_posterior(self):
         self._personalize_generic(
             "logistic_ordinal",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_mean_real(self):
+    def test_multivariate_ordinal_mean_posterior(self):
         self._personalize_generic(
             "logistic_ordinal",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
@@ -600,17 +600,17 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_ranking_mode_real(self):
+    def test_multivariate_ordinal_ranking_mode_posterior(self):
         self._personalize_generic(
             "logistic_ordinal_ranking",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_ranking_mean_real(self):
+    def test_multivariate_ordinal_ranking_mean_posterior(self):
         self._personalize_generic(
             "logistic_ordinal_ranking",
-            "mean_real",
+            "mean_posterior",
         )
 
 
@@ -712,16 +712,16 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_multivariate_logistic_diagonal_mode_real(self):
+    def test_multivariate_logistic_diagonal_mode_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_multivariate_logistic_diagonal_mean_real(self):
+    def test_multivariate_logistic_diagonal_mean_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     def test_multivariate_logistic_diagonal_no_source_scipy_minimize(self):
@@ -741,16 +741,16 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
             {"use_jacobian": True},
         )
 
-    def test_multivariate_logistic_diagonal_no_source_mode_real(self):
+    def test_multivariate_logistic_diagonal_no_source_mode_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_no_source",
-            "mode_real",
+            "mode_posterior",
         )
 
-    def test_multivariate_logistic_diagonal_no_source_mean_real(self):
+    def test_multivariate_logistic_diagonal_no_source_mean_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise_no_source",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -775,15 +775,15 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_mode_real(self):
+    def test_multivariate_logistic_parallel_mode_posterior(self):
         self._robustness_to_data_sparsity(
-            "logistic_parallel_scalar_noise", "mode_real", 0.1517
+            "logistic_parallel_scalar_noise", "mode_posterior", 0.1517
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_mean_real(self):
+    def test_multivariate_logistic_parallel_mean_posterior(self):
         self._robustness_to_data_sparsity(
-            "logistic_parallel_scalar_noise", "mean_real", 0.2079
+            "logistic_parallel_scalar_noise", "mean_posterior", 0.2079
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
@@ -808,17 +808,17 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_diagonal_mode_real(self):
+    def test_multivariate_logistic_parallel_diagonal_mode_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_parallel_diag_noise",
-            "mode_real",
+            "mode_posterior",
         )
 
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
-    def test_multivariate_logistic_parallel_diagonal_mean_real(self):
+    def test_multivariate_logistic_parallel_diagonal_mean_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_parallel_diag_noise",
-            "mean_real",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
@@ -908,8 +908,8 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
             # the LL landscape is quite flat so tolerance is high here...
             # we may deviate from tau_mean / xi_mean / sources_mean when no data at all
             # (intrinsically represent the incertitude on those individual parameters)
-            ("mode_real", {}, 0.4),
-            ("mean_real", {}, 0.4),
+            ("mode_posterior", {}, 0.4),
+            ("mean_posterior", {}, 0.4),
         ]:
             subtest = dict(perso_algo=perso_algo, perso_kws=perso_kws)
             with self.subTest(**subtest):
@@ -1004,8 +1004,8 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
         for perso_algo, perso_kws, tol in [
             ("scipy_minimize", dict(use_jacobian=False), 1e-3),
             # ('scipy_minimize', dict(use_jacobian=True), 1e-3),
-            ("mode_real", {}, 1e-3),
-            ("mean_real", {}, 1e-3),
+            ("mode_posterior", {}, 1e-3),
+            ("mean_posterior", {}, 1e-3),
         ]:
             subtest = dict(perso_algo=perso_algo, perso_kws=perso_kws)
             with self.subTest(**subtest):

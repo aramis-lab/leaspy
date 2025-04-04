@@ -37,7 +37,7 @@ class TestAlgoFactory(LeaspyTestCase):
                 self.assertIsInstance(algo_instance, get_algorithm_class(name))
 
     def test_auto_burn_in(self):
-        for algo_name in ("mcmc_saem", "mode_real", "mean_real"):
+        for algo_name in ("mcmc_saem", "mode_posterior", "mean_posterior"):
             with self.subTest(algo_name=algo_name):
                 default_settings = AlgorithmSettings(algo_name)
                 # get & check coherence of default parameters for those algos
