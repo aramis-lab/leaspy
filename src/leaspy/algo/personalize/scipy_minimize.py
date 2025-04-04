@@ -208,7 +208,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN` and
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
         Customization is possible via the `custom_scipy_minimize_params` in
-        `AlgorithmSettings`.
+        :class:`.AlgorithmSettings`.
 
     format_convergence_issues : :obj:`str`
        A format string for displaying convergence issues, which can use the
@@ -223,7 +223,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
     logger : None or callable :obj:`str` -> None
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
         By default, convergence issues are printed only if the BFGS optimization method is not used.
-        This can  be customized by setting the `logger` attribute in `AlgorithmSettings`.
+        This can  be customized by setting the `logger` attribute in :class:`.AlgorithmSettings`.
     """
 
     name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE
