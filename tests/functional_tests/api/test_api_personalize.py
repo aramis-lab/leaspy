@@ -425,7 +425,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
     def test_univariate_linear_mean_posterior(self):
         self._personalize_generic(
             "univariate_linear",
-            "mean_postrior",
+            "mean_posterior",
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)

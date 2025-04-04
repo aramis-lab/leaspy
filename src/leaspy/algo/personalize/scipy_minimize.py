@@ -191,37 +191,39 @@ class _AffineScalings1D:
 class ScipyMinimize(AbstractPersonalizeAlgo):
     """
     Gradient descent based algorithm to compute individual parameters,
-    `i.e.` personalize a model to a given set of subjects.
+    `i.e.` personalizing a model for a given set of subjects.
 
     Parameters
     ----------
     settings : :class:`.AlgorithmSettings`
-        Settings of the algorithm.
-        In particular the parameter `custom_scipy_minimize_params` may contain
-        keyword arguments passed to :func:`scipy.optimize.minimize`.
+        Settings for the algorithm, including the `custom_scipy_minimize_params`
+        parameter, which contains keyword arguments passed to
+        :func:`scipy.optimize.minimize`.
 
     Attributes
     ----------
     scipy_minimize_params : :obj:`dict`
-        Keyword arguments to be passed to :func:`scipy.optimize.minimize`.
-        A default setting depending on whether using jacobian or not is applied
-        (cf. `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN`
-         and `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
-        You may customize it by setting the `custom_scipy_minimize_params` algorithm parameter.
+        Keyword arguments for :func:`scipy.optimize.minimize`, with default values
+        depending on the usage of a jacobian (cf.
+        `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN` and
+        `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
+        Customization is possible via the `custom_scipy_minimize_params` in
+        `AlgorithmSettings`.
 
     format_convergence_issues : :obj:`str`
-        Formatting of convergence issues.
-        It should be a formattable string using any of those variables:
-           * patient_id: :obj:`str`
-           * optimization_result_pformat: :obj:`str`
-           * (optimization_result_obj: dict-like)
-        cf. `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES` for the default format.
-        You may customize it by setting the `custom_format_convergence_issues` algorithm parameter.
+       A format string for displaying convergence issues, which can use the
+        following variables:
+            - `patient_id`: :obj:`str`
+            - `optimization_result_pformat`: :obj:`str`
+            - `optimization_result_obj`: dict-like
+        The default format is defined in
+        `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES`, but it can be
+        customized via the `custom_format_convergence_issues` parameter.
 
     logger : None or callable :obj:`str` -> None
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
-        By default we print the convergences issues if and only if we do not use BFGS optimization method.
-        You can customize it at initialization by defining a `logger` attribute to your `AlgorithmSettings` instance.
+        By default, convergence issues are printed only if the BFGS optimization method is not used.
+        This can  be customized by setting the `logger` attribute in `AlgorithmSettings`.
     """
 
     name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE

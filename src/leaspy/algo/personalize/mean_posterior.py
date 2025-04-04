@@ -12,7 +12,8 @@ __all__ = ["MeanPosterior"]
 
 class MeanPosterior(AbstractMCMCPersonalizeAlgo):
     """
-    Sampler based algorithm, individual parameters are derived as the mean posterior for `n_iter` samplings.
+    Sampler-based algorithm that derives individual parameters as the most frequent mean posterior value from `n_iter` samplings.
+
 
     Parameters
     ----------

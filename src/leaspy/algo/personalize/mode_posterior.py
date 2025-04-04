@@ -12,7 +12,7 @@ __all__ = ["ModePosterior"]
 
 class ModePosterior(AbstractMCMCPersonalizeAlgo):
     """
-    Sampler based algorithm, individual parameters are derived as the most frequent posterior value for `n_iter` samplings.
+    Sampler-based algorithm that derives individual parameters as the most frequent mode posterior value from `n_iter` samplings.
 
     TODO? we could derive some confidence intervals on individual parameters thanks to this personalization algorithm...
 
