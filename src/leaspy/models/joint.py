@@ -40,7 +40,7 @@ __all__ = ["JointModel"]
 @doc_with_super()
 class JointModel(LogisticMultivariateModel):
     """
-    Manifold model for multiple variables of interest (logistic or linear formulation).
+    Joint model for multiple repeated measures (logistic) and multiple competing events.
 
     Parameters
     ----------
