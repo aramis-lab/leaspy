@@ -1,8 +1,10 @@
 import csv
 import math
 import os
+import re
 import time
 from pathlib import Path
+from typing import Iterable, Optional
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -185,12 +187,7 @@ class FitOutputManager:
 
         params_to_plot = list(model.state.tracked_variables - to_skip)
 
-        files = os.listdir(self.path_save_model_parameters_convergence)
-        files_to_plot = [
-            file
-            for file in files
-            if any(file.startswith(param) for param in params_to_plot)
-        ]
+        files_to_plot = self._get_files_related_to_parameters(params_to_plot)
         # To plot related parameters close to each other, we sort the list
         files_to_plot.sort()
 
@@ -201,9 +198,7 @@ class FitOutputManager:
         if self.plot_sourcewise:
             new_files = []
             for param_name in params_with_sources:
-                related_files = [
-                    file for file in files_to_plot if file.startswith(param_name)
-                ]
+                related_files = self._get_files_related_to_parameters([param_name])
                 if not related_files:
                     continue
                 related_files.sort()
@@ -213,25 +208,24 @@ class FitOutputManager:
                 for source_idx in range(num_sources):
                     combined_data = []
 
-                    for file_name in related_files:
-                        file_path = (
-                            self.path_save_model_parameters_convergence / file_name
-                        )
+                    for file_path in related_files:
                         df = pd.read_csv(file_path, index_col=0, header=None)
 
                         combined_data.append(df.iloc[:, source_idx])
 
                     combined_df = pd.concat(combined_data, axis=1, join="inner")
-                    new_file_name = "sourcewise_" f"{param_name}_{source_idx + 1}.csv"
+                    new_file_name = f"sourcewise_{param_name}_{source_idx + 1}.csv"
                     combined_df.to_csv(
                         self.path_save_model_parameters_convergence / new_file_name,
                         header=False,
                     )
-                    new_files.append(new_file_name)
+                    new_files.append(
+                        self.path_save_model_parameters_convergence / new_file_name
+                    )
             files_to_plot = [
                 file
                 for file in files_to_plot
-                if not any(param in file for param in params_with_sources)
+                if not any(file.name.startswith(param) for param in params_with_sources)
             ]
             files_to_plot.extend(new_files)
 
@@ -243,60 +237,27 @@ class FitOutputManager:
                 _, ax = plt.subplots(3, 2, figsize=(width, 3 * height_per_row))
                 ax = ax.flatten()
 
-                for i, file_name in enumerate(files_to_plot[page : page + 6]):
-                    file_path = self.path_save_model_parameters_convergence / file_name
-                    parameter_name = file_name.split(".csv")[0]
-
-                    if parameter_name != "v0":
-                        if parameter_name[-1].isdigit():
-                            # if there are more than 10 files (ex: mixing_matrix_10)
-                            if parameter_name[-2].isdigit():
-                                feature_index = int(parameter_name[-2:])
-                                parameter_name = parameter_name[:-3]
-                            else:
-                                feature_index = int(parameter_name[-1])
-                                parameter_name = parameter_name[:-2]
-
+                for i, file_path in enumerate(files_to_plot[page : page + 6]):
+                    parameter_name = file_path.name.split(".csv")[0]
+                    parameter_name, index = self._extract_parameter_name_and_index(
+                        parameter_name
+                    )
                     df_convergence = pd.read_csv(file_path, index_col=0, header=None)
                     ax[i].plot(df_convergence)
 
-                    if parameter_name == "mixing_matrix":
-                        ax[i].set_title(
-                            parameter_name + " " + model.features[feature_index]
-                        )
-                    elif parameter_name == "zeta":
-                        ax[i].set_title(
-                            parameter_name
-                            + " "
-                            + "event"
-                            + " "
-                            + str(feature_index + 1)
-                        )
-                    elif parameter_name.startswith("sourcewise"):
-                        ax[i].set_title(
-                            parameter_name.replace("sourcewise_", "")
-                            + " "
-                            + "source"
-                            + " "
-                            + str(feature_index)
-                        )
-                        ax[i].legend(model.features, loc="best")
-                    else:
-                        ax[i].set_title(parameter_name)
+                    ax = self._set_title_for_parameter(
+                        ax, i, parameter_name, model, index
+                    )
 
-                    if parameter_name in params_with_feature_labels:
-                        ax[i].legend(model.features, loc="best")
-                    if parameter_name in params_with_sources:
-                        sources = [
-                            "Source" + " " + str(i + 1)
-                            for i in range(model.source_dimension)
-                        ]
-                        ax[i].legend(sources, loc="best")
-                    if parameter_name in params_with_events:
-                        events = [
-                            "Event" + " " + str(i + 1) for i in range(model.nb_events)
-                        ]
-                        ax[i].legend(events, loc="best")
+                    ax = self._set_legend_for_parameters(
+                        ax,
+                        i,
+                        parameter_name,
+                        params_with_feature_labels,
+                        params_with_sources,
+                        params_with_events,
+                        model,
+                    )
 
                 plt.tight_layout()
                 pdf.savefig()
@@ -394,3 +355,66 @@ class FitOutputManager:
 
         plt.savefig(path_iteration)
         plt.close()
+
+    def _get_files_related_to_parameters(self, parameters: Iterable[str]) -> list[Path]:
+        return [
+            f
+            for f in self.path_save_model_parameters_convergence.iterdir()
+            if any(f.name.startswith(param) for param in parameters)
+        ]
+
+    def _extract_parameter_name_and_index(
+        self, parameter_name: str
+    ) -> tuple[Optional[str], Optional[int]]:
+        if parameter_name == "v0":
+            return parameter_name, None
+        match = re.search(r"^(.*?)(\d+)$", parameter_name)
+        if match:
+            return match.group(1).strip("_"), int(match.group(2))
+        else:
+            return parameter_name, None
+
+    def _set_title_for_parameter(self, ax, i, parameter_name: str, model, index):
+        if parameter_name == "mixing_matrix":
+            ax[i].set_title(parameter_name + " " + model.features[index])
+        elif parameter_name == "zeta":
+            ax[i].set_title(parameter_name + " " + "event" + " " + str(index + 1))
+        elif parameter_name.startswith("sourcewise"):
+            ax[i].set_title(
+                parameter_name.replace("sourcewise_", "")
+                + " "
+                + "source"
+                + " "
+                + str(index)
+            )
+        else:
+            ax[i].set_title(parameter_name)
+        return ax
+
+    def _set_legend_for_parameters(
+        self,
+        ax,
+        i,
+        parameter_name,
+        params_with_feature_labels,
+        params_with_sources,
+        params_with_events,
+        model,
+    ):
+        if parameter_name in params_with_feature_labels:
+            ax[i].legend(model.features, loc="best")
+        if parameter_name in params_with_sources:
+            sources = [
+                "Source" + " " + str(i + 1) for i in range(model.source_dimension)
+            ]
+            ax[i].legend(sources, loc="best")
+        if parameter_name in params_with_events:
+            events = ["Event" + " " + str(i + 1) for i in range(model.nb_events)]
+            ax[i].legend(events, loc="best")
+        if parameter_name.startswith("sourcewise"):
+            if "mixing_matrix" in parameter_name:
+                ax[i].legend(model.features, loc="best")
+            if "zeta" in parameter_name:
+                events = ["Event" + " " + str(i + 1) for i in range(model.nb_events)]
+                ax[i].legend(events, loc="best")
+        return ax
