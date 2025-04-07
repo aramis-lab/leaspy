@@ -25,13 +25,18 @@ def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
 
     Parameters
     ----------
-    x : :obj:`(Union[list, torch.Tensor])`
-        Input tensor or list.
+    x : :obj:`Union[list, torch.Tensor]`
+        Input tensor or list to be converted.
 
     Returns
     -------
     :obj:`list` :
-        List converted from tensor
+        List converted from tensor input, or original list if input was not a tensor.
+    
+    Raises
+    ------
+    :exc:`NotImplementedError`
+        If the input is a `WeightedTensor`, as this functionality is not yet implemented.
     """
     if isinstance(x, torch.Tensor):
         return x.tolist()
@@ -54,16 +59,17 @@ def compute_std_from_variance(
 
     Parameters
     ----------
-    variance : :class:`torch.Tensor`
+    variance : :obj:`torch.Tensor`
         The variance we would like to convert to a std-dev.
     varname : :obj:`str`
         The name of the variable - to display a nice error message.
-    tol : :obj:`float`
+    tol : :obj:`float`, optional 
         The lower bound on variance, under which the converge error is raised.
+        Default=1e-5.
 
     Returns
     -------
-    :obj: torch.Tensor :
+    :obj: `torch.Tensor` :
         The standard deviation from the variance.
 
     Raises
@@ -90,19 +96,22 @@ def compute_patient_slopes_distribution(
     max_inds: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    Linear Regression on each feature to get slopes
+    Compute linear regression slopes and their standard deviations for each feature.
 
     Parameters
     ----------
-    df : :class:`pd.DataFrame`
-        Contains the individual scores.
-    max_inds : :obj:`int', optional (default None)
+    df : :obj:`pd.DataFrame`
+        DataFrame containing individual scores    
+    max_inds : :obj:`int', optional
         Restrict computation to first `max_inds` individuals.
+        Default="None"
 
     Returns
     -------
-    :class:`Tuple`[torch.Tensor [n_features,], torch.Tensor [n_features,]]
-        The slopes and the standdard deviation of the linear regression for each feature.
+    :obj:`Tuple[torch.Tensor, torch.Tensor]`:
+        Tuple with :
+        - [0] : torch.Tensor de shape (n_features,) - Regression slopes
+        - [1] : torch.Tensor de shape (n_features,) - Standard deviation of the slopes
     """
     d_regress_params = compute_linear_regression_subjects(df, max_inds=max_inds)
     slopes_mu, slopes_sigma = [], []
@@ -124,14 +133,15 @@ def compute_linear_regression_subjects(
 
     Parameters
     ----------
-    df : :class:`pd.DataFrame`
+    df : :obj:`pd.DataFrame`
         Contains the individual scores.
-    max_inds : :class:`int`, optional (default None)
+    max_inds : :obj:`int`, optional
         Restrict computation to first `max_inds` individuals.
+        Default="None"
 
     Returns
     -------
-    :class: `Dict`[`str`, `pd.DataFrame`]
+    :obj: `Dict`[str, pd.DataFrame]:
         Dictionary of dataframes, one per feature, containing the intercept and slope of the linear regression
     
     """
@@ -158,13 +168,15 @@ def _linear_regression_against_time(data: pd.Series) -> Dict[str, float]:
 
     Parameters
     ----------
-    data : :class:`pd.Series`
-        Contains the individual scores.
+    data : :obj:`pd.Series`
+        Series with time index and values to regress
 
     Returns
     -------
-    :class: `Dict`[`str`, `float`]
-        Dictionary with the intercept and slope of the linear regression
+    :obj: `Dict`[`str`, `float`]:
+        Dictionary containing:
+        - 'intercept': Regression intercept
+        - 'slope': Regression slope coefficient
     """
     from scipy.stats import linregress
 
@@ -182,12 +194,12 @@ def compute_patient_values_distribution(
 
     Parameters
     ----------
-    df : :class:`pd.DataFrame`
+    df : :obj:`pd.DataFrame`
         Contains the individual scores.
 
     Returns
     -------
-    :class: Tuple[`torch.Tensor`, `torch.Tensor`]
+    :obj: Tuple[`torch.Tensor`, `torch.Tensor`]:
         One mean and standard deviation per feature.
     """
     return torch.tensor(df.mean().values), torch.tensor(df.std().values)
@@ -201,12 +213,12 @@ def compute_patient_time_distribution(
 
     Parameters
     ----------
-    df : :class:`pd.DataFrame`
+    df : :obj:`pd.DataFrame`
         Contains the individual scores.
 
     Returns
     -------
-    :class:`Tuple`[`torch.Tensor`, `torch.Tensor`]
+    :obj:`Tuple`[`torch.Tensor`, `torch.Tensor`]:
         One mean and standard deviation for the dataset
     """
     times = df.index.get_level_values("TIME").values
@@ -221,21 +233,22 @@ def get_log_velocities(
 
     Parameters
     ----------
-    velocities : :class:`torch.Tensor`
+    velocities : :obj:`torch.Tensor`
         The velocities to be clamped and logged.
-    features : :class:`List[str]`
+    features : :obj:`List[str]`
         The names of the features corresponding to the velocities.
-    min : :obj:`float`
+    min : :obj:`float`, optional
         The minimum value to clamp the velocities to.
+        Default=1e-2
     
     Returns
     -------
-    :class:`torch.Tensor` :
+    :obj:`torch.Tensor` :
         The log of the clamped velocities.
     
     Raises
     ------
-    :class:`Warning`
+    :obj:`Warning`
         If some negative velocities are provided.
         The velocities are clamped to `min` and their log is returned.
     """
@@ -255,15 +268,16 @@ def torch_round(t: torch.FloatTensor, *, tol: float = 1 << 16) -> torch.FloatTen
 
     Parameters
     ----------
-    t : :class:`torch.FloatTensor`
+    t : :obj:`torch.FloatTensor`
         The tensor to be rounded.
     
-    tol : :obj:`float`
+    tol : :obj:`float`, optional
         The tolerance value for rounding.
+        Default=1 << 16.
     
     Returns
     -------
-    :class:`torch.FloatTensor` :
+    :obj:`torch.FloatTensor` :
         The rounded tensor.
     
     """
