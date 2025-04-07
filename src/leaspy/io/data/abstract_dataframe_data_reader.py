@@ -34,6 +34,19 @@ class AbstractDataframeDataReader:
 
     @staticmethod
     def _check_numeric_type(dtype) -> bool:
+        """
+        Check if the pandas type of the data is a numeric type
+
+        Parameters
+        ----------
+        s: pandas.Series.dtype
+            pandas type of the data
+
+        Returns
+        -------
+        : bool
+            True if the type is a numeric type
+        """
         return pd.api.types.is_numeric_dtype(
             dtype
         ) and not pd.api.types.is_complex_dtype(dtype)
@@ -47,6 +60,14 @@ class AbstractDataframeDataReader:
         ----------
         s: pd.Series
             Identifiers of the patients
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError` :
+            - If the :s:`pd.Series` is not a string, integer or categories
+            - If the :s:`pd.Series` contains Nan
+            - If the :s:`pd.Series` is integer and contain negative values
+            - If the :s:`pd.Series` is string and contain empty strings
         """
         # TODO? enforce strings? (for compatibility for downstream requirements especially in IndividualParameters)
         valid_dtypes = ["string", "integer", "categorical"]
@@ -78,7 +99,7 @@ class AbstractDataframeDataReader:
 
     def _clean_index(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Check requirements on subjects identifiers.
+        Check requirements on subjects identifiers: ID patient index and TIME the "age" of the patient at visit for visit indexing.
 
         Parameters
         ----------
@@ -220,7 +241,7 @@ class AbstractDataframeDataReader:
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient information
+        Clean the dataframe that contains patient information, this method depend on the data type that is analysed: repeated measures, events or both
 
         Parameters
         ----------
@@ -293,7 +314,7 @@ class AbstractDataframeDataReader:
         df = self._clean_index(df)
         df = self._clean_numeric_data(df, drop_full_nan, warn_empty_column)
 
-        # Clean visit data
+        # Clean data
         df = self._clean_dataframe(
             df, drop_full_nan=drop_full_nan, warn_empty_column=warn_empty_column
         )

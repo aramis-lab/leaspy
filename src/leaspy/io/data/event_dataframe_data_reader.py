@@ -63,7 +63,7 @@ class EventDataframeDataReader(AbstractDataframeDataReader):
 
     def _set_index(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Set the index suited for the type of information contained in the dataframe
+        Set the index suited for the type of information contained in the dataframe, here events are only index by patient ID
 
         Parameters
         ----------
@@ -81,7 +81,7 @@ class EventDataframeDataReader(AbstractDataframeDataReader):
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient information
+        Clean the dataframe that contains patient information, here events
 
         Parameters
         ----------
