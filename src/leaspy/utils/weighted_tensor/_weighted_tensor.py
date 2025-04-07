@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from dataobjes import dataclass
+from dataclasses import dataclass
 from typing import Callable, Generic, Optional, Tuple, TypeVar, Union
 
 import torch
