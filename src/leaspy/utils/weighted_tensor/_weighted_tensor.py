@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from dataclasses import dataclass
+from dataobjes import dataclass
 from typing import Callable, Generic, Optional, Tuple, TypeVar, Union
 
 import torch
@@ -22,20 +22,21 @@ class WeightedTensor(Generic[VT]):
 
     Parameters
     ----------
-    value : torch.Tensor (of type VT)
+    value : :obj:`torch.Tensor` (of type VT)
         Raw values, without any mask.
-    weight : None (default) or torch.Tensor (of booleans, integers or floats, with same shape as value)
-        If None, weighted tensor boils down to a regular tensor.
+    weight : :obj:`torch.Tensor', optional
+        Relative weights for values.
+        Default: None
 
     Attributes
     ----------
-    value : torch.Tensor (of type VT)
+    value : :obj:`torch.Tensor` (of type VT)
         Raw values, without any mask.
-    weight : None or torch.Tensor (of booleans, integers or floats, with same shape as value)
+    weight : :obj:`torch.Tensor` 
         Relative weights for values.
-        If None, weighted tensor boils down to a regular tensor (as if all weights equal 1).
         If weight is a tensor[bool], it can be seen as a mask (valid value <-> weight is True).
         More generally, meaningless values <-> indices where weights equal 0.
+        Default: None
     """
 
     value: torch.Tensor
@@ -76,16 +77,40 @@ class WeightedTensor(Generic[VT]):
         )
 
     def filled(self, fill_value: Optional[VT] = None) -> torch.Tensor:
-        """Return the values tensor filled with `fill_value` where the `weight` is exactly zero.
+        """
+        Return the values tensor filled with `fill_value` where the `weight` is exactly zero.
 
-        If `fill_value` is None or `weight` is None, return the value as is.
+        Parameters
+        ----------
+        fill_value : :obj:`torch.Tensor` (of type VT), optional
+            The value to fill the tensor with for aggregates where weights were all zero.
+            Default: None
+        
+        Returns
+        -------
+        :obj:`torch.Tensor` (of type VT):
+            The filled tensor.
+            If `weight` is None, the original tensor is returned.
+
         """
         if fill_value is None or self.weight is None:
             return self.value
         return self.value.masked_fill(self.weight == 0, fill_value)
 
     def valued(self, value: torch.Tensor) -> WeightedTensor:
-        """Return a new WeightedTensor with same weight as self but with new value provided."""
+        """
+        Return a new WeightedTensor with same weight as self but with new value provided.
+        
+        Parameters
+        ----------
+        value : :obj:`torch.Tensor` 
+            The new value to be set.
+        
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new WeightedTensor with the same weight as self but with the new value provided.
+        """
         return type(self)(value, self.weight)
 
     def map(
@@ -95,9 +120,26 @@ class WeightedTensor(Generic[VT]):
         fill_value: Optional[VT] = None,
         **kws,
     ) -> WeightedTensor:
-        """Apply a function that only operates on values.
+        """
+        Apply a function that only operates on values.
 
-        This has no impact on weights (e.g. log-likelihood(value)).
+        Parameters
+        ----------
+        func : :obj:`Callable[[torch.Tensor], torch.Tensor]`
+            The function to be applied to the values.
+        *args : :obj:`Any`
+            Positional arguments to be passed to the function.
+        fill_value : :obj:`VT`, optional
+            The value to fill the tensor with for aggregates where weights were all zero.
+            Default: None
+        **kws : :obj:`Any`
+            Keyword arguments to be passed to the function.
+        
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the operation and the same weights.
+
         """
         return self.valued(func(self.filled(fill_value), *args, **kws))
 
@@ -108,7 +150,28 @@ class WeightedTensor(Generic[VT]):
         fill_value: Optional[VT] = None,
         **kws,
     ) -> WeightedTensor:
-        """Apply a function that operates both on values and weight, the same way (e.g. `expand` sizes)."""
+        """
+        Apply a function that operates both on values and weight.
+        
+        Parameters
+        ----------
+        func : :obj:`Callable[[torch.Tensor], torch.Tensor]`
+            The function to be applied to both values and weights.
+        *args : :obj:`Any`
+            Positional arguments to be passed to the function.
+        fill_value : :obj:`VT`, optional
+            The value to fill the tensor with for aggregates where weights were all zero.
+            Default: None
+        **kws : :obj:`Any`      
+            Keyword arguments to be passed to the function.
+        
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the operation and the appropriate weights.
+
+        
+        """
         return type(self)(
             func(self.filled(fill_value), *args, **kws),
             func(self.weight, *args, **kws) if self.weight is not None else None,
@@ -121,7 +184,25 @@ class WeightedTensor(Generic[VT]):
         *,
         accumulate: bool = False,
     ) -> WeightedTensor[VT]:
-        """Out-of-place `torch.index_put` on values (no modification of weights)."""
+        """
+        Out-of-place `torch.index_put` on values (no modification of weights).
+        
+        Parameters
+        ----------
+        
+        indices : :obj:`Tuple[torch.Tensor, ...]`
+            The indices to put the values at.
+        values : :obj:`torch.Tensor` (of type VT)
+            The values to put at the specified indices.
+        accumulate : :obj:`bool`, optional
+            Whether to accumulate the values at the specified indices.
+            Default: False
+        
+        Returns
+        -------
+        :obj:`WeightedTensor`[VT]:
+            A new `WeightedTensor` with the updated values and the same weights.
+        """
         return self.map(
             torch.index_put, indices=indices, values=values, accumulate=accumulate
         )
@@ -135,18 +216,21 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        fill_value : VT (default = 0)
+        fill_value : :obj:`VT`, optional
             The value to fill the sum with for aggregates where weights were all zero.
+            Default: 0
         **kws
             Optional keyword-arguments for torch.sum (such as `dim=...` or `keepdim=...`)
 
         Returns
         -------
-        weighted_sum : torch.Tensor[VT]
-            Weighted sum, with totally un-weighted aggregates filled with `fill_value`.
-        sum_weights : torch.Tensor (may be of other type than `cls.weight_dtype`)
-            The sum of weights (useful if some average are needed).
-            <!> We do NOT recast `sum_weights` to `cls.weight_dtype` to prevent lossy case: bool -> int -> bool.
+        
+        :obj:`Tuple[torch.Tensor, torch.Tensor]`:
+        Tuple containing: 
+            - weighted_sum : :obj:`torch.Tensor`[VT]
+                Weighted sum, with totally un-weighted aggregates filled with `fill_value`.
+            - sum_weights : :obj:`torch.Tensor` (may be of other type than `cls.weight_dtype`)
+                The sum of weights (useful if some average are needed).
         """
         weight = self.weight
         if weight is None:
@@ -157,7 +241,23 @@ class WeightedTensor(Generic[VT]):
         return weighted_sum.masked_fill(sum_weights == 0, fill_value), sum_weights
 
     def sum(self, *, fill_value: VT = 0, **kws) -> torch.Tensor:
-        """Get the weighted sum of tensor (discarding the sum of weights) - refer to `.wsum()`."""
+        """
+        Get the weighted sum of tensor.
+        
+        Parameters
+        ----------
+        fill_value : :obj:`VT`, optional
+            The value to fill the sum with for aggregates where weights were all zero.
+            Default: 0
+        **kws
+            Optional keyword-arguments 
+        
+        Returns
+        -------
+        :obj:`torch.Tensor`[VT]:
+            The weighted sum, with totally un-weighted aggregates filled with `fill_value`.
+
+        """
         if self.weight is None:
             # more efficient in this case
             return self.value.sum(**kws)
@@ -260,7 +360,27 @@ class WeightedTensor(Generic[VT]):
     def get_filled_value_and_weight(
         t: TensorOrWeightedTensor[VT], *, fill_value: Optional[VT] = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """Method to get tuple (value, weight) for both regular and weighted tensors."""
+        """
+        Method to get tuple (value, weight) for both regular and weighted tensors.
+        
+        Parameters
+        ----------
+        t : :obj:`TensorOrWeightedTensor`
+            The tensor to be converted.
+        fill_value : :obj:`VT`, optional
+            The value to fill the tensor with for aggregates where weights were all zero.
+            Default: None
+        
+        Returns
+        -------
+        :obj:`Tuple[torch.Tensor, Optional[torch.Tensor]]`:
+            Tuple containing:
+            - value : :obj:`torch.Tensor`
+                The filled tensor.
+                If `weight` is None, the original tensor is returned.
+            - weight : :obj:`torch.Tensor`, optional
+                The weight tensor.
+        """
         if isinstance(t, WeightedTensor):
             return t.filled(fill_value), t.weight
         else:
@@ -278,6 +398,29 @@ def _apply_operation(
     operator_name: str,
     reverse: bool = False,
 ) -> WeightedTensor:
+    
+    """
+    Apply a binary operation on two tensors, with the first one being a `WeightedTensor`.
+    The second one can be a `WeightedTensor` or a regular tensor.
+    The operation is applied to the values of the tensors, and the weights are handled accordingly.
+
+    Parameters
+    ----------
+    a : :obj:`WeightedTensor`
+        The first tensor, which is a `WeightedTensor`.
+    b : :obj:`TensorOrWeightedTensor`
+        The second tensor, which can be a `WeightedTensor` or a regular tensor.
+    operator_name : :obj:`str`
+        The name of the binary operation to be applied.
+    reverse : :obj:`bool`, optional
+        If True, the operation is applied in reverse order (b operator a).
+        Default: False
+    Returns
+    -------
+    :obj:`WeightedTensor`:
+        A new `WeightedTensor` with the result of the operation and the appropriate weights.
+    """
+
     operation = getattr(operator, operator_name)
     if isinstance(b, WeightedTensor):
         result_value = (
