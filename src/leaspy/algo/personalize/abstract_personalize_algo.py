@@ -1,3 +1,5 @@
+"""This module defines the `AbstractPersonalizeAlgo` class used for all personalize algorithms."""
+
 from abc import abstractmethod
 from typing import Tuple
 
@@ -26,11 +28,11 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
 
     Attributes
     ----------
-    name : str
+    name : :obj:`str`
         Algorithm's name.
-    seed : int, optional
+    seed : :obj:`int`, optional
         Algorithm's seed (default None).
-    algo_parameters : dict
+    algo_parameters : :obj:`dict`
         Algorithm's parameters.
 
     See Also
@@ -57,15 +59,6 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
         -------
         individual_parameters : :class:`.IndividualParameters`
             Contains individual parameters.
-        loss : float or :class:`torch.Tensor[float]`
-            The reconstruction loss
-            (for Gaussian observation model, it corresponds to the RMSE)
-
-            .. math:: = \frac{1}{n_{visits} \times n_{dim}} \sqrt{\sum_{i, j \in [1, n_{visits}] \times [1, n_{dim}]} \varepsilon_{i,j}}
-
-            where :math:`\varepsilon_{i,j} = \left( f(\theta, (z_{i,j}), (t_{i,j})) - (y_{i,j}) \right)^2` , where
-            :math:`\theta` are the model's fixed effect, :math:`(z_{i,j})` the model's random effects,
-            :math:`(t_{i,j})` the time-points and :math:`f` the model's estimator.
         """
 
         # Estimate individual parameters
@@ -77,27 +70,7 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
         for ip, ip_vals in pyt_individual_parameters.items():
             local_state[ip] = ip_vals
 
-        # TODO/WIP... (just for functional tests)
-        from leaspy.models.obs_models import FullGaussianObservationModel
-
-        obs_model = next(iter(model.obs_models))
-        if isinstance(obs_model, FullGaussianObservationModel):
-            if obs_model.extra_vars["noise_std"].shape == (1,):
-                f_loss = obs_model.compute_rmse  # gaussian-scalar
-            else:
-                f_loss = obs_model.compute_rmse_per_ft  # gaussian-diagonal
-            loss = f_loss(
-                y=local_state["y"],
-                model=local_state["model"],
-            )
-        else:
-            # Better way ??
-            loss = obs_model.dist.get_func_nll("y").then(wsum_dim)(
-                y=local_state["y"],
-                model=local_state["model"],
-            )[0]
-
-        return individual_parameters, loss
+        return individual_parameters
 
     @abstractmethod
     def _get_individual_parameters(

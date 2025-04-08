@@ -1,3 +1,5 @@
+"""This module defines the `MeanPosterior` sampler based personalize algorithm."""
+
 import torch
 
 from leaspy.utils.typing import DictParamsTorch
@@ -5,14 +7,13 @@ from leaspy.utils.typing import DictParamsTorch
 from ..base import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
-__all__ = ["MeanReal"]
+__all__ = ["MeanPosterior"]
 
 
-class MeanReal(AbstractMCMCPersonalizeAlgo):
+class MeanPosterior(AbstractMCMCPersonalizeAlgo):
     """
-    Sampler based algorithm, individual parameters are derived as the mean realization for `n_iter` samplings.
+    Sampler-based algorithm that derives individual parameters as the most frequent mean posterior value from `n_iter` samplings.
 
-    TODO: harmonize naming in paths realiSation vs. realiZation...
 
     Parameters
     ----------
@@ -20,21 +21,21 @@ class MeanReal(AbstractMCMCPersonalizeAlgo):
         Settings of the algorithm.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_MEAN_REAL
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_MEAN_POSTERIOR
 
     def _compute_individual_parameters_from_samples_torch(
         self,
-        realizations: DictParamsTorch,
+        values: DictParamsTorch,
         attachments: torch.Tensor,
         regularities: torch.Tensor,
     ) -> DictParamsTorch:
         """
-        Compute dictionary of individual parameters from stacked realizations, attachments and regularities.
+        Compute dictionary of individual parameters from stacked values, attachments and regularities.
 
         Parameters
         ----------
-        realizations : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
-            The stacked history of realizations for individual latent variables.
+        values : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
+            The stacked history of values for individual latent variables.
         attachments : `torch.Tensor[float]` of shape (n_iter, n_individuals)
             The stacked history of attachments (per individual).
         regularities : `torch.Tensor[float]` of shape (n_iter, n_individuals)
@@ -44,8 +45,8 @@ class MeanReal(AbstractMCMCPersonalizeAlgo):
         -------
         dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
         """
-        # Only compute the mean of realizations (attachments & regularities not taken into account)
+        # Only compute the mean of posterior values (attachments & regularities not taken into account)
         return {
-            ind_var_name: reals_var.mean(dim=0)
-            for ind_var_name, reals_var in realizations.items()
+            ind_var_name: value_var.mean(dim=0)
+            for ind_var_name, value_var in values.items()
         }

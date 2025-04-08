@@ -1,13 +1,16 @@
-import torch
-import numpy as np
 from functools import cached_property
+from typing import Optional
+
+import numpy as np
+import torch
+
 from leaspy.utils.weighted_tensor import WeightedTensor
 from tests import LeaspyTestCase
-from typing import Optional
 
 
 class WeightedTensorTest(LeaspyTestCase):
     """Unit tests for WeightedTensor."""
+
     shape = (3, 6, 9)
 
     value_1_x_3 = [-1.0, 0.0, 1.0]
@@ -37,7 +40,18 @@ class WeightedTensorTest(LeaspyTestCase):
     ]
 
     expected_weighted_tensor_operators = (
-        "lt", "le", "eq", "ne", "gt", "ge", "add", "sub", "mul", "truediv", "neg", "abs",
+        "lt",
+        "le",
+        "eq",
+        "ne",
+        "gt",
+        "ge",
+        "add",
+        "sub",
+        "mul",
+        "truediv",
+        "neg",
+        "abs",
     )
 
     @cached_property
@@ -267,15 +281,16 @@ class WeightedTensorTest(LeaspyTestCase):
         )
         self.assertEqual(
             (
-                1 + (-torch.ones(self.weighted_tensor_1_x_3_no_weight.shape)) *
-                (-self.weighted_tensor_1_x_3_no_weight)
+                1
+                + (-torch.ones(self.weighted_tensor_1_x_3_no_weight.shape))
+                * (-self.weighted_tensor_1_x_3_no_weight)
             ),
             expected,
         )
         self.assertEqual(
             (
-                torch.ones(self.weighted_tensor_1_x_3_no_weight.shape) -
-                self.weighted_tensor_1_x_3_no_weight * (-1)
+                torch.ones(self.weighted_tensor_1_x_3_no_weight.shape)
+                - self.weighted_tensor_1_x_3_no_weight * (-1)
             ),
             expected,
         )
@@ -357,7 +372,7 @@ class WeightedTensorTest(LeaspyTestCase):
             self.weighted_tensor_2_x_3.valued(
                 torch.ones_like(self.weighted_tensor_2_x_3_no_weight.value)
             ),
-            [[1., 1., 1.], [1., 1., 1.]],
+            [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
             expected_weight=[[1, 0, 0], [1, 0, 1]],
         )
 
@@ -371,7 +386,9 @@ class WeightedTensorTest(LeaspyTestCase):
 
     def test_weighted_tensor_map_with_fill_value(self):
         self.assert_value_and_weight(
-            self.weighted_tensor_2_x_3.map(self.func, torch.ones((2, 3)), fill_value=100.0),
+            self.weighted_tensor_2_x_3.map(
+                self.func, torch.ones((2, 3)), fill_value=100.0
+            ),
             [[-5.0, 601.0, 601.0], [19.84, 601.0, 100.6]],
             expected_weight=[[1, 0, 0], [1, 0, 1]],
             exact_values_equality=False,
@@ -379,7 +396,9 @@ class WeightedTensorTest(LeaspyTestCase):
 
     def test_weighted_tensor_map_no_weight_with_fill_value(self):
         self.assert_value_and_weight(
-            self.weighted_tensor_2_x_3_no_weight.map(self.func, torch.ones((2, 3)), fill_value=200),
+            self.weighted_tensor_2_x_3_no_weight.map(
+                self.func, torch.ones((2, 3)), fill_value=200
+            ),
             [[-5.0, 1.0, 7.0], [19.84, 253.6, 100.6]],
             exact_values_equality=False,
             expected_none_weights=True,
@@ -389,25 +408,27 @@ class WeightedTensorTest(LeaspyTestCase):
         self.assert_value_and_weight(
             self.weighted_tensor_2_x_3.map_both(self.func, torch.ones((2, 3))),
             [[-5.0, 1.0, 7.0], [19.84, 253.6, 100.6]],
-            expected_weight=[[7., 1., 1.], [7., 1., 7.]],
+            expected_weight=[[7.0, 1.0, 1.0], [7.0, 1.0, 7.0]],
             exact_values_equality=False,
         )
 
     def test_weighted_tensor_map_both_with_fill_value(self):
         self.assert_value_and_weight(
             self.weighted_tensor_2_x_3.map_both(
-                self.func, torch.ones((2, 3)),
+                self.func,
+                torch.ones((2, 3)),
                 fill_value=100.0,
             ),
             [[-5.0, 601.0, 601.0], [19.84, 601.0, 100.6]],
-            expected_weight=[[7., 1., 1.], [7., 1., 7.]],
+            expected_weight=[[7.0, 1.0, 1.0], [7.0, 1.0, 7.0]],
             exact_values_equality=False,
         )
 
     def test_weighted_tensor_map_both_no_weight_with_fill_value(self):
         self.assert_value_and_weight(
             self.weighted_tensor_2_x_3_no_weight.map_both(
-                self.func, torch.ones((2, 3)),
+                self.func,
+                torch.ones((2, 3)),
                 fill_value=200,
             ),
             [[-5.0, 1.0, 7.0], [19.84, 253.6, 100.6]],
@@ -419,13 +440,19 @@ class WeightedTensorTest(LeaspyTestCase):
         self.generic_wsum_tester({}, torch.tensor(35.3400), torch.tensor(4))
 
     def test_weighted_tensor_wsum_axis_0(self):
-        self.generic_wsum_tester({"axis": 0}, torch.tensor([2.14, 0.0, 33.2]), torch.tensor([2, 0, 2]))
+        self.generic_wsum_tester(
+            {"axis": 0}, torch.tensor([2.14, 0.0, 33.2]), torch.tensor([2, 0, 2])
+        )
 
     def test_weighted_tensor_wsum_axis_1(self):
-        self.generic_wsum_tester({"axis": 1}, torch.tensor([-1.0, 36.34, 0.0]), torch.tensor([1, 3, 0]))
+        self.generic_wsum_tester(
+            {"axis": 1}, torch.tensor([-1.0, 36.34, 0.0]), torch.tensor([1, 3, 0])
+        )
 
     def test_weighted_tensor_wsum_fill_value(self):
-        self.generic_wsum_tester({"fill_value": 1.5}, torch.tensor(35.3400), torch.tensor(4))
+        self.generic_wsum_tester(
+            {"fill_value": 1.5}, torch.tensor(35.3400), torch.tensor(4)
+        )
 
     def test_weighted_tensor_wsum_fill_value_and_axis_0(self):
         self.generic_wsum_tester(
@@ -444,14 +471,26 @@ class WeightedTensorTest(LeaspyTestCase):
     def test_weighted_tensor_view_1_by_9(self):
         self.assert_value_and_weight(
             self.weighted_tensor_3_x_3.view((1, 9)),
-            [[-1.0000, 0.0000, 1.0000, 3.1400, 42.1000, 16.6000, 102.2000, -23.1000, -0.2000]],
+            [
+                [
+                    -1.0000,
+                    0.0000,
+                    1.0000,
+                    3.1400,
+                    42.1000,
+                    16.6000,
+                    102.2000,
+                    -23.1000,
+                    -0.2000,
+                ]
+            ],
             expected_weight=[[1, 0, 0, 1, 0, 2, 0, 0, 0]],
         )
 
     def test_weighted_tensor_view_9_by_1(self):
         self.assert_value_and_weight(
             self.weighted_tensor_3_x_3.view((9, 1)),
-            [[-1.0], [0.0],[1.0], [3.14], [42.1], [16.6], [102.2], [-23.1], [-0.2]],
+            [[-1.0], [0.0], [1.0], [3.14], [42.1], [16.6], [102.2], [-23.1], [-0.2]],
             expected_weight=[[1], [0], [0], [1], [0], [2], [0], [0], [0]],
         )
 
@@ -463,7 +502,7 @@ class WeightedTensorTest(LeaspyTestCase):
 
         self.assert_value_and_weight(
             input_tensor.expand((3, -1)),
-            [[-1., 0., 1.], [-1., 0., 1.], [-1., 0., 1.]],
+            [[-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]],
             expected_weight=[[1, 0, 0], [1, 0, 0], [1, 0, 0]],
         )
 
@@ -474,20 +513,21 @@ class WeightedTensorTest(LeaspyTestCase):
         self.assertIsNone(weights)
 
     def test_get_filled_value_and_weight_tensor_without_weights_and_fill_value(self):
-        values, weights = WeightedTensor.get_filled_value_and_weight(self.tensor_3_x_3, fill_value=1000.0)
+        values, weights = WeightedTensor.get_filled_value_and_weight(
+            self.tensor_3_x_3, fill_value=1000.0
+        )
 
         self.assertTrue(torch.equal(values, self.tensor_3_x_3))
         self.assertIsNone(weights)
 
     def test_get_filled_value_and_weight_tensor_with_weights(self):
-        values, weights = WeightedTensor.get_filled_value_and_weight(self.weighted_tensor_3_x_3)
+        values, weights = WeightedTensor.get_filled_value_and_weight(
+            self.weighted_tensor_3_x_3
+        )
 
         self.assertTrue(torch.equal(values, self.tensor_3_x_3))
         self.assertTrue(
-            torch.equal(
-                weights,
-                torch.tensor([[1, 0, 0], [1, 0, 2], [0, 0, 0]])
-            )
+            torch.equal(weights, torch.tensor([[1, 0, 0], [1, 0, 2], [0, 0, 0]]))
         )
 
     def test_get_filled_value_and_weight_tensor_with_weights_and_fill_value(self):
@@ -505,12 +545,9 @@ class WeightedTensorTest(LeaspyTestCase):
                         [3.14, 1000.0, 16.6],
                         [1000.0, 1000.0, 1000.0],
                     ]
-                )
+                ),
             )
         )
         self.assertTrue(
-            torch.equal(
-                weights,
-                torch.tensor([[1, 0, 0], [1, 0, 2], [0, 0, 0]])
-            )
+            torch.equal(weights, torch.tensor([[1, 0, 0], [1, 0, 2], [0, 0, 0]]))
         )

@@ -14,7 +14,7 @@ from leaspy.variables.specs import (
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
-    VariablesValuesRO,
+    VariableNameToValueMapping,
 )
 
 from .abstract_multivariate_model import AbstractMultivariateModel
@@ -46,7 +46,7 @@ class MultivariateParallelModel(
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariableNameToValueMapping:
         parameters = super()._compute_initial_values_for_model_parameters(
             dataset, method=method
         )

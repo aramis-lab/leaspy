@@ -40,7 +40,7 @@ class ModelSettings:
         self.hyperparameters: KwargsType = {
             k.lower(): v
             for k, v in settings.items()
-            if k not in ("name", "parameters", "leaspy_version")
+            if k not in ("name", "parameters", "hyperparameters", "leaspy_version")
         }
 
     @staticmethod

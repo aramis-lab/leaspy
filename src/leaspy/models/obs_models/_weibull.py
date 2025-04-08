@@ -1,20 +1,13 @@
-from typing import Dict
-
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.weighted_tensor import WeightedTensor, sum_dim
+from leaspy.utils.weighted_tensor import WeightedTensor
 from leaspy.variables.distributions import (
     WeibullRightCensored,
     WeibullRightCensoredWithSources,
 )
 from leaspy.variables.specs import (
-    LVL_FT,
-    LVL_IND,
-    Collect,
-    DataVariable,
     LinkedVariable,
-    ModelParameter,
     VariableInterface,
-    VarName,
+    VariableName,
 )
 
 from ._base import ObservationModel
@@ -39,7 +32,7 @@ class AbstractWeibullRightCensoredObservationModel(ObservationModel):
     def get_variables_specs(
         self,
         named_attach_vars: bool = True,
-    ) -> Dict[VarName, VariableInterface]:
+    ) -> dict[VariableName, VariableInterface]:
         """Automatic specifications of variables for this observation model."""
 
         specs = super().get_variables_specs(named_attach_vars)
@@ -58,10 +51,10 @@ class WeibullRightCensoredObservationModel(
 
     def __init__(
         self,
-        nu: VarName,
-        rho: VarName,
-        xi: VarName,
-        tau: VarName,
+        nu: VariableName,
+        rho: VariableName,
+        xi: VariableName,
+        tau: VariableName,
         **extra_vars: VariableInterface,
     ):
         super().__init__(
@@ -88,11 +81,11 @@ class WeibullRightCensoredWithSourcesObservationModel(
 
     def __init__(
         self,
-        nu: VarName,
-        rho: VarName,
-        xi: VarName,
-        tau: VarName,
-        survival_shifts: VarName,
+        nu: VariableName,
+        rho: VariableName,
+        xi: VariableName,
+        tau: VariableName,
+        survival_shifts: VariableName,
         **extra_vars: VariableInterface,
     ):
         super().__init__(

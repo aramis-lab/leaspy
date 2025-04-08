@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
-    Dict,
     Optional,
 )
 from typing import (
@@ -22,7 +21,7 @@ from leaspy.variables.specs import (
     DataVariable,
     LinkedVariable,
     VariableInterface,
-    VarName,
+    VariableName,
 )
 
 __all__ = ["ObservationModel"]
@@ -50,10 +49,10 @@ class ObservationModel:
         (e.g. "noise_std", and "y_L2_per_ft" for instance for a Gaussian model)
     """
 
-    name: VarName
+    name: VariableName
     getter: Callable[[Dataset], WeightedTensor]
     dist: SymbolicDistribution
-    extra_vars: Optional[TMapping[VarName, VariableInterface]] = None
+    extra_vars: Optional[TMapping[VariableName, VariableInterface]] = None
 
     def get_nll_attach_var_name(self, named_attach_vars: bool = True) -> str:
         """
@@ -65,7 +64,7 @@ class ObservationModel:
     def get_variables_specs(
         self,
         named_attach_vars: bool = True,
-    ) -> Dict[VarName, VariableInterface]:
+    ) -> dict[VariableName, VariableInterface]:
         """Automatic specifications of variables for this observation model."""
         # TODO change? a bit dirty? possibility of having aliases for variables?
 

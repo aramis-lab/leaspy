@@ -5,7 +5,7 @@ import torch
 
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, OrthoBasis, Sqr
+from leaspy.utils.functional import Exp
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
@@ -18,8 +18,7 @@ from leaspy.variables.specs import (
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
-    SuffStatsRW,
-    VariablesValuesRO,
+    VariableNameToValueMapping,
 )
 
 from .base import InitializationMethod
@@ -178,14 +177,14 @@ class OrdinalMultivariateModel(LogisticMultivariateModel, OrdinalModelMixin):
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariableNameToValueMapping:
         """Compute initial values for model parameters and for the ordinal deltas parameters
         and initializes ordinal noise_model attributes.
         """
         parameters = super()._compute_initial_values_for_model_parameters(
             dataset, method
         )
-        df = self._get_dataframe_from_dataset(dataset)
+        df = dataset.to_pandas(apply_headers=True)
 
         deltas = {}
         for ft, s in df.items():  # preserve feature order

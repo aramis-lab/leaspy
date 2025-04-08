@@ -1,3 +1,5 @@
+"""This module defines the `ModePosterior` sampler based personalize algorithm."""
+
 import torch
 
 from leaspy.utils.typing import DictParamsTorch
@@ -5,16 +7,14 @@ from leaspy.utils.typing import DictParamsTorch
 from ..base import AlgorithmName
 from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
 
-__all__ = ["ModeReal"]
+__all__ = ["ModePosterior"]
 
 
-class ModeReal(AbstractMCMCPersonalizeAlgo):
+class ModePosterior(AbstractMCMCPersonalizeAlgo):
     """
-    Sampler based algorithm, individual parameters are derived as the most frequent realization for `n_iter` samplings.
+    Sampler-based algorithm that derives individual parameters as the most frequent mode posterior value from `n_iter` samplings.
 
     TODO? we could derive some confidence intervals on individual parameters thanks to this personalization algorithm...
-
-    TODO: harmonize naming in paths realiSation vs. realiZation...
 
     Parameters
     ----------
@@ -22,23 +22,23 @@ class ModeReal(AbstractMCMCPersonalizeAlgo):
         Settings of the algorithm.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_MODE_REAL
+    name: AlgorithmName = AlgorithmName.PERSONALIZE_MODE_POSTERIOR
     regularity_factor: float = 1.0
     """Weighting of regularity term in the final loss to be minimized."""
 
     def _compute_individual_parameters_from_samples_torch(
         self,
-        realizations: DictParamsTorch,
+        values: DictParamsTorch,
         attachments: torch.Tensor,
         regularities: torch.Tensor,
     ) -> DictParamsTorch:
         """
-        Compute dictionary of individual parameters from stacked realizations, attachments and regularities.
+        Compute dictionary of individual parameters from stacked values, attachments and regularities.
 
         Parameters
         ----------
-        realizations : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
-            The stacked history of realizations for individual latent variables.
+        values : :obj:`dict`[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
+            The stacked history of values for individual latent variables.
         attachments : `torch.Tensor[float]` of shape (n_iter, n_individuals)
             The stacked history of attachments (per individual).
         regularities : `torch.Tensor[float]` of shape (n_iter, n_individuals)
@@ -46,7 +46,7 @@ class ModeReal(AbstractMCMCPersonalizeAlgo):
 
         Returns
         -------
-        dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
+        :obj:`dict`[ind_var_name: :obj:`str`, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
         """
         # Indices of iterations where loss (= negative log-likelihood) was minimal
         # (per individual, but tradeoff on ALL individual parameters)
@@ -55,6 +55,6 @@ class ModeReal(AbstractMCMCPersonalizeAlgo):
         )  # shape (n_individuals,)
         indices_individuals = torch.arange(len(indices_iter_best))
         return {
-            ind_var_name: reals_var[indices_iter_best, indices_individuals]
-            for ind_var_name, reals_var in realizations.items()
+            ind_var_name: value_var[indices_iter_best, indices_individuals]
+            for ind_var_name, value_var in values.items()
         }

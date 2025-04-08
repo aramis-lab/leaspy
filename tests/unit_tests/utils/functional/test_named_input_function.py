@@ -1,6 +1,7 @@
 import re
-from tests import LeaspyTestCase
+
 from leaspy.utils.functional import NamedInputFunction
+from tests import LeaspyTestCase
 
 
 def custom_mult(x, y):
@@ -24,7 +25,6 @@ def model(x, y, *, foo, bar=10, baz=16):
 
 
 class NamedInputFunctionTest(LeaspyTestCase):
-
     func = NamedInputFunction(custom_mult, ("foo", "bar"))
     multi_output_func = NamedInputFunction(multi_output_function, ("foo", "bar"))
     model = NamedInputFunction(model, ("x", "y"), {"foo": 100, "baz": 200})
@@ -106,10 +106,13 @@ class NamedInputFunctionTest(LeaspyTestCase):
         self.assertEqual(h_o_func.f.__name__, "h@custom_mult")
         self.assertEqual(h_o_func(foo=2, bar=3), 22)
 
-    def test_composition_outer_function_expects_more_values_than_what_inner_function_produces_error(self):
+    def test_composition_outer_function_expects_more_values_than_what_inner_function_produces_error(
+        self,
+    ):
         """
         func produces a single scalar value while h expects two args.
         """
+
         def h(x, y, *, b):
             return x * 2 + y * 3 + b
 
@@ -125,11 +128,14 @@ class NamedInputFunctionTest(LeaspyTestCase):
         ):
             h_o_func(foo=2, bar=3)
 
-    def test_composition_inner_function_returns_more_values_than_what_outer_function_expects_error(self):
+    def test_composition_inner_function_returns_more_values_than_what_outer_function_expects_error(
+        self,
+    ):
         """
         multi_output_func returns two values which are passed as a tuple to h.
         Here, the composition will fail because h assumes x is not a tuple.
         """
+
         def h(x, *, b):
             return x * 2 + b
 
@@ -142,11 +148,14 @@ class NamedInputFunctionTest(LeaspyTestCase):
         with self.assertRaisesRegex(TypeError, "can only concatenate tuple"):
             h_o_func(foo=2, bar=3)
 
-    def test_composition_inner_function_returns_multiple_values_outer_handles_them_as_tuple(self):
+    def test_composition_inner_function_returns_multiple_values_outer_handles_them_as_tuple(
+        self,
+    ):
         """
         multi_output_func returns two values which are passed as a tuple to h.
         Here, the composition will succeed because h assumes x is a tuple.
         """
+
         def h(x, *, b):
             return x[0] * 2 + x[1] * 3 + b
 
@@ -156,6 +165,3 @@ class NamedInputFunctionTest(LeaspyTestCase):
         self.assertIsNone(h_o_func.kws)
         self.assertEqual(h_o_func.f.__name__, "h@multi_output_function")
         self.assertEqual(h_o_func(foo=2, bar=3), 37)
-
-
-

@@ -6,6 +6,7 @@ class classproperty:
 
     Source: https://stackoverflow.com/a/50516046
     """
+
     def __init__(self, fget=None, fset=None, fdel=None, doc=None):
         self.fget = fget
         self.fset = fset
@@ -40,12 +41,14 @@ class classproperty:
     def deleter(self, fdel):
         return type(self)(self.fget, self.fset, fdel, self.__doc__)
 
+
 def classproperty_support(cls):
     """
     Class decorator to add metaclass to our class.
     Metaclass uses to add descriptors to class attributes, see:
     http://stackoverflow.com/a/26634248/1113207
     """
+
     # Use type(cls) to use metaclass of given class
     class Meta(type(cls)):
         pass
@@ -56,4 +59,5 @@ def classproperty_support(cls):
 
     class Wrapper(cls, metaclass=Meta):
         pass
+
     return Wrapper

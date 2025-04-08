@@ -84,9 +84,9 @@ class AbstractModelTest(LeaspyTestCase):
                 # if model_name not in ['logistic', 'logistic_parallel']:
                 #    # problem with nans with 'gradient_descent_personalize' in multivariate logistic models
                 #    methods.append('gradient_descent_personalize')
-                for method in ("mode_real", "mean_real", "scipy_minimize"):
+                for method in ("mode_posterior", "mean_posterior", "scipy_minimize"):
                     extra_kws = dict()  # not for all algos
-                    if "_real" in method:
+                    if "_posterior" in method:
                         extra_kws = dict(n_iter=100)
                     settings = AlgorithmSettings(method, seed=0, **extra_kws)
                     result = leaspy.personalize(data, settings)
@@ -112,7 +112,7 @@ class AbstractModelTest(LeaspyTestCase):
 
                     for method in ("scipy_minimize",):
                         extra_kws = dict()  # not for all algos
-                        if "_real" in method:
+                        if "_posterior" in method:
                             extra_kws = dict(n_iter=100)
                         settings = AlgorithmSettings(method, seed=0, **extra_kws)
                         leaspy.personalize(data, settings)
