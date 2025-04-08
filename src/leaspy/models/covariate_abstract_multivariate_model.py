@@ -114,31 +114,48 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
         """
         d = super().get_variables_specs()
 
+        # d.update(
+        #     ## POPULATION PARAMETERS
+        #     # PRIORS
+        #     phi_mod_t0_mean=ModelParameter.for_pop_mean("phi_mod_t0", shape=(1,)),
+        #     phi_mod_t0_std=Hyperparameter(0.001),
+        #     phi_ref_t0_mean=ModelParameter.for_pop_mean("phi_ref_t0", shape=(1,)),
+        #     phi_ref_t0_std=Hyperparameter(0.01),
+        #     # LATENT VARS
+        #     phi_mod_t0=PopulationLatentVariable(
+        #         Normal("phi_mod_t0_mean", "phi_mod_t0_std")
+        #     ),
+        #     phi_ref_t0=PopulationLatentVariable(
+        #         Normal("phi_ref_t0_mean", "phi_ref_t0_std")
+        #     ),
+        #     # LINKED VARS
+        #     t0_mean=LinkedVariable(Sum("phi_mod_t0_mean", "phi_ref_t0_mean")),
+
+        #     ## INDIVIDUAL PARAMETERS
+        #     # PRIORS
+        #     xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
+        #     tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
+        #     # LATENT VARS
+        #     xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
+        #     tau=IndividualLatentVariable(
+        #         Normal("t0_mean", "tau_std")
+        #     ),  # t0_mean ou log_t0_mean ?
+        #     # DERIVED VARS
+        #     alpha=LinkedVariable(Exp("xi")),
+        # )
+
         d.update(
-            ## POPULATION PARAMETERS
             # PRIORS
-            phi_mod_t0_mean=ModelParameter.for_pop_mean("phi_mod_t0", shape=(1,)),
-            phi_mod_t0_std=Hyperparameter(0.001),
-            phi_ref_t0_mean=ModelParameter.for_pop_mean("phi_ref_t0", shape=(1,)),
-            phi_ref_t0_std=Hyperparameter(0.01),
-            # LATENT VARS
-            phi_mod_t0=PopulationLatentVariable(
-                Normal("phi_mod_t0_mean", "phi_mod_t0_std")
-            ),
-            phi_ref_t0=PopulationLatentVariable(
-                Normal("phi_ref_t0_mean", "phi_ref_t0_std")
-            ),
-            # LINKED VARS
-            t0_mean=LinkedVariable(Sum("phi_mod_t0_mean", "phi_ref_t0_mean")),
-            ## INDIVIDUAL PARAMETERS
-            # PRIORS
+            # phi_mod_tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
+            # phi_mod_tau_std=Hyperparameter(0.001),
+            phi_ref_tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
+            phi_ref_tau_std=Hyperparameter(0.01),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
-            tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
             # LATENT VARS
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             tau=IndividualLatentVariable(
-                Normal("t0_mean", "tau_std")
-            ),  # t0_mean ou log_t0_mean ?
+                Normal("phi_ref_tau_mean", "phi_ref_tau_std")
+            ),  # nouvelle distribution pour pouvoir prendre la somme des carrés
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
         )

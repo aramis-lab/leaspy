@@ -158,36 +158,55 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
             The specifications of the model's variables.
         """
         d = super().get_variables_specs()
+        # d.update(
+        #     # PRIORS
+        #     phi_mod_v0_mean=ModelParameter.for_pop_mean(
+        #         "phi_mod_v0", shape=(self.dimension,)
+        #     ),
+        #     phi_mod_v0_std=Hyperparameter(0.001),
+        #     phi_ref_v0_mean=ModelParameter.for_pop_mean(
+        #         "phi_ref_v0", shape=(self.dimension,)
+        #     ),
+        #     phi_ref_v0_std=Hyperparameter(0.01),
+        #     xi_mean=Hyperparameter(0.0),
+        #     # LATENT VARS
+        #     phi_mod_v0=PopulationLatentVariable(
+        #         Normal("phi_mod_v0_mean", "phi_mod_v0_std")
+        #     ),
+        #     phi_ref_v0=PopulationLatentVariable(
+        #         Normal("phi_ref_v0_mean", "phi_ref_v0_std")
+        #     ),
+        #     # LINKED VARS
+        #     log_v0=LinkedVariable(
+        #         Sum("phi_mod_v0", "phi_ref_v0")
+        #     ),  # est ce qu'on peut faire une Linked à partir de Latent ?
+        #     # DERIVED VARS
+        #     v0=LinkedVariable(
+        #         Exp("log_v0"),
+        #     ),
+        #     metric=LinkedVariable(
+        #         self.metric
+        #     ),  # for linear model: metric & metric_sqr are fixed = 1.
+        # )
+
         d.update(
             # PRIORS
-            phi_mod_v0_mean=ModelParameter.for_pop_mean(
-                "phi_mod_v0", shape=(self.dimension,)
-            ),
-            phi_mod_v0_std=Hyperparameter(0.001),
-            phi_ref_v0_mean=ModelParameter.for_pop_mean(
-                "phi_ref_v0", shape=(self.dimension,)
-            ),
+            # phi_mod_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
+            # phi_mod_v0_std=Hyperparameter(0.001),
+            phi_ref_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
             phi_ref_v0_std=Hyperparameter(0.01),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
-            phi_mod_v0=PopulationLatentVariable(
-                Normal("phi_mod_v0_mean", "phi_mod_v0_std")
-            ),
-            phi_ref_v0=PopulationLatentVariable(
+            log_v0=PopulationLatentVariable(
                 Normal("phi_ref_v0_mean", "phi_ref_v0_std")
             ),
             # LINKED VARS
-            log_v0=LinkedVariable(
-                Sum("phi_mod_v0", "phi_ref_v0")
-            ),  # est ce qu'on peut faire une Linked à partir de Latent ?
-            # DERIVED VARS
-            v0=LinkedVariable(
-                Exp("log_v0"),
-            ),
+            v0=LinkedVariable(Exp("log_v0")),
             metric=LinkedVariable(
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
         )
+
         if self.source_dimension >= 1:
             d.update(
                 model=LinkedVariable(self.model_with_sources),
@@ -374,16 +393,14 @@ class CovariateLogisticMultivariateInitializationMixin:
         )  # always "works" for ordinal (values >= 1)
 
         parameters = {
-            "phi_mod_g_mean": torch.full_like(values, 0.01),
+            # "phi_mod_g_mean": torch.full_like(values, 0.01),
             "phi_ref_g_mean": 1.0 / values - 1.0,
-            "phi_mod_v0_mean": torch.full_like(slopes, 0.01),
+            # "phi_mod_v0_mean": torch.full_like(slopes, 0.01),
             "phi_ref_v0_mean": slopes,  # du coup on retire le warning quand il y a une valeur négative
-            "phi_mod_t0_mean": torch.full_like(t0, 0.1),
-            "phi_ref_t0_mean": t0,
+            # "phi_mod_t0_mean": torch.full_like(t0, 0.1),
+            "phi_ref_tau_mean": t0,
             # "log_g_mean": torch.log(1.0 / values - 1.0),
             # "log_v0_mean": get_log_velocities(slopes, self.features),
-            # "tau_mean": t0,
-            "tau_std": self.tau_std,
             "xi_std": self.xi_std,
         }
         if self.source_dimension >= 1:
@@ -418,22 +435,33 @@ class CovariateLogisticMultivariateModel(
             The specifications of the model's variables.
         """
         d = super().get_variables_specs()
+        # d.update(
+        #     phi_mod_g_mean=ModelParameter.for_pop_mean(
+        #         "phi_mod_g", shape=(self.dimension,)
+        #     ),
+        #     phi_mod_g_std=Hyperparameter(0.001),
+        #     phi_ref_g_mean=ModelParameter.for_pop_mean(
+        #         "phi_ref_g", shape=(self.dimension,)
+        #     ),
+        #     phi_ref_g_std=Hyperparameter(0.01),
+        #     phi_mod_g=PopulationLatentVariable(
+        #         Normal("phi_mod_g_mean", "phi_mod_g_std")
+        #     ),
+        #     phi_ref_g=PopulationLatentVariable(
+        #         Normal("phi_ref_g_mean", "phi_ref_g_std")
+        #     ),
+        #     log_g=LinkedVariable(Sum("phi_mod_g", "phi_ref_g")),
+        #     g=LinkedVariable(Exp("log_g")),
+        # )
+
         d.update(
-            phi_mod_g_mean=ModelParameter.for_pop_mean(
-                "phi_mod_g", shape=(self.dimension,)
-            ),
-            phi_mod_g_std=Hyperparameter(0.001),
+            # phi_mod_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            # phi_mod_g_std=Hyperparameter(0.001),
             phi_ref_g_mean=ModelParameter.for_pop_mean(
-                "phi_ref_g", shape=(self.dimension,)
+                "log_g", shape=(self.dimension,)
             ),
             phi_ref_g_std=Hyperparameter(0.01),
-            phi_mod_g=PopulationLatentVariable(
-                Normal("phi_mod_g_mean", "phi_mod_g_std")
-            ),
-            phi_ref_g=PopulationLatentVariable(
-                Normal("phi_ref_g_mean", "phi_ref_g_std")
-            ),
-            log_g=LinkedVariable(Sum("phi_mod_g", "phi_ref_g")),
+            log_g=PopulationLatentVariable(Normal("phi_ref_g_mean", "phi_ref_g_std")),
             g=LinkedVariable(Exp("log_g")),
         )
 
