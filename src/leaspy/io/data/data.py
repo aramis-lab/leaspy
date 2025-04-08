@@ -23,23 +23,23 @@ class Data(Iterable):
 
     Attributes
     ----------
-    individuals : Dict[IDType, IndividualData]
+    individuals : :obj: `Dict[IDType, IndividualData]`
         Included individuals and their associated data
-    iter_to_idx : Dict[int, IDType]
+    iter_to_idx ::obj:`Dict[int, IDType]`
         Maps an integer index to the associated individual ID
-    headers : List[FeatureType]
+    headers : :obj: `List[FeatureType]`
         Feature names
-    dimension : int
+    dimension : :obj:`int`
         Number of features
-    n_individuals : int
+    n_individuals : :obj:`int`
         Number of individuals
-    n_visits : int
+    n_visits : :obj:`int`
         Total number of visits
-    cofactors : List[FeatureType]
+    cofactors : :obj:`List[FeatureType]`
         Feature names corresponding to cofactors
-    event_time_name : str
+    event_time_name : :obj:`str`
         Name of the header that store the time at event in the original dataframe
-    event_bool_name : str
+    event_bool_name : :obj:`str`
         Name of the header that store the bool at event (censored or observed) in the original dataframe
     """
 
@@ -144,9 +144,10 @@ class Data(Iterable):
             The dataframe where the cofactors are stored.
             Its index should be ID, the identifier of subjects
             and it should uniquely index the dataframe (i.e. one row per individual).
-        cofactors : List[FeatureType] or None (default)
+        cofactors : :obj:`List[FeatureType]`, optional
             Names of the column(s) of df which shall be loaded as cofactors.
             If None, all the columns from the input dataframe will be loaded as cofactors.
+            Default: None
 
         Raises
         ------
@@ -198,14 +199,20 @@ class Data(Iterable):
 
         Parameters
         ----------
-        path : str
+        path : :class: `str`
             Path to the CSV file to load (with extension)
-        **kws
+        data_type : :class: `str`
+            Type of data to read. Can be 'visit' or 'event'.
+        pd_read_csv_kws : :class: `dict`
+            Keyword arguments that are sent to :func:`pandas.read_csv`
+        facto_kws : :class: `dict`
             Keyword arguments that are sent to :class:`.CSVDataReader`
-
+        **df_reader_kws :
+            Keyword arguments that are sent to :class:`.CSVDataReader`
         Returns
         -------
-        :class:`.Data`
+        :class:`.Data`:
+            A Data object containing the data from the CSV file.
         """
         # enforce ID to be interpreted as string as default (can be overwritten)
         pd_read_csv_kws = {"dtype": {"ID": str}, **pd_read_csv_kws}
@@ -228,12 +235,15 @@ class Data(Iterable):
 
         Parameters
         ----------
-        cofactors : List[FeatureType], 'all', or None (default None)
+        cofactors : :class: `List[FeatureType]`, optional
             Cofactors to include in the DataFrame.
             If None (default), no cofactors are included.
             If "all", all the available cofactors are included.
-        reset_index : bool (default True)
+            Default: None
+
+        reset_index : :class: `bool`, optional 
             Whether to reset index levels in output.
+            Default: True
 
         Returns
         -------
@@ -294,6 +304,10 @@ class Data(Iterable):
         ----------
         df : :class:`pandas.DataFrame`
             Dataframe containing ID, TIME and features.
+        data_type : :class:`str`
+            Type of data to read. Can be 'visit' or 'event'.
+        factory_kws : :class:`dict`
+            Keyword arguments that are sent to :func:`.dataframe_data_reader_factory`
         **kws
             Keyword arguments that are sent to :class:`.DataframeDataReader`
 
@@ -333,23 +347,23 @@ class Data(Iterable):
 
         Parameters
         ----------
-        indices : List[IDType]
+        indices : :class:`List[IDType]`
             List of the individuals' unique ID
-        timepoints : List[List[float]]
+        timepoints : :class:`List[List[float]]`
             For each individual ``i``, list of timepoints associated
             with the observations.
             The number of such timepoints is noted ``n_timepoints_i``
-        values : List[array-like[float, 2D]]
+        values : :class:`List[array-like[float, 2D]]`
             For each individual ``i``, two-dimensional array-like object
             containing observed data points.
             Its expected shape is ``(n_timepoints_i, n_features)``
-        headers : List[FeatureType]
+        headers : :class:`List[FeatureType]`
             Feature names.
             The number of features is noted ``n_features``
 
         Returns
         -------
-        :class:`.Data`
+        :class:`.Data`:
         """
 
         # Longitudinal input check
@@ -393,9 +407,9 @@ class Data(Iterable):
 
         Parameters
         ----------
-        individuals : List[IndividualData]
+        individuals : :class:`List[IndividualData]`
             List of individuals
-        headers : List[FeatureType]
+        headers : :class:`List[FeatureType]`
             List of feature names
 
         Returns
