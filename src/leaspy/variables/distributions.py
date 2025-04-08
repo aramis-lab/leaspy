@@ -8,8 +8,6 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, ClassVar, Type
 
 import torch
-from pkg_resources import dist_factory
-# from pkg_resources import dist_factory
 from torch import Tensor
 from torch.autograd import grad
 from torch.distributions.mixture_same_family import MixtureSameFamily
