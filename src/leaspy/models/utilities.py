@@ -25,14 +25,14 @@ def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
 
     Parameters
     ----------
-    x : :obj:`Union[list, torch.Tensor]`
+    x : :obj:`list` or :obj:`torch.Tensor`
         Input tensor or list to be converted.
 
     Returns
     -------
     :obj:`list` :
         List converted from tensor input, or original list if input was not a tensor.
-    
+
     Raises
     ------
     :exc:`NotImplementedError`
@@ -63,7 +63,7 @@ def compute_std_from_variance(
         The variance we would like to convert to a std-dev.
     varname : :obj:`str`
         The name of the variable - to display a nice error message.
-    tol : :obj:`float`, optional 
+    tol : :obj:`float`, optional
         The lower bound on variance, under which the converge error is raised.
         Default=1e-5.
 
@@ -101,14 +101,14 @@ def compute_patient_slopes_distribution(
     Parameters
     ----------
     df : :obj:`pd.DataFrame`
-        DataFrame containing individual scores    
+        DataFrame containing individual scores
     max_inds : :obj:`int', optional
         Restrict computation to first `max_inds` individuals.
         Default="None"
 
     Returns
     -------
-    :obj:`Tuple[torch.Tensor, torch.Tensor]`:
+    :obj:`Tuple`[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
         Tuple with :
         - [0] : torch.Tensor de shape (n_features,) - Regression slopes
         - [1] : torch.Tensor de shape (n_features,) - Standard deviation of the slopes
@@ -141,9 +141,9 @@ def compute_linear_regression_subjects(
 
     Returns
     -------
-    :obj: `Dict`[str, pd.DataFrame]:
+    :obj: `Dict`[:obj:`str`, :obj:`pd.DataFrame`]:
         Dictionary of dataframes, one per feature, containing the intercept and slope of the linear regression
-    
+
     """
     regression_parameters = {}
 
@@ -173,7 +173,7 @@ def _linear_regression_against_time(data: pd.Series) -> Dict[str, float]:
 
     Returns
     -------
-    :obj: `Dict`[`str`, `float`]:
+    :obj: `Dict`[:obj:`str`, :obj: `float`]:
         Dictionary containing:
         - 'intercept': Regression intercept
         - 'slope': Regression slope coefficient
@@ -199,7 +199,7 @@ def compute_patient_values_distribution(
 
     Returns
     -------
-    :obj: Tuple[`torch.Tensor`, `torch.Tensor`]:
+    :obj: Tuple[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
         One mean and standard deviation per feature.
     """
     return torch.tensor(df.mean().values), torch.tensor(df.std().values)
@@ -218,7 +218,7 @@ def compute_patient_time_distribution(
 
     Returns
     -------
-    :obj:`Tuple`[`torch.Tensor`, `torch.Tensor`]:
+    :obj:`Tuple`[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
         One mean and standard deviation for the dataset
     """
     times = df.index.get_level_values("TIME").values
@@ -235,24 +235,24 @@ def get_log_velocities(
     ----------
     velocities : :obj:`torch.Tensor`
         The velocities to be clamped and logged.
-    features : :obj:`List[str]`
+    features : :obj:`List`[:obj:`str`]
         The names of the features corresponding to the velocities.
     min : :obj:`float`, optional
         The minimum value to clamp the velocities to.
         Default=1e-2
-    
+
     Returns
     -------
     :obj:`torch.Tensor` :
         The log of the clamped velocities.
-    
+
     Raises
     ------
     :obj:`Warning`
         If some negative velocities are provided.
         The velocities are clamped to `min` and their log is returned.
     """
-    
+
     neg_velocities = velocities <= 0
     if neg_velocities.any():
         warnings.warn(
@@ -264,22 +264,22 @@ def get_log_velocities(
 
 def torch_round(t: torch.FloatTensor, *, tol: float = 1 << 16) -> torch.FloatTensor:
     """
-    Round values to ~ 10**-4.8
+    Round all tensor values to ~ 10**-4.8
 
     Parameters
     ----------
     t : :obj:`torch.FloatTensor`
         The tensor to be rounded.
-    
+
     tol : :obj:`float`, optional
         The tolerance value for rounding.
         Default=1 << 16.
-    
+
     Returns
     -------
     :obj:`torch.FloatTensor` :
         The rounded tensor.
-    
+
     """
     # Round values to ~ 10**-4.8
     return (t * tol).round() * (1.0 / tol)
