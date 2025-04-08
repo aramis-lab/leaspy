@@ -291,9 +291,9 @@ class FitOutputManager:
         colors = colormaps["Dark2"](np.linspace(0, 1, number_of_patient_plot + 2))
 
         fig, ax = plt.subplots(1, 1)
-        ax.set_title(f"Feature trajectory for {number_of_patient_plot} patients")
+        ax.set_title(f"Feature" f" trajectory for {number_of_patient_plot} patients")
         ax.set_xlabel("Ages")
-        ax.set_ylabel("Normalized Feature Value")
+        ax.set_ylabel("Normalized " "Feature Value")
 
         for i in range(number_of_patient_plot):
             times_patient = data.get_times_patient(i).cpu().detach().numpy()
