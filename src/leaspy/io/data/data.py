@@ -88,6 +88,9 @@ class Data(Iterable):
     def __getitem__(
         self, key: Union[int, IDType, slice, List[int], List[IDType]]
     ) -> Union[IndividualData, Data]:
+        """
+        Access the individuals in the Data object using their ID or integer index.
+        """
         if isinstance(key, int):
             return self.individuals[self.iter_to_idx[key]]
 
@@ -241,7 +244,7 @@ class Data(Iterable):
             If "all", all the available cofactors are included.
             Default: None
 
-        reset_index : :class: `bool`, optional 
+        reset_index : :class: `bool`, optional
             Whether to reset index levels in output.
             Default: True
 
