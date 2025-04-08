@@ -22,7 +22,7 @@ class WeightedTensor(Generic[VT]):
 
     Parameters
     ----------
-    value : :obj:`torch.Tensor` (of type VT)
+    value : :obj:`torch.Tensor`
         Raw values, without any mask.
     weight : :obj:`torch.Tensor', optional
         Relative weights for values.
@@ -30,9 +30,9 @@ class WeightedTensor(Generic[VT]):
 
     Attributes
     ----------
-    value : :obj:`torch.Tensor` (of type VT)
+    value : :obj:`torch.Tensor`
         Raw values, without any mask.
-    weight : :obj:`torch.Tensor` 
+    weight : :obj:`torch.Tensor`
         Relative weights for values.
         If weight is a tensor[bool], it can be seen as a mask (valid value <-> weight is True).
         More generally, meaningless values <-> indices where weights equal 0.
@@ -43,6 +43,9 @@ class WeightedTensor(Generic[VT]):
     weight: Optional[torch.Tensor] = None
 
     def __post_init__(self):
+        """
+        Post-initialization method to ensure that the value and weight tensors are properly initialized.
+        """
         if not isinstance(self.value, torch.Tensor):
             assert not isinstance(
                 self.value, WeightedTensor
@@ -65,11 +68,35 @@ class WeightedTensor(Generic[VT]):
 
     @property
     def weighted_value(self) -> torch.Tensor:
+        """
+        Get the weighted value tensor.
+        This is the value tensor multiplied by the weight tensor.
+
+        Returns
+        -------
+        :obj:`torch.Tensor`:
+            The weighted value tensor.
+            If weight is None, the value tensor is returned.
+        """
         if self.weight is None:
             return self.value
         return self.weight * self.filled(0)
 
-    def __getitem__(self, indices):
+    def __getitem__(self, indices) -> WeightedTensor:
+        """
+        Get the weighted tensor at the specified indices.
+
+        Parameters
+        ----------
+        indices : :obj:`torch.Tensor`
+            The indices to get the weighted tensor at.
+
+        Returns
+        -------
+        :class:`WeightedTensor`:
+            A new `WeightedTensor` with the values and weights at the specified indices.
+        """
+
         if self.weight is None:
             return WeightedTensor(self.value.__getitem__(indices), None)
         return WeightedTensor(
@@ -77,20 +104,21 @@ class WeightedTensor(Generic[VT]):
         )
 
     def filled(self, fill_value: Optional[VT] = None) -> torch.Tensor:
-        """
+        """Return the values tensor with masked zeros filled with the specified value.
+
         Return the values tensor filled with `fill_value` where the `weight` is exactly zero.
 
         Parameters
         ----------
-        fill_value : :obj:`torch.Tensor` (of type VT), optional
+        fill_value : :obj:`torch.Tensor`, optional
             The value to fill the tensor with for aggregates where weights were all zero.
             Default: None
-        
+
         Returns
         -------
-        :obj:`torch.Tensor` (of type VT):
+        :obj:`torch.Tensor`:
             The filled tensor.
-            If `weight` is None, the original tensor is returned.
+            If `weight` or fill_value is None, the original tensor is returned.
 
         """
         if fill_value is None or self.weight is None:
@@ -100,12 +128,12 @@ class WeightedTensor(Generic[VT]):
     def valued(self, value: torch.Tensor) -> WeightedTensor:
         """
         Return a new WeightedTensor with same weight as self but with new value provided.
-        
+
         Parameters
         ----------
-        value : :obj:`torch.Tensor` 
+        value : :obj:`torch.Tensor`
             The new value to be set.
-        
+
         Returns
         -------
         :obj:`WeightedTensor`:
@@ -120,24 +148,26 @@ class WeightedTensor(Generic[VT]):
         fill_value: Optional[VT] = None,
         **kws,
     ) -> WeightedTensor:
-        """
-        Apply a function that only operates on values.
+        """Apply a function to the values tensor while preserving weights.
+
+        The function is applied only to the values tensor after optionally filling
+        zero-weight positions. The weights remain unchanged in the returned tensor.
 
         Parameters
         ----------
-        func : :obj:`Callable[[torch.Tensor], torch.Tensor]`
+        func : :obj:`Callable`[[:obj:`torch.Tensor`], :obj:`torch.Tensor`]
             The function to be applied to the values.
-        *args : :obj:`Any`
+        *args :
             Positional arguments to be passed to the function.
         fill_value : :obj:`VT`, optional
             The value to fill the tensor with for aggregates where weights were all zero.
             Default: None
-        **kws : :obj:`Any`
+        **kws :
             Keyword arguments to be passed to the function.
-        
+
         Returns
         -------
-        :obj:`WeightedTensor`:
+        :class:`WeightedTensor`:
             A new `WeightedTensor` with the result of the operation and the same weights.
 
         """
@@ -150,27 +180,29 @@ class WeightedTensor(Generic[VT]):
         fill_value: Optional[VT] = None,
         **kws,
     ) -> WeightedTensor:
-        """
-        Apply a function that operates both on values and weight.
-        
+        """Apply a function to both values and weights tensors.
+
+        The same function is applied to both components of the weighted tensor.
+        Zero-weight positions in the values tensor are filled before applying the function.
+
         Parameters
         ----------
-        func : :obj:`Callable[[torch.Tensor], torch.Tensor]`
+        func : :obj:`Callable`[[:obj`torch.Tensor`], :obj:`torch.Tensor`]
             The function to be applied to both values and weights.
-        *args : :obj:`Any`
+        *args :
             Positional arguments to be passed to the function.
         fill_value : :obj:`VT`, optional
             The value to fill the tensor with for aggregates where weights were all zero.
             Default: None
-        **kws : :obj:`Any`      
+        **kws :
             Keyword arguments to be passed to the function.
-        
+
         Returns
         -------
         :obj:`WeightedTensor`:
             A new `WeightedTensor` with the result of the operation and the appropriate weights.
 
-        
+
         """
         return type(self)(
             func(self.filled(fill_value), *args, **kws),
@@ -186,21 +218,21 @@ class WeightedTensor(Generic[VT]):
     ) -> WeightedTensor[VT]:
         """
         Out-of-place `torch.index_put` on values (no modification of weights).
-        
+
         Parameters
         ----------
-        
-        indices : :obj:`Tuple[torch.Tensor, ...]`
+
+        indices : :obj:`Tuple`[:obj:`torch.Tensor`, ...]
             The indices to put the values at.
-        values : :obj:`torch.Tensor` (of type VT)
+        values : :obj:`torch.Tensor`
             The values to put at the specified indices.
         accumulate : :obj:`bool`, optional
             Whether to accumulate the values at the specified indices.
             Default: False
-        
+
         Returns
         -------
-        :obj:`WeightedTensor`[VT]:
+        :class:`WeightedTensor`[:obj:`VT`]
             A new `WeightedTensor` with the updated values and the same weights.
         """
         return self.map(
@@ -224,9 +256,9 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        
-        :obj:`Tuple[torch.Tensor, torch.Tensor]`:
-        Tuple containing: 
+
+        :obj:`Tuple`[:obj:torch.Tensor, torch.Tensor]`:
+        Tuple containing:
             - weighted_sum : :obj:`torch.Tensor`[VT]
                 Weighted sum, with totally un-weighted aggregates filled with `fill_value`.
             - sum_weights : :obj:`torch.Tensor` (may be of other type than `cls.weight_dtype`)
@@ -241,20 +273,22 @@ class WeightedTensor(Generic[VT]):
         return weighted_sum.masked_fill(sum_weights == 0, fill_value), sum_weights
 
     def sum(self, *, fill_value: VT = 0, **kws) -> torch.Tensor:
-        """
-        Get the weighted sum of tensor.
-        
+        """Compute weighted sum of values.
+
+        For unweighted tensors, this is equivalent to regular sum().
+        For weighted tensors, returns the same as the first element of wsum().
+
         Parameters
         ----------
         fill_value : :obj:`VT`, optional
             The value to fill the sum with for aggregates where weights were all zero.
             Default: 0
         **kws
-            Optional keyword-arguments 
-        
+            Optional keyword-arguments
+
         Returns
         -------
-        :obj:`torch.Tensor`[VT]:
+        :obj:`torch.Tensor`:
             The weighted sum, with totally un-weighted aggregates filled with `fill_value`.
 
         """
@@ -264,96 +298,350 @@ class WeightedTensor(Generic[VT]):
         return self.wsum(fill_value=fill_value, **kws)[0]
 
     def view(self, *shape) -> WeightedTensor[VT]:
-        """View of the tensor with another shape."""
+        """Return a view of the weighted tensor with a different shape.
+
+        Parameters
+        ----------
+        shape : :obj:`Tuple`[:obj:`int`, ...]
+            The new shape to be set.
+        Returns
+        -------
+        :obj:`WeightedTensor`[:obj:`VT]:
+            A new `WeightedTensor` with the same weights but with the new shape provided.
+        """
         return self.map_both(torch.Tensor.view, *shape)
 
     def expand(self, *shape) -> WeightedTensor[VT]:
-        """Expand the tensor with another shape."""
+        """Expand the weighted tensor to a new shape.
+
+        Parameters
+        ----------
+        shape : :obj:`Tuple`[:obj:`int`, ...]
+            The new shape to be set.
+
+        Returns
+        -------
+        :obj:`WeightedTensor`[:obj:`VT]:
+            A new `WeightedTensor` with the same weights but with the new shape provided.
+        """
         return self.map_both(torch.Tensor.expand, *shape)
 
     def to(self, *, device: torch.device) -> WeightedTensor[VT]:
-        """Apply the `torch.to` out-of-place function to both values and weights (only to move to device for now)."""
+        """Move the weighted tensor to a different device.
+        Parameters
+        ----------
+        device : :obj:`torch.device`
+            The device to be set.
+
+        Returns
+        -------
+        :obj:`WeightedTensor`[:obj:`VT]:
+            A new `WeightedTensor` with the same weights but with the new device provided.
+        """
         return self.map_both(torch.Tensor.to, device=device)
 
     def cpu(self) -> WeightedTensor[VT]:
+        """Move the weighted tensor to CPU memory.
+
+        Applies the `torch.Tensor.cpu()` operation to both the value tensor and
+        weight tensor (if present), returning a new weighted tensor with all
+        components on the CPU.
+
+        Returns
+        -------
+        :obj:`WeightedTensor`[:obj:`VT]:
+            A new `WeightedTensor` with the same weights but with the new device provided.
+        """
         return self.map_both(torch.Tensor.cpu)
 
     def __pow__(self, exponent: Union[int, float]) -> WeightedTensor[VT]:
+        """
+        Apply the `torch.pow` out-of-place function to both values and weights.
+        This is equivalent to `self.value ** exponent`.
+
+        Parameters
+        ----------
+        exponent : :obj:`int` or :obj:`float`
+            The exponent to be applied.
+
+        Returns
+        -------
+        :obj:`WeightedTensor`[:obj:`VT]:
+            A new `WeightedTensor` with the same weights but with the new exponent applied.
+        """
         return self.valued(self.value**exponent)
 
     @property
     def shape(self) -> torch.Size:
+        """Shape of the values tensor.
+        Returns
+        -------
+        :obj:`torch.Size`:
+            The shape of the values tensor.
+        """
         return self.value.shape
 
     @property
     def ndim(self) -> int:
+        """Number of dimensions of the values tensor.
+        Returns
+        -------
+        :obj:`int`:
+            The number of dimensions of the values tensor.
+        """
         return self.value.ndim
 
     @property
     def dtype(self) -> torch.dtype:
-        """Type of values."""
+        """Type of values.
+        Returns
+        -------
+        :obj:`torch.dtype`:
+            The type of values.
+        """
+
         return self.value.dtype
 
     @property
     def device(self) -> torch.device:
+        """Device of values.
+        Returns
+        -------
+        :obj:`torch.device`:
+            The device of values.
+        """
         return self.value.device
 
     @property
     def requires_grad(self) -> bool:
+        """Whether the values tensor requires gradients.
+        Returns
+        -------
+        :obj:`bool`:
+            Whether the values tensor requires gradients.
+        """
         return self.value.requires_grad
 
     def abs(self) -> WeightedTensor:
+        """Compute the absolute value of the weighted tensor.
+        This is equivalent to `abs(self.value)`.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the absolute value of the values tensor.
+        """
         return self.__abs__()
 
     def all(self) -> bool:
+        """Check if all values are non-zero.
+        This is equivalent to `self.value.all()`.
+        Returns
+        -------
+        :obj:`bool`:
+            Whether all values are non-zero.
+        """
         return self.value.all()
 
     def __neg__(self) -> WeightedTensor:
+        """Compute the negative of the weighted tensor.
+
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the negative of the values tensor.
+        """
         return WeightedTensor(-1 * self.value, self.weight)
 
     def __abs__(self) -> WeightedTensor:
+        """Compute the absolute value of the weighted tensor.
+
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the absolute value of the values tensor.
+        """
         return WeightedTensor(abs(self.value), self.weight)
 
     def __add__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the sum of the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to be added to the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the sum of the values tensor and the other tensor.
+        """
         return _apply_operation(self, other, "add")
 
     def __radd__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "add")
+        """Compute the sum of another tensor and the weighted tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to be added to the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the sum of the other tensor and the values tensor.
+        """
+        return _apply_operation(self, other, "add", reverse=True)
 
     def __sub__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the difference between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to be subtracted from the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the difference of the values tensor and the other tensor.
+        """
         return _apply_operation(self, other, "sub")
 
     def __rsub__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the difference between another tensor and the weighted tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to be subtracted from the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the difference of the other tensor and the values tensor.
+        """
         return _apply_operation(self, other, "sub", reverse=True)
 
     def __mul__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the product of the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to be multiplied with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the product of the values tensor and the other tensor.
+        """
         return _apply_operation(self, other, "mul")
 
     def __rmul__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
-        return _apply_operation(self, other, "mul")
+        """Compute the product of another tensor and the weighted tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to be multiplied with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the product of the other tensor and the values tensor.
+        """
+        return _apply_operation(self, other, "mul", reverse=True)
 
     def __truediv__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the division of the weighted tensor by another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to divide the weighted tensor by.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the division of the values tensor by the other tensor.
+        """
         return _apply_operation(self, other, "truediv")
 
     def __rtruediv__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the division of another tensor by the weighted tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to divide the weighted tensor by.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the division of the other tensor by the values tensor.
+        """
         return _apply_operation(self, other, "truediv", reverse=True)
 
     def __lt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the less-than comparison between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to compare with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the less-than comparison.
+        """
         return _apply_operation(self, other, "lt")
 
     def __le__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the less-than-or-equal-to comparison between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to compare with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the less-than-or-equal-to comparison.
+        """
         return _apply_operation(self, other, "le")
 
     def __eq__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the equality comparison between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to compare with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the equality comparison.
+        """
         return _apply_operation(self, other, "eq")
 
     def __ne__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the not-equal-to comparison between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to compare with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the not-equal-to comparison.
+        """
         return _apply_operation(self, other, "ne")
 
     def __gt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the greater-than comparison between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to compare with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the greater-than comparison.
+        """
         return _apply_operation(self, other, "gt")
 
     def __ge__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
+        """Compute the greater-than-or-equal-to comparison between the weighted tensor and another tensor.
+        Parameters
+        ----------
+        other : :obj:`TensorOrWeightedTensor`
+            The tensor to compare with the weighted tensor.
+        Returns
+        -------
+        :obj:`WeightedTensor`:
+            A new `WeightedTensor` with the result of the greater-than-or-equal-to comparison.
+        """
         return _apply_operation(self, other, "ge")
 
     @staticmethod
@@ -362,18 +650,18 @@ class WeightedTensor(Generic[VT]):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """
         Method to get tuple (value, weight) for both regular and weighted tensors.
-        
+
         Parameters
         ----------
-        t : :obj:`TensorOrWeightedTensor`
+        t : :class:`TensorOrWeightedTensor`
             The tensor to be converted.
         fill_value : :obj:`VT`, optional
             The value to fill the tensor with for aggregates where weights were all zero.
             Default: None
-        
+
         Returns
         -------
-        :obj:`Tuple[torch.Tensor, Optional[torch.Tensor]]`:
+        :obj:`Tuple`[:obj:`torch.Tensor`, Optional[:obj:`torch.Tensor`]]:
             Tuple containing:
             - value : :obj:`torch.Tensor`
                 The filled tensor.
@@ -398,7 +686,6 @@ def _apply_operation(
     operator_name: str,
     reverse: bool = False,
 ) -> WeightedTensor:
-    
     """
     Apply a binary operation on two tensors, with the first one being a `WeightedTensor`.
     The second one can be a `WeightedTensor` or a regular tensor.
@@ -406,9 +693,9 @@ def _apply_operation(
 
     Parameters
     ----------
-    a : :obj:`WeightedTensor`
+    a : :class:`WeightedTensor`
         The first tensor, which is a `WeightedTensor`.
-    b : :obj:`TensorOrWeightedTensor`
+    b : :class:`TensorOrWeightedTensor`
         The second tensor, which can be a `WeightedTensor` or a regular tensor.
     operator_name : :obj:`str`
         The name of the binary operation to be applied.
@@ -417,7 +704,7 @@ def _apply_operation(
         Default: False
     Returns
     -------
-    :obj:`WeightedTensor`:
+    :class:`WeightedTensor`:
         A new `WeightedTensor` with the result of the operation and the appropriate weights.
     """
 
