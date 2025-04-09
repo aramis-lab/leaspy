@@ -114,7 +114,7 @@ class Data(Iterable):
         # Consistency checks are in place to ensure that cofactors are the same
         # for all individuals, so they can be retrieved from any one
         indiv = next(x for x in self.individuals.values())
-        return List(indiv.cofactors.keys())
+        return list(indiv.cofactors.keys())
 
     def __getitem__(
         self, key: Union[int, IDType, slice, List[int], List[IDType]]
