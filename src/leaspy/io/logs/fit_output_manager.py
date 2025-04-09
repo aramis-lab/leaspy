@@ -196,38 +196,9 @@ class FitOutputManager:
 
         # If plot sourcewise is true, new sourcewise csv files will be created
         if self.plot_sourcewise:
-            new_files = []
-            for param_name in params_with_sources:
-                related_files = self._get_files_related_to_parameters([param_name])
-                if not related_files:
-                    continue
-                related_files.sort()
-
-                num_sources = model.source_dimension
-
-                for source_idx in range(num_sources):
-                    combined_data = []
-
-                    for file_path in related_files:
-                        df = pd.read_csv(file_path, index_col=0, header=None)
-
-                        combined_data.append(df.iloc[:, source_idx])
-
-                    combined_df = pd.concat(combined_data, axis=1, join="inner")
-                    new_file_name = f"sourcewise_{param_name}_{source_idx + 1}.csv"
-                    combined_df.to_csv(
-                        self.path_save_model_parameters_convergence / new_file_name,
-                        header=False,
-                    )
-                    new_files.append(
-                        self.path_save_model_parameters_convergence / new_file_name
-                    )
-            files_to_plot = [
-                file
-                for file in files_to_plot
-                if not any(file.name.startswith(param) for param in params_with_sources)
-            ]
-            files_to_plot.extend(new_files)
+            files_to_plot = self._update_files_sourcewise(
+                files_to_plot, params_with_sources, model.source_dimension
+            )
 
         n_plots = len(files_to_plot)
         n_rows = math.ceil(n_plots / 2)
@@ -357,6 +328,21 @@ class FitOutputManager:
         plt.close()
 
     def _get_files_related_to_parameters(self, parameters: Iterable[str]) -> list[Path]:
+        """
+        Helper function for `save_plot_convergence_model_parameters`
+
+        Retrieve the list of file paths related to the given parameters.
+
+        Parameters
+        ----------
+        parameters : Iterable[:obj:`str`]
+            A list of parameter names.
+
+        Returns
+        -------
+        list[Path]
+            A list of file paths that match the parameter names.
+        """
         return [
             f
             for f in self.path_save_model_parameters_convergence.iterdir()
@@ -366,6 +352,21 @@ class FitOutputManager:
     def _extract_parameter_name_and_index(
         self, parameter_name: str
     ) -> tuple[Optional[str], Optional[int]]:
+        """
+        Helper function for `save_plot_convergence_model_parameters`
+
+        Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
+
+        Parameters
+        ----------
+        parameter_name : :obj:`str`
+            The name of the parameter to extract information from.
+
+        Returns
+        -------
+        tuple[Optional[:obj:`str`], Optional[:obj:`int`]]
+            A tuple where the first element is the parameter name and the second is its index (if applicable).
+        """
         if parameter_name == "v0":
             return parameter_name, None
         match = re.search(r"^(.*?)(\d+)$", parameter_name)
@@ -375,6 +376,29 @@ class FitOutputManager:
             return parameter_name, None
 
     def _set_title_for_parameter(self, ax, i, parameter_name: str, model, index):
+        """
+        Helper function for `save_plot_convergence_model_parameters`
+
+        Set the title for the plot based on the parameter name and the model's features or other information.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axes object of the plot.
+        i : :obj:`int`
+            The index of the current plot.
+        parameter_name : :obj:`str`
+            The name of the parameter being plotted.
+        model : :class:`~leaspy.models.AbstractModel`
+            The model containing features and event information.
+        index : :obj:`int`
+            The index of the specific feature or event, or None if not applicable.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes object with the title set.
+        """
         if parameter_name == "mixing_matrix":
             ax[i].set_title(parameter_name + " " + model.features[index])
         elif parameter_name == "zeta":
@@ -401,6 +425,33 @@ class FitOutputManager:
         params_with_events,
         model,
     ):
+        """
+        Helper function for `save_plot_convergence_model_parameters`
+
+        Set the legend for the plot based on the parameter name and the model's features, sources, or events.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axes object of the plot.
+        i : :obj:`int`
+            The index of the current plot.
+        parameter_name : :obj:`str`
+            The name of the parameter being plotted.
+        params_with_feature_labels : list[:obj:`str`]
+            A list of parameters associated with feature labels.
+        params_with_sources : list[:obj:`str`]
+            A list of parameters associated with sources.
+        params_with_events : list[:obj:`str`]
+            A list of parameters associated with events.
+        model : :class:`~leaspy.models.AbstractModel`
+            The model containing the necessary information for legends.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes object with the legend set.
+        """
         if parameter_name in params_with_feature_labels:
             ax[i].legend(model.features, loc="best")
         if parameter_name in params_with_sources:
@@ -418,3 +469,58 @@ class FitOutputManager:
                 events = ["Event" + " " + str(i + 1) for i in range(model.nb_events)]
                 ax[i].legend(events, loc="best")
         return ax
+
+    def _update_files_sourcewise(self, files_to_plot, params_with_sources, num_sources):
+        """
+        Helper function for `save_plot_convergence_model_parameters`
+
+        Update the list of files by creating sourcewise files based on the parameters with sources.
+
+        This function processes parameters that have sources and generates new CSV files for each source.
+        These new files are added to the list of files to plot.
+
+        Parameters
+        ----------
+        files_to_plot : list[Path]
+            The initial list of files to plot.
+        params_with_sources : list[:obj:`str`]
+            A list of parameters that have associated source data.
+        num_sources : :obj:`int`
+            The number of sources in model
+
+        Returns
+        -------
+        list[Path]
+            The updated list of files to plot, including the newly created sourcewise files.
+        """
+        new_files = []
+        for param_name in params_with_sources:
+            related_files = self._get_files_related_to_parameters([param_name])
+            if not related_files:
+                continue
+            related_files.sort()
+
+            for source_idx in range(num_sources):
+                combined_data = []
+
+                for file_path in related_files:
+                    df = pd.read_csv(file_path, index_col=0, header=None)
+
+                    combined_data.append(df.iloc[:, source_idx])
+
+                combined_df = pd.concat(combined_data, axis=1, join="inner")
+                new_file_name = f"sourcewise_{param_name}_{source_idx + 1}.csv"
+                combined_df.to_csv(
+                    self.path_save_model_parameters_convergence / new_file_name,
+                    header=False,
+                )
+                new_files.append(
+                    self.path_save_model_parameters_convergence / new_file_name
+                )
+        files_to_plot = [
+            file
+            for file in files_to_plot
+            if not any(file.name.startswith(param) for param in params_with_sources)
+        ]
+        files_to_plot.extend(new_files)
+        return files_to_plot
