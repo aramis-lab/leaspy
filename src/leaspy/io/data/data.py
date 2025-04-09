@@ -147,7 +147,7 @@ class Data(Iterable):
         elif isinstance(key, IDType):
             return self.individuals[key]
 
-        elif isinstance(key, (slice, List)):
+        elif isinstance(key, (slice, list)):
             if isinstance(key, slice):
                 slice_iter = range(self.n_individuals)[key]
                 individual_indices = [self.iter_to_idx[i] for i in slice_iter]
