@@ -191,8 +191,8 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
 
         d.update(
             # PRIORS
-            # phi_mod_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
-            # phi_mod_v0_std=Hyperparameter(0.001),
+            phi_mod_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
+            phi_mod_v0_std=Hyperparameter(0.001),
             phi_ref_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
             phi_ref_v0_std=Hyperparameter(0.01),
             xi_mean=Hyperparameter(0.0),
@@ -455,8 +455,10 @@ class CovariateLogisticMultivariateModel(
         # )
 
         d.update(
-            # phi_mod_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
-            # phi_mod_g_std=Hyperparameter(0.001),
+            phi_mod_g_mean=ModelParameter.for_pop_mean(
+                "log_g", shape=(self.dimension,)
+            ),
+            phi_mod_g_std=Hyperparameter(0.001),
             phi_ref_g_mean=ModelParameter.for_pop_mean(
                 "log_g", shape=(self.dimension,)
             ),
