@@ -63,7 +63,7 @@ class EventDataframeDataReader(AbstractDataframeDataReader):
 
     def _set_index(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Set the index suited for the type of information contained in the dataframe, here events are only index by patient ID
+        Set the index suited for the type of information contained in the dataframe. Here, events are only indices provided by patient ID
 
         Parameters
         ----------

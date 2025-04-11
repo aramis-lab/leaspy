@@ -32,7 +32,7 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
 
         Returns
         -------
-        : int
+        : :obj:`int`
             Number of longitudinal outcomes in dataset
         """
         if self.long_outcome_names is None:

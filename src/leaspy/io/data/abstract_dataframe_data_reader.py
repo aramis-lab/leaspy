@@ -44,7 +44,7 @@ class AbstractDataframeDataReader:
 
         Returns
         -------
-        : bool
+        : :obj:`bool`
             True if the type is a numeric type
         """
         return pd.api.types.is_numeric_dtype(
@@ -241,7 +241,7 @@ class AbstractDataframeDataReader:
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient information, this method depend on the data type that is analysed: repeated measures, events or both
+        Clean the dataframe that contains patient information. This method depends on the data type that is analysed: repeated measures, events or both
 
         Parameters
         ----------

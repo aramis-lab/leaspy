@@ -171,7 +171,7 @@ class JointModel(LogisticMultivariateModel):
         n_log_nu: torch.Tensor,  # TODO: TensorOrWeightedTensor?
     ) -> torch.Tensor:
         """
-        Get the scale parameters of the Weibull distribution. Such transformation is needed so that nu is positive and the update of xi_mean is easier
+        Get the scale parameters of the Weibull distribution. This transformation ensures that nu remains positive and simplified update of xi_mean.
 
         Parameters
         ----------
@@ -234,7 +234,7 @@ class JointModel(LogisticMultivariateModel):
         Parameters
         ----------
         with_mixing_matrix : :obj:`bool`
-            If True the mixing matrix is save on the dictionnary
+            If True the mixing matrix will be saved in the dictionary
 
         Returns
         -------
@@ -254,7 +254,6 @@ class JointModel(LogisticMultivariateModel):
         Parameters
         ----------
         dataset : :class:`.Dataset`, optional
-            The :class:`.Dataset` we want to model.
 
         Raises
         ------
@@ -283,7 +282,7 @@ class JointModel(LogisticMultivariateModel):
         Parameters
         ----------
         dataset : :class:`Dataset`
-            Where the individual data a stored
+            Where the individual data are stored
 
         method : :class:`InitializationMethod`
             Initialisation method for the longitudinal multivariate submodel
@@ -316,7 +315,7 @@ class JointModel(LogisticMultivariateModel):
             where all the variables of the model are stored
 
         dataset : :class:`Dataset`
-            Where the individual data a stored
+            Where the individual data are stored
 
         Returns
         -------
@@ -357,7 +356,7 @@ class JointModel(LogisticMultivariateModel):
         Parameters
         ----------
         dataset : :class:`Dataset`
-            Where the individual data a stored
+            Where the individual data are stored
 
         Returns
         -------
@@ -401,7 +400,7 @@ class JointModel(LogisticMultivariateModel):
          For the longitudinal submodel: Compute longitudinal values and at the given time-point(s) given a subject's individual parameters.
         For the event submodel:
             - if there is only on event: return the survival corrected by the probability of the first time point of the prediction assuming that the patient was alive,
-            - if there are more than one vent: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
+            - if there are more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
         Nota: model uses its current internal state.
 
         Parameters

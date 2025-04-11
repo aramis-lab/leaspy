@@ -112,7 +112,7 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient information both repeated measures and events
+        Clean the dataframe that contains patient information which are repeated measures and events
 
         Parameters
         ----------

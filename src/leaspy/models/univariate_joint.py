@@ -75,7 +75,6 @@ class UnivariateJointModel(LogisticUnivariateModel, JointModel):
         Parameters
         ----------
         dataset : :class:`.Dataset`, optional
-            The :class:`.Dataset` we want to model.
 
         Raises
         ------
