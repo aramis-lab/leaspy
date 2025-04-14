@@ -148,12 +148,12 @@ class SimulationAlgorithm(AbstractAlgo):
                 raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
 
     ## --- SET PARAMETERS ---
-    def save_parameters(self, model, path_save):  # TODO
-        total_params = {"study": self.param_study, "model": model.parameters}
-        with open(f"{path_save}params_simulated.json", "w") as outfile:
-            json.dump(total_params, outfile)
+    # def _save_parameters(self, model, path_save):  # TODO
+    #     total_params = {"study": self.param_study, "model": model.parameters}
+    #     with open(f"{path_save}params_simulated.json", "w") as outfile:
+    #         json.dump(total_params, outfile)
 
-    def set_param_study(self, dict_param: dict) -> None:
+    def _set_param_study(self, dict_param: dict) -> None:
         """Set parameters related to the study based on visit type.
 
         This function initializes the `param_study` attribute with relevant
@@ -242,7 +242,7 @@ class SimulationAlgorithm(AbstractAlgo):
             }
 
     ## ---- SIMULATE ---
-    def run_impl(self, model) -> Result:
+    def _run_impl(self, model) -> Result:
         """Run the simulation pipeline using a leaspy model.
 
         This method simulates longitudinal data using the given leaspy model.
@@ -257,12 +257,12 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :obj:`Leaspy`
+        model : :class:`Leaspy`
             A Leaspy model object previously trained on longitudinal data.
 
         Returns
         -------
-        result_obj : :obj:`Result`
+        result_obj : :class:`Result`
             An object containing:
             - `data`: Simulated longitudinal dataset (`Data` object),
             - `individual_parameters`: The individual parameters used in simulation,
@@ -293,7 +293,7 @@ class SimulationAlgorithm(AbstractAlgo):
         return result_obj
 
     ## ---- IP ---
-    def get_ip_rm(self, model) -> pd.DataFrame:
+    def _get_ip_rm(self, model) -> pd.DataFrame:
         """
         Generate individual parameters for repeated measures simulation, from the model initial parameters.
 
@@ -304,7 +304,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : Leaspy
+        model : :class:`Leaspy`
             A Leaspy model instance containing parameters set after training,
             namely the mean and standard deviation values for xi, tau, and the mixing matrix.
 
@@ -377,7 +377,7 @@ class SimulationAlgorithm(AbstractAlgo):
         return pd.concat([df_ip_rm, df_wn], axis=1)
 
     # ---- MODEL ---
-    def get_leaspy_model(self, model) -> None:
+    def _get_leaspy_model(self, model) -> None:
         """
         Initialize and store a Leaspy model instance.
 
@@ -386,7 +386,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : Leaspy
+        model : :class:`Leaspy`
             A pre-trained Leaspy model to be used for simulation (compute observations).
 
         Returns
@@ -399,7 +399,7 @@ class SimulationAlgorithm(AbstractAlgo):
         self.leaspy.model = model
 
     ## ---- RM ---
-    def generate_visit_ages(self, df: pd.DataFrame) -> dict:
+    def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
         """
         Generate visit ages for each individual based on the visit type.
 
@@ -477,7 +477,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         return dict_timepoints
 
-    def generate_dataset(
+    def _generate_dataset(
         self, model, dict_timepoints: dict, df_ip_rm: pd.DataFrame
     ) -> pd.DataFrame:
         """
@@ -490,7 +490,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : LeaspyModel
+        model : :class:`Leaspy`
             The model used for estimating the individual parameters (in get_ip_rm function) and generating
             the simulated values.
 
@@ -508,7 +508,8 @@ class SimulationAlgorithm(AbstractAlgo):
             and features as columns. The dataset includes both the generated values,
             with visits that are too close to each other dropped.
         """
-
+        print(df_ip_rm[
+                    ["xi", "tau"]])
         values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
