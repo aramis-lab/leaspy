@@ -270,10 +270,9 @@ def get_log_velocities(
 
 def torch_round(t: torch.FloatTensor, *, tol: float = 1 << 16) -> torch.FloatTensor:
     """
-    Round all tensor values to ~ 10**-4.8
-
     Multiplies the tensor by `tol`, applies standard rounding, then scales back.
     This effectively rounds values to the nearest multiple of `1.0 / tol`.
+
     Parameters
     ----------
     t : :obj:`torch.FloatTensor`
@@ -289,5 +288,4 @@ def torch_round(t: torch.FloatTensor, *, tol: float = 1 << 16) -> torch.FloatTen
     :obj:`torch.FloatTensor` :
         The rounded tensor with the same shape as input `t`.
     """
-    # Round values to ~ 10**-4.8
     return (t * tol).round() * (1.0 / tol)
