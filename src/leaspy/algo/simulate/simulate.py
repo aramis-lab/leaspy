@@ -57,6 +57,15 @@ class SimulationAlgorithm(AbstractAlgo):
 
     ## --- CHECKS ---
     def _check_visit_type(self):
+        """Check if the visit type is valid.
+        This method checks if the visit type is a string and if it corresponds to one of the
+        allowed visit types defined in the VisitType enum.
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the visit type is not a string or if it does not match any of the allowed types.
+        """
         if not isinstance(self.visit_type, str):
             raise LeaspyAlgoInputError(
                 f"Visit type need to be a string and not : {type(self.visit_type).__name__}"
@@ -71,6 +80,16 @@ class SimulationAlgorithm(AbstractAlgo):
             ) from e
 
     def _check_features(self):
+        """Check if the features are valid.
+
+        This method checks if the features are provided as a list of strings.
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the features are not a list or if any of the features is not a string.
+        """
+
         if not isinstance(self.features, list):
             raise LeaspyAlgoInputError(
                 f"Features need to a be a list and not : {type(self.features).__name__}"
@@ -88,6 +107,22 @@ class SimulationAlgorithm(AbstractAlgo):
                 raise LeaspyAlgoInputError(f"Empty feature at the position {i}")
 
     def _check_params(self, requirements):
+        """Check if the parameters are valid.
+
+        This method checks if the parameters in the `param_study` dictionary match the expected types
+        and constraints defined in the `requirements` list.
+
+        Parameters
+        ----------
+        requirements :obj:`list`
+            A list of tuples, where each tuple contains a parameter name and its expected type(s).
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If any parameter is missing, has an invalid type, or has an invalid value.
+        """
+
         missing_params = []
         type_errors = []
         value_errors = []
@@ -126,6 +161,16 @@ class SimulationAlgorithm(AbstractAlgo):
             raise LeaspyAlgoInputError("\n".join(errors))
 
     def _validate_algo_parameters(self):
+        """Validate the algorithm parameters.
+
+        This method checks the visit type, features, and parameters of the algorithm.
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the visit type is invalid, if the features are not a list of strings,
+            or if the parameters do not meet the expected requirements.
+        """
         self._check_visit_type()
         self._check_features()
 
