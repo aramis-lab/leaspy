@@ -16,12 +16,12 @@ from leaspy.exceptions import LeaspyAlgoInputError
 
 
 class VisitType(Enum):
-    DATAFRAME = "dataframe"   # Dataframe of visits
-    REGULAR = "regular"       # Regular spaced visits
-    RANDOM = "random"         # Random spaced visits
+    DATAFRAME = "dataframe"  # Dataframe of visits
+    REGULAR = "regular"  # Regular spaced visits
+    RANDOM = "random"  # Random spaced visits
+
 
 class SimulationAlgorithm(AbstractAlgo):
-
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
 
@@ -45,7 +45,7 @@ class SimulationAlgorithm(AbstractAlgo):
             ("tf_std", (int, float)),
             ("distv_mean", (int, float)),
             ("distv_std", (int, float)),
-        ]
+        ],
     }
 
     def __init__(self, settings):
@@ -70,7 +70,6 @@ class SimulationAlgorithm(AbstractAlgo):
                 f"Authorized typz : {', '.join(allowed_types)}"
             ) from e
 
-
     def _check_features(self):
         if not isinstance(self.features, list):
             raise LeaspyAlgoInputError(
@@ -78,7 +77,7 @@ class SimulationAlgorithm(AbstractAlgo):
             )
         if len(self.features) == 0:
             raise LeaspyAlgoInputError("List can't be empty")
-        
+
         for i, feature in enumerate(self.features):
             if not isinstance(feature, str):
                 raise LeaspyAlgoInputError(
@@ -99,14 +98,20 @@ class SimulationAlgorithm(AbstractAlgo):
                 continue
             value = self.param_study[param]
             if not isinstance(value, expected_types):
-                type_names = [t.__name__ for t in expected_types] if isinstance(expected_types, tuple) else expected_types.__name__
+                type_names = (
+                    [t.__name__ for t in expected_types]
+                    if isinstance(expected_types, tuple)
+                    else expected_types.__name__
+                )
                 type_errors.append(
                     f"Parameter '{param}': Expected type {type_names}, given {type(value).__name__}"
                 )
-            if param == 'pat_nb' and value <= 0:
-                value_errors.append("Patient number (pat_nb) need to be a positive integer")
-                
-            if param.endswith('_std') and value < 0:
+            if param == "pat_nb" and value <= 0:
+                value_errors.append(
+                    "Patient number (pat_nb) need to be a positive integer"
+                )
+
+            if param.endswith("_std") and value < 0:
                 value_errors.append(f"Standard deviation ({param}) can't be negative")
 
         errors = []
@@ -123,31 +128,90 @@ class SimulationAlgorithm(AbstractAlgo):
     def _validate_algo_parameters(self):
         self._check_visit_type()
         self._check_features()
-        
+
         requirements = self._PARAM_REQUIREMENTS.get(self.visit_type)
         if not requirements:
-            raise LeaspyAlgoInputError(f"No configuration for this type of visit '{self.visit_type}'")
-        
+            raise LeaspyAlgoInputError(
+                f"No configuration for this type of visit '{self.visit_type}'"
+            )
+
         self._check_params(requirements)
 
         if self.visit_type == "dataframe":
             df = self.param_study["df_visits"]
             if "ID" not in df.columns or "TIME" not in df.columns:
-                raise LeaspyAlgoInputError("Dataframe needs to have columns 'ID' and 'TIME'")
-            
+                raise LeaspyAlgoInputError(
+                    "Dataframe needs to have columns 'ID' and 'TIME'"
+                )
+
             if df["TIME"].isnull().any():
                 raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
 
     ## --- SET PARAMETERS ---
-    def save_parameters(self, model, path_save): # TODO
-        total_params = {
-            "study": self.param_study,
-             "model": model.parameters
-        }
-        with open(f"{path_save}params_simulated.json", "w") as outfile:
-            json.dump(total_params, outfile)
+    # def _save_parameters(self, model, path_save):  # TODO
+    #     total_params = {"study": self.param_study, "model": model.parameters}
+    #     with open(f"{path_save}params_simulated.json", "w") as outfile:
+    #         json.dump(total_params, outfile)
 
-    def set_param_study(self, dict_param):
+    def _set_param_study(self, dict_param: dict) -> None:
+        """Set parameters related to the study based on visit type.
+
+        This function initializes the `param_study` attribute with relevant
+        parameters depending on the visit type of the object. It handles
+        three different visit types: 'dataframe', 'regular', and 'random',
+        each requiring a different set of input parameters.
+
+        Parameters
+        ----------
+        dict_param : :obj:`dict`
+            Dictionary containing parameters required for the study. The
+            expected keys vary depending on the visit type:
+
+            - If `visit_type` is "dataframe":
+                - 'df_visits' : :obj:`pandas.DataFrame`
+                    DataFrame of visits, with a column "ID" and a column 'TIME'.
+                TIME and number of visits for each simulated patients (with specified ID) 
+                are given by a dataframe in dict_param.
+
+            - If `visit_type` is "regular":
+                - 'pat_nb' : :obj:`int`
+                    Number of patients.
+                - 'regular_visit' : :obj:`int`
+                    Time delta between each visits.
+                - 'fv_mean' : :obj:`float`
+                    Mean of the first visit TIME.
+                - 'fv_std' : :obj:`float`
+                    Standard deviation of the first visit TIME.
+                - 'tf_mean' : :obj:`float`
+                    Mean of the follow-up TIME.
+                - 'tf_std' : :obj:`float`
+                    Standard deviation of the follow-up TIME.
+                Visits are equally spaced for all patients, and the number of visits
+                deduced from first visit and follow-up time.
+
+            - If `visit_type` is "random":
+                - 'pat_nb' : :obj:`int`
+                    Number of patients.
+                - 'fv_mean' : :obj:`float`
+                    Mean of the first visit TIME.
+                - 'fv_std' : :obj:`float`
+                    Standard deviation of the first visit TIME.
+                - 'tf_mean' : :obj:`float`
+                    Mean of the follow-up TIME.
+                - 'tf_std' : :obj:`float`
+                    Standard deviation of the follow-up TIME.
+                - 'distv_mean' : :obj:`float`
+                    Mean of distance_visits: mean time delta between two visits.
+                - 'distv_std' : :obj:`float`
+                    Standard deviation of distance_visits: std time delta between two visits.
+                Time delta between 2 visits is drawn in a normal distribution N(distv_mean, distv_std).
+
+        Returns
+        -------
+        None
+            This method updates the `param_study` attribute of the instance in-place.
+        """
+
         if self.visit_type == "dataframe":
             pat_nb = dict_param["df_visits"].groupby("ID").size().shape[0]
 
@@ -178,47 +242,96 @@ class SimulationAlgorithm(AbstractAlgo):
             }
 
     ## ---- SIMULATE ---
-    def run_impl(self, model):
+    def _run_impl(self, model) -> Result:
+        """Run the simulation pipeline using a leaspy model.
+
+        This method simulates longitudinal data using the given leaspy model.
+        It performs the following steps:
+        - Retrieves individual parameters (IP) from repeated measures (RM).
+        - Loads the specified Leaspy model.
+        - Generates visit ages (timepoints) for each individual (based on specifications
+        in visits_type from AlgorithmSettings)
+        - Simulates observations at those visit ages.
+        - Packages the result into a `Result` object, including simulated data,
+        individual parameters, and the model's noise standard deviation.
+
+        Parameters
+        ----------
+        model : :class:`Leaspy`
+            A Leaspy model object previously trained on longitudinal data.
+
+        Returns
+        -------
+        result_obj : :class:`Result`
+            An object containing:
+            - `data`: Simulated longitudinal dataset (`Data` object),
+            - `individual_parameters`: The individual parameters used in simulation,
+            - `noise_std`: Noise standard deviation used in the simulation.
+        """
+
         # if seed is not None:
         #     np.random.seed(seed)
 
         # Simulate RE for RM
         df_ip_rm = self.get_ip_rm(model)
-        # model.parameters['xi_mean']
 
-        # G
+        # Get Leaspy model
         self.get_leaspy_model(model)
 
         # Generate visits ages
         dict_timepoints = self.generate_visit_ages(df_ip_rm)
 
         # Get all visits observations
-        df_sim = self.generate_dataset(model,dict_timepoints, df_ip_rm)
+        df_sim = self.generate_dataset(model, dict_timepoints, df_ip_rm)
 
         simulated_data = Data.from_dataframe(df_sim)
-        result_obj = Result(data = simulated_data,
-                            individual_parameters = df_ip_rm,
-                            noise_std = model.parameters["noise_std"].numpy() * 100
-         )
+        result_obj = Result(
+            data=simulated_data,
+            individual_parameters=df_ip_rm,
+            noise_std=model.parameters["noise_std"].numpy() * 100,
+        )
         return result_obj
 
     ## ---- IP ---
-    def get_ip_rm(self, model):
-        xi_rm = torch.tensor(np.random.normal(
-            #self.param_rm["parameters"]["xi_mean"],
-            model.parameters['xi_mean'],
-            model.parameters['xi_std'],
-            #self.param_rm["parameters"]["xi_std"],
-            self.param_study["pat_nb"],
-        ))
+    def _get_ip_rm(self, model) -> pd.DataFrame:
+        """
+        Generate individual parameters for repeated measures simulation, from the model initial parameters.
 
-        tau_rm = torch.tensor(np.random.normal(
-            #self.param_rm["parameters"]["tau_mean"],
-            #self.param_rm["parameters"]["tau_std"],
-            model.parameters['tau_mean'],
-            model.parameters['tau_std'],
-            self.param_study["pat_nb"],
-        ))
+        This function samples individual parameters (xi, tau, and source components)
+        based on the provided model's parameter distributions.
+        Space shifts are computed with the source components and the mixing_matrix.
+        It returns the complete set of individual parameters and space shifts in a DataFrame.
+
+        Parameters
+        ----------
+        model : :class:`Leaspy`
+            A Leaspy model instance containing parameters set after training,
+            namely the mean and standard deviation values for xi, tau, and the mixing matrix.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame indexed by individual IDs, containing:
+            - simulated 'xi' and 'tau': Individual parameters sampled from model distributions.
+            - simulated 'sources_X': Latent source components.
+            - simulated 'w_X': space shifts derived from the mixing matrix and sources.
+        """
+
+        xi_rm = torch.tensor(
+            np.random.normal(
+                model.parameters["xi_mean"],
+                model.parameters["xi_std"],
+                self.param_study["pat_nb"],
+            )
+        )
+
+        tau_rm = torch.tensor(
+            np.random.normal(
+                model.parameters["tau_mean"],
+                model.parameters["tau_std"],
+                self.param_study["pat_nb"],
+            )
+        )
 
         if self.visit_type == "dataframe":
             df_ip_rm = pd.DataFrame(
@@ -234,27 +347,23 @@ class SimulationAlgorithm(AbstractAlgo):
                 columns=[str(i) for i in range(0, self.param_study["pat_nb"])],
             ).T
 
-        # # Space shifts
-        # mat = model.state.get_tensor_value("mixing_matrix")
-        # #mat = np.array(self.param_rm["parameters"]["mixing_matrix"])
-        # #mat = mat.reshape(mat.shape[0], mat.shape[1], 1)
-        # mat = mat.unsqueeze(-1)
-        # df_wn = pd.DataFrame(
-        #     #mat.T.dot(pat)[0, :, :, 0].T,
-        #     columns=[f"w_{i}" for i in range(len(self.features))],
-        #     index=df_ip_rm.index,
-        # )
-
         # Generate the source tensors
         for i in range(model.source_dimension):
             df_ip_rm[f"sources_{i}"] = torch.tensor(
-                np.random.normal(0.0, 1.0, self.param_study["pat_nb"]), dtype=torch.float32
+                np.random.normal(0.0, 1.0, self.param_study["pat_nb"]),
+                dtype=torch.float32,
             )
             df_ip_rm[f"sources_{i}"] = (
                 df_ip_rm[f"sources_{i}"] - df_ip_rm[f"sources_{i}"].mean()
             ) / df_ip_rm[f"sources_{i}"].std()
 
-        pat = torch.stack([torch.tensor(df_ip_rm[f"sources_{i}"].values, dtype=torch.float32) for i in range(model.source_dimension)], dim=1)
+        pat = torch.stack(
+            [
+                torch.tensor(df_ip_rm[f"sources_{i}"].values, dtype=torch.float32)
+                for i in range(model.source_dimension)
+            ],
+            dim=1,
+        )
         mat = model.state.get_tensor_value("mixing_matrix")
         result = torch.matmul(mat.transpose(0, 1), pat.transpose(0, 1))
 
@@ -268,14 +377,52 @@ class SimulationAlgorithm(AbstractAlgo):
         return pd.concat([df_ip_rm, df_wn], axis=1)
 
     # ---- MODEL ---
-    def get_leaspy_model(self,model):
-        self.leaspy = Leaspy(
-            "logistic", source_dimension = model.source_dimension
-        )
+    def _get_leaspy_model(self, model) -> None:
+        """
+        Initialize and store a Leaspy model instance.
+
+        This method creates a new Leaspy object with the 'logistic' model type.
+        The resulting instance is stored as an attribute of the class.
+
+        Parameters
+        ----------
+        model : :class:`Leaspy`
+            A pre-trained Leaspy model to be used for simulation (compute observations).
+
+        Returns
+        -------
+        None
+            This method updates the `leaspy` attribute in-place.
+        """
+
+        self.leaspy = Leaspy("logistic", source_dimension=model.source_dimension)
         self.leaspy.model = model
 
     ## ---- RM ---
-    def generate_visit_ages(self, df):
+    def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
+        """
+        Generate visit ages for each individual based on the visit type.
+
+        If the visit type is "dataframe", the visit timepoints are directly extracted
+        from the provided DataFrame. Otherwise, synthetic visit ages are generated for
+        each individual based on baseline and follow-up ages, with time intervals
+        defined by the visit mode ("regular" or "random").
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame of individual parameters, including 'xi','tau', 'sources' and 'space_shifts'.
+            'Tau' is required for generating baseline and follow-up visit ages.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping individual IDs to a list of visit ages (floats).
+            - For 'dataframe': uses existing "TIME" values from `df_visits`.
+            - For 'regular': generates visits at fixed intervals.
+            - For 'random': generates visits with normally-distributed intervals.
+        """
+
         df_ind = df.copy()
 
         if self.visit_type == "dataframe":
@@ -287,11 +434,6 @@ class SimulationAlgorithm(AbstractAlgo):
             )
 
         else:
-            mode = (
-                self.param_study["fv_mean"]
-                * ((self.param_study["fv_std"] - 1) / self.param_study["fv_std"])
-                ** self.param_study["fv_std"]
-            )  # noqa: F841
 
             df_ind["AGE_AT_BASELINE"] = (
                 df_ind["tau"].apply(lambda x: x.numpy())
@@ -303,18 +445,19 @@ class SimulationAlgorithm(AbstractAlgo):
                     ),
                     index=df_ind.index,
                 )[0]
-            )  # /np.exp(df_ind['xi'])
+            )
 
             df_ind["AGE_FOLLOW_UP"] = df_ind["AGE_AT_BASELINE"] + np.random.normal(
                 self.param_study["tf_mean"],
                 self.param_study["tf_std"],
                 self.param_study["pat_nb"],
             )
-            ## Generate visit ages for each patients
+
+            # Generate visit ages for each patients
             dict_timepoints = {}
 
             for id_ in df_ind.index.values:
-                ## Get the number of visit per patient
+                # Get the number of visit per patient
                 time = df_ind.loc[id_, "AGE_AT_BASELINE"]
                 age_visits = [time]
 
@@ -334,13 +477,44 @@ class SimulationAlgorithm(AbstractAlgo):
 
         return dict_timepoints
 
-    def generate_dataset(self, model, dict_timepoints, df_ip_rm):
+    def _generate_dataset(
+        self, model, dict_timepoints: dict, df_ip_rm: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Generate a simulated dataset based on simulated individual parameters and model timepoints.
+
+        This method simulates observations using estimate function of the Leaspy model. The latter estimates
+        values based on the simulated individual parameters: xi, tau and the sources.
+        It then adds a beta noise to the simulated values.
+        Visits too close are droped.
+
+        Parameters
+        ----------
+        model : :class:`Leaspy`
+            The model used for estimating the individual parameters (in get_ip_rm function) and generating
+            the simulated values.
+
+        dict_timepoints : dict
+            A dictionary mapping individual IDs to their respective visit timepoints (according to visit_type)
+
+        df_ip_rm : pd.DataFrame
+            DataFrame containing the simulated individual parameters (e.g., 'xi', 'tau', and sources)
+            for each individual, used in generating the simulated data.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the simulated dataset with ["ID","TIME] as the index
+            and features as columns. The dataset includes both the generated values,
+            with visits that are too close to each other dropped.
+        """
+        print(df_ip_rm[
+                    ["xi", "tau"]])
         values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
                 df_ip_rm[
                     ["xi", "tau"]
-                    #+ [f"sources_{i}" for i in range(self.param_rm["source_dimension"])]
                     + [f"sources_{i}" for i in range(model.source_dimension)]
                 ]
             ),
@@ -360,19 +534,16 @@ class SimulationAlgorithm(AbstractAlgo):
         )
 
         for i, feat in enumerate(self.features):
-            #if np.isscalar(self.param_rm["parameters"]["noise_std"]):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
                 var = model.parameters["noise_std"].numpy() ** 2
-                #var = model.parameters["noise_std"].numpy()
             else:
                 mu = df_long[feat + "_no_noise"]
                 var = model.parameters["noise_std"][i].numpy() ** 2
-                #var = model.parameters["noise_std"][i].numpy()
 
             # Mean and sample size (P-E simulations)
-            #alpha_param = mu * var
-            #beta_param = (1 - mu) * var
+            # alpha_param = mu * var
+            # beta_param = (1 - mu) * var
 
             # Mean and variance parametrization
             alpha_param = mu * ((mu * (1 - mu) / var) - 1)
@@ -384,9 +555,11 @@ class SimulationAlgorithm(AbstractAlgo):
 
             # Add noise for values in the right range
             invalid_mask = (alpha_param < 0) | (beta_param < 0)
-            valid_samples = beta.rvs(alpha_param[~invalid_mask], beta_param[~invalid_mask])
+            valid_samples = beta.rvs(
+                alpha_param[~invalid_mask], beta_param[~invalid_mask]
+            )
             df_long.loc[~invalid_mask, feat] = valid_samples
-            
+
         dict_rm_rename = {
             "tau": "RM_TAU",
             "xi": "RM_XI",
@@ -401,7 +574,6 @@ class SimulationAlgorithm(AbstractAlgo):
 
         # Put everything in one dataframe
         df_ip_rm = df_ip_rm.rename(columns=dict_rm_rename)
-        # df_sim = df_long.join(df_ip_rm, on="ID")
         df_sim = df_long[self.features]
 
         # Drop too close visits
