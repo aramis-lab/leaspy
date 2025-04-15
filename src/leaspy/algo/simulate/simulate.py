@@ -1,18 +1,18 @@
 import json
 from abc import ABC
-
 from enum import Enum
+
 import numpy as np
 import pandas as pd
-from scipy.stats import beta
 import torch
+from scipy.stats import beta
 
-from leaspy.api import Leaspy
-from leaspy.io.outputs import IndividualParameters
 from leaspy.algo.base import AbstractAlgo, AlgorithmType
-from leaspy.io.outputs.result import Result
-from leaspy.io.data.data import Data
+from leaspy.api import Leaspy
 from leaspy.exceptions import LeaspyAlgoInputError
+from leaspy.io.data.data import Data
+from leaspy.io.outputs import IndividualParameters
+from leaspy.io.outputs.result import Result
 
 
 class VisitType(Enum):
@@ -52,11 +52,20 @@ class SimulationAlgorithm(AbstractAlgo):
         super().__init__(settings)
         self.features = settings.parameters["features"]
         self.visit_type = settings.parameters["visit_parameters"]["visit_type"]
-        self.set_param_study(settings.parameters["visit_parameters"])
+        self._set_param_study(settings.parameters["visit_parameters"])
         self._validate_algo_parameters()
 
     ## --- CHECKS ---
     def _check_visit_type(self):
+        """Check if the visit type is valid.
+        This method checks if the visit type is a string and if it corresponds to one of the
+        allowed visit types defined in the VisitType enum.
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the visit type is not a string or if it does not match any of the allowed types.
+        """
         if not isinstance(self.visit_type, str):
             raise LeaspyAlgoInputError(
                 f"Visit type need to be a string and not : {type(self.visit_type).__name__}"
@@ -71,6 +80,16 @@ class SimulationAlgorithm(AbstractAlgo):
             ) from e
 
     def _check_features(self):
+        """Check if the features are valid.
+
+        This method checks if the features are provided as a list of strings.
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the features are not a list or if any of the features is not a string.
+        """
+
         if not isinstance(self.features, list):
             raise LeaspyAlgoInputError(
                 f"Features need to a be a list and not : {type(self.features).__name__}"
@@ -88,6 +107,22 @@ class SimulationAlgorithm(AbstractAlgo):
                 raise LeaspyAlgoInputError(f"Empty feature at the position {i}")
 
     def _check_params(self, requirements):
+        """Check if the parameters are valid.
+
+        This method checks if the parameters in the `param_study` dictionary match the expected types
+        and constraints defined in the `requirements` list.
+
+        Parameters
+        ----------
+        requirements :obj:`list`
+            A list of tuples, where each tuple contains a parameter name and its expected type(s).
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If any parameter is missing, has an invalid type, or has an invalid value.
+        """
+
         missing_params = []
         type_errors = []
         value_errors = []
@@ -126,6 +161,16 @@ class SimulationAlgorithm(AbstractAlgo):
             raise LeaspyAlgoInputError("\n".join(errors))
 
     def _validate_algo_parameters(self):
+        """Validate the algorithm parameters.
+
+        This method checks the visit type, features, and parameters of the algorithm.
+
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the visit type is invalid, if the features are not a list of strings,
+            or if the parameters do not meet the expected requirements.
+        """
         self._check_visit_type()
         self._check_features()
 
@@ -170,7 +215,7 @@ class SimulationAlgorithm(AbstractAlgo):
             - If `visit_type` is "dataframe":
                 - 'df_visits' : :obj:`pandas.DataFrame`
                     DataFrame of visits, with a column "ID" and a column 'TIME'.
-                TIME and number of visits for each simulated patients (with specified ID) 
+                TIME and number of visits for each simulated patients (with specified ID)
                 are given by a dataframe in dict_param.
 
             - If `visit_type` is "regular":
@@ -242,7 +287,7 @@ class SimulationAlgorithm(AbstractAlgo):
             }
 
     ## ---- SIMULATE ---
-    def _run_impl(self, model) -> Result:
+    def run_impl(self, model) -> Result:
         """Run the simulation pipeline using a leaspy model.
 
         This method simulates longitudinal data using the given leaspy model.
@@ -273,16 +318,16 @@ class SimulationAlgorithm(AbstractAlgo):
         #     np.random.seed(seed)
 
         # Simulate RE for RM
-        df_ip_rm = self.get_ip_rm(model)
+        df_ip_rm = self._get_ip_rm(model)
 
         # Get Leaspy model
-        self.get_leaspy_model(model)
+        self._get_leaspy_model(model)
 
         # Generate visits ages
-        dict_timepoints = self.generate_visit_ages(df_ip_rm)
+        dict_timepoints = self._generate_visit_ages(df_ip_rm)
 
         # Get all visits observations
-        df_sim = self.generate_dataset(model, dict_timepoints, df_ip_rm)
+        df_sim = self._generate_dataset(model, dict_timepoints, df_ip_rm)
 
         simulated_data = Data.from_dataframe(df_sim)
         result_obj = Result(
@@ -434,7 +479,6 @@ class SimulationAlgorithm(AbstractAlgo):
             )
 
         else:
-
             df_ind["AGE_AT_BASELINE"] = (
                 df_ind["tau"].apply(lambda x: x.numpy())
                 + pd.DataFrame(
@@ -508,8 +552,6 @@ class SimulationAlgorithm(AbstractAlgo):
             and features as columns. The dataset includes both the generated values,
             with visits that are too close to each other dropped.
         """
-        print(df_ip_rm[
-                    ["xi", "tau"]])
         values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
@@ -565,8 +607,6 @@ class SimulationAlgorithm(AbstractAlgo):
             "xi": "RM_XI",
             "sources_0": "RM_SOURCES_0",
             "sources_1": "RM_SOURCES_1",
-            "survival_shifts_0": "RM_SURVIVAL_SHIFTS_0",
-            "survival_shifts_1": "RM_SURVIVAL_SHIFTS_1",
         }
 
         for i in range(len(self.features)):
