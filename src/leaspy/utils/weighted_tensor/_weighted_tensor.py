@@ -24,7 +24,7 @@ class WeightedTensor(Generic[VT]):
     ----------
     value : :obj:`torch.Tensor`
         Raw values, without any mask.
-    weight : :obj:`torch.Tensor', optional
+    weight : :obj:`torch.Tensor`, optional
         Relative weights for values.
         Default: None
 
@@ -164,7 +164,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        func : :obj:`Callable`[[:obj:`torch.Tensor`], :obj:`torch.Tensor`]
+        func : Callable[[ :obj:`torch.Tensor` ], :obj:`torch.Tensor` ]
             The function to be applied to the values.
         *args :
             Positional arguments to be passed to the function.
@@ -196,7 +196,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        func : :obj:`Callable`[[:obj`torch.Tensor`], :obj:`torch.Tensor`]
+        func : Callable[[ :obj`torch.Tensor` ], :obj:`torch.Tensor` ]
             The function to be applied to both values and weights.
         *args :
             Positional arguments to be passed to the function.
@@ -210,8 +210,6 @@ class WeightedTensor(Generic[VT]):
         -------
         :obj:`WeightedTensor`:
             A new `WeightedTensor` with the result of the operation and the appropriate weights.
-
-
         """
         return type(self)(
             func(self.filled(fill_value), *args, **kws),
@@ -226,12 +224,11 @@ class WeightedTensor(Generic[VT]):
         accumulate: bool = False,
     ) -> WeightedTensor[VT]:
         """
-        Out-of-place `torch.index_put` on values (no modification of weights).
+        Out-of-place :func:`torch.index_put` on values (no modification of weights).
 
         Parameters
         ----------
-
-        indices : :obj:`Tuple`[:obj:`torch.Tensor`, ...]
+        indices : :obj:`tuple` [ :obj:`torch.Tensor`, ...]
             The indices to put the values at.
         values : :obj:`torch.Tensor`
             The values to put at the specified indices.
@@ -241,8 +238,8 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :class:`WeightedTensor`[:obj:`VT`]
-            A new `WeightedTensor` with the updated values and the same weights.
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]
+            A new :class:`~leaspy.utils.weighted_tensor.WeightedTensor` with the updated values and the same weights.
         """
         return self.map(
             torch.index_put, indices=indices, values=values, accumulate=accumulate
@@ -266,7 +263,7 @@ class WeightedTensor(Generic[VT]):
         Returns
         -------
 
-        :obj:`Tuple`[:obj:torch.Tensor, :obj:torch.Tensor]`:
+        :obj:`tuple` [ :obj:`torch.Tensor`, :obj:`torch.Tensor` ]:
         Tuple containing:
             - weighted_sum : :obj:`torch.Tensor`
                 Weighted sum, with totally un-weighted aggregates filled with `fill_value`.
@@ -284,7 +281,7 @@ class WeightedTensor(Generic[VT]):
     def sum(self, *, fill_value: VT = 0, **kws) -> torch.Tensor:
         """Compute weighted sum of values.
 
-        For unweighted tensors, this is equivalent to regular sum().
+        For unweighted tensors, this is equivalent to regular :func:`torch.sum`.
         For weighted tensors, returns the same as the first element of wsum().
 
         Parameters
@@ -299,7 +296,6 @@ class WeightedTensor(Generic[VT]):
         -------
         :obj:`torch.Tensor`:
             The weighted sum, with totally un-weighted aggregates filled with `fill_value`.
-
         """
         if self.weight is None:
             # more efficient in this case
@@ -311,13 +307,13 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        shape : :obj:`Tuple`[:obj:`int`, ...]
+        shape : :obj:`tuple` [ :obj:`int`, ...]
             The new shape to be set.
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
-            A new `WeightedTensor` with the same weights but with the new shape provided.
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]:
+            A new :class:`~leaspy.utils.weighted_tensor.WeightedTensor` with the same weights but with the new shape provided.
         """
         return self.map_both(torch.Tensor.view, *shape)
 
@@ -326,13 +322,13 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        shape : :obj:`Tuple`[:obj:`int`, ...]
+        shape : :obj:`tuple` [ :obj:`int`, ...]
             The new shape to be set.
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
-            A new `WeightedTensor` with the same weights but with the new shape provided.
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]:
+            A new :class:`~leaspy.utils.weighted_tensor.WeightedTensor` with the same weights but with the new shape provided.
         """
         return self.map_both(torch.Tensor.expand, *shape)
 
@@ -360,8 +356,8 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
-            A new `WeightedTensor` with the same weights but with the new device provided.
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]:
+            A new :class:`~leaspy.utils.weighted_tensor.WeightedTensor` with the same weights but with the new device provided.
         """
         return self.map_both(torch.Tensor.cpu)
 
@@ -442,7 +438,7 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :obj:`WeightedTensor`:
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor`
             A new `WeightedTensor` with the absolute value of the values tensor.
         """
         return self.__abs__()
@@ -508,6 +504,7 @@ class WeightedTensor(Generic[VT]):
         ----------
         other : class:`TensorOrWeightedTensor`
             The tensor to be added to the weighted tensor.
+
         Returns
         -------
         :obj:`WeightedTensor`:
