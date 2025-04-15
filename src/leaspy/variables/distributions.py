@@ -22,12 +22,13 @@ __all__ = [
     "StatelessDistributionFamilyFromTorchDistribution",
     "BernoulliFamily",
     "NormalFamily",
-    "MultivariateNormalFamily" "AbstractWeibullRightCensoredFamily",
+    "NormalCovariateLinearFamily",
+    "AbstractWeibullRightCensoredFamily",
     "WeibullRightCensoredFamily",
     "WeibullRightCensoredWithSourcesFamily",
     "SymbolicDistribution",
     "Normal",
-    "MultivariateNormal",
+    "NormalCovariateLinear",
     "Bernoulli",
     "WeibullRightCensored",
     "WeibullRightCensoredWithSources",
@@ -371,7 +372,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
 
-class NormalCovariateLinear(StatelessDistributionFamilyFromTorchDistribution):
+class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Normal / Gaussian family (stateless)."""
 
     parameters: ClassVar = ("loc", "scale", "coeff_corr", "covariate")
@@ -1121,7 +1122,7 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
-MultivariateNormal = SymbolicDistribution.bound_to(MultivariateNormalFamily)
+NormalCovariateLinear = SymbolicDistribution.bound_to(NormalCovariateLinearFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
 WeibullRightCensoredWithSources = SymbolicDistribution.bound_to(

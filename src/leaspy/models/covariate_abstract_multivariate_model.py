@@ -9,7 +9,7 @@ from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul, Sum
 from leaspy.utils.typing import KwargsType
-from leaspy.variables.distributions import Normal
+from leaspy.variables.distributions import Normal, NormalCovariateLinear
 from leaspy.variables.specs import (
     Hyperparameter,
     IndividualLatentVariable,
@@ -116,18 +116,18 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
 
         d.update(
             # PRIORS
-            phi_tau_mean=ModelParameter.for_to_be_determined(
-                ("phi_mod_tau", "phi_ref_tau"), shape=(2,)
-            ),
+            phi_tau_mean=ModelParameter.for_ind_mean(("phi_tau"), shape=(2,)),
             phi_tau_std=Hyperparameter((0.001, 0.01)),
-            rho_tau=ModelParameter.for_to_be_determined(
-                ("phi_mod_tau", "phi_ref_tau"), shape=(1,)
+            rho_tau=ModelParameter.for_correlation_covariate_linear(
+                ("phi_tau"), shape=(1,)
             ),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             # LATENT VARS
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             phi_tau=IndividualLatentVariable(
-                NormalCovariateLinear(("phi_tau_mean", "phi_tau_std", "rho_tau"))
+                NormalCovariateLinear(
+                    ("phi_tau_mean", "phi_tau_std", "rho_tau", "covariate")
+                )
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
