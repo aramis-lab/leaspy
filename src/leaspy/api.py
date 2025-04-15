@@ -441,7 +441,7 @@ class Leaspy:
         # individual_parameters: IndividualParameters,
         # data: Data,
         settings: AlgorithmSettings,
-    ):
+    ) -> Result:
         r"""
         Generate longitudinal synthetic patients data from a given model, a given collection of individual parameters
         and some given settings.
@@ -449,17 +449,64 @@ class Leaspy:
         This procedure learn the joined distribution of the individual parameters and baseline age of the subjects
         present in ``individual_parameters`` and ``data`` respectively to sample new patients from this joined distribution.
         The model is used to compute for each patient their scores from the individual parameters.
-        The number of visits per patients is set in ``settings['parameters']['mean_number_of_visits']`` and
-        ``settings['parameters']['std_number_of_visits']`` which are set by default to 6 and 3 respectively.
 
         Parameters
         ----------
-        individual_parameters : :class:`.IndividualParameters`
-            Contains the individual parameters.
-        data : :class:`.Data`
-            Data object
         settings : :class:`.AlgorithmSettings`
             Contains the algorithm's settings.
+            * type_algorithm : 'simulation'
+            * seed: :obj: `int`
+                Random seed for reproducibility.
+            * visit_type : :obj: `str`
+                Type of visit distribution to simulate. Can be either: random, dataframe (visits from a dataframe), regular (regular visits spacing)
+            * feature : :obj: `list`
+            * load_parameters :obj:`Dict`
+                    - repeated_measure: :obj:`dict`
+                        Dictionary containing model parameters from json file.
+
+                    -  study: :obj:`dict`
+                        Dictionary containing parameters required for the study. The
+                        expected keys vary depending on the visit type:
+
+                        - If `visit_type` is "dataframe":
+                            - 'df_visits' : :obj:`pandas.DataFrame`
+                                DataFrame of visits, with a column "ID" and a column 'TIME'.
+                            TIME and number of visits for each simulated patients (with specified ID)
+                            are given by a dataframe in dict_param.
+
+                        - If `visit_type` is "regular":
+                            - 'pat_nb' : :obj:`int`
+                                Number of patients.
+                            - 'regular_visit' : :obj:`int`
+                                Time delta between each visits.
+                            - 'fv_mean' : :obj:`float`
+                                Mean of the first visit TIME.
+                            - 'fv_std' : :obj:`float`
+                                Standard deviation of the first visit TIME.
+                            - 'tf_mean' : :obj:`float`
+                                Mean of the follow-up TIME.
+                            - 'tf_std' : :obj:`float`
+                                Standard deviation of the follow-up TIME.
+                            Visits are equally spaced for all patients, and the number of visits
+                            deduced from first visit and follow-up time.
+
+                        - If `visit_type` is "random":
+                            - 'pat_nb' : :obj:`int`
+                                Number of patients.
+                            - 'fv_mean' : :obj:`float`
+                                Mean of the first visit TIME.
+                            - 'fv_std' : :obj:`float`
+                                Standard deviation of the first visit TIME.
+                            - 'tf_mean' : :obj:`float`
+                                Mean of the follow-up TIME.
+                            - 'tf_std' : :obj:`float`
+                                Standard deviation of the follow-up TIME.
+                            - 'distv_mean' : :obj:`float`
+                                Mean of distance_visits: mean time delta between two visits.
+                            - 'distv_std' : :obj:`float`
+                                Standard deviation of distance_visits: std time delta between two visits.
+                                Time delta between 2 visits is drawn in a normal distribution N(distv_mean, distv_std).
+
 
         Returns
         -------
@@ -470,84 +517,58 @@ class Leaspy:
         --------
         :class:`~leaspy.algo.simulate.simulate.SimulationAlgorithm`
 
-        Notes
-        -----
-        To generate a new subject, first we estimate the joined distribution of the individual parameters and the
-        reparametrized baseline ages. Then, we randomly pick a new point from this distribution, which define the
-        individual parameters & baseline age of our new subjects. Then, we generate the timepoints
-        following the baseline age. Then, from the model and the generated timepoints and individual parameters, we
-        compute the corresponding values estimations. Then, we add some noise to these estimations, which is the
-        same noise-model as the one from your model by default. But, you may customize it by setting the `noise` keyword.
-
-        Examples
+        Example
         --------
         Use a calibrated model & individual parameters to simulate new subjects similar to the ones you have:
-
         >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.datasets import load_dataset
         >>> from leaspy.io.data import Data
-        >>> from leaspy.datasets import load_dataset, load_leaspy_instance, load_individual_parameters
-        >>> putamen_df = load_dataset("parkinson-putamen-train_and_test")
-        >>> data = Data.from_dataframe(putamen_df.xs('train', level='SPLIT'))
-        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
-        >>> individual_parameters = load_individual_parameters("parkinson-putamen-train")
-        >>> simulation_settings = AlgorithmSettings('simulation', seed=0, noise='bernoulli')
-        >>> simulated_data = leaspy_logistic.simulate(individual_parameters, data, simulation_settings)
-         ==> Setting seed to 0
+        >>> parkinson_df = load_dataset("parkinson-multivariate")
+        >>> data = Data.from_dataframe(parkinson_df)
+        >>> leaspy_logistic = Leaspy('logistic', dimension = 10, source_dimension=2)
+        >>> fit_settings = AlgorithmSettings('mcmc_saem', seed=0, n_iter=1000)
+        >>> leaspy_logistic.fit(data, fit_settings)
+        >>> visits_params = {'pat_nb':200,
+                        'visit_type': "regular",
+                        'regular_visit': 1,
+                        'fv_mean' : 0.,
+                        'fv_std' : 0.4,
+                        'tf_mean' : 11,
+                        'tf_std' : 0.5,
+                        'distv_mean' : 2/12,
+                        'distv_std' : 0.75/12,
+                        }
+        >>> simulation_settings = AlgorithmSettings(
+            "simulation",
+            seed=0,
+            features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L'],
+            visit_parameters= visits_params
+        )
+        >>> simulated_data = leaspy_logistic.simulate(simulation_settings)
         >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
-                                                  PUTAMEN
-        ID                    TIME
-        Generated_subject_001 63.611107  0.556399
-                              64.111107  0.571381
-                              64.611107  0.586279
-                              65.611107  0.615718
-                              66.611107  0.644518
-        >>> print(simulated_data.get_dataframe_individual_parameters().tail())
-                                     tau        xi
-        ID
-        Generated_subject_096  46.771028 -2.483644
-        Generated_subject_097  73.189964 -2.513465
-        Generated_subject_098  57.874967 -2.175362
-        Generated_subject_099  54.889400 -2.069300
-        Generated_subject_100  50.046972 -2.259841
 
-        By default, you have simulate 100 subjects, with an average number of visit at 6 & and standard deviation
-        is the number of visits equal to 3. Let's say you want to simulate 200 subjects, everyone of them having
-        ten visits exactly:
+                         MDS1_total  MDS2_total  MDS3_off_total  SCOPA_total  MOCA_total  \
+            ID  TIME
+            0   63.101    0.087011    0.152092        0.210867     0.025305    0.175677
+                64.101    0.092209    0.093238        0.082991     0.199151    0.104286
+                65.101    0.246923    0.097621        0.386361     0.454139    0.130516
+                66.101    0.221104    0.266468        0.448745     0.192551    0.152098
+                67.101    0.229859    0.294492        0.514415     0.228311    0.153441
 
-        >>> simulation_settings = AlgorithmSettings('simulation', seed=0, number_of_subjects=200, \
-        mean_number_of_visits=10, std_number_of_visits=0)
-         ==> Setting seed to 0
-        >>> simulated_data = leaspy_logistic.simulate(individual_parameters, data, simulation_settings)
-        >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).tail())
-                                          PUTAMEN
-        ID                    TIME
-        Generated_subject_200 72.119949  0.829185
-                              73.119949  0.842113
-                              74.119949  0.854271
-                              75.119949  0.865680
-                              76.119949  0.876363
-
-        By default, the generated subjects are named `'Generated_subject_001'`, `'Generated_subject_002'` and so on.
-        Let's say you want a shorter name, for example `'GS-001'`. Furthermore, you want to set the level of noise
-        around the subject trajectory when generating the observations:
-
-        >>> simulation_settings = AlgorithmSettings('simulation', seed=0, prefix='GS-', noise=.2)
-        >>> simulated_data = leaspy_logistic.simulate(individual_parameters, data, simulation_settings)
-         ==> Setting seed to 0
-        >>> print(simulated_data.get_dataframe_individual_parameters().tail())
-                      tau        xi
-        ID
-        GS-096  46.771028 -2.483644
-        GS-097  73.189964 -2.513465
-        GS-098  57.874967 -2.175362
-        GS-099  54.889400 -2.069300
-        GS-100  50.046972 -2.259841
+                        REM_total  PUTAMEN_R  PUTAMEN_L  CAUDATE_R  CAUDATE_L
+            ID  TIME
+            0   63.101   0.045004   0.856272   0.789841   0.656750   0.596252
+                64.101   0.395321   0.832625   0.754797   0.709226   0.685151
+                65.101   0.302250   0.909700   0.873254   0.755892   0.748069
+                66.101   0.301377   0.844819   0.871735   0.875076   0.813392
+                67.101   0.474111   0.936578   0.903640   0.957804   0.886452
         """
         # Check if model has been initialized
         self.check_if_initialized()
         algorithm = algorithm_factory(settings)
         # <!> The `AbstractAlgo.run` signature is not respected for simulation algorithm...
-        #simulated_data: Result = algorithm.run(self.model, individual_parameters, data)
+        # simulated_data: Result = algorithm.run(self.model, individual_parameters, data)
         simulated_data: Result = algorithm.run(self.model)
         return simulated_data
 

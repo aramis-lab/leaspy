@@ -52,7 +52,7 @@ class SimulationAlgorithm(AbstractAlgo):
         super().__init__(settings)
         self.features = settings.parameters["features"]
         self.visit_type = settings.parameters["visit_parameters"]["visit_type"]
-        self.set_param_study(settings.parameters["visit_parameters"])
+        self._set_param_study(settings.parameters["visit_parameters"])
         self._validate_algo_parameters()
 
     ## --- CHECKS ---
@@ -287,7 +287,7 @@ class SimulationAlgorithm(AbstractAlgo):
             }
 
     ## ---- SIMULATE ---
-    def _run_impl(self, model) -> Result:
+    def run_impl(self, model) -> Result:
         """Run the simulation pipeline using a leaspy model.
 
         This method simulates longitudinal data using the given leaspy model.
@@ -318,16 +318,16 @@ class SimulationAlgorithm(AbstractAlgo):
         #     np.random.seed(seed)
 
         # Simulate RE for RM
-        df_ip_rm = self.get_ip_rm(model)
+        df_ip_rm = self._get_ip_rm(model)
 
         # Get Leaspy model
-        self.get_leaspy_model(model)
+        self._get_leaspy_model(model)
 
         # Generate visits ages
-        dict_timepoints = self.generate_visit_ages(df_ip_rm)
+        dict_timepoints = self._generate_visit_ages(df_ip_rm)
 
         # Get all visits observations
-        df_sim = self.generate_dataset(model, dict_timepoints, df_ip_rm)
+        df_sim = self._generate_dataset(model, dict_timepoints, df_ip_rm)
 
         simulated_data = Data.from_dataframe(df_sim)
         result_obj = Result(
@@ -552,7 +552,6 @@ class SimulationAlgorithm(AbstractAlgo):
             and features as columns. The dataset includes both the generated values,
             with visits that are too close to each other dropped.
         """
-        print(df_ip_rm[["xi", "tau"]])
         values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
@@ -608,8 +607,6 @@ class SimulationAlgorithm(AbstractAlgo):
             "xi": "RM_XI",
             "sources_0": "RM_SOURCES_0",
             "sources_1": "RM_SOURCES_1",
-            "survival_shifts_0": "RM_SURVIVAL_SHIFTS_0",
-            "survival_shifts_1": "RM_SURVIVAL_SHIFTS_1",
         }
 
         for i in range(len(self.features)):
