@@ -12,7 +12,7 @@ from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import Normal
+from leaspy.variables.distributions import Normal, NormalCovariateLinear
 from leaspy.variables.specs import (
     Hyperparameter,
     LinkedVariable,
@@ -191,16 +191,23 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
 
         d.update(
             # PRIORS
-            phi_mod_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
-            phi_mod_v0_std=Hyperparameter(0.001),
-            phi_ref_v0_mean=ModelParameter.for_pop_mean("v0", shape=(self.dimension,)),
-            phi_ref_v0_std=Hyperparameter(0.01),
+            phi_v0_mean=ModelParameter.for_pop_mean(
+                ("phi_v0"), shape=(self.dimension,)
+            ),
+            phi_v0_std=Hyperparameter((0.001, 0.01)),
+            rho_v0=ModelParameter.for_correlation_covariate_linear(
+                ("phi_v0"), shape=(1,)
+            ),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
-            log_v0=PopulationLatentVariable(
-                Normal("phi_ref_v0_mean", "phi_ref_v0_std")
-            ),
+            xi=PopulationLatentVariable(Normal("xi_mean", "xi_std")),
+            phi_v0=PopulationLatentVariable(
+                NormalCovariateLinear(
+                    "phi_v0_mean", "phi_v0_std", "rho_v0", "covariate"
+                )
+            ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
+            log_v0=LinkedVariable(),  # log_v0=phi_mod_v0*covariate+phi_ref_v0
             v0=LinkedVariable(Exp("log_v0")),
             metric=LinkedVariable(
                 self.metric
@@ -455,16 +462,22 @@ class CovariateLogisticMultivariateModel(
         # )
 
         d.update(
-            phi_mod_g_mean=ModelParameter.for_pop_mean(
-                "log_g", shape=(self.dimension,)
+            # PRIORS
+            phi_g_mean=ModelParameter.for_pop_mean(("phi_g"), shape=(self.dimension,)),
+            phi_g_std=Hyperparameter((0.001, 0.01)),
+            rho_g=ModelParameter.for_correlation_covariate_linear(
+                ("phi_g"), shape=(1,)
             ),
-            phi_mod_g_std=Hyperparameter(0.001),
-            phi_ref_g_mean=ModelParameter.for_pop_mean(
-                "log_g", shape=(self.dimension,)
-            ),
-            phi_ref_g_std=Hyperparameter(0.01),
-            log_g=PopulationLatentVariable(Normal("phi_ref_g_mean", "phi_ref_g_std")),
+            # LATENT VARS
+            phi_g=PopulationLatentVariable(
+                NormalCovariateLinear("phi_g_mean", "phi_g_std", "rho_g", "covariate")
+            ),  # phi_g = (phi_mod_g, phi_ref_g)
+            # LINKED VARS
+            log_g=LinkedVariable(),  # log_g=phi_mod_g*covariate+phi_ref_g
             g=LinkedVariable(Exp("log_g")),
+            metric=LinkedVariable(
+                self.metric
+            ),  # for linear model: metric & metric_sqr are fixed = 1.
         )
 
         return d

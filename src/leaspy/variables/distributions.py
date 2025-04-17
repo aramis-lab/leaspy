@@ -507,16 +507,16 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
             + scale[1] ** 2
             + 2 * covariate * coeff_corr * scale[0] * scale[1]
         )
-        delta = mu - obs
+        delta = obs - mu
 
         # Gradients
-        dloc0 = delta * covariate / var  # d NLL / d phi_mod_mean
-        dloc1 = delta / var  # d NLL / d phi_ref_mean
-        drho = (
-            (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
-        )  # d NLL / d rho
+        dloc0 = delta * covariate / var  # d NLL / d phi_mod
+        dloc1 = delta / var  # d NLL / d phi_ref
+        # drho = (
+        #     (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
+        # )  # d NLL / d rho
 
-        grads = torch.stack([dloc0, dloc1, drho], dim=-1)
+        grads = torch.stack([dloc0, dloc1], dim=-1)
 
         return WeightedTensor(grads, x.weight)
 
@@ -537,22 +537,18 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
             + scale[1] ** 2
             + 2 * covariate * coeff_corr * scale[0] * scale[1]
         )
-        delta = mu - obs
+        delta = obs - mu
 
-        nll = (
-            0.5 * (obs - mu) ** 2 / (var)
-            + 0.5 * torch.log(var)
-            + cls.nll_constant_standard
-        )
+        nll = 0.5 * delta**2 / (var) + 0.5 * torch.log(var) + cls.nll_constant_standard
 
         # Gradients
-        dloc0 = delta * covariate / var  # d NLL / d phi_mod_mean
-        dloc1 = delta / var  # d NLL / d phi_ref_mean
-        drho = (
-            (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
-        )  # d NLL / d rho
+        dloc0 = delta * covariate / var  # d NLL / d phi_mod
+        dloc1 = delta / var  # d NLL / d phi_ref
+        # drho = (
+        #     (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
+        # )  # d NLL / d rho
 
-        grads = torch.stack([dloc0, dloc1, drho], dim=-1)
+        grads = torch.stack([dloc0, dloc1], dim=-1)
 
         return WeightedTensor(nll, x.weight), WeightedTensor(grads, x.weight)
 

@@ -369,7 +369,14 @@ class ModelParameter(IndepVariable):
         """
         update_rule = NamedInputFunction(
             compute_correlation_from_sufficient_statistics,
-            parameters=(variable_name,),
+            parameters=(
+                "state",
+                variable_name,
+            ),
+            kws=dict(
+                parameters_name=variable_name,
+                dim=LVL_IND,
+            ),
         )
         return cls(
             shape,

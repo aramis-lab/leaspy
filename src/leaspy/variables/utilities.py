@@ -46,7 +46,13 @@ def compute_individual_parameter_std_from_sufficient_statistics(
     )
 
 
-def compute_correlation_from_sufficient_statistics(parameters_values: torch.Tensor):
+def compute_correlation_from_sufficient_statistics(
+    state: dict[str, torch.Tensor],
+    parameters_values: torch.Tensor,
+    *,
+    parameters_name: str,
+    dim: int,
+):
     """
     Estimates the correlation coefficient (rho) from sufficient statistics.
 
@@ -67,15 +73,22 @@ def compute_correlation_from_sufficient_statistics(parameters_values: torch.Tens
     torch.Tensor
         Estimated correlation coefficient (rho), shape (1,)
     """
+    parameters_mean = torch.mean(parameters_values, dim=dim)
+
     phi_mod = parameters_values[:, 0]
     phi_ref = parameters_values[:, 1]
 
-    phi_mod_centered = phi_mod - phi_mod.mean()
-    phi_ref_centered = phi_ref - phi_ref.mean()
+    phi_mod_mean = parameters_mean[0]
+    phi_ref_mean = parameters_mean[1]
+
+    phi_mod_centered = phi_mod - phi_mod_mean
+    phi_ref_centered = phi_ref - phi_ref_mean
 
     covariance = torch.mean(phi_mod_centered * phi_ref_centered)
-    std_mod = phi_mod.std()
-    std_ref = phi_ref.std()
+
+    phi_tau_std = state[f"{parameters_name}_std"]  # shape: (2,)
+    std_mod = phi_tau_std[0]
+    std_ref = phi_tau_std[1]
 
     rho = covariance / (std_mod * std_ref + 1e-8)  # add epsilon for stability
 
