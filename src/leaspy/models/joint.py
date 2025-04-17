@@ -138,7 +138,7 @@ class JointModel(LogisticMultivariateModel):
                 Normal("log_rho_mean", "log_rho_std"),
             ),
             # DERIVED VARS
-            nu=LinkedVariable(self.exp_neg_n_log_nu),
+            nu=LinkedVariable(self._exp_neg_n_log_nu),
             rho=LinkedVariable(
                 Exp("log_rho"),
             ),
@@ -166,7 +166,7 @@ class JointModel(LogisticMultivariateModel):
         return d
 
     @staticmethod
-    def exp_neg_n_log_nu(
+    def _exp_neg_n_log_nu(
         *,
         n_log_nu: torch.Tensor,  # TODO: TensorOrWeightedTensor?
     ) -> torch.Tensor:
