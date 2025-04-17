@@ -40,7 +40,8 @@ __all__ = ["JointModel"]
 @doc_with_super()
 class JointModel(LogisticMultivariateModel):
     """
-    Manifold model for multiple variables of interest (logistic or linear formulation).
+    Joint model for multiple repeated measures (logistic) and multiple competing events.
+    The model implemented is associated to this [publication](https://arxiv.org/abs/2501.08960) on arxiv.
 
     Parameters
     ----------
@@ -138,7 +139,7 @@ class JointModel(LogisticMultivariateModel):
                 Normal("log_rho_mean", "log_rho_std"),
             ),
             # DERIVED VARS
-            nu=LinkedVariable(self.exp_neg_n_log_nu),
+            nu=LinkedVariable(self._exp_neg_n_log_nu),
             rho=LinkedVariable(
                 Exp("log_rho"),
             ),
@@ -166,10 +167,23 @@ class JointModel(LogisticMultivariateModel):
         return d
 
     @staticmethod
-    def exp_neg_n_log_nu(
+    def _exp_neg_n_log_nu(
         *,
         n_log_nu: torch.Tensor,  # TODO: TensorOrWeightedTensor?
     ) -> torch.Tensor:
+        """
+        Get the scale parameters of the Weibull distribution. This transformation ensures that nu remains positive and simplified update of xi_mean.
+
+        Parameters
+        ----------
+        n_log_nu : :obj:`torch.Tensor`
+            the negative log of the scale parameters of the Weibull distribution (nu)
+
+        Returns
+        -------
+        torch.Tensor :
+            the scale parameters of the Weibull distribution (nu)
+        """
         return torch.exp(-1 * n_log_nu)
 
     @classmethod
@@ -198,10 +212,36 @@ class JointModel(LogisticMultivariateModel):
         # self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
+        """
+        Load model's hyperparameters. For joint model it should contain the number of events
+
+        Parameters
+        ----------
+        hyperparameters : :obj:`dict` [ :obj:`str`, Any ]
+            Contains the model's hyperparameters.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If any of the consistency checks fail.
+        """
         self.nb_events = hyperparameters.pop("nb_events", 1)
         super()._load_hyperparameters(hyperparameters)
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
+        """
+        Export model as a dictionary ready for export. Add the number of events compare to the multivariate output
+
+        Parameters
+        ----------
+        with_mixing_matrix : :obj:`bool`
+            If True the mixing matrix will be saved in the dictionary
+
+        Returns
+        -------
+        KwargsType :
+            The model instance serialized as a dictionary.
+        """
         dict_params = super().to_dict(with_mixing_matrix=with_mixing_matrix)
         dict_params["nb_events"] = self.nb_events
         return dict_params
@@ -209,6 +249,20 @@ class JointModel(LogisticMultivariateModel):
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
+        """
+        Raise if the given :class:`.Dataset` is not compatible with the current model.
+
+        Parameters
+        ----------
+        dataset : :class:`.Dataset`, optional
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError` :
+            - If the :class:`.Dataset` has a number of dimensions smaller than 2.
+            - If the :class:`.Dataset` does not have the same dimensionality as the model.
+            - If the :class:`.Dataset`'s headers do not match the model's.
+        """
         super()._validate_compatibility_of_dataset(dataset)
         # Check that there is only one event stored
 
@@ -223,6 +277,23 @@ class JointModel(LogisticMultivariateModel):
         dataset: Dataset,
         method: InitializationMethod,
     ) -> VariableNameToValueMapping:
+        """
+        Compute initial values for model parameters.
+
+        Parameters
+        ----------
+        dataset : :class:`Dataset`
+            Where the individual data are stored
+
+        method : :class:`InitializationMethod`
+            Initialization method for the longitudinal multivariate sub-model
+
+        Returns
+        -------
+        VariableNameToValueMapping :
+            model parameters
+
+        """
         from leaspy.models.utilities import torch_round
 
         params = super()._compute_initial_values_for_model_parameters(dataset, method)
@@ -236,6 +307,21 @@ class JointModel(LogisticMultivariateModel):
         return params
 
     def put_individual_parameters(self, state: State, dataset: Dataset):
+        """
+        Initialise the individual parameters of the state thanks to the dataset.
+
+        Parameters
+        ----------
+        state : :class:`State`
+            where all the variables of the model are stored
+
+        dataset : :class:`Dataset`
+            Where the individual data are stored
+
+        Returns
+        -------
+        None
+        """
         df = dataset.to_pandas().reset_index("TIME").groupby("ID").min()
 
         # Initialise individual parameters if they are not already initialised
@@ -265,6 +351,20 @@ class JointModel(LogisticMultivariateModel):
     def _estimate_initial_event_parameters(
         self, dataset: Dataset
     ) -> VariableNameToValueMapping:
+        """
+        Compute initial values for the event submodel parameters.
+
+        Parameters
+        ----------
+        dataset : :class:`Dataset`
+            Where the individual data are stored
+
+        Returns
+        -------
+        VariableNameToValueMapping :
+            model parameters
+
+        """
         log_rho_mean = [0] * self.nb_events
         n_log_nu_mean = [0] * self.nb_events
 
@@ -298,8 +398,12 @@ class JointModel(LogisticMultivariateModel):
         skip_ips_checks: bool = False,
     ) -> torch.Tensor:
         """
-        Compute scores values at the given time-point(s) given a subject's individual parameters.
-
+        This method computes the individual trajectory of a patient for given timepoint(s) using his/her individual parameters (random effects).
+        For the longitudinal sub-model:
+            - Compute longitudinal values
+        For the event sub-model:
+            - only one event: return the survival rate corrected by the probability of the first time point of the prediction assuming that the patient was alive,
+            - more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
         Nota: model uses its current internal state.
 
         Parameters

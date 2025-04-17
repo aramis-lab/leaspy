@@ -112,7 +112,7 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient information
+        Clean the dataframe that contains patient information which are repeated measures and events
 
         Parameters
         ----------
@@ -168,7 +168,7 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
             df_before = df_test[
                 ~(df_test[self.event_time_name] - df_test["TIME"] >= -self.tol_diff)
             ]
-            if (df_before[self.event_bool_name] == False).all():
+            if df_before[self.event_bool_name].sum() == 0:
                 warnings.warn(
                     "You have event censored before the last available visits, you should be in a prediction set-up"
                 )

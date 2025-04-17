@@ -69,6 +69,20 @@ class UnivariateJointModel(LogisticUnivariateModel, JointModel):
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
+        """
+        Raise if the given :class:`.Dataset` is not compatible with the current model.
+
+        Parameters
+        ----------
+        dataset : :class:`.Dataset`, optional
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError` :
+            - If the :class:`.Dataset` has a number of dimensions smaller than 2.
+            - If the :class:`.Dataset` does not have the same dimensionality as the model.
+            - If the :class:`.Dataset`'s headers do not match the model's.
+        """
         super()._validate_compatibility_of_dataset(dataset)
         # Check that there is only one event stored
         if not (dataset.event_bool.unique() == torch.tensor([0, 1])).all():

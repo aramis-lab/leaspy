@@ -26,14 +26,30 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
     ######################################################
     @property
     def dimension(self) -> Optional[int]:
-        """Number of longitudinal outcomes in dataset."""
+        """
+
+        Number of longitudinal outcomes in dataset.
+
+        Returns
+        -------
+        : :obj:`int`
+            Number of longitudinal outcomes in dataset
+        """
         if self.long_outcome_names is None:
             return None
         return len(self.long_outcome_names)
 
     @classmethod
     def _check_TIME(cls, s: pd.Series) -> None:
-        """Check requirements on timepoints."""
+        """
+        Check requirements on patient's visits indexing: only numeric value and no missing values are tolerated
+
+        Parameters
+        ----------
+        s: pd.Series
+            Pandas series that contains the time at visits of each patient
+
+        """
         if not cls._check_numeric_type(s):
             raise LeaspyDataInputError(
                 f"The `TIME` column should contain numeric values (not {s.dtype})."
@@ -99,7 +115,7 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient information
+        Clean the dataframe that contains repeated measures information for each visit
 
         Parameters
         ----------
@@ -117,6 +133,12 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
         -------
         df: pd.DataFrame
             Dataframe with clean information
+
+        Raises
+        ------
+        :exc:`.LeaspyDataInputError` :
+            - If the :df:`pd.DataFrame` is empty in terms of raw
+            - If the :df:`pd.DataFrame` is empty in terms of columns
         """
         self.n_visits = len(df)
         if self.n_visits == 0:
