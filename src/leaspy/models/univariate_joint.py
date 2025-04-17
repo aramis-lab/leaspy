@@ -78,7 +78,7 @@ class UnivariateJointModel(LogisticUnivariateModel, JointModel):
 
         Raises
         ------
-        :exc:`.LeaspyModelInputError` :
+        :exc:`.LeaspyInputError` :
             - If the :class:`.Dataset` has a number of dimensions smaller than 2.
             - If the :class:`.Dataset` does not have the same dimensionality as the model.
             - If the :class:`.Dataset`'s headers do not match the model's.

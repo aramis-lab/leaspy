@@ -81,7 +81,7 @@ class EventDataframeDataReader(AbstractDataframeDataReader):
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
         """
-        Clean the dataframe that contains patient events information,
+        Clean the dataframe that contains patient events information
 
         Parameters
         ----------
@@ -89,7 +89,7 @@ class EventDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with patient information
 
         drop_full_nan: bool
-            If set to True, raw full of nan are droped
+            If set to True, raw full of nan are dropped
 
         warn_empty_column: bool
             If set to True, a warning is raise for columns full of nan

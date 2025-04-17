@@ -398,11 +398,11 @@ class JointModel(LogisticMultivariateModel):
         skip_ips_checks: bool = False,
     ) -> torch.Tensor:
         """
-        This method compute the individual trajectory of a patient for given timepoint(s) using his/her individual parameters (random effects).
+        This method computes the individual trajectory of a patient for given timepoint(s) using his/her individual parameters (random effects).
         For the longitudinal sub-model:
             - Compute longitudinal values
         For the event sub-model:
-            - only on event: return the survival rate corrected by the probability of the first time point of the prediction assuming that the patient was alive,
+            - only one event: return the survival rate corrected by the probability of the first time point of the prediction assuming that the patient was alive,
             - more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
         Nota: model uses its current internal state.
 
