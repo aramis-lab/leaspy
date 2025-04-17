@@ -141,9 +141,7 @@ class Leaspy:
         """
         self.fit(data, settings)
 
-    def personalize(
-        self, data: Data, settings: AlgorithmSettings, *, return_loss: bool = False
-    ):
+    def personalize(self, data: Data, settings: AlgorithmSettings):
         r"""
         From a model, estimate individual parameters for each `ID` of a given dataset.
         These individual parameters correspond to the random-effects :math:`(z_{i,j})` of the mixed-effects model.
@@ -155,17 +153,11 @@ class Leaspy:
             :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
         settings : :class:`.AlgorithmSettings`
             Contains the algorithm's settings.
-        return_loss : bool (default False)
-            Returns a tuple (individual_parameters, loss) if True
 
         Returns
         -------
         ips : :class:`.IndividualParameters`
             Contains individual parameters
-
-        if return_loss is True : tuple
-            * ips : :class:`.IndividualParameters`
-            * loss : :class:`torch.Tensor`
 
         Raises
         ------
@@ -202,19 +194,8 @@ class Leaspy:
         algorithm = algorithm_factory(settings)
         dataset = Dataset(data)
 
-        # only do the following for proper type hints due to the fact that algorithm.run
-        # is improper (return type depends on algorithm class... TODO fix this)
-        if return_loss:
-            res: tuple[IndividualParameters, torch.FloatTensor] = algorithm.run(
-                self.model, dataset, return_loss=True
-            )
-            return res
-        else:
-            # default
-            res: IndividualParameters = algorithm.run(
-                self.model, dataset, return_loss=False
-            )
-            return res
+        res: IndividualParameters = algorithm.run(self.model, dataset)
+        return res
 
     def estimate(
         self,

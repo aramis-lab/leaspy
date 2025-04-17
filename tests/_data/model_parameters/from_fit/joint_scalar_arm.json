@@ -12,12 +12,14 @@
     "y": "gaussian-scalar",
     "event": "weibull-right-censored"
   },
-  "parameters": {
+  "hyperparameters": {
     "log_g_std": 0.009999999776482582,
     "log_rho_std": 0.009999999776482582,
     "log_v0_std": 0.009999999776482582,
     "n_log_nu_std": 0.009999999776482582,
-    "xi_mean": 0.0,
+    "xi_mean": 0.0
+  },
+  "parameters": {
     "log_g_mean": [
       0.12435264140367508,
       2.8125174045562744,

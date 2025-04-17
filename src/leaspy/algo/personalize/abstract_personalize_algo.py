@@ -1,3 +1,5 @@
+"""This module defines the `AbstractPersonalizeAlgo` class used for all personalize algorithms."""
+
 from abc import abstractmethod
 from typing import Tuple
 
@@ -26,11 +28,11 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
 
     Attributes
     ----------
-    name : str
+    name : :obj:`str`
         Algorithm's name.
-    seed : int, optional
+    seed : :obj:`int`, optional
         Algorithm's seed (default None).
-    algo_parameters : dict
+    algo_parameters : :obj:`dict`
         Algorithm's parameters.
 
     See Also

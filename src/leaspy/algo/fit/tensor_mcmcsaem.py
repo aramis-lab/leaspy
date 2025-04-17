@@ -1,3 +1,5 @@
+"""This module defines the `TensorMCMCSAEM` class."""
+
 from ..base import AlgorithmName
 from .abstract_mcmc import AbstractFitMCMC
 
@@ -10,12 +12,12 @@ class TensorMCMCSAEM(AbstractFitMCMC):
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.AlgorithmSettings`
         MCMC fit algorithm settings
 
     See Also
     --------
-    :class:`.AbstractFitMCMC`
+    :class:`~leaspy.algo.fit.AbstractFitMCMC`
     """
 
     name: AlgorithmName = AlgorithmName.FIT_MCMC_SAEM

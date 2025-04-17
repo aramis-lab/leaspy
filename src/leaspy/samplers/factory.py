@@ -1,7 +1,7 @@
 from typing import Type, Union
 
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.io.realizations import VariableType
+from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 
 from .base import (
     AbstractIndividualSampler,
@@ -34,7 +34,7 @@ POPULATION_SAMPLERS = {
 
 
 def sampler_factory(
-    sampler: SamplerFactoryInput, variable_type: VariableType, **kwargs
+    sampler: SamplerFactoryInput, variable_type, **kwargs
 ) -> AbstractSampler:
     """
     Factory for Samplers.
@@ -73,10 +73,10 @@ def sampler_factory(
     )
 
 
-def _get_sampler_class(sampler_name: str, variable_type: VariableType):
-    if variable_type == VariableType.INDIVIDUAL:
+def _get_sampler_class(sampler_name: str, variable_type):
+    if variable_type == IndividualLatentVariable:
         return _get_individual_sampler_class(sampler_name)
-    if variable_type == VariableType.POPULATION:
+    if variable_type == PopulationLatentVariable:
         return _get_population_sampler_class(sampler_name)
 
 
