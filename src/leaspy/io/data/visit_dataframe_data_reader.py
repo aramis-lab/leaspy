@@ -42,12 +42,12 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
     @classmethod
     def _check_TIME(cls, s: pd.Series) -> None:
         """
-        Check requirements on patient's visits indexing: only numeric value and no Nan
+        Check requirements on patient's visits indexing: only numeric value and no missing values are tolerated
 
         Parameters
         ----------
         s: pd.Series
-            Pandas serie that contain the time at visits for patient's visits indexing
+            Pandas series that contains the time at visits of each patient
 
         """
         if not cls._check_numeric_type(s):

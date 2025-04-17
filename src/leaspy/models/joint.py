@@ -257,7 +257,7 @@ class JointModel(LogisticMultivariateModel):
 
         Raises
         ------
-        :exc:`.LeaspyModelInputError` :
+        :exc:`.LeaspyInputError` :
             - If the :class:`.Dataset` has a number of dimensions smaller than 2.
             - If the :class:`.Dataset` does not have the same dimensionality as the model.
             - If the :class:`.Dataset`'s headers do not match the model's.
@@ -285,7 +285,7 @@ class JointModel(LogisticMultivariateModel):
             Where the individual data are stored
 
         method : :class:`InitializationMethod`
-            Initialisation method for the longitudinal multivariate submodel
+            Initialization method for the longitudinal multivariate sub-model
 
         Returns
         -------
@@ -397,10 +397,12 @@ class JointModel(LogisticMultivariateModel):
         skip_ips_checks: bool = False,
     ) -> torch.Tensor:
         """
-         For the longitudinal submodel: Compute longitudinal values and at the given time-point(s) given a subject's individual parameters.
-        For the event submodel:
-            - if there is only on event: return the survival corrected by the probability of the first time point of the prediction assuming that the patient was alive,
-            - if there are more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
+        This method compute the individual trajectory of a patient for given timepoint(s) using his/her individual parameters (random effects).
+        For the longitudinal sub-model:
+            - Compute longitudinal values
+        For the event sub-model:
+            - only on event: return the survival rate corrected by the probability of the first time point of the prediction assuming that the patient was alive,
+            - more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
         Nota: model uses its current internal state.
 
         Parameters

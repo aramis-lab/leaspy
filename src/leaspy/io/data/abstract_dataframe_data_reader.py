@@ -35,7 +35,7 @@ class AbstractDataframeDataReader:
     @staticmethod
     def _check_numeric_type(dtype) -> bool:
         """
-        Check if the pandas type of the data is a numeric type
+        Check if the type of the pandas data is numeric or not
 
         Parameters
         ----------
@@ -99,7 +99,9 @@ class AbstractDataframeDataReader:
 
     def _clean_index(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Check requirements on subjects identifiers: ID patient index and TIME the "age" of the patient at visit for visit indexing.
+        Check requirements on subjects identifiers:
+            - ID represents patient index,
+            - TIME represents the "age" of the patient at visit for visit indexing.
 
         Parameters
         ----------
