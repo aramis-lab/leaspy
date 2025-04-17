@@ -41,6 +41,7 @@ __all__ = ["JointModel"]
 class JointModel(LogisticMultivariateModel):
     """
     Joint model for multiple repeated measures (logistic) and multiple competing events.
+    The model implemented is associated to this [publication](https://arxiv.org/abs/2501.08960) on arxiv.
 
     Parameters
     ----------
