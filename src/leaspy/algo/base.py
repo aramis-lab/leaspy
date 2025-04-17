@@ -408,7 +408,9 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
 
         return LMEPersonalizeAlgorithm
     if name == AlgorithmName.SIMULATE:
-        raise ValueError("The simulation algorithm is currently broken.")
+        from .simulate import SimulationAlgorithm
+
+        return SimulationAlgorithm
 
 
 def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgorithm:
