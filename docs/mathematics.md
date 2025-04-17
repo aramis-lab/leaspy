@@ -1,14 +1,9 @@
-# Mathematical aspects
+# Mathematical Background
 
-## Introduction
-TODO
+## Mixed effect models
 
-## Mathematical formulation
-TODO
+*Talk about mixed-effect models and their ability to handle missing values*
+
 
 ## Riemanian framework
 TODO
-
-## Missing data
-TODO
-

@@ -1,9 +1,0 @@
-# Ruby file but not .rb extension so to prevent Ruby code analysis for this single file...
-# import all rules
-all
-
-# exclude some rules here
-# https://github.com/markdownlint/markdownlint/blob/master/docs/RULES.md
-
-# line length warning
-rule 'MD013', :line_length => 120

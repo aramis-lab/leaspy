@@ -1,4 +1,5 @@
 import warnings
+from typing import Optional
 
 import pandas as pd
 import torch
@@ -6,8 +7,8 @@ import torch
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, MatMul, Sum
-from leaspy.utils.typing import KwargsType, Optional
+from leaspy.utils.functional import Exp, MatMul
+from leaspy.utils.typing import KwargsType
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
     Hyperparameter,
@@ -16,15 +17,10 @@ from leaspy.variables.specs import (
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
-    VariablesValuesRO,
 )
 
 from .abstract_model import AbstractModel
-from .base import InitializationMethod
-from .obs_models import (
-    FullGaussianObservationModel,
-    observation_model_factory,
-)
+from .obs_models import observation_model_factory
 
 __all__ = ["AbstractMultivariateModel"]
 
@@ -91,7 +87,7 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                     for obs_model in observation_models
                 ]
             )
-        elif isinstance(observation_models, (dict)):
+        elif isinstance(observation_models, dict):
             # Not really satisfied... Used for api load
             kwargs["obs_models"] = tuple(
                 [

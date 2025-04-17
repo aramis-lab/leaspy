@@ -100,7 +100,7 @@ class SimulationAlgorithm(AbstractAlgo):
         for i, feature in enumerate(self.features):
             if not isinstance(feature, str):
                 raise LeaspyAlgoInputError(
-                    f"Invalide feature at position {i}: need to be a string. "
+                    f"Invalid feature at position {i}: need to be a string. "
                     f"And not : {type(feature).__name__}"
                 )
             if not feature.strip():
@@ -364,7 +364,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         xi_rm = torch.tensor(
             np.random.normal(
-                model.parameters["xi_mean"],
+                model.hyperparameters["xi_mean"],
                 model.parameters["xi_std"],
                 self.param_study["pat_nb"],
             )
@@ -530,7 +530,7 @@ class SimulationAlgorithm(AbstractAlgo):
         This method simulates observations using estimate function of the Leaspy model. The latter estimates
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
-        Visits too close are droped.
+        Visits too close are dropped.
 
         Parameters
         ----------

@@ -20,7 +20,8 @@ from leaspy.variables.specs import (
     NamedVariables,
     PopulationLatentVariable,
     SuffStatsRW,
-    VariablesValuesRO,
+    VariableName,
+    VariableNameToValueMapping,
 )
 from leaspy.variables.state import State
 
@@ -64,7 +65,10 @@ class MultivariateModel(AbstractMultivariateModel):
     """
 
     def __init__(
-        self, name: str, variables_to_track: Optional[Iterable[str]] = None, **kwargs
+        self,
+        name: str,
+        variables_to_track: Optional[Iterable[VariableName]] = None,
+        **kwargs,
     ):
         super().__init__(name, **kwargs)
 
@@ -543,7 +547,7 @@ class LinearMultivariateInitializationMixin:
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariableNameToValueMapping:
         from leaspy.models.utilities import (
             compute_linear_regression_subjects,
             get_log_velocities,
@@ -640,7 +644,7 @@ class LogisticMultivariateInitializationMixin:
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariableNameToValueMapping:
         """Compute initial values for model parameters."""
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
@@ -748,39 +752,3 @@ class LogisticMultivariateModel(
             w_model_logit, fill_value=0.0
         )
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
-
-
-"""
-# document some methods (we cannot decorate them at method creation since they are
-# not yet decorated from `doc_with_super`)
-doc_with_(MultivariateModel.compute_individual_tensorized_linear,
-          MultivariateModel.compute_individual_tensorized,
-          mapping={'the model': 'the model (linear)'})
-doc_with_(MultivariateModel.compute_individual_tensorized_logistic,
-          MultivariateModel.compute_individual_tensorized,
-          mapping={'the model': 'the model (logistic)'})
-
-# doc_with_(MultivariateModel.compute_individual_tensorized_mixed,
-#          MultivariateModel.compute_individual_tensorized,
-#          mapping={'the model': 'the model (mixed logistic-linear)'})
-
-doc_with_(MultivariateModel.compute_jacobian_tensorized_linear,
-          MultivariateModel.compute_jacobian_tensorized,
-          mapping={'the model': 'the model (linear)'})
-doc_with_(MultivariateModel.compute_jacobian_tensorized_logistic,
-          MultivariateModel.compute_jacobian_tensorized,
-          mapping={'the model': 'the model (logistic)'})
-# doc_with_(MultivariateModel.compute_jacobian_tensorized_mixed,
-#          MultivariateModel.compute_jacobian_tensorized,
-#          mapping={'the model': 'the model (mixed logistic-linear)'})
-
-# doc_with_(MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized_linear,
-#          MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized,
-#          mapping={'the model': 'the model (linear)'})
-doc_with_(MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized_logistic,
-          MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized,
-          mapping={'the model': 'the model (logistic)'})
-# doc_with_(MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized_mixed,
-#          MultivariateModel.compute_individual_ages_from_biomarker_values_tensorized,
-#          mapping={'the model': 'the model (mixed logistic-linear)'})
-"""

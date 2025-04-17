@@ -1,3 +1,5 @@
+"""This module defines the `ScipyMinimize` class."""
+
 from __future__ import annotations
 
 import warnings
@@ -14,7 +16,11 @@ from leaspy.io.data import Data, Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import AbstractModel
 from leaspy.utils.typing import DictParamsTorch
-from leaspy.variables.specs import IndividualLatentVariable, LatentVariable, VarName
+from leaspy.variables.specs import (
+    IndividualLatentVariable,
+    LatentVariable,
+    VariableName,
+)
 from leaspy.variables.state import State
 
 from ..base import AlgorithmName
@@ -60,8 +66,8 @@ class _AffineScalings1D:
     together in a single 1D tensor (in order).
     """
 
-    scalings: dict[VarName, _AffineScaling]
-    slices: dict[VarName, slice] = field(init=False, repr=False, compare=False)
+    scalings: dict[VariableName, _AffineScaling]
+    slices: dict[VariableName, slice] = field(init=False, repr=False, compare=False)
     length: int = field(init=False, repr=False, compare=False)
 
     def __post_init__(self):
@@ -80,7 +86,7 @@ class _AffineScalings1D:
     def __len__(self) -> int:
         return self.length
 
-    def stack(self, x: dict[VarName, torch.Tensor]) -> torch.Tensor:
+    def stack(self, x: dict[VariableName, torch.Tensor]) -> torch.Tensor:
         """
         Stack the provided mapping in a multidimensional numpy array.
 
@@ -96,7 +102,7 @@ class _AffineScalings1D:
         """
         return torch.cat([x[n].float() for n, _ in self.scalings.items()])
 
-    def unstack(self, x: torch.Tensor) -> dict[VarName, torch.Tensor]:
+    def unstack(self, x: torch.Tensor) -> dict[VariableName, torch.Tensor]:
         """ "
         Unstack the provided concatenated array.
 
@@ -112,7 +118,7 @@ class _AffineScalings1D:
         """
         return {n: x[None, self.slices[n]].float() for n, _ in self.scalings.items()}
 
-    def unscaling(self, x: np.ndarray) -> dict[VarName, torch.Tensor]:
+    def unscaling(self, x: np.ndarray) -> dict[VariableName, torch.Tensor]:
         """
         Unstack the concatenated array and unscale
         each element to bring it back to its natural scale.
@@ -136,14 +142,14 @@ class _AffineScalings1D:
         )
         return self.unstack(x_unscaled)
 
-    def scaling(self, x: dict[VarName, torch.Tensor]) -> np.ndarray:
+    def scaling(self, x: dict[VariableName, torch.Tensor]) -> np.ndarray:
         """
         Scale and concatenate provided mapping of values
         from their natural scale to the defined scale.
 
         Parameters
         ----------
-        x : Dict[VarName, torch.Tensor]
+        x : :obj:`dict`[VarName, torch.Tensor]
             The mapping to unscale.
 
         Return
@@ -185,37 +191,39 @@ class _AffineScalings1D:
 class ScipyMinimize(AbstractPersonalizeAlgo):
     """
     Gradient descent based algorithm to compute individual parameters,
-    `i.e.` personalize a model to a given set of subjects.
+    `i.e.` personalizing a model for a given set of subjects.
 
     Parameters
     ----------
     settings : :class:`.AlgorithmSettings`
-        Settings of the algorithm.
-        In particular the parameter `custom_scipy_minimize_params` may contain
-        keyword arguments passed to :func:`scipy.optimize.minimize`.
+        Settings for the algorithm, including the `custom_scipy_minimize_params`
+        parameter, which contains keyword arguments passed to
+        :func:`scipy.optimize.minimize`.
 
     Attributes
     ----------
-    scipy_minimize_params : dict
-        Keyword arguments to be passed to :func:`scipy.optimize.minimize`.
-        A default setting depending on whether using jacobian or not is applied
-        (cf. `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN`
-         and `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
-        You may customize it by setting the `custom_scipy_minimize_params` algorithm parameter.
+    scipy_minimize_params : :obj:`dict`
+        Keyword arguments for :func:`scipy.optimize.minimize`, with default values
+        depending on the usage of a jacobian (cf.
+        `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN` and
+        `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
+        Customization is possible via the `custom_scipy_minimize_params` in
+        :class:`.AlgorithmSettings`.
 
-    format_convergence_issues : str
-        Formatting of convergence issues.
-        It should be a formattable string using any of those variables:
-           * patient_id: str
-           * optimization_result_pformat: str
-           * (optimization_result_obj: dict-like)
-        cf. `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES` for the default format.
-        You may customize it by setting the `custom_format_convergence_issues` algorithm parameter.
+    format_convergence_issues : :obj:`str`
+       A format string for displaying convergence issues, which can use the
+        following variables:
+            - `patient_id`: :obj:`str`
+            - `optimization_result_pformat`: :obj:`str`
+            - `optimization_result_obj`: dict-like
+        The default format is defined in
+        `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES`, but it can be
+        customized via the `custom_format_convergence_issues` parameter.
 
-    logger : None or callable str -> None
+    logger : None or callable :obj:`str` -> None
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
-        By default we print the convergences issues if and only if we do not use BFGS optimization method.
-        You can customize it at initialization by defining a `logger` attribute to your `AlgorithmSettings` instance.
+        By default, convergence issues are printed only if the BFGS optimization method is not used.
+        This can  be customized by setting the `logger` attribute in :class:`.AlgorithmSettings`.
     """
 
     name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE
@@ -307,7 +315,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         model : :class:`.AbstractModel`
             Model used to compute the group average parameters.
 
-        individual_parameters : dict[str, :class:`torch.Tensor` [n_ind,n_dims_param]]
+        individual_parameters : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [n_ind,n_dims_param]]
             Individual parameters as a dict
 
         Returns
@@ -316,7 +324,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             Regularity of the patient(s) corresponding to the given individual parameters.
             (Sum on all parameters)
 
-        regularity_grads : dict[param_name: str, :class:`torch.Tensor` [n_individuals, n_dims_param]]
+        regularity_grads : :obj:`dict`[param_name: :obj:`str`, :class:`torch.Tensor` [n_individuals, n_dims_param]]
             Gradient of regularity term with respect to individual parameters.
         """
         d_regularity, d_regularity_grads = (
@@ -335,7 +343,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         Parameters
         ----------
         x : numpy.ndarray
-            Individual **standardized** parameters
+            Individual standardized parameters
             At initialization x is full of zeros (mode of priors, scaled by std-dev)
         state : :class:`.State`
             The cloned model state that is dedicated to the current individual.
@@ -345,7 +353,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         Returns
         -------
-        objective : float
+        objective : :obj:`float`
             Value of the loss function (negative log-likelihood).
         """
 
@@ -365,7 +373,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         Parameters
         ----------
         x : numpy.ndarray
-            Individual **standardized** parameters
+            Individual standardized parameters
             At initialization x is full of zeros (mode of priors, scaled by std-dev)
         state : :class:`.State`
             The cloned model state that is dedicated to the current individual.
@@ -376,7 +384,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         Returns
         -------
         2-tuple (as expected by :func:`scipy.optimize.minimize` when ``jac=True``)
-            * objective : float
+            * objective : :obj:`float`
             * gradient : array-like[float] with same length as `x` (= all dimensions of individual latent variables, concatenated)
         """
         raise NotImplementedError("TODO...")
@@ -441,14 +449,14 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             In particular, data variables for the current individual are already loaded into it.
         scaling : _AffineScalings1D
             The scaling to be used for individual latent variables.
-        with_jac : bool
+        with_jac : :obj:`bool`
             Should we speed-up the minimization by sending exact gradient of optimized function?
-        patient_id : str
+        patient_id : :obj:`str`
             ID of patient (essentially here for logging purposes when no convergence)
 
         Returns
         -------
-        pyt_individual_params : dict[str, :class:`torch.Tensor` [1,n_dims_param]]
+        pyt_individual_params : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [1,n_dims_param]]
             Individual parameters as a dict of tensors.
         reconstruction_loss : :class:`torch.Tensor`
             Model canonical loss (content & shape depend on noise model).
@@ -511,9 +519,10 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             The scaling to be used for individual latent variables.
         progress : tuple[int >= 0, int > 0]
             Current progress in loop (n, out-of-N).
-        with_jac : bool
+        with_jac : :obj:`bool`
             Should we speed-up the minimization by sending exact gradient of optimized function?
-        patient_id : str
+            Should we speed-up the minimization by sending exact gradient of optimized function?
+        patient_id : :obj:`str`
             ID of patient (essentially here for logging purposes when no convergence)
 
         Returns

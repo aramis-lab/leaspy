@@ -13,7 +13,6 @@ from leaspy import __version__
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import (
-    Dict,
     DictParams,
     DictParamsTorch,
     FeatureType,
@@ -39,9 +38,8 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     SuffStatsRO,
     SuffStatsRW,
-    VariablesValuesRO,
-    VarName,
-    VarValue,
+    VariableName,
+    VariableNameToValueMapping,
 )
 from leaspy.variables.state import State, StateForkType
 
@@ -103,7 +101,7 @@ class AbstractModel(BaseModel):
         # state: Optional[State] = None,
         # TODO? Factory of `ObservationModel` instead? (typically one would need the dimension to instantiate the `noise_std` variable of the right shape...)
         obs_models: Union[ObservationModel, Iterable[ObservationModel]],
-        fit_metrics: Optional[Dict[str, float]] = None,
+        fit_metrics: Optional[dict[str, float]] = None,
         **kwargs,
     ):
         super().__init__(name, **kwargs)
@@ -176,30 +174,30 @@ class AbstractModel(BaseModel):
         return self.state.dag
 
     @property
-    def hyperparameters_names(self) -> Tuple[VarName, ...]:
+    def hyperparameters_names(self) -> tuple[VariableName, ...]:
         return tuple(self.dag.sorted_variables_by_type[Hyperparameter])
 
     @property
-    def parameters_names(self) -> Tuple[VarName, ...]:
+    def parameters_names(self) -> tuple[VariableName, ...]:
         return tuple(self.dag.sorted_variables_by_type[ModelParameter])
 
     @property
-    def population_variables_names(self) -> Tuple[VarName, ...]:
+    def population_variables_names(self) -> tuple[VariableName, ...]:
         return tuple(self.dag.sorted_variables_by_type[PopulationLatentVariable])
 
     @property
-    def individual_variables_names(self) -> Tuple[VarName, ...]:
+    def individual_variables_names(self) -> tuple[VariableName, ...]:
         return tuple(self.dag.sorted_variables_by_type[IndividualLatentVariable])
 
     @property
     def parameters(self) -> DictParamsTorch:
         """Dictionary of values for model parameters."""
-        return {
-            p: self._state[p]
-            # TODO: a separated method for hyperparameters?
-            # include hyperparameters as well for now to micmic old behavior
-            for p in self.hyperparameters_names + self.parameters_names
-        }
+        return {p: self._state[p] for p in self.parameters_names}
+
+    @property
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        return {p: self._state[p] for p in self.hyperparameters_names}
 
     @abstractmethod
     def to_dict(self) -> KwargsType:
@@ -220,6 +218,9 @@ class AbstractModel(BaseModel):
                 obs_model.name: obs_model.to_string() for obs_model in self.obs_models
             },
             # 'obs_models': export_obs_models(self.obs_models),
+            "hyperparameters": {
+                k: tensor_to_list(v) for k, v in (self.hyperparameters or {}).items()
+            },
             "parameters": {
                 k: tensor_to_list(v) for k, v in (self.parameters or {}).items()
             },
@@ -1104,7 +1105,7 @@ class AbstractModel(BaseModel):
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariableNameToValueMapping:
         """Compute initial values for model parameters."""
 
     def move_to_device(self, device: torch.device) -> None:
