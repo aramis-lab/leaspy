@@ -191,17 +191,21 @@ class FitOutputManager:
         # To plot related parameters close to each other, we sort the list
         files_to_plot.sort()
 
-        n_plots = len(files_to_plot)
-        n_rows = math.ceil(n_plots / 2)
-
         # If plot sourcewise is true, new sourcewise csv files will be created
+
         if self.plot_sourcewise:
-            files_to_plot = self._update_files_sourcewise(
-                files_to_plot, params_with_sources, model.source_dimension
+            files_to_plot = [
+                file
+                for file in files_to_plot
+                if not any(file.name.startswith(param) for param in params_with_sources)
+            ]
+            files_to_plot.extend(
+                self._compute_files_sourcewise(
+                    params_with_sources, model.source_dimension
+                )
             )
 
         n_plots = len(files_to_plot)
-        n_rows = math.ceil(n_plots / 2)
         with PdfPages(self.path_plot_convergence_model_parameters) as pdf:
             for page in range(0, n_plots, 6):
                 # 6 plots per page
@@ -351,17 +355,31 @@ class FitOutputManager:
         self, parameter_name: str
     ) -> tuple[Optional[str], Optional[int]]:
         """
-        Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
+         Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
 
-        Parameters
-        ----------
-        parameter_name : :obj:`str`
-            The name of the parameter to extract information from.
+         Parameters
+         ----------
+         parameter_name : :obj:`str`
+             The name of the parameter to extract information from.
 
-        Returns
-        -------
-        tuple[Optional[:obj:`str`], Optional[:obj:`int`]]
-            A tuple where the first element is the parameter name and the second is its index (if applicable).
+         Returns
+         -------
+         tuple[Optional[:obj:`str`], Optional[:obj:`int`]]
+             A tuple where the first element is the parameter name and the second is its index (if applicable).
+
+         Examples
+         --------
+
+         >>> _extract_parameter_name_and_index("mixing_matrix_10")
+        ('mixing_matrix', 10)
+         >>> _extract_parameter_name_and_index("mixing_matrix_1")
+         ('mixing_matrix', 1)
+         >>> _extract_parameter_name_and_index("mixing_matrix_")
+         ('mixing_matrix_', None)
+         >>> _extract_parameter_name_and_index("mixing_matrix_10_foo")
+        ('mixing_matrix_10_foo', None)
+        >>> _extract_parameter_name_and_index("v0")
+        ('v0', None)
         """
         if parameter_name == "v0":
             return parameter_name, None
@@ -371,7 +389,14 @@ class FitOutputManager:
         else:
             return parameter_name, None
 
-    def _set_title_for_parameter(self, ax, i, parameter_name: str, model, index):
+    def _set_title_for_parameter(
+        self,
+        ax: plt.Axes,
+        i: int,
+        parameter_name: str,
+        model: AbstractModel,
+        index: int,
+    ) -> plt.Axes:
         """
         Set the title for the plot based on the parameter name and the model's features or other information.
 
@@ -411,14 +436,14 @@ class FitOutputManager:
 
     def _set_legend_for_parameters(
         self,
-        ax,
-        i,
-        parameter_name,
-        params_with_feature_labels,
-        params_with_sources,
-        params_with_events,
-        model,
-    ):
+        ax: plt.Axes,
+        i: int,
+        parameter_name: str,
+        params_with_feature_labels: Iterable[str],
+        params_with_sources: Iterable[str],
+        params_with_events: Iterable[str],
+        model: AbstractModel,
+    ) -> plt.Axes:
         """
         Set the legend for the plot based on the parameter name and the model's features, sources, or events.
 
@@ -462,17 +487,14 @@ class FitOutputManager:
                 ax[i].legend(events, loc="best")
         return ax
 
-    def _update_files_sourcewise(self, files_to_plot, params_with_sources, num_sources):
+    def _compute_files_sourcewise(
+        self, params_with_sources: Iterable[str], num_sources: int
+    ) -> list[Path]:
         """
-        Update the list of files by creating sourcewise files based on the parameters with sources.
-
-        This function processes parameters that have sources and generates new CSV files for each source.
-        These new files are added to the list of files to plot.
+        This function processes parameters that have sources and generates new csv files for each source.
 
         Parameters
         ----------
-        files_to_plot : list[Path]
-            The initial list of files to plot.
         params_with_sources : list[:obj:`str`]
             A list of parameters that have associated source data.
         num_sources : :obj:`int`
@@ -481,7 +503,7 @@ class FitOutputManager:
         Returns
         -------
         list[Path]
-            The updated list of files to plot, including the newly created sourcewise files.
+            The list of newly created sourcewise files.
         """
         new_files = []
         for param_name in params_with_sources:
@@ -491,26 +513,61 @@ class FitOutputManager:
             related_files.sort()
 
             for source_idx in range(num_sources):
-                combined_data = []
-
-                for file_path in related_files:
-                    df = pd.read_csv(file_path, index_col=0, header=None)
-
-                    combined_data.append(df.iloc[:, source_idx])
-
-                combined_df = pd.concat(combined_data, axis=1, join="inner")
-                new_file_name = f"sourcewise_{param_name}_{source_idx + 1}.csv"
-                combined_df.to_csv(
-                    self.path_save_model_parameters_convergence / new_file_name,
-                    header=False,
-                )
                 new_files.append(
-                    self.path_save_model_parameters_convergence / new_file_name
+                    self._concatenate_and_save_sourcewise_parameters(
+                        param_name, related_files, source_idx
+                    )
                 )
-        files_to_plot = [
-            file
-            for file in files_to_plot
-            if not any(file.name.startswith(param) for param in params_with_sources)
-        ]
-        files_to_plot.extend(new_files)
-        return files_to_plot
+        return new_files
+
+    def _concatenate_and_save_sourcewise_parameters(
+        self, parameter_name: str, files: Iterable[Path], source_idx: int
+    ) -> Path:
+        """
+        Concatenates data for the specific source and saves it as a csv file.
+
+        Parameters
+        ----------
+        parameter_name : :obj:`str`
+              A sourcewise parameter
+        files : Iterable[Path]
+              A list of file paths containing sourcewise parameter
+        source_idx : :obj:`int`
+              The index of the source
+        Returns
+        -------
+        Path
+            The path to the saved csv file containing data for the specified source
+        """
+        df = self._concatenate_parameters(files, source_idx)
+        file_name = f"sourcewise_{parameter_name}_{source_idx + 1}.csv"
+        file_path = self.path_save_model_parameters_convergence / file_name
+        df.to_csv(file_path, header=False)
+        return file_path
+
+    def _concatenate_parameters(
+        self, files: Iterable[Path], source_idx: int
+    ) -> pd.DataFrame:
+        """
+        Extracts and concatenates a specific column from multiple csv files into a single DataFrame
+
+        Parameters
+        ----------
+        files : Iterable[Path]
+            A list of file paths
+        source_idx : :obj: `int`
+            The index of the source
+
+        Returns
+        -------
+        :obj: `pd.DataFrame`
+            A DataFrame with each column representing the selected source's data from multiple files
+        """
+        return pd.concat(
+            [
+                pd.read_csv(file_path, index_col=0, header=None).iloc[:, source_idx]
+                for file_path in files
+            ],
+            axis=1,
+            join="inner",
+        )
