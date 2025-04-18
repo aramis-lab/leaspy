@@ -11,8 +11,8 @@ In this article, Einsein {cite}`einstein1905`.
 ### Disease progression represented as trajectory
 As presented in the figure the model draws a parallel between a clinical and a Riemannian point of view of the disease progression. The idea is to see the variability of the disease progression as a Riemannian manifold where the longitudinal observations $$y_{i,j,k}$$  are aligned in an individual trajectory $$\gamma_i$$ that traverses the manifold. 
 
+![intuition](./_static/images/intuition.png)
 
-![intuition](./_static/images/intuition.pdf)
 
 __From clinical to Riemannian point of view__
 _On the left, the progression of four clinical outcomes for one patient is represented depending on the age of the patient. The graph displays the individual progression of one patient on a grid detailing the typical progression of the disease, as it is done in health diaries for BMI curves. This represents how a clinician is used to see the progression of the patient. On the right, the same patient progression is represented but this time in a disease space (manifold) built thanks to the knowledge extracted from the four clinical outcomes. This represents the Riemannian point of view of the progression of the patient._
@@ -29,7 +29,7 @@ To separate an average disease progression from the individual progression, a mi
 From there, the individual trajectory $$\gamma_i(t)$$ could be defined. First, a temporal variation is enable with varying degrees of individual earliness $\tau_i$ and speed $$e^{\xi_i}$$, using a latent disease age $$\psi_i(t)$$. In terms of initial definition, these variations could be seen as ($$t_0 + \tau_i, p, v_0e^{\xi_i}$$). Subsequently, variation in terms of disease presentation, which corresponds to modifying the order of degradation of the various outcomes, is allowed. From a Riemannian point of view, the trajectory is spatially adjusted playing on the initial position $p$. It is done thanks to a vector in the tangent space of the trajectory that modified the trajectory in the sense of the Exp-parallelisation. All these individual parameters are further described in section [TODO?]
 
 
-![intuition](./_static/images/pop_to_ind.pdf)
+![intuition](./_static/images/pop_to_ind.png)
 __Temporal and spatial random effects: from population to individual progression (adapted from \cite{koval_ad_2021})__
 _This figure presents from two points of view (clinical and Riemannian) how the three types of random effects (two temporal and one spatial) enable to modify the population average progression to calibrate the patient observations. Clinical: Two normalised clinical scores (blue and orange) (0: the healthiest value, +1: the maximum pathological change) depending on the age of the patients The scatter represents the real observed values for one patient at different visits. Riemannian: The same two normalised scores are represented but this time depending on each other. The scatter represents the same real observed values as in the clinical version. The black cross on the curve corresponds to what is modelled at the visit ages of the patient._
 - Population progression (1.a., 1.b.): Population average trajectory compared to the observed values of the patient. 
