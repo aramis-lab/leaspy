@@ -44,7 +44,7 @@ class OutputsSettings:
                 Note that you can not plot convergence data without saving data (and not more frequently than these saves!)
             * plot_sourcewise : bool
                 Flag to plot source based multidimensional parameters such as mixing_matrix for each source.
-                Otherwise they will be plotted accroding to the other dimension such as feature.
+                Otherwise they will be plotted according to the other dimension such as feature.
                 Default=False
             * overwrite_logs_folder : bool
                 Flag to remove all previous logs if existing (default False)
@@ -530,7 +530,7 @@ class AlgorithmSettings:
                     * it should be a multiple of save_periodicity
                     * setting a too low value (frequent) we seriously slow down you fit
             * plot_sourcewise : bool, optional, default False
-                To plot source based parameters sourcewise
+                Set this to True to plot the source-based parameters sourcewise.
             * overwrite_logs_folder: bool, optional, default False
                 Set it to ``True`` to overwrite the content of the folder in ``path``.
             * nb_of_patients_to_plot: int, optional default 5

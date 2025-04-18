@@ -329,8 +329,6 @@ class FitOutputManager:
 
     def _get_files_related_to_parameters(self, parameters: Iterable[str]) -> list[Path]:
         """
-        Helper function for `save_plot_convergence_model_parameters`
-
         Retrieve the list of file paths related to the given parameters.
 
         Parameters
@@ -353,8 +351,6 @@ class FitOutputManager:
         self, parameter_name: str
     ) -> tuple[Optional[str], Optional[int]]:
         """
-        Helper function for `save_plot_convergence_model_parameters`
-
         Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
 
         Parameters
@@ -377,8 +373,6 @@ class FitOutputManager:
 
     def _set_title_for_parameter(self, ax, i, parameter_name: str, model, index):
         """
-        Helper function for `save_plot_convergence_model_parameters`
-
         Set the title for the plot based on the parameter name and the model's features or other information.
 
         Parameters
@@ -426,8 +420,6 @@ class FitOutputManager:
         model,
     ):
         """
-        Helper function for `save_plot_convergence_model_parameters`
-
         Set the legend for the plot based on the parameter name and the model's features, sources, or events.
 
         Parameters
@@ -472,8 +464,6 @@ class FitOutputManager:
 
     def _update_files_sourcewise(self, files_to_plot, params_with_sources, num_sources):
         """
-        Helper function for `save_plot_convergence_model_parameters`
-
         Update the list of files by creating sourcewise files based on the parameters with sources.
 
         This function processes parameters that have sources and generates new CSV files for each source.
