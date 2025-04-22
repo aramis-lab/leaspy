@@ -14,6 +14,15 @@
    - How to set specific options for different types of models.
    - Customizing parameters for logistic, joint, mixture, and covariate models.
 ## Personalize
+
+### Scipy minimize
+
+Prediction of random effects is estimated using the solver [_minimise_](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html) from the package Scipy (\cite{2020SciPy_NMeth}) to maximise the likelihood.
+
+### Posterior mode or mean
+
+
+
 ## Estimate
 ## Simulate
 
