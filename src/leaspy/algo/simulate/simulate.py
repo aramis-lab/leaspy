@@ -522,7 +522,7 @@ class SimulationAlgorithm(AbstractAlgo):
         This method simulates observations using estimate function of the Leaspy model. The latter estimates
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
-        If the visits time are too close to each other, we keep only the first occurence.
+        If the visits time are too close to each other, we keep only the first occurrence.
         By "too close", we mean if the visits happened on the same day.
 
         Parameters
