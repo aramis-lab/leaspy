@@ -67,12 +67,12 @@ class SimulateAlgoTest(LeaspyTestCase):
             ],
             visit_parameters={
                 "visit_type": "regular",
-                "pat_nb": 5,
+                "patient_number": 5,
                 "regular_visit": 1.0,
-                "fv_mean": 50.0,
-                "fv_std": 2.0,
-                "tf_mean": 10.0,
-                "tf_std": 1.0,
+                "first_visit_mean": 50.0,
+                "first_visit_std": 2.0,
+                "time_follow_up_mean": 10.0,
+                "time_follow_up_std": 1.0,
             },
         )
 
@@ -108,13 +108,13 @@ class SimulateAlgoTest(LeaspyTestCase):
             ],
             visit_parameters={
                 "visit_type": "random",
-                "pat_nb": 5,
-                "fv_mean": 50.0,
-                "fv_std": 2.0,
-                "tf_mean": 10.0,
-                "tf_std": 1.0,
-                "distv_mean": 1.0,
-                "distv_std": 0.2,
+                "patient_number": 5,
+                "first_visit_mean": 50.0,
+                "first_visit_std": 2.0,
+                "time_follow_up_mean": 10.0,
+                "time_follow_up_std": 1.0,
+                "distance_visit_mean": 1.0,
+                "distance_visit_std": 0.2,
             },
         )
         algo = algorithm_factory(settings)
@@ -132,7 +132,6 @@ class SimulateAlgoTest(LeaspyTestCase):
             self.assertGreater(np.std(diffs), 0)
 
     def test_dataframe_visits(self):
-        model_loaded = self.model_loaded
         df_input = pd.DataFrame({"ID": ["p1", "p1", "p2"], "TIME": [50.0, 51.0, 52.0]})
 
         settings = AlgorithmSettings(
@@ -154,7 +153,7 @@ class SimulateAlgoTest(LeaspyTestCase):
         )
 
         algo = algorithm_factory(settings)
-        df_sim = algo.run_impl(model_loaded.model)
+        df_sim = algo.run_impl(self.model_loaded.model)
         df_sim = df_sim.data.to_dataframe()
 
         # Check all input times are present

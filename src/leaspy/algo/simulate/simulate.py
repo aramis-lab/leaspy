@@ -30,21 +30,21 @@ class SimulationAlgorithm(AbstractAlgo):
             ("df_visits", pd.DataFrame),
         ],
         "regular": [
-            ("pat_nb", int),
+            ("patient_number", int),
             ("regular_visit", (int, float)),
-            ("fv_mean", (int, float)),
-            ("fv_std", (int, float)),
-            ("tf_mean", (int, float)),
-            ("tf_std", (int, float)),
+            ("first_visit_mean", (int, float)),
+            ("first_visit_std", (int, float)),
+            ("time_follow_up_mean", (int, float)),
+            ("time_follow_up_std", (int, float)),
         ],
         "random": [
-            ("pat_nb", int),
-            ("fv_mean", (int, float)),
-            ("fv_std", (int, float)),
-            ("tf_mean", (int, float)),
-            ("tf_std", (int, float)),
-            ("distv_mean", (int, float)),
-            ("distv_std", (int, float)),
+            ("patient_number", int),
+            ("first_visit_mean", (int, float)),
+            ("first_visit_std", (int, float)),
+            ("time_follow_up_mean", (int, float)),
+            ("time_follow_up_std", (int, float)),
+            ("distance_visit_mean", (int, float)),
+            ("distance_visit_std", (int, float)),
         ],
     }
 
@@ -55,7 +55,6 @@ class SimulationAlgorithm(AbstractAlgo):
         self._set_param_study(settings.parameters["visit_parameters"])
         self._validate_algo_parameters()
 
-    ## --- CHECKS ---
     def _check_visit_type(self):
         """Check if the visit type is valid.
         This method checks if the visit type is a string and if it corresponds to one of the
@@ -77,7 +76,7 @@ class SimulationAlgorithm(AbstractAlgo):
             raise LeaspyAlgoInputError(
                 f"Invalid visit type : '{self.visit_type}'. "
                 f"Authorized typz : {', '.join(allowed_types)}"
-            ) from e
+            )
 
     def _check_features(self):
         """Check if the features are valid.
@@ -95,7 +94,7 @@ class SimulationAlgorithm(AbstractAlgo):
                 f"Features need to a be a list and not : {type(self.features).__name__}"
             )
         if len(self.features) == 0:
-            raise LeaspyAlgoInputError("List can't be empty")
+            raise LeaspyAlgoInputError("Features can't be empty")
 
         for i, feature in enumerate(self.features):
             if not isinstance(feature, str):
@@ -141,9 +140,9 @@ class SimulationAlgorithm(AbstractAlgo):
                 type_errors.append(
                     f"Parameter '{param}': Expected type {type_names}, given {type(value).__name__}"
                 )
-            if param == "pat_nb" and value <= 0:
+            if param == "patient_number" and value <= 0:
                 value_errors.append(
-                    "Patient number (pat_nb) need to be a positive integer"
+                    "Patient number (patient_number) need to be a positive integer"
                 )
 
             if param.endswith("_std") and value < 0:
@@ -219,37 +218,37 @@ class SimulationAlgorithm(AbstractAlgo):
                 are given by a dataframe in dict_param.
 
             - If `visit_type` is "regular":
-                - 'pat_nb' : :obj:`int`
+                - 'patient_number' : :obj:`int`
                     Number of patients.
                 - 'regular_visit' : :obj:`int`
                     Time delta between each visits.
-                - 'fv_mean' : :obj:`float`
+                - 'first_visit_mean' : :obj:`float`
                     Mean of the first visit TIME.
-                - 'fv_std' : :obj:`float`
+                - 'first_visit_std' : :obj:`float`
                     Standard deviation of the first visit TIME.
-                - 'tf_mean' : :obj:`float`
+                - 'time_follow_up_mean' : :obj:`float`
                     Mean of the follow-up TIME.
-                - 'tf_std' : :obj:`float`
+                - 'time_follow_up_std' : :obj:`float`
                     Standard deviation of the follow-up TIME.
                 Visits are equally spaced for all patients, and the number of visits
                 deduced from first visit and follow-up time.
 
             - If `visit_type` is "random":
-                - 'pat_nb' : :obj:`int`
+                - 'patient_number' : :obj:`int`
                     Number of patients.
-                - 'fv_mean' : :obj:`float`
+                - 'first_visit_mean' : :obj:`float`
                     Mean of the first visit TIME.
-                - 'fv_std' : :obj:`float`
+                - 'first_visit_std' : :obj:`float`
                     Standard deviation of the first visit TIME.
-                - 'tf_mean' : :obj:`float`
+                - 'time_follow_up_mean' : :obj:`float`
                     Mean of the follow-up TIME.
-                - 'tf_std' : :obj:`float`
+                - 'time_follow_up_std' : :obj:`float`
                     Standard deviation of the follow-up TIME.
-                - 'distv_mean' : :obj:`float`
+                - 'distance_visit_mean' : :obj:`float`
                     Mean of distance_visits: mean time delta between two visits.
-                - 'distv_std' : :obj:`float`
+                - 'distance_visit_std' : :obj:`float`
                     Standard deviation of distance_visits: std time delta between two visits.
-                Time delta between 2 visits is drawn in a normal distribution N(distv_mean, distv_std).
+                Time delta between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std).
 
         Returns
         -------
@@ -258,35 +257,34 @@ class SimulationAlgorithm(AbstractAlgo):
         """
 
         if self.visit_type == "dataframe":
-            pat_nb = dict_param["df_visits"].groupby("ID").size().shape[0]
+            patient_number = dict_param["df_visits"].groupby("ID").size().shape[0]
 
             self.param_study = {
-                "pat_nb": pat_nb,
+                "patient_number": patient_number,
                 "df_visits": dict_param["df_visits"],
             }
 
         elif self.visit_type == "regular":
             self.param_study = {
-                "pat_nb": dict_param["pat_nb"],
+                "patient_number": dict_param["patient_number"],
                 "regular_visit": dict_param["regular_visit"],
-                "fv_mean": dict_param["fv_mean"],
-                "fv_std": dict_param["fv_std"],
-                "tf_mean": dict_param["tf_mean"],
-                "tf_std": dict_param["tf_std"],
+                "first_visit_mean": dict_param["first_visit_mean"],
+                "first_visit_std": dict_param["first_visit_std"],
+                "time_follow_up_mean": dict_param["time_follow_up_mean"],
+                "time_follow_up_std": dict_param["time_follow_up_std"],
             }
 
         elif self.visit_type == "random":
             self.param_study = {
-                "pat_nb": dict_param["pat_nb"],
-                "fv_mean": dict_param["fv_mean"],
-                "fv_std": dict_param["fv_std"],
-                "tf_mean": dict_param["tf_mean"],
-                "tf_std": dict_param["tf_std"],
-                "distv_mean": dict_param["distv_mean"],
-                "distv_std": dict_param["distv_std"],
+                "patient_number": dict_param["patient_number"],
+                "first_visit_mean": dict_param["first_visit_mean"],
+                "first_visit_std": dict_param["first_visit_std"],
+                "time_follow_up_mean": dict_param["time_follow_up_mean"],
+                "time_follow_up_std": dict_param["time_follow_up_std"],
+                "distance_visit_mean": dict_param["distance_visit_mean"],
+                "distance_visit_std": dict_param["distance_visit_std"],
             }
 
-    ## ---- SIMULATE ---
     def run_impl(self, model) -> Result:
         """Run the simulation pipeline using a leaspy model.
 
@@ -314,9 +312,6 @@ class SimulationAlgorithm(AbstractAlgo):
             - `noise_std`: Noise standard deviation used in the simulation.
         """
 
-        # if seed is not None:
-        #     np.random.seed(seed)
-
         # Simulate RE for RM
         df_ip_rm = self._get_ip_rm(model)
 
@@ -337,7 +332,6 @@ class SimulationAlgorithm(AbstractAlgo):
         )
         return result_obj
 
-    ## ---- IP ---
     def _get_ip_rm(self, model) -> pd.DataFrame:
         """
         Generate individual parameters for repeated measures simulation, from the model initial parameters.
@@ -366,7 +360,7 @@ class SimulationAlgorithm(AbstractAlgo):
             np.random.normal(
                 model.hyperparameters["xi_mean"],
                 model.parameters["xi_std"],
-                self.param_study["pat_nb"],
+                self.param_study["patient_number"],
             )
         )
 
@@ -374,7 +368,7 @@ class SimulationAlgorithm(AbstractAlgo):
             np.random.normal(
                 model.parameters["tau_mean"],
                 model.parameters["tau_std"],
-                self.param_study["pat_nb"],
+                self.param_study["patient_number"],
             )
         )
 
@@ -389,13 +383,13 @@ class SimulationAlgorithm(AbstractAlgo):
             df_ip_rm = pd.DataFrame(
                 [xi_rm, tau_rm],
                 index=["xi", "tau"],
-                columns=[str(i) for i in range(0, self.param_study["pat_nb"])],
+                columns=[str(i) for i in range(0, self.param_study["patient_number"])],
             ).T
 
         # Generate the source tensors
         for i in range(model.source_dimension):
             df_ip_rm[f"sources_{i}"] = torch.tensor(
-                np.random.normal(0.0, 1.0, self.param_study["pat_nb"]),
+                np.random.normal(0.0, 1.0, self.param_study["patient_number"]),
                 dtype=torch.float32,
             )
             df_ip_rm[f"sources_{i}"] = (
@@ -421,7 +415,6 @@ class SimulationAlgorithm(AbstractAlgo):
 
         return pd.concat([df_ip_rm, df_wn], axis=1)
 
-    # ---- MODEL ---
     def _get_leaspy_model(self, model) -> None:
         """
         Initialize and store a Leaspy model instance.
@@ -443,7 +436,6 @@ class SimulationAlgorithm(AbstractAlgo):
         self.leaspy = Leaspy("logistic", source_dimension=model.source_dimension)
         self.leaspy.model = model
 
-    ## ---- RM ---
     def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
         """
         Generate visit ages for each individual based on the visit type.
@@ -483,18 +475,18 @@ class SimulationAlgorithm(AbstractAlgo):
                 df_ind["tau"].apply(lambda x: x.numpy())
                 + pd.DataFrame(
                     np.random.normal(
-                        self.param_study["fv_mean"],
-                        self.param_study["fv_std"],
-                        self.param_study["pat_nb"],
+                        self.param_study["first_visit_mean"],
+                        self.param_study["first_visit_std"],
+                        self.param_study["patient_number"],
                     ),
                     index=df_ind.index,
                 )[0]
             )
 
             df_ind["AGE_FOLLOW_UP"] = df_ind["AGE_AT_BASELINE"] + np.random.normal(
-                self.param_study["tf_mean"],
-                self.param_study["tf_std"],
-                self.param_study["pat_nb"],
+                self.param_study["time_follow_up_mean"],
+                self.param_study["time_follow_up_std"],
+                self.param_study["patient_number"],
             )
 
             # Generate visit ages for each patients
@@ -511,8 +503,8 @@ class SimulationAlgorithm(AbstractAlgo):
 
                     if self.visit_type == "random":
                         time += np.random.normal(
-                            self.param_study["distv_mean"],
-                            self.param_study["distv_std"],
+                            self.param_study["distance_visit_mean"],
+                            self.param_study["distance_visit_std"],
                         )
 
                     age_visits.append(time)
@@ -530,7 +522,8 @@ class SimulationAlgorithm(AbstractAlgo):
         This method simulates observations using estimate function of the Leaspy model. The latter estimates
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
-        Visits too close are dropped.
+        If the visits time are too close to each other, we keep only the first occurence.
+        By "too close", we mean if the visits happened on the same day.
 
         Parameters
         ----------
@@ -550,7 +543,7 @@ class SimulationAlgorithm(AbstractAlgo):
         pd.DataFrame
             A DataFrame containing the simulated dataset with ["ID","TIME] as the index
             and features as columns. The dataset includes both the generated values,
-            with visits that are too close to each other dropped.
+            with visits that are too close to each other removed.
         """
         values = self.leaspy.estimate(
             dict_timepoints,
