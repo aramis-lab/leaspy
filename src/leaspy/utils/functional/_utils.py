@@ -35,6 +35,20 @@ def _identity(x: S) -> S:
     return x
 
 
+def _affine(
+    coeffs: Tuple[torch.Tensor, torch.Tensor],
+    x: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Affine transformation from (slope, intercept) and input x:
+    y = slope * x + intercept
+
+    Supports broadcasting.
+    """
+    slope, intercept = coeffs
+    return slope * x + intercept
+
+
 def get_named_parameters(f: Callable) -> Tuple[str, ...]:
     """
     Get the names of parameters of the input function `f`, which should be

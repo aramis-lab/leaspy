@@ -7,10 +7,11 @@ import torch
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, MatMul, Sum
+from leaspy.utils.functional import Affine, Exp, MatMul
 from leaspy.utils.typing import KwargsType
 from leaspy.variables.distributions import Normal, NormalCovariateLinear
 from leaspy.variables.specs import (
+    DataVariable,
     Hyperparameter,
     IndividualLatentVariable,
     LinkedVariable,
@@ -115,6 +116,8 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
         d = super().get_variables_specs()
 
         d.update(
+            # INPUTS
+            covariate=DataVariable(),
             # PRIORS
             phi_tau_mean=ModelParameter.for_ind_mean(("phi_tau"), shape=(2,)),
             phi_tau_std=Hyperparameter((0.001, 0.01)),
@@ -130,6 +133,7 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 )
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
+            tau=LinkedVariable(Affine("phi_tau", "covariate")),
             alpha=LinkedVariable(Exp("xi")),
         )
 
