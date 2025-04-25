@@ -90,6 +90,9 @@ def compute_correlation_from_sufficient_statistics(
     std_mod = phi_tau_std[0]
     std_ref = phi_tau_std[1]
 
-    rho = covariance / (std_mod * std_ref + 1e-8)  # add epsilon for stability
+    if std_mod == 0 or std_ref == 0:
+        raise ValueError(f"Standard deviation is zero for parameter {parameters_name}")
+
+    rho = covariance / (std_mod * std_ref)  # or add epsilon for stability :  + 1e-8
 
     return rho.unsqueeze(0)  # shape = (1,)
