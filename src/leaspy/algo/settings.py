@@ -42,6 +42,10 @@ class OutputsSettings:
                 Flag to plot convergence data every N iterations
                 If None, no plots will be saved.
                 Note that you can not plot convergence data without saving data (and not more frequently than these saves!)
+            * plot_sourcewise : bool
+                Flag to plot source based multidimensional parameters such as mixing_matrix for each source.
+                Otherwise they will be plotted according to the other dimension such as feature.
+                Default=False
             * overwrite_logs_folder : bool
                 Flag to remove all previous logs if existing (default False)
 
@@ -61,6 +65,7 @@ class OutputsSettings:
         self.print_periodicity = None
         self.plot_periodicity = None
         self.save_periodicity = 50
+        self.plot_sourcewise = False
         self.nb_of_patients_to_plot = 5
 
         self.root_path = None
@@ -71,6 +76,8 @@ class OutputsSettings:
         self._set_print_periodicity(settings)
         self._set_save_periodicity(settings)
         self._set_plot_periodicity(settings)
+        self._set_nb_of_patients_to_plot(settings)
+        self._set_plot_sourcewise(settings)
 
         # only create folders if the user want to save data or plots and provided a valid path!
         self._create_root_folder(settings)
@@ -96,6 +103,12 @@ class OutputsSettings:
 
         # Update the attribute of self in-place
         setattr(self, param, val)
+
+    def _set_plot_sourcewise(self, settings: dict):
+        setattr(self, "plot_sourcewise", settings["plot_sourcewise"])
+
+    def _set_nb_of_patients_to_plot(self, settings: dict):
+        self._set_param_as_int_or_ignore(settings, "nb_of_patients_to_plot")
 
     def _set_print_periodicity(self, settings: dict):
         self._set_param_as_int_or_ignore(settings, "print_periodicity")
@@ -516,6 +529,8 @@ class AlgorithmSettings:
                 Note that:
                     * it should be a multiple of save_periodicity
                     * setting a too low value (frequent) we seriously slow down you fit
+            * plot_sourcewise : bool, optional, default False
+                Set this to True to plot the source-based parameters sourcewise.
             * overwrite_logs_folder: bool, optional, default False
                 Set it to ``True`` to overwrite the content of the folder in ``path``.
             * nb_of_patients_to_plot: int, optional default 5
@@ -538,6 +553,7 @@ class AlgorithmSettings:
             "print_periodicity": None,
             "save_periodicity": 10,
             "plot_periodicity": 50,
+            "plot_sourcewise": False,
             "overwrite_logs_folder": False,
             "nb_of_patients_to_plot": 5,
         }
@@ -548,6 +564,7 @@ class AlgorithmSettings:
                 "plot_periodicity",
                 "save_periodicity",
                 "nb_of_patients_to_plot",
+                "plot_sourcewise",
             ):
                 if v is not None and not isinstance(v, int):
                     raise LeaspyAlgoInputError(

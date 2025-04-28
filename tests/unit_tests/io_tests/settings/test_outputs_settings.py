@@ -15,6 +15,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                 "save_periodicity": None,
                 "plot_periodicity": None,
                 "overwrite_logs_folder": False,
+                "plot_sourcewise": False,
             }
         )
 
@@ -65,6 +66,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                     "save_periodicity": 20,
                     "plot_periodicity": 40,
                     "overwrite_logs_folder": False,
+                    "plot_sourcewise": False,
                 }
             )
 
@@ -93,6 +95,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                     "save_periodicity": 23,
                     "plot_periodicity": 46,
                     "overwrite_logs_folder": False,
+                    "plot_sourcewise": False,
                 }
             )
 
@@ -122,6 +125,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                             "save_periodicity": None,
                             "plot_periodicity": None,
                             "overwrite_logs_folder": False,
+                            "plot_sourcewise": False,
                         }
                     )
                 self.assertIsNone(logs.print_periodicity)
