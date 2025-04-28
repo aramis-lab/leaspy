@@ -59,6 +59,12 @@ extensions = [
 # -- autoapi configuration ---------------------------------------------------
 # https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
 
+myst_enable_extensions = [
+    "amsmath",
+    "dollarmath",
+    "colon_fence",
+]
+
 autoapi_dirs = ["../src"]
 autoapi_root = "reference/api"
 autodoc_typehints = "description"
