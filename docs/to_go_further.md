@@ -15,6 +15,8 @@ __Many types of data:__ Different types of data have been analysed from clinical
 
 ### Used for different tasks
 
+__Describe the joint progression of multiple outcomes__ 
+
 __Describe disease heterogeneity:__ Post-hoc analysis of the individual variability to describe disease heterogeneity were conducted using a supervised approach for for Amyotrophic Lateral Sclerosis [REF Juliette] and Ataxy [REF Paul Emilien ?] as well as an unsupervised approaches for CADASIL [REF Sofia].
 
 __Improve clinical trials:__ The model has been shown useful to select patients for clinical trials in order to increase the sensibility of the trial [Paper Etienne]. [Paper Maylis & PE]
