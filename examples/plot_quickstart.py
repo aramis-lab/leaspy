@@ -17,6 +17,8 @@ print(alzheimer_df.head())
 from pathlib import Path
 
 print(Path.cwd())
+x = Path.cwd().parent / "_static"
+print([f for f in x.iterdir()])
 
 # %%
 # The data correspond to repeated visits (`TIME` index) of different participants (`ID` index).
@@ -50,7 +52,7 @@ model = LogisticMultivariateModel(name="test-model", source_dimension=2)
 from leaspy.algo import AlgorithmSettings, algorithm_factory
 
 fit_settings = AlgorithmSettings(
-    "mcmc_saem", seed=42, n_iter=800, progress_bar=False, save_periodicity=None
+    "mcmc_saem", seed=42, n_iter=100, progress_bar=False, save_periodicity=None
 )
 algorithm = algorithm_factory(fit_settings)
 model.initialize(dataset, fit_settings.model_initialization_method)
