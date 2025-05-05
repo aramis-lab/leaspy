@@ -54,7 +54,10 @@ extensions = [
     # 'pytsdtwdoc',
     # 'sphinx_gallery.gen_gallery',
     "myst_nb",
+    "sphinxcontrib.bibtex",
 ]
+
+bibtex_bibfiles = ["references.bib"]
 
 # -- autoapi configuration ---------------------------------------------------
 # https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
