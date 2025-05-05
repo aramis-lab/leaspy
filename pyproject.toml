@@ -61,6 +61,7 @@ sphinx_rtd_theme = "*"
 sphinx_theme = ">=1.0"
 sphinx-autoapi = "*"
 myst-nb = "*"
+sphinxcontrib-bibtex = "*"
 
 [tool.ruff]
 target-version = "py39"
