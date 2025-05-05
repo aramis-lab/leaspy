@@ -14,13 +14,16 @@ alzheimer_df = load_dataset("alzheimer-multivariate")
 print(alzheimer_df.columns)
 alzheimer_df = alzheimer_df[["MMSE", "RAVLT", "FAQ", "FDG PET"]]
 print(alzheimer_df.head())
+from pathlib import Path
+
+print(Path.cwd())
 
 # %%
 # The data correspond to repeated visits (`TIME` index) of different participants (`ID` index).
 # Each visit corresponds to the measurement of 4 different variables : the MMSE, the RAVLT, the FAQ and the FDG PET.
 # If plotted, the data would look like the following:
 #
-# .. image:: ../../_static/images/alzheimer-observations.png
+# .. image:: ../_static/images/alzheimer-observations.png
 #     :width: 400
 #     :alt: Alzeimer observations
 
