@@ -7,15 +7,17 @@ import pandas as pd
 import torch
 from scipy.stats import beta
 
+from leaspy.algo import AlgorithmSettings
 from leaspy.algo.base import AbstractAlgo, AlgorithmType
 from leaspy.api import Leaspy
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.data import Data
 from leaspy.io.outputs import IndividualParameters
 from leaspy.io.outputs.result import Result
+from leaspy.models import AbstractModel
 
 
-class VisitType(Enum):
+class VisitType(str, Enum):
     DATAFRAME = "dataframe"  # Dataframe of visits
     REGULAR = "regular"  # Regular spaced visits
     RANDOM = "random"  # Random spaced visits
@@ -48,35 +50,12 @@ class SimulationAlgorithm(AbstractAlgo):
         ],
     }
 
-    def __init__(self, settings):
+    def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
         self.features = settings.parameters["features"]
         self.visit_type = settings.parameters["visit_parameters"]["visit_type"]
         self._set_param_study(settings.parameters["visit_parameters"])
         self._validate_algo_parameters()
-
-    def _check_visit_type(self):
-        """Check if the visit type is valid.
-        This method checks if the visit type is a string and if it corresponds to one of the
-        allowed visit types defined in the VisitType enum.
-
-        Raises
-        ------
-        LeaspyAlgoInputError
-            If the visit type is not a string or if it does not match any of the allowed types.
-        """
-        if not isinstance(self.visit_type, str):
-            raise LeaspyAlgoInputError(
-                f"Visit type need to be a string and not : {type(self.visit_type).__name__}"
-            )
-        try:
-            VisitType(self.visit_type)
-        except ValueError as e:
-            allowed_types = [vt.value for vt in VisitType]
-            raise LeaspyAlgoInputError(
-                f"Invalid visit type : '{self.visit_type}'. "
-                f"Authorized typz : {', '.join(allowed_types)}"
-            )
 
     def _check_features(self):
         """Check if the features are valid.
@@ -170,7 +149,6 @@ class SimulationAlgorithm(AbstractAlgo):
             If the visit type is invalid, if the features are not a list of strings,
             or if the parameters do not meet the expected requirements.
         """
-        self._check_visit_type()
         self._check_features()
 
         requirements = self._PARAM_REQUIREMENTS.get(self.visit_type)
@@ -181,7 +159,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         self._check_params(requirements)
 
-        if self.visit_type == "dataframe":
+        if self.visit_type == VisitType.DATAFRAME:
             df = self.param_study["df_visits"]
             if "ID" not in df.columns or "TIME" not in df.columns:
                 raise LeaspyAlgoInputError(
@@ -190,6 +168,21 @@ class SimulationAlgorithm(AbstractAlgo):
 
             if df["TIME"].isnull().any():
                 raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
+
+        if self.visit_type == VisitType.RANDOM:
+            if (
+                self.param_study["distance_visit_mean"] <= 0
+                and self.param_study["distance_visit_std"] <= 0
+            ):
+                raise LeaspyAlgoInputError(
+                    "Distance visit mean (distance_visit_mean) and distance visit std need to be positive"
+                )
+
+        if self.visit_type == VisitType.REGULAR:
+            if self.param_study["regular_visit"] <= 0:
+                raise LeaspyAlgoInputError(
+                    "Regular visit (regular_visit) need to be positive "
+                )
 
     ## --- SET PARAMETERS ---
     # def _save_parameters(self, model, path_save):  # TODO
@@ -256,7 +249,7 @@ class SimulationAlgorithm(AbstractAlgo):
             This method updates the `param_study` attribute of the instance in-place.
         """
 
-        if self.visit_type == "dataframe":
+        if self.visit_type == VisitType.DATAFRAME:
             patient_number = dict_param["df_visits"].groupby("ID").size().shape[0]
 
             self.param_study = {
@@ -264,7 +257,7 @@ class SimulationAlgorithm(AbstractAlgo):
                 "df_visits": dict_param["df_visits"],
             }
 
-        elif self.visit_type == "regular":
+        elif self.visit_type == VisitType.REGULAR:
             self.param_study = {
                 "patient_number": dict_param["patient_number"],
                 "regular_visit": dict_param["regular_visit"],
@@ -274,7 +267,7 @@ class SimulationAlgorithm(AbstractAlgo):
                 "time_follow_up_std": dict_param["time_follow_up_std"],
             }
 
-        elif self.visit_type == "random":
+        elif self.visit_type == VisitType.RANDOM:
             self.param_study = {
                 "patient_number": dict_param["patient_number"],
                 "first_visit_mean": dict_param["first_visit_mean"],
@@ -285,7 +278,7 @@ class SimulationAlgorithm(AbstractAlgo):
                 "distance_visit_std": dict_param["distance_visit_std"],
             }
 
-    def run_impl(self, model) -> Result:
+    def run_impl(self, model: AbstractModel) -> Result:
         """Run the simulation pipeline using a leaspy model.
 
         This method simulates longitudinal data using the given leaspy model.
@@ -300,7 +293,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`Leaspy`
+        model : :class:~.models.abstract_model.AbstractModel
             A Leaspy model object previously trained on longitudinal data.
 
         Returns
@@ -313,26 +306,31 @@ class SimulationAlgorithm(AbstractAlgo):
         """
 
         # Simulate RE for RM
-        df_ip_rm = self._get_ip_rm(model)
+        individual_parameters_from_repeated_measurements = (
+            self._get_individual_parameters_from_repeated_measurement(model)
+        )
 
-        # Get Leaspy model
         self._get_leaspy_model(model)
 
-        # Generate visits ages
-        dict_timepoints = self._generate_visit_ages(df_ip_rm)
+        dict_timepoints = self._generate_visit_ages(
+            individual_parameters_from_repeated_measurements
+        )
 
-        # Get all visits observations
-        df_sim = self._generate_dataset(model, dict_timepoints, df_ip_rm)
+        df_sim = self._generate_dataset(
+            model, dict_timepoints, individual_parameters_from_repeated_measurements
+        )
 
         simulated_data = Data.from_dataframe(df_sim)
         result_obj = Result(
             data=simulated_data,
-            individual_parameters=df_ip_rm,
+            individual_parameters=individual_parameters_from_repeated_measurements,
             noise_std=model.parameters["noise_std"].numpy() * 100,
         )
         return result_obj
 
-    def _get_ip_rm(self, model) -> pd.DataFrame:
+    def _get_individual_parameters_from_repeated_measurement(
+        self, model: AbstractModel
+    ) -> pd.DataFrame:
         """
         Generate individual parameters for repeated measures simulation, from the model initial parameters.
 
@@ -343,7 +341,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`Leaspy`
+        model : :class:~.models.abstract_model.AbstractModel
             A Leaspy model instance containing parameters set after training,
             namely the mean and standard deviation values for xi, tau, and the mixing matrix.
 
@@ -372,50 +370,57 @@ class SimulationAlgorithm(AbstractAlgo):
             )
         )
 
-        if self.visit_type == "dataframe":
-            df_ip_rm = pd.DataFrame(
-                [xi_rm, tau_rm],
-                index=["xi", "tau"],
-                columns=[str(i) for i in self.param_study["df_visits"]["ID"].unique()],
-            ).T
-
+        if self.visit_type == VisitType.DATAFRAME:
+            columns = [str(i) for i in self.param_study["df_visits"]["ID"].unique()]
         else:
-            df_ip_rm = pd.DataFrame(
-                [xi_rm, tau_rm],
-                index=["xi", "tau"],
-                columns=[str(i) for i in range(0, self.param_study["patient_number"])],
-            ).T
+            columns = [str(i) for i in range(0, self.param_study["patient_number"])]
+        individual_parameters_from_repeated_measurements = pd.DataFrame(
+            [xi_rm, tau_rm],
+            index=["xi", "tau"],
+            columns=columns,
+        ).T
 
         # Generate the source tensors
         for i in range(model.source_dimension):
-            df_ip_rm[f"sources_{i}"] = torch.tensor(
-                np.random.normal(0.0, 1.0, self.param_study["patient_number"]),
-                dtype=torch.float32,
+            individual_parameters_from_repeated_measurements[f"sources_{i}"] = (
+                torch.tensor(
+                    np.random.normal(0.0, 1.0, self.param_study["patient_number"]),
+                    dtype=torch.float32,
+                )
             )
-            df_ip_rm[f"sources_{i}"] = (
-                df_ip_rm[f"sources_{i}"] - df_ip_rm[f"sources_{i}"].mean()
-            ) / df_ip_rm[f"sources_{i}"].std()
+            individual_parameters_from_repeated_measurements[f"sources_{i}"] = (
+                individual_parameters_from_repeated_measurements[f"sources_{i}"]
+                - individual_parameters_from_repeated_measurements[
+                    f"sources_{i}"
+                ].mean()
+            ) / individual_parameters_from_repeated_measurements[f"sources_{i}"].std()
 
         pat = torch.stack(
             [
-                torch.tensor(df_ip_rm[f"sources_{i}"].values, dtype=torch.float32)
+                torch.tensor(
+                    individual_parameters_from_repeated_measurements[
+                        f"sources_{i}"
+                    ].values,
+                    dtype=torch.float32,
+                )
                 for i in range(model.source_dimension)
             ],
             dim=1,
         )
-        mat = model.state.get_tensor_value("mixing_matrix")
-        result = torch.matmul(mat.transpose(0, 1), pat.transpose(0, 1))
+        mixing_matrix = model.state.get_tensor_value("mixing_matrix")
+        result = torch.matmul(mixing_matrix.transpose(0, 1), pat.transpose(0, 1))
 
-        # Convert the result to a DataFrame
-        df_wn = pd.DataFrame(
+        space_shifts = pd.DataFrame(
             result.T,
             columns=[f"w_{i}" for i in range(len(self.features))],
-            index=df_ip_rm.index,
+            index=individual_parameters_from_repeated_measurements.index,
         )
 
-        return pd.concat([df_ip_rm, df_wn], axis=1)
+        return pd.concat(
+            [individual_parameters_from_repeated_measurements, space_shifts], axis=1
+        )
 
-    def _get_leaspy_model(self, model) -> None:
+    def _get_leaspy_model(self, model: AbstractModel) -> None:
         """
         Initialize and store a Leaspy model instance.
 
@@ -424,7 +429,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`Leaspy`
+        model : :class:~.models.abstract_model.AbstractModel
             A pre-trained Leaspy model to be used for simulation (compute observations).
 
         Returns
@@ -462,59 +467,63 @@ class SimulationAlgorithm(AbstractAlgo):
 
         df_ind = df.copy()
 
-        if self.visit_type == "dataframe":
-            dict_timepoints = (
+        if self.visit_type == VisitType.DATAFRAME:
+            return (
                 self.param_study["df_visits"]
                 .groupby("ID")["TIME"]
                 .apply(list)
                 .to_dict()
             )
 
-        else:
-            df_ind["AGE_AT_BASELINE"] = (
-                df_ind["tau"].apply(lambda x: x.numpy())
-                + pd.DataFrame(
-                    np.random.normal(
-                        self.param_study["first_visit_mean"],
-                        self.param_study["first_visit_std"],
-                        self.param_study["patient_number"],
-                    ),
-                    index=df_ind.index,
-                )[0]
-            )
+        df_ind["AGE_AT_BASELINE"] = (
+            df_ind["tau"].apply(lambda x: x.numpy())
+            + pd.DataFrame(
+                np.random.normal(
+                    self.param_study["first_visit_mean"],
+                    self.param_study["first_visit_std"],
+                    self.param_study["patient_number"],
+                ),
+                index=df_ind.index,
+            )[0]
+        )
 
-            df_ind["AGE_FOLLOW_UP"] = df_ind["AGE_AT_BASELINE"] + np.random.normal(
+        df_ind["AGE_FOLLOW_UP"] = df_ind["AGE_AT_BASELINE"] + np.abs(
+            np.random.normal(
                 self.param_study["time_follow_up_mean"],
                 self.param_study["time_follow_up_std"],
                 self.param_study["patient_number"],
             )
+        )
 
-            # Generate visit ages for each patients
-            dict_timepoints = {}
+        # Generate visit ages for each patients
+        dict_timepoints = {}
 
-            for id_ in df_ind.index.values:
-                # Get the number of visit per patient
-                time = df_ind.loc[id_, "AGE_AT_BASELINE"]
-                age_visits = [time]
+        for id_ in df_ind.index.values:
+            # Get the number of visit per patient
+            time = df_ind.loc[id_, "AGE_AT_BASELINE"]
+            age_visits = [time]
 
-                while time < df_ind.loc[id_, "AGE_FOLLOW_UP"]:
-                    if self.visit_type == "regular":
-                        time += self.param_study["regular_visit"]
+            while time < df_ind.loc[id_, "AGE_FOLLOW_UP"]:
+                if self.visit_type == VisitType.REGULAR:
+                    time += self.param_study["regular_visit"]
 
-                    if self.visit_type == "random":
-                        time += np.random.normal(
-                            self.param_study["distance_visit_mean"],
-                            self.param_study["distance_visit_std"],
-                        )
+                if self.visit_type == VisitType.RANDOM:
+                    time += np.random.normal(
+                        self.param_study["distance_visit_mean"],
+                        self.param_study["distance_visit_std"],
+                    )
 
-                    age_visits.append(time)
+                age_visits.append(time)
 
-                dict_timepoints[id_] = list(age_visits)
+            dict_timepoints[id_] = list(age_visits)
 
         return dict_timepoints
 
     def _generate_dataset(
-        self, model, dict_timepoints: dict, df_ip_rm: pd.DataFrame
+        self,
+        model: AbstractModel,
+        dict_timepoints: dict,
+        individual_parameters_from_repeated_measurements: pd.DataFrame,
     ) -> pd.DataFrame:
         """
         Generate a simulated dataset based on simulated individual parameters and model timepoints.
@@ -527,14 +536,14 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`Leaspy`
+        model : :class::~.models.abstract_model.AbstractModel
             The model used for estimating the individual parameters (in get_ip_rm function) and generating
             the simulated values.
 
         dict_timepoints : dict
             A dictionary mapping individual IDs to their respective visit timepoints (according to visit_type)
 
-        df_ip_rm : pd.DataFrame
+        individual_parameters_from_repeated_measurements : pd.DataFrame
             DataFrame containing the simulated individual parameters (e.g., 'xi', 'tau', and sources)
             for each individual, used in generating the simulated data.
 
@@ -548,7 +557,7 @@ class SimulationAlgorithm(AbstractAlgo):
         values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
-                df_ip_rm[
+                individual_parameters_from_repeated_measurements[
                     ["xi", "tau"]
                     + [f"sources_{i}" for i in range(model.source_dimension)]
                 ]
@@ -606,7 +615,11 @@ class SimulationAlgorithm(AbstractAlgo):
             dict_rm_rename[f"w_{i}"] = f"RM_SPACE_SHIFTS_{i}"
 
         # Put everything in one dataframe
-        df_ip_rm = df_ip_rm.rename(columns=dict_rm_rename)
+        individual_parameters_from_repeated_measurements = (
+            individual_parameters_from_repeated_measurements.rename(
+                columns=dict_rm_rename
+            )
+        )
         df_sim = df_long[self.features]
 
         # Drop too close visits
