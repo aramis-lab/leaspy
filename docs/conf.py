@@ -67,7 +67,7 @@ myst_enable_extensions = [
     "dollarmath",
     "colon_fence",
 ]
-
+nbsphinx_timeout = 600
 autoapi_dirs = ["../src"]
 autoapi_root = "reference/api"
 autodoc_typehints = "description"
