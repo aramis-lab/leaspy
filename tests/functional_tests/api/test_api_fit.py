@@ -396,60 +396,6 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             source_dimension=2,
         )
 
-    @skip("Ordinal observation models are not implemented yet.")
-    def test_fit_logistic_ordinal(self):
-        self.generic_fit(
-            "logistic",
-            "logistic_ordinal",
-            obs_models=observation_model_factory("ordinal"),
-            source_dimension=2,
-        )
-
-    @skip("Ordinal observation models are not implemented yet.")
-    def test_fit_logistic_ordinal_batched(self):
-        self.generic_fit(
-            "logistic_ordinal",
-            "logistic_ordinal_b",
-            obs_models=observation_model_factory("ordinal"),
-            source_dimension=2,
-            # batch_deltas_ordinal=True,  # No more batch option, default
-        )
-
-    @skip("Ordinal ranking observation models are not implemented yet.")
-    def test_fit_logistic_ordinal_ranking(self):
-        self.generic_fit(
-            "logistic",
-            "logistic_ordinal_ranking",
-            obs_models=observation_model_factory("ordinal_ranking"),
-            source_dimension=2,
-        )
-
-    @skip("Ordinal observation models are not implemented yet.")
-    def test_fit_logistic_ordinal_ranking_batched_mh(self):
-        self.generic_fit(
-            "logistic",
-            "logistic_ordinal_ranking_mh",
-            obs_models=observation_model_factory("ordinal_ranking"),
-            source_dimension=2,
-            algo_params={
-                "n_iter": 100,
-                "seed": 0,
-                "sampler_pop": "Metropolis-Hastings",
-            },
-            batch_deltas_ordinal=True,  # test if batch sampling of deltas works
-        )
-
-    @skip("Ordinal observation models are not implemented yet.")
-    def test_fit_logistic_ordinal_ranking_batched_fg(self):
-        self.generic_fit(
-            "logistic",
-            "logistic_ordinal_ranking_fg",
-            obs_models=observation_model_factory("ordinal-ranking"),
-            source_dimension=2,
-            algo_params={"n_iter": 100, "seed": 0, "sampler_pop": "FastGibbs"},
-            batch_deltas_ordinal=True,  # test if batch sampling of deltas works
-        )
-
 
 @skipIf(
     not torch.cuda.is_available(),

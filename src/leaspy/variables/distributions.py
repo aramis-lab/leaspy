@@ -20,7 +20,6 @@ __all__ = [
     "StatelessDistributionFamily",
     "StatelessDistributionFamilyFromTorchDistribution",
     "BernoulliFamily",
-    "OrdinalFamily",
     "NormalFamily",
     "AbstractWeibullRightCensoredFamily",
     "WeibullRightCensoredFamily",
@@ -28,7 +27,6 @@ __all__ = [
     "SymbolicDistribution",
     "Normal",
     "Bernoulli",
-    "Ordinal",
     "WeibullRightCensored",
     "WeibullRightCensoredWithSources",
 ]
@@ -262,23 +260,6 @@ class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     parameters: ClassVar = ("loc",)
     dist_factory: ClassVar = torch.distributions.Bernoulli
-
-
-class OrdinalFamily(StatelessDistributionFamilyFromTorchDistribution):
-    """Ordinal family (stateless)."""
-
-    parameters: ClassVar = ("probs",)
-    dist_factory: ClassVar = MultinomialDistribution.from_sf
-
-    @classmethod
-    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
-        # Resolve the last dimension compression
-        return WeightedTensor(
-            -cls.dist_factory(*params).log_prob(x.value),
-            x.weight[
-                ..., 0
-            ],  # Weight should be the same across the last dimension as it is one-hot-encoded
-        )
 
 
 class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
@@ -908,7 +889,6 @@ class SymbolicDistribution:
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
-Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
 WeibullRightCensoredWithSources = SymbolicDistribution.bound_to(
     WeibullRightCensoredWithSourcesFamily

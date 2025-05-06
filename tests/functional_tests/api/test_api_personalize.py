@@ -31,11 +31,6 @@ SKIP_LINEAR_MODELS = "Linear models are currently broken."
 TEST_LINEAR_MODELS_WITH_JACOBIAN = False
 SKIP_LINEAR_MODELS_WITH_JACOBIAN = "Jacobian not implemented for linear model."
 
-# Ordinal observation models are not yet implemented in Leaspy v2.
-# Flip to True to test with them.
-TEST_ORDINAL_MODELS = False
-SKIP_ORDINAL_MODELS = "Ordinal observation models are not implemented yet."
-
 
 class LeaspyPersonalizeTestMixin(LeaspyTestCase):
     """
@@ -128,11 +123,8 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             )
 
         ws = [str(w.message) for w in ws]
-        if "ordinal" in model_name:
-            self.assertEqual(len(ws), 1, msg=ws)
-            self.assertIn("Some features have missing codes", ws[0])
-        else:
-            self.assertEqual(ws, [])
+
+        self.assertEqual(ws, [])
 
         self.check_consistency_of_personalization_outputs(
             ips,
@@ -550,66 +542,6 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
     def test_multivariate_parallel_binary_mean_posterior(self):
         self._personalize_generic(
             "logistic_parallel_binary",
-            "mean_posterior",
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_scipy_minimize(self):
-        self._personalize_generic(
-            "logistic_ordinal_b",
-            "scipy_minimize",
-            {"use_jacobian": False},
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_scipy_minimize_with_jacobian(self):
-        self._personalize_generic(
-            "logistic_ordinal",
-            "scipy_minimize",
-            {"use_jacobian": True},
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_mode_posterior(self):
-        self._personalize_generic(
-            "logistic_ordinal",
-            "mode_posterior",
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_mean_posterior(self):
-        self._personalize_generic(
-            "logistic_ordinal",
-            "mean_posterior",
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_ranking_scipy_minimize(self):
-        self._personalize_generic(
-            "logistic_ordinal_ranking",
-            "scipy_minimize",
-            {"use_jacobian": False},
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_ranking_scipy_minimize_with_jacobian(self):
-        self._personalize_generic(
-            "logistic_ordinal_ranking",
-            "scipy_minimize",
-            {"use_jacobian": True},
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_ranking_mode_posterior(self):
-        self._personalize_generic(
-            "logistic_ordinal_ranking",
-            "mode_posterior",
-        )
-
-    @skipIf(not TEST_ORDINAL_MODELS, SKIP_ORDINAL_MODELS)
-    def test_multivariate_ordinal_ranking_mean_posterior(self):
-        self._personalize_generic(
-            "logistic_ordinal_ranking",
             "mean_posterior",
         )
 

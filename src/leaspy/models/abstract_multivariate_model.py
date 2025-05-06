@@ -26,7 +26,7 @@ __all__ = ["AbstractMultivariateModel"]
 
 
 @doc_with_super()
-class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
+class AbstractMultivariateModel(AbstractModel):
     """
     Contains the common attributes & methods of the multivariate models.
 
@@ -233,10 +233,6 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 )
             self.source_dimension = hyperparameters["source_dimension"]
 
-        # WIP
-        ## special hyperparameter(s) for ordinal model
-        # expected_hyperparameters += self._handle_ordinal_hyperparameters(hyperparameters)
-
         self._raise_if_unknown_hyperparameters(
             expected_hyperparameters, hyperparameters
         )
@@ -270,7 +266,5 @@ class AbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             model_settings["parameters"]["mixing_matrix"] = self.state[
                 "mixing_matrix"
             ].tolist()
-
-        # self._export_extra_ordinal_settings(model_settings)
 
         return model_settings

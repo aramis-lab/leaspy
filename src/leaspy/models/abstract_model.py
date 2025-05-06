@@ -1014,7 +1014,6 @@ class AbstractModel(BaseModel):
         """Put the timepoints variables inside the provided state (in-place)."""
         # TODO/WIP: we use a regular tensor with 0 for times so that 'model' is a regular tensor
         # (to avoid having to cope with `StatelessDistributionFamily` having some `WeightedTensor` as parameters)
-        # (but we might need it at some point, especially for `batched_deltas` of ordinal model for instance)
         if isinstance(timepoints, WeightedTensor):
             state["t"] = timepoints
         elif isinstance(timepoints, torch.Tensor):

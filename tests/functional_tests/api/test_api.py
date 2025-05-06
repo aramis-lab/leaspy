@@ -110,8 +110,6 @@ class LeaspyAPITest(
                 individual_parameters, data, simulation_settings
             )
             if platform.system() == "Linux" and model_codename in (
-                "logistic_ordinal_b",
-                "logistic_ordinal",
                 "logistic_diag_noise",
             ):
                 model_codename = f"{model_codename}_linux"
@@ -206,94 +204,4 @@ class LeaspyAPITest(
                 "number_of_subjects": 100,
                 "reparametrized_age_bounds": (50, 85),
             },
-        )
-
-    @skip("Not batched deltas for ordinal model not implemented")
-    def test_usecase_logistic_ordinal(self):
-        self.generic_usecase(
-            "logistic",
-            model_codename="logistic_ordinal",
-            obs_models="ordinal",
-            source_dimension=2,
-            fit_algo_params={"n_iter": 200, "seed": 0},
-            personalization_algo="mean_posterior",
-            simulate_algo_params={
-                "seed": 0,
-                "delay_btw_visits": 0.5,
-                "number_of_subjects": 100,
-                "reparametrized_age_bounds": (50, 85),
-            },
-        )
-
-    @skip("Ordinal model is broken")
-    def test_usecase_logistic_ordinal(self):
-        """
-        Ordinal simulation may not be fully reproducible on different machines
-        due to rounding errors when computing MultinomialDistribution.cdf that
-        can lead to ±1 differences on MLE outcomes in rare cases...
-        (changing seed, reducing subjects & increasing tol to avoid the problem).
-        """
-        self.generic_usecase(
-            "logistic_ordinal",
-            model_codename="logistic_ordinal_b",
-            obs_models="ordinal",
-            source_dimension=2,
-            fit_check_kws={"atol": 0.005},
-            personalization_algo="mean_post",
-            simulate_algo_params={
-                "seed": 123,
-                "delay_btw_visits": 0.5,
-                "number_of_subjects": 10,
-                "reparametrized_age_bounds": (50, 85),
-            },
-            simulate_tol=5e-2,
-        )
-
-    @skip("Ordinal univariate model not implemented")
-    def test_usecase_univariate_logistic_ordinal(self):
-        self.generic_usecase(
-            "univariate_logistic",
-            model_codename="univariate_logistic_ordinal",
-            obs_models="ordinal",
-            personalization_algo="mean_post",
-            simulate_algo_params={
-                "seed": 0,
-                "delay_btw_visits": 0.5,
-                "number_of_subjects": 100,
-                "reparametrized_age_bounds": (50, 85),
-            },
-        )
-
-    @skip("Ordinal ranking observation models not implemented")
-    def test_usecase_logistic_ordinal_ranking(self):
-        self.generic_usecase(
-            "logistic",
-            model_codename="logistic_ordinal_ranking",
-            obs_models="ordinal-ranking",
-            source_dimension=2,
-            personalization_algo="mean_posterior",
-            fit_algo_params={"n_iter": 200, "seed": 0},
-            simulate_algo_params={
-                "seed": 0,
-                "delay_btw_visits": 0.5,
-                "number_of_subjects": 100,
-                "reparametrized_age_bounds": (50, 85),
-            },
-        )
-
-    @skip("Ordinal observation models not implemented")
-    def test_usecase_logistic_ordinal_ranking_batched(self):
-        self.generic_usecase(
-            "logistic",
-            model_codename="logistic_ordinal_ranking_b",
-            obs_models="ordinal-ranking",
-            source_dimension=2,
-            personalization_algo="mode_posterior",
-            simulate_algo_params={
-                "seed": 0,
-                "delay_btw_visits": 0.5,
-                "number_of_subjects": 100,
-                "reparametrized_age_bounds": (50, 85),
-            },
-            batch_deltas_ordinal=True,
         )
