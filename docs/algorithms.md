@@ -15,7 +15,7 @@
    - Customizing parameters for logistic, joint, mixture, and covariate models.
 
 ## Personalize
-
+AYZR
 The idea of this section is to describe how the inference over new unseen patients could be done. For this random effects of new patients should be estimated using some follow-up visits to be able to describe their progression and make predictions about their future progression. Note here that we assume that fixed effects have already been estimated and are fixed. Two main approach for estimating the random effects exist in Leaspy. 
 
 __more of a frequentist one:__ random effects are estimated using the solver [_minimise_](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html) from the package Scipy {cite}`2020SciPy_NMeth` to maximize the likelihood knowing the fixed effects.
