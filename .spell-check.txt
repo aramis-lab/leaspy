@@ -1,4 +1,5 @@
 ALS
+als
 leaspy
 leaspype
 statsmodels

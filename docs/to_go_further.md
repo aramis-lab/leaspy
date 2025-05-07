@@ -9,9 +9,9 @@ Different papers have been published trying to answer clinical question using th
 
 ### Used in different context
 
-__Different chronic diseases:__ The model has been used to describe very different chronic diseases as Hungtington [Igor], Alzheimer [REF], Cerebral Autosomal Dominant Arteriopathy with Subcortical Infarcts Leukoencephalopathy (CADASIL) [Sofia], Amyothrophic Lateral Sclerosis [Juliette], Ataxy [Moulaire+ Emilien?], Parkinson [Couronne].
-
-__Many types of data:__ Different types of data have been analysed from clinical score to biomarkers such as XX and brain markers [Igor] and events [Juliette]. For longitudinal data progression where used from linear [REF?] and logistic [REF] to ordinal [Paul].  Note that the model has been already used in XX clinical outcomes [Sofia] and has been shown quite robust to missing data [REF Couronne].
+__Different chronic diseases:__ The model has been used to describe very different chronic diseases as Hungtington {cite}`koval_forecasting_2022`, Alzheimer {cite}`maheux_forecasting_2023`, Cerebral Autosomal Dominant Arteriopathy with Subcortical Infarcts Leukoencephalopathy (CADASIL) {cite}`kaisaridi_determining_2025`, Amyothrophic Lateral Sclerosis {cite}`ortholand_interaction_2023`, Ataxy {cite}`moulaire_temporal_2023`, Parkinson [REF].
+ALS
+__Many types of data:__ Different types of data have been analysed from clinical score to biomarkers such as clinical score and brain markers {cite}`koval_ad_2021` and events [Juliette]. For longitudinal data progression where used from linear [REF?] and logistic [REF] to ordinal [Paul].  Note that the model has been already used in XX clinical outcomes [Sofia] and has been shown quite robust to missing data [REF Couronne].
 
 ### Used for different tasks
 
