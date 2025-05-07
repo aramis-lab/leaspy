@@ -24,6 +24,22 @@
   doi     = {10.1038/s41592-019-0686-2},
 }
 
+@inproceedings{couronne_learning_2019,
+	title = {Learning {Disease} {Progression} {Models} {With} {Longitudinal} {Data} and {Missing} {Values}},
+	url = {https://ieeexplore.ieee.org/abstract/document/8759198},
+	doi = {10.1109/ISBI.2019.8759198},
+	abstract = {Statistical methods have been developed for the analysis of longitunal data in neurodegenerative diseases. To cope with the lack of temporal markers - i.e. to account for subject-specific disease progression in regard to age - a common strategy consists in realigning the individual sequence data in time. Patient's specific trajectories can indeed be seen as spatiotemporal perturbations of the same normative disease trajectory. However, these models do not easily allow one to account for multimodal data, which more than often include missing values. Indeed, it is rare that imaging and clinical examinations for instance are performed at the same frequency in clinical protocols. Multimodal models also need to allow a different profile of progression for data with different structure and representation.We propose to use a generative mixed effect model that considers the progression trajectories as curves on a Riemannian Manifold. We use the concept of product manifold to handle multimodal data, and leverage the generative aspect of our model to handle missing values. We assess the robusteness of our methods toward missing values frequency on both synthetic and real data. Finally we apply our model on a real-world dataset to model Parkinson's disease progression from data derived from clinical examination and imaging.},
+	urldate = {2025-05-07},
+	booktitle = {2019 {IEEE} 16th {International} {Symposium} on {Biomedical} {Imaging} ({ISBI} 2019)},
+	author = {Couronne, Raphael and Vidailhet, Marie and Corvol, Jean Christophe and Lehericy, Stephane and Durrleman, Stanley},
+	month = apr,
+	year = {2019},
+	note = {ISSN: 1945-8452},
+	keywords = {Biological system modeling, Data models, Disease modeling, Diseases, Estimation, Imaging, Longitudinal, Manifolds, Missing values, Multimodal, Non-Linear Mixed Effect Model, Riemmanian Geometry, Trajectory},
+	pages = {1033--1037},
+	file = {Snapshot:/Users/juliette.ortholand/Zotero/storage/47AX752E/8759198.html:text/html;Version soumise:/Users/juliette.ortholand/Zotero/storage/VYL7X2FZ/Couronne et al. - 2019 - Learning Disease Progression Models With Longitudinal Data and Missing Values.pdf:application/pdf},
+}
+
 @article{gordon_progression_2010,
 	title = {Progression in ALS is not linear but is curvilinear},
 	volume = {257},
@@ -101,13 +117,20 @@ DISCUSSION: Our results suggest a gradual and heterogeneous decline in different
 	file = {Full Text PDF:/Users/juliette.ortholand/Zotero/storage/LI4TRSJR/Koval et al. - 2022 - Forecasting individual progression trajectories in Huntington disease enables more powered clinical.pdf:application/pdf},
 }
 
-@article{koval_learning_2020,
-	title = {Learning {Multimodal} {Digital} {Models} of {Disease} {Progression} from {Longitudinal} {Data}: {Methods} \& {Algorithms} for the {Description}, {Prediction} and {Simulation} of {Alzheimer}'s {Disease} {Progression}},
+
+@phdthesis{koval_learning_2020,
+	type = {phdthesis},
+	title = {Learning {Multimodal} {Digital} {Models} of {Disease} {Progression} from {Longitudinal} {Data} : {Methods} \& {Algorithms} for the {Description}, {Prediction} and {Simulation} of {Alzheimer}’s {Disease} {Progression}},
+	shorttitle = {Learning {Multimodal} {Digital} {Models} of {Disease} {Progression} from {Longitudinal} {Data}},
+	url = {https://theses.hal.science/tel-02524279},
+	abstract = {This thesis focuses on the statistical learning of digital models of neurodegenerative disease progression, especially Alzheimer's disease. It aims at reconstructing the complex and heterogeneous dynamic of evolution of the structure, the functions and the cognitive abilities of the brain, at both an average and individual level. To do so, we consider a mixed-effects model that, based on longitudinal data, namely repeated observations per subjects that present multiple modalities, in parallel recombines the individual spatiotemporal trajectories into a group-average scenario of change, and, estimates the variability of this characteristic progression which characterizes the individual trajectories. This variability results from a temporal un-alignment (in term of pace of progression and age at disease onset) along with a spatial variability that takes the form of a modification in the sequence of events that appear during the course of the disease. The different parts of the thesis are ordered in a coherent sequence: from the medical problematic, followed by the statistical model introduced to tackle the aforementioned challenge and its application to the description of the course of Alzheimer's disease, and, finally, numerical tools developed to make the previous model available to the medical community.},
 	language = {en},
+	urldate = {2025-05-07},
+	school = {Institut Polytechnique de Paris},
 	author = {Koval, Igor},
+	month = jan,
 	year = {2020},
-	pages = {181},
-	file = {Koval - Learning Multimodal Digital Models of Disease Prog.pdf:/Users/juliette.ortholand/Zotero/storage/HIFL3N4H/Koval - Learning Multimodal Digital Models of Disease Prog.pdf:application/pdf},
+	file = {Full Text PDF:/Users/juliette.ortholand/Zotero/storage/68ULFPXY/Koval - 2020 - Learning Multimodal Digital Models of Disease Progression from Longitudinal Data  Methods & Algorit.pdf:application/pdf},
 }
 
 
@@ -132,6 +155,23 @@ DISCUSSION: Our results suggest a gradual and heterogeneous decline in different
 	file = {Full Text PDF:/Users/juliette.ortholand/Zotero/storage/B3XL4HK6/Maheux et al. - 2023 - Forecasting individual progression trajectories in Alzheimer’s disease.pdf:application/pdf},
 }
 
+
+@article{marinescu_tadpole_2019,
+	title = {{TADPOLE} {Challenge}: {Accurate} {Alzheimer}’s disease prediction through crowdsourced forecasting of future data},
+	volume = {11843},
+	shorttitle = {{TADPOLE} {Challenge}},
+	url = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7315046/},
+	doi = {10.1007/978-3-030-32281-6_1},
+	abstract = {The Alzheimer’s Disease Prediction Of Longitudinal Evolution (TADPOLE) Challenge compares the performance of algorithms at predicting the future evolution of individuals at risk of Alzheimer’s disease. TADPOLE Challenge participants train their models and algorithms on historical data from the Alzheimer’s Disease Neuroimaging Initiative (ADNI) study. Participants are then required to make forecasts of three key outcomes for ADNI-3 rollover participants: clinical diagnosis, Alzheimer’s Disease Assessment Scale Cognitive Subdomain (ADAS-Cog 13), and total volume of the ventricles – which are then compared with future measurements. Strong points of the challenge are that the test data did not exist at the time of forecasting (it was acquired afterwards), and that it focuses on the challenging problem of cohort selection for clinical trials by identifying fast progressors. The submission phase of TADPOLE was open until 15 November 2017; since then data has been acquired until April 2019 from 219 subjects with 223 clinical visits and 150 Magnetic Resonance Imaging (MRI) scans, which was used for the evaluation of the participants’ predictions. Thirty-three teams participated with a total of 92 submissions. No single submission was best at predicting all three outcomes. For diagnosis prediction, the best forecast (team Frog), which was based on gradient boosting, obtained a multiclass area under the receiver-operating curve (MAUC) of 0.931, while for ventricle prediction the best forecast (team EMC1 ), which was based on disease progression modelling and spline regression, obtained mean absolute error of 0.41\% of total intracranial volume (ICV). For ADAS-Cog 13, no forecast was considerably better than the benchmark mixed effects model (BenchmarkME ), provided to participants before the submission deadline. Further analysis can help understand which input features and algorithms are most suitable for Alzheimer’s disease prediction and for aiding patient stratification in clinical trials. The submission system remains open via the website: https://tadpole.grand-challenge.org/},
+	urldate = {2025-05-07},
+	journal = {PRedictive Intelligence in MEdicine. PRIME (Workshop)},
+	author = {Marinescu, Răzvan V. and Oxtoby, Neil P. and Young, Alexandra L. and Bron, Esther E. and Toga, Arthur W. and Weiner, Michael W. and Barkhof, Frederik and Fox, Nick C. and Golland, Polina and Klein, Stefan and Alexander, Daniel C.},
+	month = oct,
+	year = {2019},
+	pmid = {32587957},
+	pmcid = {PMC7315046},
+	pages = {1--10},
+}
 
 @article{moulaire_temporal_2023,
 	title = {Temporal {Dynamics} of the {Scale} for the {Assessment} and {Rating} of {Ataxia} in {Spinocerebellar} {Ataxias}},
@@ -175,4 +215,55 @@ CONCLUSION: Using a multivariable disease modelling approach, we showed that sex
 	pmid = {37615751},
 	keywords = {ALS, Amyotrophic Lateral Sclerosis, Body Mass Index, Bulbar, Cross-Sectional Studies, Disease Progression, Female, Humans, Male, Onset site, Sex, Spinal, Survival Analysis},
 	pages = {5903--5912},
+}
+
+
+@phdthesis{ortholand_joint_2024,
+	type = {phdthesis},
+	title = {Joint modelling of events and repeated observations : an application to the progression of {Amyotrophic} {Lateral} {Sclerosis}},
+	shorttitle = {Joint modelling of events and repeated observations},
+	url = {https://theses.hal.science/tel-04770912},
+	abstract = {Progression heterogeneity in chronic diseases such as Amyotrophic Lateral Sclerosis (ALS) is a significant obstacle to developing effective treatments. Leveraging the growing wealth of large databases through modelling can help better understanding it. However, the data collected only offer access to partial trajectories, that need to be realigned to reconstruct a comprehensive disease progression. To address this challenge, data-driven progression models like the longitudinal Spatiotemporal model were developed. Its main interest is its ability to synchronise patients onto a common disease timeline (temporal aspect) thanks to a latent disease age, while also capturing the remaining variability through parameters that account for outcome ordering (spatial aspect). However, this model was primarily designed for longitudinal data, overlooking crucial outcomes in ALS such as time to death or initiation of life support, like Non-Invasive Ventilation (NIV). Conversely, existing joint models offer the advantage of simultaneously handling longitudinal and survival data. However, they do not realign trajectories, which compromises their temporal resolution. This thesis aimed to expand the Spatiotemporal model into a Joint Spatiotemporal model, enabling, for ALS research, the examination of survival data alongside longitudinal data. First, we applied the Spatiotemporal model to explore how the interaction between sex and onset site (spinal or bulbar) impacts the progression of ALS patients. We selected 1,438 patients from the PRO-ACT database. We demonstrated a significant influence of both sex and onset site on six longitudinal outcomes monitoring the functional and respiratory decline in addition to Body Mass Index. However, this study did not incorporate survival analysis, despite its paramount importance in ALS, due to limitations inherent to the Spatiotemporal model. To address this gap, we associated the Spatiotemporal model with a survival model that estimates a Weibull survival model from its latent disease age, creating a univariate Joint Temporal model. After model validation, we benchmarked our model with a state-of-the-art joint model on PRO-ACT data. Our model exhibited significantly superior performance in terms of absolute bias and mean cumulative AUC for right-censored events. This demonstrated the efficacy of our approach in the context of ALS compared to existing joint models. However, modelling several longitudinal outcomes requires a multivariate approach. Life support initiation that might be censored by death needs to be also considered. We thus extended the Joint Temporal model, into a multivariate Joint Spatiotemporal model with competing risks to analyse NIV initiation. This involved coupling the multivariate Spatiotemporal model with a cause-specific Weibull survival model from the latent disease age. We incorporated spatial parameters with a Cox proportional effect on the hazard. After validation, we benchmarked our model with a state-of-the-art joint model on PRO-ACT data and analysed sex and onset site interaction in complement to the first study. The Joint Spatiotemporal model achieved similar performance to the state-of-the-art model while capturing an underlying shared latent process, the latent disease age, whereas the state-of-the-art models the impact of longitudinal outcomes on survival. To enhance the reproducibility and facilitate the reuse of these models, the proposed models were implemented in the open-source software Leaspy. In conclusion, this thesis introduces the first data-driven progression model combining longitudinal and survival modelling. We demonstrated its relevance to understand the occurrence of critical events in ALS. This work paves the way for further extension to analyse recurrent events, among other potential applications in causal inference.},
+	language = {en},
+	urldate = {2025-05-07},
+	school = {Sorbonne Université},
+	author = {Ortholand, Juliette},
+	month = sep,
+	year = {2024},
+	file = {Full Text PDF:/Users/juliette.ortholand/Zotero/storage/NZ3J7V25/Ortholand - 2024 - Joint modelling of events and repeated observations  an application to the progression of Amyotroph.pdf:application/pdf},
+}
+
+@misc{ortholand_joint_2025,
+	title = {A joint spatiotemporal model for multiple longitudinal markers and competing events},
+	url = {http://arxiv.org/abs/2501.08960},
+	doi = {10.48550/arXiv.2501.08960},
+	abstract = {Non-terminal events can represent a meaningful change in a patient's life. Thus, better understanding and predicting their occurrence can bring valuable information to individuals. In a context where longitudinal markers could inform these events, joint models with competing risks have been developed. Their precision relies on a reference time for which disease onset is often used. Nevertheless, chronic diseases have no clear onset, making it difficult to define a precise reference time. We propose a Joint cause-specific Spatiotemporal model to overcome this limitation and to capture a shared latent process, a latent age (temporal aspect), associated with the ordering of the longitudinal outcomes (spatial aspect). First, we validated our model on simulated real-like data. Then, we benchmarked our model with a shared-random-effect joint model on real ALS data using the PRO-ACT dataset. Finally, to show how the model could be used for description tasks, we analysed the impact of sex and onset site on the progression of ALS as well as the initiation of Non-Invasive Ventilation. The Joint cause-specific spatiotemporal model achieved similar performance to the shared random effect joint model while capturing the latent disease age and the impact of the ordering of longitudinal outcomes on the occurrence of the events with fewer parameters. The application study confirmed existing results for the Longitudinal outcomes and showed how to interpret the model. The proposed approach by disentangling a temporal and a spatial aspect of the disease opens the perspective to capture meaningful change in future clinical trials.},
+	urldate = {2025-05-07},
+	publisher = {arXiv},
+	author = {Ortholand, Juliette and Durrleman, Stanley and Montcel, Sophie Tezenas du},
+	month = jan,
+	year = {2025},
+	note = {arXiv:2501.08960 [stat]},
+	keywords = {Statistics - Methodology},
+	file = {Preprint PDF:/Users/juliette.ortholand/Zotero/storage/CYZ9NEXS/Ortholand et al. - 2025 - A joint spatiotemporal model for multiple longitudinal markers and competing events.pdf:application/pdf;Snapshot:/Users/juliette.ortholand/Zotero/storage/WUU739AC/2501.html:text/html},
+}
+
+@article{poulet_multivariate_2023,
+	title = {Multivariate disease progression modeling with longitudinal ordinal data},
+	volume = {42},
+	copyright = {© 2023 John Wiley \& Sons Ltd.},
+	issn = {1097-0258},
+	url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/sim.9770},
+	doi = {10.1002/sim.9770},
+	abstract = {Disease modeling is an essential tool to describe disease progression and its heterogeneity across patients. Usual approaches use continuous data such as biomarkers to assess progression. Nevertheless, categorical or ordinal data such as item responses in questionnaires also provide insightful information about disease progression. In this work, we propose a disease progression model for ordinal and categorical data. We built it on the principles of disease course mapping, a technique that uniquely describes the variability in both the dynamics of progression and disease heterogeneity from multivariate longitudinal data. This extension can also be seen as an attempt to bridge the gap between longitudinal multivariate models and the field of item response theory. Application to the Parkinson's progression markers initiative cohort illustrates the benefits of our approach: a fine-grained description of disease progression at the item level, as compared to the aggregated total score, together with improved predictions of the patient's future visits. The analysis of the heterogeneity across individual trajectories highlights known disease trends such as tremor dominant or postural instability and gait difficulties subtypes of Parkinson's disease.},
+	language = {en},
+	number = {18},
+	urldate = {2025-05-07},
+	journal = {Statistics in Medicine},
+	author = {Poulet, Pierre-Emmanuel and Durrleman, Stanley},
+	year = {2023},
+	note = {\_eprint: https://onlinelibrary.wiley.com/doi/pdf/10.1002/sim.9770},
+	keywords = {disease progression modeling, non-linear mixed-effect model, ordinal data},
+	pages = {3164--3183},
+	file = {Snapshot:/Users/juliette.ortholand/Zotero/storage/7RMVMPY5/sim.html:text/html},
 }

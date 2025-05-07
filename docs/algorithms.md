@@ -46,7 +46,7 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 [200 rows x 4 columns]
 ```
 
-__more a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase (see [description](## Fit))and temperature scheme [description](## Fit). Nevertheless, for now the package enable only to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
+__more a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase (see [fit description](##Fit))and temperature scheme [fit description](##Fit). Nevertheless, for now the package enable only to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
 
 ```python
 >>> personalize_settings = AlgorithmSettings("mean_posterior", seed=0)
@@ -86,3 +86,9 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 - not enough patients 
 - parameters don't converge 
 - score don't progress
+
+## References
+
+```{bibliography}
+:filter: docname in docnames
+```

@@ -10,6 +10,7 @@
 As presented in the figure the model draws a parallel between a clinical and a Riemannian point of view of the disease progression. The idea is to see the variability of the disease progression as a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an individual trajectory $\gamma_i$ that traverses the manifold. 
 
 ![intuition](./_static/images/intuition.png)
+__From clinical to Riemannian point of view (extracted from {cite}`ortholand_joint_2024`)__
 
 
 __From clinical to Riemannian point of view__
@@ -31,13 +32,13 @@ __Individual trajectory & Spatial random effects:__ Finally, patients my vary in
 
 
 ![pop_to_ind](./_static/images/pop_to_ind.png)
-__Temporal and spatial random effects: from population to individual progression (adapted from {cite}`koval_ad_2021`)__
+__Temporal and spatial random effects: from population to individual progression (extracted from {cite}`ortholand_joint_2024`)__
 _This figure presents from two points of view (clinical and Riemannian) how the three types of random effects (two temporal and one spatial) enable to modify the population average progression to calibrate the patient observations. Clinical: Two normalised clinical scores (blue and orange) (0: the healthiest value, +1: the maximum pathological change) depending on the age of the patients The scatter represents the real observed values for one patient at different visits. Riemannian: The same two normalised scores are represented but this time depending on each other. The scatter represents the same real observed values as in the clinical version. The black cross on the curve corresponds to what is modelled at the visit ages of the patient._
 - Population progression (1.a., 1.b.): Population average trajectory compared to the observed values of the patient. 
 - Time Shift (2.a., 2.b.): The progression starts earlier due to the individual estimated reference time, Clinical graph: the curves are shifted on the left, Riemannian graph: black crosses are shifted on the right following the trajectory (for the same age the patient is more advanced).
 - Speed factor (3.a., 3.b.): The progression speed increases, Clinical graph: the curves become steeper, Riemannian graph: black crosses get further from each other on the trajectory (for the same time of follow-up a wider portion of the trajectory is observed).
 - Space Shift (4.a., 4.b.): the blue curves progress before the orange curve, Clinical graph: the curves are shifted in opposite directions, Riemannian graph: most of the blue (resp. orange) score value is observed for an orange (resp. blue) value of 0 (resp. 1)
-- Individual progression (5.a., 5.b.): The modelled curves fit the observations, Riemannian graph: the black crosses are close to the observed values._
+- Individual progression (5.a., 5.b.): The modelled curves fit the observations, Riemannian graph: the black crosses are close to the observed values.
 
 ## References
 
