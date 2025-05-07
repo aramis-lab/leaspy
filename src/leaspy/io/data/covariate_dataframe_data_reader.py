@@ -1,4 +1,5 @@
 import warnings
+<<<<<<< HEAD
 from typing import Optional
 
 import numpy as np
@@ -6,6 +7,13 @@ import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
 from leaspy.utils.typing import FeatureType
+=======
+
+import pandas as pd
+
+from leaspy.exceptions import LeaspyDataInputError
+from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
 
 from .abstract_dataframe_data_reader import AbstractDataframeDataReader
 from .individual_data import IndividualData
@@ -31,7 +39,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
     def __init__(
         self,
         *,
+<<<<<<< HEAD
         covariate_names: list[str],
+=======
+        covariate_names: List[str],
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
     ):
         super().__init__()
         if not covariate_names:
@@ -39,6 +51,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         self.covariate_names = covariate_names
         self.visit_reader = VisitDataframeDataReader()
 
+<<<<<<< HEAD
     @property
     def long_outcome_names(self) -> list[FeatureType]:
         """Name of the longitudinal outcomes in dataset"""
@@ -54,6 +67,13 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
     ######################################################
 
     def _check_headers(self, columns: list[str]) -> None:
+=======
+    ######################################################
+    #               ABSTRACT METHODS IMPLEMENTED
+    ######################################################
+
+    def _check_headers(self, columns: List[str]) -> None:
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
         """
         Check mendatory dataframe headers
 
@@ -81,6 +101,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         return self.visit_reader._set_index(df)
 
+<<<<<<< HEAD
     def _clean_dataframe_covariates(
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
@@ -153,6 +174,8 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         return df_covariate
 
+=======
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
     def _clean_dataframe(
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
@@ -165,7 +188,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with patient information
 
         drop_full_nan: bool
+<<<<<<< HEAD
             If set to True, raw full of nan are dropped
+=======
+            If set to True, raw full of nan are droped
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
 
         warn_empty_column: bool
             If set to True, a warning is raise for columns full of nan
@@ -177,12 +204,18 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with clean information
         """
 
+<<<<<<< HEAD
         df_visit = self.visit_reader._clean_dataframe(
+=======
+        # Check visits
+        df_visits = self.visit_reader._clean_dataframe(
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
             df.drop(columns=self.covariate_names),
             drop_full_nan=drop_full_nan,
             warn_empty_column=warn_empty_column,
         )
 
+<<<<<<< HEAD
         df_covariate = self._clean_dataframe_covariates(
             df.reset_index()
             .drop(self.long_outcome_names + ["TIME"], axis=1)
@@ -222,6 +255,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             covariates=df_subj[self.covariate_names].iloc[0].values.tolist()
         )
 
+=======
+        # à compléter
+        return df
+
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
     def _load_individuals_data(
         self, subj: IndividualData, df_subj: pd.DataFrame
     ) -> None:
@@ -237,4 +275,9 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             One patient with her/his information
         """
         self.visit_reader._load_individuals_data(subj, df_subj)
+<<<<<<< HEAD
         self._load_individuals_data_covariates(subj, df_subj)
+=======
+        # partie covariables à changer
+        self.event_reader._load_individuals_data(subj, df_subj)
+>>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
