@@ -554,7 +554,7 @@ class LinearMultivariateInitializationMixin:
             torch_round,
         )
 
-        df = dataset.to_pandas(apply_headers = True)
+        df = dataset.to_pandas(apply_headers=True)
         times = df.index.get_level_values("TIME").values
         t0 = times.mean()
 
@@ -674,9 +674,7 @@ class LogisticMultivariateInitializationMixin:
             )
 
         # Enforce values are between 0 and 1
-        values = values.clamp(
-            min=1e-2, max=1 - 1e-2
-        )  # always "works" for ordinal (values >= 1)
+        values = values.clamp(min=1e-2, max=1 - 1e-2)
 
         parameters = {
             "log_g_mean": torch.log(1.0 / values - 1.0),

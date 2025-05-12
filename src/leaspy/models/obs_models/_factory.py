@@ -8,7 +8,6 @@ from leaspy.exceptions import LeaspyModelInputError
 from ._base import ObservationModel
 from ._bernoulli import BernoulliObservationModel
 from ._gaussian import FullGaussianObservationModel
-from ._ordinal import OrdinalObservationModel
 from ._weibull import (
     WeibullRightCensoredObservationModel,
     WeibullRightCensoredWithSourcesObservationModel,
@@ -28,7 +27,6 @@ class ObservationModelNames(Enum):
     GAUSSIAN_DIAGONAL = "gaussian-diagonal"
     GAUSSIAN_SCALAR = "gaussian-scalar"
     BERNOULLI = "bernoulli"
-    ORDINAL = "ordinal"
     WEIBULL_RIGHT_CENSORED = "weibull-right-censored"
     WEIBULL_RIGHT_CENSORED_WITH_SOURCES = "weibull-right-censored-with-sources"
 
@@ -49,7 +47,6 @@ OBSERVATION_MODELS: Dict[ObservationModelNames, Type[ObservationModel]] = {
     ObservationModelNames.GAUSSIAN_DIAGONAL: FullGaussianObservationModel,
     ObservationModelNames.GAUSSIAN_SCALAR: FullGaussianObservationModel,
     ObservationModelNames.BERNOULLI: BernoulliObservationModel,
-    ObservationModelNames.ORDINAL: OrdinalObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED: WeibullRightCensoredObservationModel,
     ObservationModelNames.WEIBULL_RIGHT_CENSORED_WITH_SOURCES: WeibullRightCensoredWithSourcesObservationModel,
 }

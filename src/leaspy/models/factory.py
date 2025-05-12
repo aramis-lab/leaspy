@@ -7,7 +7,6 @@ from .joint import JointModel
 from .lme import LMEModel
 from .multivariate import LinearMultivariateModel, LogisticMultivariateModel
 from .multivariate_parallel import MultivariateParallelModel
-from .ordinal_multivariate_model import OrdinalMultivariateModel
 from .univariate import LinearUnivariateModel, LogisticUnivariateModel
 from .univariate_joint import UnivariateJointModel
 
@@ -23,7 +22,6 @@ class ModelName(str, Enum):
     JOINT = "joint"
     LOGISTIC = "logistic"
     LINEAR = "linear"
-    LOGISTIC_ORDINAL = "logistic_ordinal"
     LOGISTIC_PARALLEL = "logistic_parallel"
     UNIVARIATE_JOINT = "univariate_joint"
     UNIVARIATE_LOGISTIC = "univariate_logistic"
@@ -68,8 +66,6 @@ def model_factory(
         return LinearUnivariateModel(instance_name, **kwargs)
     if name == ModelName.LOGISTIC:
         return LogisticMultivariateModel(instance_name, **kwargs)
-    if name == ModelName.LOGISTIC_ORDINAL:
-        return OrdinalMultivariateModel(instance_name, **kwargs)
     if name == ModelName.LINEAR:
         return LinearMultivariateModel(instance_name, **kwargs)
     if name == ModelName.LOGISTIC_PARALLEL:

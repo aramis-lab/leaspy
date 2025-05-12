@@ -1,7 +1,6 @@
 from .abstract_attributes import AbstractAttributes
 from .linear_attributes import LinearAttributes
 from .logistic_attributes import LogisticAttributes
-from .logistic_ordinal_attributes import LogisticOrdinalAttributes
 from .logistic_parallel_attributes import LogisticParallelAttributes
 
 __all__ = [
@@ -9,7 +8,6 @@ __all__ = [
     "LinearAttributes",
     "LogisticAttributes",
     "LogisticParallelAttributes",
-    "LogisticOrdinalAttributes",
 ]
 
 
@@ -29,7 +27,7 @@ class AttributesFactory:
 
     @classmethod
     def attributes(
-        cls, name: str, dimension: int, source_dimension: int = None, ordinal_infos=None
+        cls, name: str, dimension: int, source_dimension: int = None
     ) -> AbstractAttributes:
         """
         Class method to build correct model attributes depending on model `name`.
@@ -39,8 +37,6 @@ class AttributesFactory:
         name : str
         dimension : int
         source_dimension : int, optional (default None)
-        ordinal_infos : dict, optional
-            Only for models with ordinal noise. Cf ordinal_infos attribute of MultivariateModel
 
         Returns
         -------
@@ -67,12 +63,6 @@ class AttributesFactory:
         if not (("univariate" in name) ^ (dimension != 1)):
             raise LeaspyModelInputError(
                 f"Name `{name}` should contain 'univariate', if and only if `dimension` equals 1."
-            )
-
-        if ordinal_infos is not None:
-            # only for logistic and univariate_logistic models for now
-            return LogisticOrdinalAttributes(
-                name, dimension, source_dimension, ordinal_infos
             )
 
         return cls._attributes[name](name, dimension, source_dimension)

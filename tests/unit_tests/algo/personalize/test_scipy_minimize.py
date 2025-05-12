@@ -12,7 +12,6 @@ from leaspy.models import BaseModel
 from leaspy.models.obs_models import (
     BernoulliObservationModel,
     FullGaussianObservationModel,
-    OrdinalObservationModel,
     observation_model_factory,
 )
 from tests import LeaspyTestCase

@@ -28,7 +28,6 @@ class Leaspy:
             * ``'linear'`` - suppose that every modality follow a linear curve across time.
             * ``'univariate_logistic'`` - a 'logistic' model for a single modality.
             * ``'univariate_linear'`` - idem with a 'linear' model.
-            * ``'logistic_ordinal'`` - a cumulative logit model for ordinal features
             * ``'constant'`` - benchmark model for constant predictions.
             * ``'lme'`` - benchmark model for classical linear mixed-effects model.
 
@@ -42,7 +41,6 @@ class Leaspy:
                 * ``'gaussian_scalar'``: gaussian error, with same standard deviation for all features
                 * ``'gaussian_diagonal'``: gaussian error, with one standard deviation parameter per feature (default)
                 * ``'bernoulli'``: for binary data (Bernoulli realization)
-                * ``'ordinal'`` or ``'ordinal_ranking'``: for ordinal data. WARNING : make sure your dataset only contains positive integers.
 
         source_dimension : int, optional
             `For multivariate models only`.
@@ -50,13 +48,6 @@ class Leaspy:
             This number MUST BE strictly lower than the number of features.
             By default, this number is equal to square root of the number of features.
             One can interpret this hyperparameter as a way to reduce the dimension of inter-individual _spatial_ variability between progressions.
-
-        batch_deltas_ordinal : bool, optional
-            `For logistic models with ordinal noise model only`.
-            If True, concatenates the deltas for each feature into a 2-dimensional Tensor "deltas" model parameter, which essentially allows faster sampling with new samplers.
-            If False, each feature will induce a new model parameter "deltas_<feature_name>".
-            The default is False but it is preferable to switch to True when ordinal items have many levels or when there are many items (when fit takes too long basically).
-            Batching deltas will speed up the sampling part of the MCMC SAEM by trading for less accuracy in the estimation of deltas.
 
     Attributes
     ----------
@@ -203,7 +194,6 @@ class Leaspy:
         individual_parameters: IndividualParameters,
         *,
         to_dataframe: Optional[bool] = None,
-        ordinal_method: str = "MLE",
     ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
         r"""
         Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
@@ -218,11 +208,6 @@ class Leaspy:
         to_dataframe : bool or None (default)
             Whether to output a dataframe of estimations?
             If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
-        ordinal_method : str
-            <!> Only used for ordinal models.
-            * 'MLE' or 'maximum_likelihood' returns maximum likelihood estimator for each point (int)
-            * 'E' or 'expectation' returns expectation (float)
-            * 'P' or 'probabilities' returns probabilities of all levels (array[float]).
 
         Returns
         -------
@@ -259,23 +244,11 @@ class Leaspy:
                 for subj_id, tpts in timepoints.to_frame()["TIME"].groupby("ID")
             }
 
-        # special post-processing function for some models (only `ordinal` for now)
-        estimation_postprocessor_kws = dict(ordinal_method=ordinal_method)
-        estimation_postprocessor = getattr(
-            self.model, "postprocess_model_estimation", None
-        )
-
         for subj_id, tpts in timepoints.items():
             ip = individual_parameters[subj_id]
             est = self.model.compute_individual_trajectory(tpts, ip).cpu().numpy()
-            if estimation_postprocessor is not None:
-                est = estimation_postprocessor(est, **estimation_postprocessor_kws)
             # 1 individual at a time --> squeeze the first dimension of the array
-            if isinstance(est, dict):
-                # can occur due to `estimation_postprocessor` (cf. `ordinal_method='probabilities'``)
-                estimations[subj_id] = {k: v[0] for k, v in est.items()}
-            else:
-                estimations[subj_id] = est[0]
+            estimations[subj_id] = est[0]
 
         # convert to proper dataframe
         if to_dataframe:
