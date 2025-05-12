@@ -23,11 +23,11 @@ class Data(Iterable):
 
     Attributes
     ----------
-    individuals : :obj: `dict`[:class:`IDType`, :class:`IndividualData`]
+    individuals : :class:`Dict` [:class:`IDType` , :class:`IndividualData`]
         Included individuals and their associated data
-    iter_to_idx : :obj:`dict`[:obj:`int`, :class:`IDType`]
+    iter_to_idx : :class:`Dict` [:obj:`int`, :class:`IDType`]
         Maps an integer index to the associated individual ID
-    headers : :obj: `List`[:class:`FeatureType`]
+    headers : :class:`List` [:class:`FeatureType`]
         Feature names
     dimension : :obj:`int`
         Number of features
@@ -35,7 +35,7 @@ class Data(Iterable):
         Number of individuals
     n_visits : :obj:`int`
         Total number of visits
-    cofactors : :obj:`List`[:class:`FeatureType`]
+    cofactors : :class:`List` [:class:`FeatureType`]
         Feature names corresponding to cofactors
     event_time_name : :obj:`str`
         Name of the header that store the time at event in the original dataframe
@@ -106,7 +106,7 @@ class Data(Iterable):
 
         Returns
         -------
-        :obj:`List`[:class:`FeatureType`]:
+        :class:`List` [:class:`FeatureType`]:
             List of feature names corresponding to cofactors.
         """
         if len(self.individuals) == 0:
@@ -124,7 +124,7 @@ class Data(Iterable):
 
         Parameters
         ----------
-        key : :obj:`int` or :class:`IDType` or :obj:`slice` or :obj:`List`[:obj:`int`] or :obj:`List`[:class:`IDType`]
+        key : :obj:`int` or :class:`IDType` or :obj:`slice` or :class:`List` [:obj:`int`] or :class:`List` [:class:`IDType`]
             The key(s) to access the individuals.
             Can be an integer index, an ID, a slice object or a list of integers or IDs.
 
@@ -224,7 +224,7 @@ class Data(Iterable):
             The dataframe where the cofactors are stored.
             Its index should be ID, the identifier of subjects
             and it should uniquely index the dataframe (i.e. one row per individual).
-        cofactors : :obj:`List`[:class:`FeatureType`], optional
+        cofactors : :class:`List` [:class:`FeatureType`], optional
             Names of the column(s) of dataframe which shall be loaded as cofactors.
             If None, all the columns from the input dataframe will be loaded as cofactors.
             Default: None
@@ -304,16 +304,17 @@ class Data(Iterable):
 
         Parameters
         ----------
-        path : :obj: `str`
+        path : :obj:`str`
             Path to the CSV file to load (with extension)
-        data_type : :obj: `str`
+        data_type : :obj:`str`
             Type of data to read. Can be 'visit' or 'event'.
-        pd_read_csv_kws : :obj: `dict`
+        pd_read_csv_kws : :obj:`dict`
             Keyword arguments that are sent to :func:`pandas.read_csv`
-        facto_kws : :obj: `dict`
+        facto_kws : :obj:`dict`
             Keyword arguments
         **df_reader_kws :
             Keyword arguments that are sent to :class:`AbstractDataframeDataReader` to :func:`dataframe_data_reader_factory`
+
         Returns
         -------
         :class:`Data`:
@@ -340,13 +341,13 @@ class Data(Iterable):
 
         Parameters
         ----------
-        cofactors : :obj: `List`[:class:`FeatureType`] or :obj: `int`, optional
+        cofactors : :class:`List` [:class:`FeatureType`] or :obj:`int`, optional
             Cofactors to include in the DataFrame.
             If None (default), no cofactors are included.
             If "all", all the available cofactors are included.
             Default: None
 
-        reset_index : :obj: `bool`, optional
+        reset_index : :obj:`bool`, optional
             Whether to reset index levels in output.
             Default: True
 
@@ -389,7 +390,7 @@ class Data(Iterable):
 
         Parameters
         ----------
-        cofactors : :obj: `List`[:class:`FeatureType`] or :obj: `int`, optional
+        cofactors : :class:`List` [:class:`FeatureType`] or :obj:`int`, optional
             Cofactors to include in the DataFrame.
             If None (default), no cofactors are included.
             If "all", all the available cofactors are included.
@@ -397,7 +398,7 @@ class Data(Iterable):
 
         Returns
         -------
-        :obj:`List`[:class:`FeatureType`]:
+        :class:`List` [:class:`FeatureType`]:
             A list of the validated cofactors.
 
         Raises
@@ -436,7 +437,7 @@ class Data(Iterable):
             Dataframe containing ID, TIME and features.
         data_type : :obj:`str`
             Type of data to read. Can be 'visit', 'event', 'joint'
-        factory_kws : :obj`dict`
+        factory_kws : :class:`Dict`
             Keyword arguments that are sent to :func:`.dataframe_data_reader_factory`
         **kws
             Keyword arguments that are sent to :class:`DataframeDataReader`
@@ -491,17 +492,17 @@ class Data(Iterable):
 
         Parameters
         ----------
-        indices : :obj:`List`[:class:`IDType`]
+        indices : :class:`List` [:class:`IDType`]
             List of the individuals' unique ID
-        timepoints : :obj:`List`[:obj:`List`[:obj:`float`]]
+        timepoints : :class:`List` [:class:`List` [:obj:`float`]]
             For each individual ``i``, list of timepoints associated
             with the observations.
             The number of such timepoints is noted ``n_timepoints_i``
-        values : :obj:`List`[:obj:`array-like`[:obj:`float`,:obj:`2D`]]
+        values : :class:`List` [:obj:`array-like` [:obj:`float`, :obj:`2D`]]
             For each individual ``i``, two-dimensional array-like object
             containing observed data points.
             Its expected shape is ``(n_timepoints_i, n_features)``
-        headers : :obj:`List`[:class:`FeatureType`]
+        headers : :class:`List` [:class:`FeatureType`]
             Feature names.
             The number of features is noted ``n_features``
 
@@ -552,9 +553,9 @@ class Data(Iterable):
 
         Parameters
         ----------
-        individuals : :obj:`List`[:class:`IndividualData`]
+        individuals : :class:`List` [:class:`IndividualData`]
             List of individuals
-        headers : :obj:`List`[:class:`FeatureType`]
+        headers : :class:`List` [:class:`FeatureType`]
             List of feature names
 
         Returns
