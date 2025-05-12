@@ -9,6 +9,7 @@ from leaspy.exceptions import LeaspyDataInputError
 from leaspy.utils.typing import FeatureType
 =======
 
+import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
@@ -69,6 +70,20 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
     def _check_headers(self, columns: list[str]) -> None:
 =======
     ######################################################
+    #               COVARIATE METHODS
+    ######################################################
+
+    @property
+    def long_outcome_names(self) -> List[FeatureType]:
+        """Name of the longitudinal outcomes in dataset"""
+        return self.visit_reader.long_outcome_names
+
+    @property
+    def n_visits(self) -> int:
+        """Number of visit in the dataset"""
+        return self.visit_reader.n_visits
+
+    ######################################################
     #               ABSTRACT METHODS IMPLEMENTED
     ######################################################
 
@@ -102,6 +117,9 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         return self.visit_reader._set_index(df)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
     def _clean_dataframe_covariates(
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
@@ -114,7 +132,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with patient information
 
         drop_full_nan: bool
+<<<<<<< HEAD
             If set to True, raw full of nan are dropped
+=======
+            If set to True, raw full of nan are droped
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
 
         warn_empty_column: bool
             If set to True, a warning is raise for columns full of nan
@@ -126,6 +148,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with clean information
         """
 
+<<<<<<< HEAD
         df_covariate = df.copy(deep=True)
 
         if not (df_covariate.columns == self.covariate_names).all():
@@ -134,6 +157,15 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                 f"different from the provided covariate names {self.covariate_names}."
             )
 
+=======
+        # [SPECIFIC] check_available_data
+        df_covariate = df.copy(deep=True)
+
+        # Assert covariates columns are the only one available
+        assert (df_covariate.columns == self.covariate_names).all()
+
+        # Check if there are missing values (NaN) in the covariate
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
         for covariate in self.covariate_names:
             if df_covariate[covariate].isna().any():
                 raise LeaspyDataInputError(
@@ -141,6 +173,10 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     "Please ensure that values are provided for each visit."
                 )
 
+<<<<<<< HEAD
+=======
+        # Check covariate good format
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
         for covariate in self.covariate_names:
             if not np.array_equal(
                 df_covariate[covariate], df_covariate[covariate].astype(int)
@@ -161,12 +197,21 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             )
         df_covariate = df_covariate.groupby("ID").first()
 
+<<<<<<< HEAD
+=======
+        # Covariate must be empty to raise an error
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
         if len(df_covariate) == 0:
             raise LeaspyDataInputError("Dataframe should have at least 1 covariate")
 
         # Assert at least 2 different values per covariate
         for covariate in self.covariate_names:
+<<<<<<< HEAD
             if (n_value := df_covariate[covariate].nunique(dropna=False)) < 2:
+=======
+            n_value = df_covariate[covariate].nunique(dropna=False)
+            if n_value < 2:
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
                 raise LeaspyDataInputError(
                     f"The covariate '{covariate}' has only {n_value} unique value."
                     "Each covariate must have at least two distinct values across patients"
@@ -174,8 +219,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         return df_covariate
 
+<<<<<<< HEAD
 =======
 >>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
+=======
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
     def _clean_dataframe(
         self, df: pd.DataFrame, *, drop_full_nan: bool, warn_empty_column: bool
     ) -> pd.DataFrame:
@@ -208,14 +256,22 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         df_visit = self.visit_reader._clean_dataframe(
 =======
         # Check visits
+<<<<<<< HEAD
         df_visits = self.visit_reader._clean_dataframe(
 >>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
+=======
+        df_visit = self.visit_reader._clean_dataframe(
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
             df.drop(columns=self.covariate_names),
             drop_full_nan=drop_full_nan,
             warn_empty_column=warn_empty_column,
         )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        # Check covariates
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
         df_covariate = self._clean_dataframe_covariates(
             df.reset_index()
             .drop(self.long_outcome_names + ["TIME"], axis=1)
@@ -224,6 +280,10 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             warn_empty_column=warn_empty_column,
         )
 
+<<<<<<< HEAD
+=======
+        # [SPECIFIC] prepare_clean_output
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
         if (
             not df_covariate.groupby("ID")
             .first()
@@ -235,6 +295,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         df = df_visit.join(df_covariate)
 
+<<<<<<< HEAD
         return df
 
     def _load_individuals_data_covariates(
@@ -260,6 +321,28 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         return df
 
 >>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
+=======
+        return df
+
+    def _load_individuals_data_covariates(
+        self, subj: IndividualData, df_subj: pd.DataFrame
+    ) -> None:
+        """
+        Convert information stored in a dataframe to information stored into IndividualData
+
+        Parameters
+        ----------
+        subj: IndividualData
+            One patient with her/his information, potentially empty
+
+        df_subj: pd.DataFrame
+            One patient with her/his information
+        """
+        subj.add_covariates(
+            covariates=df_subj[self.covariate_names].iloc[0].values.tolist()
+        )
+
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
     def _load_individuals_data(
         self, subj: IndividualData, df_subj: pd.DataFrame
     ) -> None:
@@ -276,8 +359,12 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         """
         self.visit_reader._load_individuals_data(subj, df_subj)
 <<<<<<< HEAD
+<<<<<<< HEAD
         self._load_individuals_data_covariates(subj, df_subj)
 =======
         # partie covariables à changer
         self.event_reader._load_individuals_data(subj, df_subj)
 >>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
+=======
+        self._load_individuals_data_covariates(subj, df_subj)
+>>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
