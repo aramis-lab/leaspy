@@ -23,11 +23,11 @@ class Data(Iterable):
 
     Attributes
     ----------
-    individuals : :class:`Dict` [:class:`IDType` , :class:`IndividualData`]
+    individuals : :class:`~leaspy.utils.typing.Dict` [:class:`~leaspy.utils.typing.IDType` , :class:`~leaspy.individual_data.IndividualData`]
         Included individuals and their associated data
-    iter_to_idx : :class:`Dict` [:obj:`int`, :class:`IDType`]
+    iter_to_idx : :class:`~leaspy.utils.typing.Dict` [:obj:`int`, :class:`~leaspy.utils.typing.IDType`]
         Maps an integer index to the associated individual ID
-    headers : :class:`List` [:class:`FeatureType`]
+    headers : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`]
         Feature names
     dimension : :obj:`int`
         Number of features
@@ -35,7 +35,7 @@ class Data(Iterable):
         Number of individuals
     n_visits : :obj:`int`
         Total number of visits
-    cofactors : :class:`List` [:class:`FeatureType`]
+    cofactors : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`]
         Feature names corresponding to cofactors
     event_time_name : :obj:`str`
         Name of the header that store the time at event in the original dataframe
@@ -106,7 +106,7 @@ class Data(Iterable):
 
         Returns
         -------
-        :class:`List` [:class:`FeatureType`]:
+        :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`]:
             List of feature names corresponding to cofactors.
         """
         if len(self.individuals) == 0:
@@ -124,13 +124,13 @@ class Data(Iterable):
 
         Parameters
         ----------
-        key : :obj:`int` or :class:`IDType` or :obj:`slice` or :class:`List` [:obj:`int`] or :class:`List` [:class:`IDType`]
+        key : :obj:`int` or :class:`~leaspy.utils.typing.IDType` or :obj:`slice` or :class:`~leaspy.utils.typing.List` [:obj:`int`] or :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.IDType`]
             The key(s) to access the individuals.
             Can be an integer index, an ID, a slice object or a list of integers or IDs.
 
         Returns
         -------
-        :class:`IndividualData` or :class:`Data`:
+        :class:`~leaspy.individual_data.IndividualData` or :class:`~leaspy.utils.typing.Data`:
             The individual data corresponding to the key(s).
             If a single key is provided, returns the corresponding `IndividualData` object.
             If a slice or list of keys is provided, returns a new `Data` object
@@ -174,7 +174,7 @@ class Data(Iterable):
 
         Returns
         -------
-        :class:`Iterator`:
+        :class:`~Iterator`:
             An iterator over the individuals in the Data object.
         """
 
@@ -192,7 +192,7 @@ class Data(Iterable):
 
         Parameters
         ----------
-        key : :class:`IDType`
+        key : :class:`~leaspy.utils.typing.IDType`
             The ID of the individual to check for.
 
         Returns
@@ -224,7 +224,7 @@ class Data(Iterable):
             The dataframe where the cofactors are stored.
             Its index should be ID, the identifier of subjects
             and it should uniquely index the dataframe (i.e. one row per individual).
-        cofactors : :class:`List` [:class:`FeatureType`], optional
+        cofactors : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`], optional
             Names of the column(s) of dataframe which shall be loaded as cofactors.
             If None, all the columns from the input dataframe will be loaded as cofactors.
             Default: None
@@ -313,11 +313,11 @@ class Data(Iterable):
         facto_kws : :obj:`dict`
             Keyword arguments
         **df_reader_kws :
-            Keyword arguments that are sent to :class:`AbstractDataframeDataReader` to :func:`dataframe_data_reader_factory`
+            Keyword arguments that are sent to :class:`~AbstractDataframeDataReader` to :func:`dataframe_data_reader_factory`
 
         Returns
         -------
-        :class:`Data`:
+        :class:`~leaspy.utils.typing.Data`:
             A Data object containing the data from the CSV file.
         """
         # enforce ID to be interpreted as string as default (can be overwritten)
@@ -341,7 +341,7 @@ class Data(Iterable):
 
         Parameters
         ----------
-        cofactors : :class:`List` [:class:`FeatureType`] or :obj:`int`, optional
+        cofactors : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`] or :obj:`int`, optional
             Cofactors to include in the DataFrame.
             If None (default), no cofactors are included.
             If "all", all the available cofactors are included.
@@ -390,7 +390,7 @@ class Data(Iterable):
 
         Parameters
         ----------
-        cofactors : :class:`List` [:class:`FeatureType`] or :obj:`int`, optional
+        cofactors : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`] or :obj:`int`, optional
             Cofactors to include in the DataFrame.
             If None (default), no cofactors are included.
             If "all", all the available cofactors are included.
@@ -398,7 +398,7 @@ class Data(Iterable):
 
         Returns
         -------
-        :class:`List` [:class:`FeatureType`]:
+        :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`]:
             A list of the validated cofactors.
 
         Raises
@@ -429,7 +429,7 @@ class Data(Iterable):
         df: pd.DataFrame, data_type: str = "visit", factory_kws: Dict = {}, **kws
     ) -> Data:
         """
-        Create a `Data` object from a :class:`pandas.DataFrame`.
+        Create a `Data` object from a :class:`~pandas.DataFrame`.
 
         Parameters
         ----------
@@ -437,14 +437,14 @@ class Data(Iterable):
             Dataframe containing ID, TIME and features.
         data_type : :obj:`str`
             Type of data to read. Can be 'visit', 'event', 'joint'
-        factory_kws : :class:`Dict`
+        factory_kws : :class:`~leaspy.utils.typing.Dict`
             Keyword arguments that are sent to :func:`.dataframe_data_reader_factory`
         **kws
-            Keyword arguments that are sent to :class:`DataframeDataReader`
+            Keyword arguments that are sent to :class:`~leaspy.utils.typing.DataframeDataReader`
 
         Returns
         -------
-        :class:`Data`
+        :class:`~leaspy.utils.typing.Data`
         """
         reader = dataframe_data_reader_factory(data_type, **factory_kws)
         reader.read(df, **kws)
@@ -457,12 +457,12 @@ class Data(Iterable):
 
         Parameters
         ----------
-        reader : :class:`AbstractDataframeDataReader`
+        reader : :class:`~AbstractDataframeDataReader`
             Reader object containing the data
 
         Returns
         -------
-        :class:`Data`
+        :class:`~leaspy.utils.typing.Data`
             A Data object containing the data from the reader.
 
         """
@@ -492,23 +492,23 @@ class Data(Iterable):
 
         Parameters
         ----------
-        indices : :class:`List` [:class:`IDType`]
+        indices : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.IDType`]
             List of the individuals' unique ID
-        timepoints : :class:`List` [:class:`List` [:obj:`float`]]
+        timepoints : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.List` [:obj:`float`]]
             For each individual ``i``, list of timepoints associated
             with the observations.
             The number of such timepoints is noted ``n_timepoints_i``
-        values : :class:`List` [:obj:`array-like` [:obj:`float`, :obj:`2D`]]
+        values : :class:`~leaspy.utils.typing.List` [:obj:`array-like` [:obj:`float`, :obj:`2D`]]
             For each individual ``i``, two-dimensional array-like object
             containing observed data points.
             Its expected shape is ``(n_timepoints_i, n_features)``
-        headers : :class:`List` [:class:`FeatureType`]
+        headers : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`]
             Feature names.
             The number of features is noted ``n_features``
 
         Returns
         -------
-        :class:`Data`:
+        :class:`~leaspy.utils.typing.Data`:
             A Data object containing the individuals and their data.
         """
 
@@ -553,14 +553,14 @@ class Data(Iterable):
 
         Parameters
         ----------
-        individuals : :class:`List` [:class:`IndividualData`]
+        individuals : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.individual_data.IndividualData`]
             List of individuals
-        headers : :class:`List` [:class:`FeatureType`]
+        headers : :class:`~leaspy.utils.typing.List` [:class:`~leaspy.utils.typing.FeatureType`]
             List of feature names
 
         Returns
         -------
-        :class:`Data`:
+        :class:`~leaspy.utils.typing.Data`:
             A Data object containing the individuals and their data.
         """
 
@@ -594,7 +594,7 @@ class Data(Iterable):
 
         Returns
         -------
-        :class:`Data`:
+        :class:`~leaspy.utils.typing.Data`:
             A Data object containing only longitudinal data.
 
         Raises
