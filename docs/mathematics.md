@@ -5,7 +5,7 @@
 *Talk about mixed-effect models and their ability to handle missing values*
 
 ## Riemanian framework
-
+ALS
 ### Disease progression represented as trajectory
 As presented in the figure, the model draws a parallel line between a clinical and a Riemannian point of view of the disease progression. The idea is to see the variability of the disease progression as a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an individual trajectory $\gamma_i$ that traverses the manifold. 
 
