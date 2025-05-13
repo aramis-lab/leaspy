@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> cbf242ee (plan proposition for the user guide)
 # Algorithms
 
 ## Fit
@@ -9,22 +5,76 @@
    - Data format and preprocessing steps.
 ### Running Task
    - How to run the fit algorithm.
-<<<<<<< HEAD
    - Example commands and code snippets.
-=======
-   - Example commands and code snippets. 
->>>>>>> cbf242ee (plan proposition for the user guide)
 ### Output
    - What results to expect from the fitting process.
    - DataFrame object 
    - Plotting object 
-<<<<<<< HEAD
 ### Setting Options (Different Models)
    - How to set specific options for different types of models.
    - Customizing parameters for logistic, joint, mixture, and covariate models.
 ## Personalize
 ## Estimate
 ## Simulate
+
+This section describes the procedure for simulating new patient data based on a trained Leaspy model and user-defined parameters. The simulation involves the following steps:
+
+**Step 1: Generation of Individual Parameters**
+For each simulated patient, individual parameters (tau, xi, and sources) are sampled from normal distributions defined by the model’s mean and standard deviation. These model parameters come from a previously trained Leaspy model.
+
+**Step 2: Generation of Visit Times**
+Visit times are generated based on user-specified visit parameters, such as the number of visits, spacing between visits, and follow-up duration. These parameters are provided through a dictionary.
+
+**Step 3: Estimation of Observations**
+The estimate function from Leaspy is used to compute the patient observations at the generated visit times, based on the individual parameters. Gaussian noise (β-noise) is added to the observations to reflect variability.
+
+### Prerequisites
+To run a simulation, the following are required:
+- A trained Leaspy model (see the `fit` function), used for both parameter sampling (step 1) and the estimate function (step 3).
+- A dictionary of visit parameters, specifying the number, type, and timing of visits (used in step 2).
+- An `AlgorithmSettings` object, configured for simulation and including:
+  - The name of the features to simulate.
+  - The visit parameter dictionary.
+
+### Running the Task
+
+```python
+>>> from leaspy.algo import AlgorithmSettings
+>>> visits_params = {
+        'patient_nb': 200,
+        'visit_type': "regular",
+        'regular_visit': 1,
+        'first_visit_mean': 0.,
+        'first_visit_std': 0.4,
+        'time_follow_up_mean': 11,
+        'time_follow_up_std': 0.5,
+        'distance_visit_mean': 2 / 12,
+        'distance_visit_std': 0.75 / 12,
+    }
+>>> simulation_settings = AlgorithmSettings(
+        "simulation",
+        seed=0,
+        features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total', 'MOCA_total', 'REM_total', 
+                  'PUTAMEN_R', 'PUTAMEN_L', 'CAUDATE_R', 'CAUDATE_L'],
+        visit_parameters=visits_params
+    )
+>>> simulated_data = leaspy_logistic.simulate(simulation_settings)
+>>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
+```
+
+### Output
+
+The output is a Data object with ID, TIME and simulated values of each feature. 
+
+### Setting options
+
+Three options for simulating the visit times exist in Leaspy, which can be specified in visit_param dictionary: 
+- `random`: Visit times and intervals are sampled from normal distributions.
+- `regular`: Visits occur at regular intervals, defined by regular_visit. 
+- `dataframe`: Custom visit times are provided directly via a DataFrame.
+
+Refer to the docstring for further details.
+
 
 ## Data Generalities
 - monotonicity
@@ -34,30 +84,3 @@
 - not enough patients 
 - parameters don't converge 
 - score don't progress
-=======
-### Diagnosis
-   - parameters don't converge
-   - Send to metrics section?
-### Setting Options (Different Models)
-   - How to set specific options for different types of models.
-   - Customizing parameters for logistic, joint, mixture, and covariate models.
-
-## Personalize
-### Prerequisites
-### Running Task
-### Output
-### Diagnosis
-
-### Setting Options (Different Models)
-## Estimate
-### Prerequisites
-### Running Task
-### Output
-### Diagnosis
-
-## Simulate
-### Prerequisites
-### Running Task
-### Output
-### Diagnosis
->>>>>>> cbf242ee (plan proposition for the user guide)
