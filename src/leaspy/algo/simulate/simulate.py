@@ -283,7 +283,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         This method simulates longitudinal data using the given leaspy model.
         It performs the following steps:
-        - Retrieves individual parameters (IP) from repeated measures (RM).
+        - Retrieves individual parameters (IP) from fixed effects of the model.
         - Loads the specified Leaspy model.
         - Generates visit ages (timepoints) for each individual (based on specifications
         in visits_type from AlgorithmSettings)
@@ -306,44 +306,44 @@ class SimulationAlgorithm(AbstractAlgo):
         """
 
         # Simulate RE for RM
-        individual_parameters_from_repeated_measurements = (
-            self._get_individual_parameters_from_repeated_measurement(model)
+        individual_parameters_from_model_parameters = (
+            self._sample_individual_parameters_from_model_parameters(model)
         )
 
         self._get_leaspy_model(model)
 
         dict_timepoints = self._generate_visit_ages(
-            individual_parameters_from_repeated_measurements
+            individual_parameters_from_model_parameters
         )
 
         df_sim = self._generate_dataset(
-            model, dict_timepoints, individual_parameters_from_repeated_measurements
+            model, dict_timepoints, individual_parameters_from_model_parameters
         )
 
         simulated_data = Data.from_dataframe(df_sim)
         result_obj = Result(
             data=simulated_data,
-            individual_parameters=individual_parameters_from_repeated_measurements,
+            individual_parameters=individual_parameters_from_model_parameters,
             noise_std=model.parameters["noise_std"].numpy() * 100,
         )
         return result_obj
 
-    def _get_individual_parameters_from_repeated_measurement(
+    def _sample_individual_parameters_from_model_parameters(
         self, model: AbstractModel
     ) -> pd.DataFrame:
         """
-        Generate individual parameters for repeated measures simulation, from the model initial parameters.
+        Generate individual parameters for repeated measures simulation, from the model parameters of the loaded model.
 
         This function samples individual parameters (xi, tau, and source components)
-        based on the provided model's parameter distributions.
+        from a distribution defined by the provided model's parameter.
         Space shifts are computed with the source components and the mixing_matrix.
         It returns the complete set of individual parameters and space shifts in a DataFrame.
 
         Parameters
         ----------
         model : :class:~.models.abstract_model.AbstractModel
-            A Leaspy model instance containing parameters set after training,
-            namely the mean and standard deviation values for xi, tau, and the mixing matrix.
+            A Leaspy model instance containing model parameters,
+            among which the mean and standard deviation values for xi, tau, and the mixing matrix.
 
         Returns
         -------
@@ -374,7 +374,7 @@ class SimulationAlgorithm(AbstractAlgo):
             columns = [str(i) for i in self.param_study["df_visits"]["ID"].unique()]
         else:
             columns = [str(i) for i in range(0, self.param_study["patient_number"])]
-        individual_parameters_from_repeated_measurements = pd.DataFrame(
+        individual_parameters_from_model_parameters = pd.DataFrame(
             [xi_rm, tau_rm],
             index=["xi", "tau"],
             columns=columns,
@@ -382,25 +382,19 @@ class SimulationAlgorithm(AbstractAlgo):
 
         # Generate the source tensors
         for i in range(model.source_dimension):
-            individual_parameters_from_repeated_measurements[f"sources_{i}"] = (
-                torch.tensor(
-                    np.random.normal(0.0, 1.0, self.param_study["patient_number"]),
-                    dtype=torch.float32,
-                )
+            individual_parameters_from_model_parameters[f"sources_{i}"] = torch.tensor(
+                np.random.normal(0.0, 1.0, self.param_study["patient_number"]),
+                dtype=torch.float32,
             )
-            individual_parameters_from_repeated_measurements[f"sources_{i}"] = (
-                individual_parameters_from_repeated_measurements[f"sources_{i}"]
-                - individual_parameters_from_repeated_measurements[
-                    f"sources_{i}"
-                ].mean()
-            ) / individual_parameters_from_repeated_measurements[f"sources_{i}"].std()
+            individual_parameters_from_model_parameters[f"sources_{i}"] = (
+                individual_parameters_from_model_parameters[f"sources_{i}"]
+                - individual_parameters_from_model_parameters[f"sources_{i}"].mean()
+            ) / individual_parameters_from_model_parameters[f"sources_{i}"].std()
 
         pat = torch.stack(
             [
                 torch.tensor(
-                    individual_parameters_from_repeated_measurements[
-                        f"sources_{i}"
-                    ].values,
+                    individual_parameters_from_model_parameters[f"sources_{i}"].values,
                     dtype=torch.float32,
                 )
                 for i in range(model.source_dimension)
@@ -413,11 +407,11 @@ class SimulationAlgorithm(AbstractAlgo):
         space_shifts = pd.DataFrame(
             result.T,
             columns=[f"w_{i}" for i in range(len(self.features))],
-            index=individual_parameters_from_repeated_measurements.index,
+            index=individual_parameters_from_model_parameters.index,
         )
 
         return pd.concat(
-            [individual_parameters_from_repeated_measurements, space_shifts], axis=1
+            [individual_parameters_from_model_parameters, space_shifts], axis=1
         )
 
     def _get_leaspy_model(self, model: AbstractModel) -> None:
@@ -523,7 +517,7 @@ class SimulationAlgorithm(AbstractAlgo):
         self,
         model: AbstractModel,
         dict_timepoints: dict,
-        individual_parameters_from_repeated_measurements: pd.DataFrame,
+        individual_parameters_from_model_parameters: pd.DataFrame,
     ) -> pd.DataFrame:
         """
         Generate a simulated dataset based on simulated individual parameters and model timepoints.
@@ -543,7 +537,7 @@ class SimulationAlgorithm(AbstractAlgo):
         dict_timepoints : dict
             A dictionary mapping individual IDs to their respective visit timepoints (according to visit_type)
 
-        individual_parameters_from_repeated_measurements : pd.DataFrame
+        individual_parameters_from_model_parameters : pd.DataFrame
             DataFrame containing the simulated individual parameters (e.g., 'xi', 'tau', and sources)
             for each individual, used in generating the simulated data.
 
@@ -557,7 +551,7 @@ class SimulationAlgorithm(AbstractAlgo):
         values = self.leaspy.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
-                individual_parameters_from_repeated_measurements[
+                individual_parameters_from_model_parameters[
                     ["xi", "tau"]
                     + [f"sources_{i}" for i in range(model.source_dimension)]
                 ]
@@ -615,10 +609,8 @@ class SimulationAlgorithm(AbstractAlgo):
             dict_rm_rename[f"w_{i}"] = f"RM_SPACE_SHIFTS_{i}"
 
         # Put everything in one dataframe
-        individual_parameters_from_repeated_measurements = (
-            individual_parameters_from_repeated_measurements.rename(
-                columns=dict_rm_rename
-            )
+        individual_parameters_from_model_parameters = (
+            individual_parameters_from_model_parameters.rename(columns=dict_rm_rename)
         )
         df_sim = df_long[self.features]
 
