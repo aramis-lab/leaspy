@@ -375,7 +375,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Normal / Gaussian family (stateless)."""
 
-    parameters: ClassVar = ("loc", "scale", "coeff_corr")
+    parameters: ClassVar = ("loc", "scale", "coeff_corr", "covariates")
     # dist_factory: ClassVar = torch.distributions.Normal
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
@@ -385,7 +385,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        # covariate: torch.Tensor,
+        covariates: torch.Tensor,
     ) -> torch.Tensor:
         """Return the mode of the distribution given the distribution's loc and scale parameters.
 
@@ -403,7 +403,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
             The value of the distribution's mode.
         """
         # `loc`, but with possible broadcasting of shape
-        return loc[0] * covariate + loc[1]
+        return loc[0] * covariates + loc[1]
 
     @classmethod
     def mean(
@@ -411,7 +411,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        # covariate: torch.Tensor,
+        covariates: torch.Tensor,
     ) -> torch.Tensor:
         """Return the mean of the distribution, given the distribution loc and scale parameters.
 
@@ -430,7 +430,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         """
         # Hardcode method for efficiency
         # `loc`, but with possible broadcasting of shape
-        return loc[0] * covariate + loc[1]
+        return loc[0] * covariates + loc[1]
 
     @classmethod
     def stddev(
@@ -438,7 +438,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        # covariate: torch.Tensor,
+        covariates: torch.Tensor,
     ) -> torch.Tensor:
         """Return the standard-deviation of the distribution, given loc and scale of the distribution.
 
@@ -458,9 +458,9 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         # Hardcode method for efficiency
         # `scale`, but with possible broadcasting of shape
         return torch.sqrt(
-            (scale[0] * covariate) ** 2
+            (scale[0] * covariates) ** 2
             + scale[1] ** 2
-            + 2 * covariate * coeff_corr * scale[0] * scale[1]
+            + 2 * covariates * coeff_corr * scale[0] * scale[1]
         )
 
     @classmethod
@@ -470,15 +470,15 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        # covariate: torch.Tensor,
+        covariates: torch.Tensor,
     ) -> WeightedTensor:
         x_mod, x_ref = x.value.unbind(-1)
-        obs = x_mod * covariate + x_ref
-        mu = loc[0] * covariate + loc[1]
+        obs = x_mod * covariates + x_ref
+        mu = loc[0] * covariates + loc[1]
         var = (
-            (scale[0] * covariate) ** 2
+            (scale[0] * covariates) ** 2
             + scale[1] ** 2
-            + 2 * covariate * coeff_corr * scale[0] * scale[1]
+            + 2 * covariates * coeff_corr * scale[0] * scale[1]
         )
 
         return WeightedTensor(
@@ -497,20 +497,20 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        # covariate: torch.Tensor,
+        covariates: torch.Tensor,
     ) -> WeightedTensor:
         x_mod, x_ref = x.value.unbind(-1)
-        obs = x_mod * covariate + x_ref
-        mu = loc[0] * covariate + loc[1]
+        obs = x_mod * covariates + x_ref
+        mu = loc[0] * covariates + loc[1]
         var = (
-            (scale[0] * covariate) ** 2
+            (scale[0] * covariates) ** 2
             + scale[1] ** 2
-            + 2 * covariate * coeff_corr * scale[0] * scale[1]
+            + 2 * covariates * coeff_corr * scale[0] * scale[1]
         )
         delta = obs - mu
 
         # Gradients
-        dloc0 = delta * covariate / var  # d NLL / d phi_mod
+        dloc0 = delta * covariates / var  # d NLL / d phi_mod
         dloc1 = delta / var  # d NLL / d phi_ref
         # drho = (
         #     (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
@@ -527,22 +527,22 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariate: torch.Tensor,
+        covariates: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
         x_mod, x_ref = x.value.unbind(-1)
-        obs = x_mod * covariate + x_ref
-        mu = loc[0] * covariate + loc[1]
+        obs = x_mod * covariates + x_ref
+        mu = loc[0] * covariates + loc[1]
         var = (
-            (scale[0] * covariate) ** 2
+            (scale[0] * covariates) ** 2
             + scale[1] ** 2
-            + 2 * covariate * coeff_corr * scale[0] * scale[1]
+            + 2 * covariates * coeff_corr * scale[0] * scale[1]
         )
         delta = obs - mu
 
         nll = 0.5 * delta**2 / (var) + 0.5 * torch.log(var) + cls.nll_constant_standard
 
         # Gradients
-        dloc0 = delta * covariate / var  # d NLL / d phi_mod
+        dloc0 = delta * covariates / var  # d NLL / d phi_mod
         dloc1 = delta / var  # d NLL / d phi_ref
         # drho = (
         #     (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2

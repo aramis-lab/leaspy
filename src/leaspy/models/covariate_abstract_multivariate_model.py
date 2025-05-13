@@ -114,8 +114,9 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             The specifications of the model's variables.
         """
         d = super().get_variables_specs()
-
         d.update(
+            # INPUTS
+            covariates=DataVariable(),
             # PRIORS
             phi_tau_mean=ModelParameter.for_ind_mean(
                 ("phi_tau"), shape=(2,)
@@ -129,11 +130,11 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             phi_tau=IndividualLatentVariable(
                 NormalCovariateLinear(
-                    "phi_tau_mean", "phi_tau_std", "rho_tau"
+                    "phi_tau_mean", "phi_tau_std", "rho_tau", "covariates"
                 )
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
-            tau=LinkedVariable(Affine("phi_tau", self.covariates)),
+            tau=LinkedVariable(Affine("phi_tau", "covariates")),
             alpha=LinkedVariable(Exp("xi")),
         )
 

@@ -563,7 +563,7 @@ class Data(Iterable):
         return Data.from_individuals(
             individuals, headers, event_time_name, event_bool_name
         )
-    
+
         # Covariate input checks
 
     @staticmethod
