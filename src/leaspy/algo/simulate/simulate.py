@@ -391,7 +391,7 @@ class SimulationAlgorithm(AbstractAlgo):
                 - individual_parameters_from_model_parameters[f"sources_{i}"].mean()
             ) / individual_parameters_from_model_parameters[f"sources_{i}"].std()
 
-        pat = torch.stack(
+        patient_source_values_matrix = torch.stack(
             [
                 torch.tensor(
                     individual_parameters_from_model_parameters[f"sources_{i}"].values,
@@ -402,7 +402,9 @@ class SimulationAlgorithm(AbstractAlgo):
             dim=1,
         )
         mixing_matrix = model.state.get_tensor_value("mixing_matrix")
-        result = torch.matmul(mixing_matrix.transpose(0, 1), pat.transpose(0, 1))
+        result = torch.matmul(
+            mixing_matrix.transpose(0, 1), patient_source_values_matrix.transpose(0, 1)
+        )
 
         space_shifts = pd.DataFrame(
             result.T,
