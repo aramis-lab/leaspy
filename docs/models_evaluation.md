@@ -34,7 +34,11 @@ Package: `leaspy`
 AIC (Akaike Information Criterion) is a robust metric for model selection. It integrates the goodness-of-fit and the complexity of the model (number of features and number of patients). It has a penalty term for the number of parameters in the model, thus penalizing more complex models with unnecessary features. Lower AIC values indicate a better model {cite}`akaike1974new`.
 
 $$
+<<<<<<< HEAD
 \text{AIC} = 2 \cdot (\text{nb}_{\text{features}}) - 2 \cdot \log(\text{likelihood})
+=======
+\text{AIC} = 2 \cdot (\text{nb\_features}) - 2 \cdot \log(\text{likelihood})
+>>>>>>> 5987f865 (Equation and bib integration)
 $$
 
 Package: `leaspy` 
