@@ -129,7 +129,7 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             phi_tau=IndividualLatentVariable(
                 NormalCovariateLinear(
-                    "phi_tau_mean", "phi_tau_std", "rho_tau", self.covariates
+                    "phi_tau_mean", "phi_tau_std", "rho_tau"
                 )
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS

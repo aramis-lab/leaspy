@@ -385,7 +385,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariate: torch.Tensor,
+        # covariate: torch.Tensor,
     ) -> torch.Tensor:
         """Return the mode of the distribution given the distribution's loc and scale parameters.
 
@@ -411,7 +411,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariate: torch.Tensor,
+        # covariate: torch.Tensor,
     ) -> torch.Tensor:
         """Return the mean of the distribution, given the distribution loc and scale parameters.
 
@@ -438,7 +438,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariate: torch.Tensor,
+        # covariate: torch.Tensor,
     ) -> torch.Tensor:
         """Return the standard-deviation of the distribution, given loc and scale of the distribution.
 
@@ -470,7 +470,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariate: torch.Tensor,
+        # covariate: torch.Tensor,
     ) -> WeightedTensor:
         x_mod, x_ref = x.value.unbind(-1)
         obs = x_mod * covariate + x_ref
@@ -497,7 +497,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariate: torch.Tensor,
+        # covariate: torch.Tensor,
     ) -> WeightedTensor:
         x_mod, x_ref = x.value.unbind(-1)
         obs = x_mod * covariate + x_ref
