@@ -13,12 +13,10 @@
 
 ## Fit metrics
 
-In leaspy, 3 negative log likelihood (nll) are stored in the model’s json file, in the fit_metric part:
-`fit_metrics`: {
-    `nll_attach`: Corresponds to the nll attach to the data
-    `nll_regul_ind_sum`: Corresponds to the nll from the random effects
-    `nll_to`: Corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (v0, xi, tau), that is not reported directly in the json file.
-}
+In leaspy, 3 negative log likelihood (nll) are stored in the model’s json file, in the `fit_metrics` part:
+- `nll_attach`: Corresponds to the nll attach to the data
+- `nll_regul_ind_sum`: Corresponds to the nll from the random effects
+- `nll_to`: Corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (v0, xi, tau), that is not reported directly in the json file.
 
 It is the last nll which is used for computing fit metric as BIC, AIC, DIC…
 
@@ -30,9 +28,9 @@ WAIC (Watanabe – Akaike information criterion), defined by Watanabe in 2010 \c
 For example, the version by Vehtari, Gelman, and Gabry (2017) \cite{vehtari2017practical} can be used in the Leaspy framework, with β = 1 and multiplied by -2 to be on the deviance scale. To compute it, the probability of observation given the parameters should be computed for each iteration. Two versions can be computed using the conditional or the marginal likelihood.  
 The marginal likelihood is more robust \cite{millar2018bayesian}, but it is harder to compute as the integral must be estimated. It is usually estimated using Laplace’s approximation, which corresponds to a Taylor expansion \cite{daxberger2021laplace}.  
 
-\[
+$$
 \text{WAIC} = -2 \cdot \sum_{i=1}^{n} \log(p(y_i | \hat{\theta}_i))
-\]
+$$
 
 Where \( p(y_i | \hat{\theta}_i) \) is the probability of the observation given the estimated parameters \(\hat{\theta}_i\), and \(n\) is the number of data points.
 
@@ -43,18 +41,18 @@ Where \( p(y_i | \hat{\theta}_i) \) is the probability of the observation given 
 #### AIC
 AIC (Akaike Information Criterion) is a robust metric for model selection. It integrates the goodness-of-fit and the complexity of the model (number of features and number of patients). It has a penalty term for the number of parameters in the model, thus penalizing more complex models with unnecessary features. Lower AIC values indicate a better model.\cite{akaike1974new}
 
-\[
+$$
 \text{AIC} = 2 \cdot (\text{nb\_features}) - 2 \cdot \log(\text{likelihood})
-\]
+$$
 
 **Package:** `statsmodels.api`
 
 ### BIC
 BIC (Bayesian Information Criterion) is similar to the AIC metric, but it also integrates the number of patients. It penalizes both the number of features and the number of patients.\cite{schwarz1978estimating}
 
-\[
+$$
 \text{BIC} = \log(\text{nb\_patient}) \cdot \text{features} - 2 \cdot \log(\text{likelihood})
-\]
+$$
 
 **Package:** `statsmodels.api`
 
@@ -69,17 +67,17 @@ This section describes the main metrics used to evaluate the quality of predicti
 
 #### Mean Absolute Error (MAE)
 
-\[
+$$
 MAE = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
-\]
+$$
 
 MAE is more robust to outliers and provides a straightforward sense of typical prediction error.
 
 #### Mean Square Error (MSE)
 
-\[
+$$
 MSE = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
-\]
+$$
 
 MSE penalizes larger errors more heavily than MAE, making it more sensitive to outliers. \cite{willmott2005advantages}\cite{chai2014root}
 
@@ -93,9 +91,9 @@ A graphical tool to assess whether residuals follow a normal distribution, which
 #### Coefficient of Determination (R²)
 R² indicates how well the model explains the variance in the observed data. Higher values (closer to 1) suggest better performance.
 
-\[
+$$
 R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
-\]
+$$
 
 In mixed-effects models, multiple R² variants exist (e.g., marginal vs. conditional R²) to account for fixed and random effects. \cite{nakagawa2012method}
 
@@ -117,3 +115,9 @@ Cumulative AUC (or time-dependent AUC) evaluates the model’s ability to discri
 
 #### Avoid using C-index
 The C-index or Concordance index, similarly to the cumulative AUC, is a metric assessing the discriminatory ability of a survival model. However, this metric is criticized because it is a global metric that averages performance over the entire study period, hiding time-specific weaknesses. It also depends on the censoring distribution. Therefore, it is more convenient to use time-dependent AUC and the Brier Score presented above. \cite{blanche2019cindex}
+
+## References
+
+```{bibliography}
+:filter: docname in docnames
+```
