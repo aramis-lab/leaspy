@@ -20,7 +20,7 @@ __Describe the joint progression of multiple outcomes:__ This package has been e
 
 __Describe disease heterogeneity:__ Post-hoc analysis of the individual variability to describe disease heterogeneity were conducted using a supervised approach for for Amyotrophic Lateral Sclerosis {cite}`ortholand_interaction_2023` and Ataxia {cite}`moulaire_temporal_2023` as well as an unsupervised approaches for CADASIL {cite}`kaisaridi_determining_2025`.
 
-__Improve clinical trials:__ The model has been shown useful to select patients for clinical trials in order to increase the sensibility of the trial {cite}`maheux_forecasting_2023`. [Paper Maylis & PE]
+__Improve clinical trials:__ The model has been shown useful to select patients for clinical trials in order to increase the sensibility of the trial {cite}`maheux_forecasting_2023`. The model's predictions could also be integrated to clinical trials, through prognostic score's methods (such as Prognostic Covariate Adjustment or Prediction-Powered inference for Clinical Trials) to increase the statistical power of the trials {cite}`poulet_prediction-powered_2025`.
 
 __Make predictions:__ Leaspy outperformed the 56 alternative methods for predicting cognitive decline in the framework of the TADPOLE challenge {cite}`marinescu_tadpole_2019` and was more generally used for diverse applications {cite}`maheux_forecasting_2023, koval_forecasting_2022`
 
