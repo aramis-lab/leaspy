@@ -160,10 +160,10 @@ Refer to the docstring for further details.
 - not enough patients 
 - parameters don't converge 
 - score don't progress
-<<<<<<< HEAD
 
 ## References
 
 ```{bibliography}
 :filter: docname in docnames
 ```
+
