@@ -13,12 +13,12 @@
 
 ## Fit metrics
 
-In leaspy, 3 negative log likelihood (nll) are stored in the model’s json file, in the `fit_metrics` part:
+In leaspy, 3 negative log likelihood conditionnal on the random effects (nll) are stored in the model’s json file, in the `fit_metrics` part:
 - `nll_attach`: Corresponds to the nll attach to the data
 - `nll_regul_ind_sum`: Corresponds to the nll from the random effects
 - `nll_to`: Corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (`v0`,`xi`,`tau`), that is not reported directly in the json file.
 
-It is the last nll which is used for computing fit metric as BIC, AIC, DIC…
+The last conditional nll can be used for computing fit metrics.
 
 ### Bayesian Approach
 
