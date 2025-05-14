@@ -17,7 +17,7 @@
 ## Estimate
 ## Simulate
 
-This section describes the procedure for simulating new patient data based on a trained Leaspy model and user-defined parameters. The simulation involves the following steps:
+This section describes the procedure for simulating new patient data based on a trained Leaspy model and user-defined parameters. The simulation method involves the following steps:
 
 **Step 1: Generation of Individual Parameters**
 For each simulated patient, individual parameters (tau, xi, and sources) are sampled from normal distributions defined by the model’s mean and standard deviation. These model parameters come from a previously trained Leaspy model.
@@ -29,7 +29,7 @@ Visit times are generated based on user-specified visit parameters, such as the 
 The estimate function from Leaspy is used to compute the patient observations at the generated visit times, based on the individual parameters. Gaussian noise (β-noise) is added to the observations to reflect variability.
 
 ### Prerequisites
-To run a simulation, the following are required:
+To run a simulation, the following variables are required:
 - A trained Leaspy model (see the `fit` function), used for both parameter sampling (step 1) and the estimate function (step 3).
 - A dictionary of visit parameters, specifying the number, type, and timing of visits (used in step 2).
 - An `AlgorithmSettings` object, configured for simulation and including:
@@ -68,7 +68,7 @@ The output is a Data object with ID, TIME and simulated values of each feature.
 
 ### Setting options
 
-Three options for simulating the visit times exist in Leaspy, which can be specified in visit_param dictionary: 
+There are three options to simulate the visit times in Leaspy, which can be specified in visit_param dictionary: 
 - `random`: Visit times and intervals are sampled from normal distributions.
 - `regular`: Visits occur at regular intervals, defined by regular_visit. 
 - `dataframe`: Custom visit times are provided directly via a DataFrame.
