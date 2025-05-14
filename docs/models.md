@@ -1,6 +1,7 @@
 # Models
 
 ## Logistic Model
+### Definition
 ### Data
    - *"When you have this type of data, it is relevant to use this model"*
 ### Mathematical background
@@ -12,10 +13,12 @@
 
 Joint models are a class of statistical models that simultaneously analyze longitudinal data (repeated measurements over time) and survival data (time-to-event outcomes). Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects or latent processes, models account for their interdependence, reducing biases from informative dropout or measurement error.
 
+In Leaspy, the joint model {cite}`ortholand:tel-04770912` is implemented as a longitudinal temporal-spatial model, and a survival model, that are linked through a shared latent disease age. This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
+
+
 ### Data
 A joint model is relevant when you have:
 - **Longitudinal measurements** as repeated biomarker readings, clinical scores
-  
 - **Time-to-event outcomes** as survival, dropout, or failure events
 - **A suspected association** between the longitudinal process and event risk
   
@@ -110,6 +113,10 @@ $$
 
 
 ### References
+
+```{bibliography}
+:filter: docname in docnames
+```
 
 
 ## Mixture Model
