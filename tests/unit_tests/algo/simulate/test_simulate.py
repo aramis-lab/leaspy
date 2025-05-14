@@ -48,47 +48,6 @@ class SimulateAlgoTest(LeaspyTestCase):
 
         cls.model_loaded.fit(data, fit_settings)
 
-    def test_regular_visits(self):
-        model_loaded = self.model_loaded
-        settings = AlgorithmSettings(
-            "simulation",
-            seed=0,
-            features=[
-                "MDS1_total",
-                "MDS2_total",
-                "MDS3_off_total",
-                "SCOPA_total",
-                "MOCA_total",
-                "REM_total",
-                "PUTAMEN_R",
-                "PUTAMEN_L",
-                "CAUDATE_R",
-                "CAUDATE_L",
-            ],
-            visit_parameters={
-                "visit_type": "regular",
-                "patient_number": 5,
-                "regular_visit": 1.0,
-                "first_visit_mean": 50.0,
-                "first_visit_std": 2.0,
-                "time_follow_up_mean": 10.0,
-                "time_follow_up_std": 1.0,
-            },
-        )
-
-        algo = algorithm_factory(settings)
-        df_sim = algo.run_impl(model_loaded.model)
-        df_sim = df_sim.data.to_dataframe()
-
-        expected_columns = ["ID", "TIME"] + settings.parameters["features"]
-        assert all(col in df_sim.columns for col in expected_columns)
-        self.assertFalse(df_sim.empty)
-        self.assertEqual(len(df_sim["ID"].unique()), 5)
-
-        for id in df_sim["ID"].unique():
-            times = df_sim[df_sim["ID"] == id]["TIME"].values
-            assert np.allclose(np.diff(times), 1.0, atol=0.1)
-
     def test_random_visits(self):
         model_loaded = self.model_loaded
         settings = AlgorithmSettings(

@@ -19,7 +19,6 @@ from leaspy.models import AbstractModel
 
 class VisitType(str, Enum):
     DATAFRAME = "dataframe"  # Dataframe of visits
-    REGULAR = "regular"  # Regular spaced visits
     RANDOM = "random"  # Random spaced visits
 
 
@@ -30,14 +29,6 @@ class SimulationAlgorithm(AbstractAlgo):
     _PARAM_REQUIREMENTS = {
         "dataframe": [
             ("df_visits", pd.DataFrame),
-        ],
-        "regular": [
-            ("patient_number", int),
-            ("regular_visit", (int, float)),
-            ("first_visit_mean", (int, float)),
-            ("first_visit_std", (int, float)),
-            ("time_follow_up_mean", (int, float)),
-            ("time_follow_up_std", (int, float)),
         ],
         "random": [
             ("patient_number", int),
@@ -178,12 +169,6 @@ class SimulationAlgorithm(AbstractAlgo):
                     "Distance visit mean (distance_visit_mean) and distance visit std need to be positive"
                 )
 
-        if self.visit_type == VisitType.REGULAR:
-            if self.param_study["regular_visit"] <= 0:
-                raise LeaspyAlgoInputError(
-                    "Regular visit (regular_visit) need to be positive "
-                )
-
     ## --- SET PARAMETERS ---
     # def _save_parameters(self, model, path_save):  # TODO
     #     total_params = {"study": self.param_study, "model": model.parameters}
@@ -195,7 +180,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         This function initializes the `param_study` attribute with relevant
         parameters depending on the visit type of the object. It handles
-        three different visit types: 'dataframe', 'regular', and 'random',
+        three different visit types: 'dataframe' and 'random',
         each requiring a different set of input parameters.
 
         Parameters
@@ -209,22 +194,6 @@ class SimulationAlgorithm(AbstractAlgo):
                     DataFrame of visits, with a column "ID" and a column 'TIME'.
                 TIME and number of visits for each simulated patients (with specified ID)
                 are given by a dataframe in dict_param.
-
-            - If `visit_type` is "regular":
-                - 'patient_number' : :obj:`int`
-                    Number of patients.
-                - 'regular_visit' : :obj:`int`
-                    Time delta between each visits.
-                - 'first_visit_mean' : :obj:`float`
-                    Mean of the first visit TIME.
-                - 'first_visit_std' : :obj:`float`
-                    Standard deviation of the first visit TIME.
-                - 'time_follow_up_mean' : :obj:`float`
-                    Mean of the follow-up TIME.
-                - 'time_follow_up_std' : :obj:`float`
-                    Standard deviation of the follow-up TIME.
-                Visits are equally spaced for all patients, and the number of visits
-                deduced from first visit and follow-up time.
 
             - If `visit_type` is "random":
                 - 'patient_number' : :obj:`int`
@@ -255,16 +224,6 @@ class SimulationAlgorithm(AbstractAlgo):
             self.param_study = {
                 "patient_number": patient_number,
                 "df_visits": dict_param["df_visits"],
-            }
-
-        elif self.visit_type == VisitType.REGULAR:
-            self.param_study = {
-                "patient_number": dict_param["patient_number"],
-                "regular_visit": dict_param["regular_visit"],
-                "first_visit_mean": dict_param["first_visit_mean"],
-                "first_visit_std": dict_param["first_visit_std"],
-                "time_follow_up_mean": dict_param["time_follow_up_mean"],
-                "time_follow_up_std": dict_param["time_follow_up_std"],
             }
 
         elif self.visit_type == VisitType.RANDOM:
@@ -444,7 +403,7 @@ class SimulationAlgorithm(AbstractAlgo):
         If the visit type is "dataframe", the visit timepoints are directly extracted
         from the provided DataFrame. Otherwise, synthetic visit ages are generated for
         each individual based on baseline and follow-up ages, with time intervals
-        defined by the visit mode ("regular" or "random").
+        defined by the visit mode  "random"
 
         Parameters
         ----------
@@ -457,7 +416,6 @@ class SimulationAlgorithm(AbstractAlgo):
         dict
             Dictionary mapping individual IDs to a list of visit ages (floats).
             - For 'dataframe': uses existing "TIME" values from `df_visits`.
-            - For 'regular': generates visits at fixed intervals.
             - For 'random': generates visits with normally-distributed intervals.
         """
 
@@ -500,9 +458,6 @@ class SimulationAlgorithm(AbstractAlgo):
             age_visits = [time]
 
             while time < df_ind.loc[id_, "AGE_FOLLOW_UP"]:
-                if self.visit_type == VisitType.REGULAR:
-                    time += self.param_study["regular_visit"]
-
                 if self.visit_type == VisitType.RANDOM:
                     time += np.random.normal(
                         self.param_study["distance_visit_mean"],
