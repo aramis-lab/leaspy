@@ -24,7 +24,7 @@ $$
 \text{WAIC} = -2 \cdot \sum_{i=1}^{n} \log(p(y_i | \hat{\theta}_i))
 $$
 
-Where $p(y_i | \hat{\theta}_i)$ is the probability of the observation given the estimated parameters $\hat{\theta}_i$\$, and $n$ is the number of data points.
+Where $p(y_i | \hat{\theta}_i)$ is the probability of the observation given the estimated parameters $\hat{\theta}_i$, and $n$ is the number of data points.
 
 **Package:** `leaspy`
 
