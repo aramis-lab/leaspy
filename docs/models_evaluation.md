@@ -2,14 +2,7 @@
 
 ## Convergence diagnosis
 
-*We need to talk with Sofia in June to complete this part.*
-
-*At first glance, we would talk about looking at the convergence graphs saved in the logs (all the plots in convergence.pdf). WDYT?* 
-
-
 ## Likelihood based metrics
-
-*Sofia and Gabrielle*
 
 ## Fit metrics
 
