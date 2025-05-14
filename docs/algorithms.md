@@ -17,20 +17,20 @@
 ## Estimate
 ## Simulate
 
-This section describes the procedure for simulating new patient data based on a trained Leaspy model and user-defined parameters. The simulation method involves the following steps:
+This section describes the procedure for simulating new patient data based on a fitted Leaspy model and user-defined parameters. The simulation method involves the following steps:
 
 **Step 1: Generation of Individual Parameters**
-For each simulated patient, individual parameters (tau, xi, and sources) are sampled from normal distributions defined by the model’s mean and standard deviation. These model parameters come from a previously trained Leaspy model.
+For each simulated patient, individual parameters (tau, xi, and sources) are sampled from normal distributions defined by the model’s mean and standard deviation. These model parameters come from a previously fitted Leaspy model, provided by the user. 
 
 **Step 2: Generation of Visit Times**
 Visit times are generated based on user-specified visit parameters, such as the number of visits, spacing between visits, and follow-up duration. These parameters are provided through a dictionary.
 
 **Step 3: Estimation of Observations**
-The estimate function from Leaspy is used to compute the patient observations at the generated visit times, based on the individual parameters. Gaussian noise (β-noise) is added to the observations to reflect variability.
+The estimate function from Leaspy is used to compute the patient observations at the generated visit times, based on the individual parameters. To reflect variability in the observations, beta-distributed noise is added, appropriate for modeling outcomes in a logistic framework.
 
 ### Prerequisites
 To run a simulation, the following variables are required:
-- A trained Leaspy model (see the `fit` function), used for both parameter sampling (step 1) and the estimate function (step 3).
+- A fitted Leaspy model (see the `fit` function), used for both parameter sampling (step 1) and the estimate function (step 3).
 - A dictionary of visit parameters, specifying the number, type, and timing of visits (used in step 2).
 - An `AlgorithmSettings` object, configured for simulation and including:
   - The name of the features to simulate.
@@ -54,12 +54,19 @@ To run a simulation, the following variables are required:
 >>> simulation_settings = AlgorithmSettings(
         "simulation",
         seed=0,
-        features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total', 'MOCA_total', 'REM_total', 
-                  'PUTAMEN_R', 'PUTAMEN_L', 'CAUDATE_R', 'CAUDATE_L'],
+        features=["MDS1_total", "MDS2_total", "MDS3_off_total"],
         visit_parameters=visits_params
     )
 >>> simulated_data = leaspy_logistic.simulate(simulation_settings)
+Simulate with `simulation` took: 3s
 >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
+            MDS1_total   MDS2_total  MDS3_total   
+ID   TIME
+0  48.092     0.113991	   0.344018	   0.228870 
+   49.092     0.177138	   0.291440	   0.332267  
+   50.092     0.256084	   0.253093	   0.314241	 
+   51.092     0.174059	   0.344921	   0.313776 
+   52.092     0.245289	   0.400363	   0.310065 
 ```
 
 ### Output
