@@ -6,10 +6,10 @@
 
 ## Fit metrics
 
-In leaspy, 3 negative log likelihood conditionnal on the random effects (nll) are stored in the model’s json file, in the `fit_metrics` part:
-- `nll_attach`: Corresponds to the nll attach to the data
-- `nll_regul_ind_sum`: Corresponds to the nll from the random effects
-- `nll_to`: Corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (`v0`,`xi`,`tau`), that is not reported directly in the json file.
+In Leaspy, three negative log likelihood conditionnal on the random effects (nll) are stored in the model’s json file, in the `fit_metrics` part:
+- `nll_attach`: $-\log p(y \mid z, \theta, \Pi)$, where $y$ are the observations, $z$ the latent parameters, $\theta$ the model parameters, and $\Pi$ the hyperparameters. It corresponds to the nll attached to the data.
+- `nll_regul_ind_sum`: $-\log p(z_{\text{re}} \mid z_{\text{fe}}, \theta, \Pi)$, where $z_{\text{re}}$ denotes the latent random effects and $z_{\text{fe}}$ the latent fixed effects. It corresponds to the nll from the random effects.
+- `nll_tot`: $-\log p(y, z, \theta \mid \Pi)$. It corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (`v0`,`xi`,`tau`), that is not reported directly in the json file.
 
 The last conditional nll can be used for computing fit metrics.
 
