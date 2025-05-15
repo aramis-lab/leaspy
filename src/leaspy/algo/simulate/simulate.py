@@ -129,6 +129,12 @@ class SimulationAlgorithm(AbstractAlgo):
         if errors:
             raise LeaspyAlgoInputError("\n".join(errors))
 
+    def check_logistic_model(self, model: AbstractModel):
+        if model.model_type != "logistic":
+            raise LeaspyAlgoInputError(
+                "The model type should be 'logistic' for simulation."
+            )
+
     def _validate_algo_parameters(self):
         """Validate the algorithm parameters.
 
@@ -393,6 +399,7 @@ class SimulationAlgorithm(AbstractAlgo):
             This method updates the `leaspy` attribute in-place.
         """
 
+        self.check_logistic_model(model)
         self.leaspy = Leaspy("logistic", source_dimension=model.source_dimension)
         self.leaspy.model = model
 
