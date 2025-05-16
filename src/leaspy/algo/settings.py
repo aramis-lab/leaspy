@@ -295,6 +295,7 @@ class AlgorithmSettings:
     _known_keys = [
         "name",
         "seed",
+        "algorithm_initialization_method",
         "model_initialization_method",
         "parameters",
         "device",
