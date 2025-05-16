@@ -1,3 +1,5 @@
+"""This module defines the `OutputsSettings` and `AlgorithmSettings` classes."""
+
 import json
 import os
 import shutil
@@ -26,38 +28,29 @@ class OutputsSettings:
 
     Parameters
     ----------
-    settings : dict[str, Any]
-        Parameters of the object. It may be in:
-            * path : str or None
-                Where to store logs (relative or absolute path)
-                If None, nothing will be saved (only console prints),
-                unless save_periodicity is not None (default relative path './_outputs/' will be used).
-            * print_periodicity : int >= 1 or None
-                Flag to log into console convergence data every N iterations
-                If None, no console prints.
-            * save_periodicity : int >= 1, optional
-                Flag to save convergence data every N iterations
+    settings : :obj:`dict` [:obj:`str`, Any]
+            * path : :obj:`str` or None
+                Path to store logs. If None, default path "./_outputs/" will be used.
+            * print_periodicity : :obj:`int` >= 1 or None
+                Print information every N iterations
+            * save_periodicity : :obj:`int` >= 1, optional
+                Save convergence data every N iterations
                 Default=50.
-            * plot_periodicity : int >= 1 or None
-                Flag to plot convergence data every N iterations
+            * plot_periodicity : :obj:`int` >= 1 or None
+                Plot convergence data every N iterations
                 If None, no plots will be saved.
-                Note that you can not plot convergence data without saving data (and not more frequently than these saves!)
-            * plot_sourcewise : bool
+                Note that plotting requires saving to be realized and can not be more than saves.
+            * plot_sourcewise : :obj:`bool`
                 Flag to plot source based multidimensional parameters such as mixing_matrix for each source.
-                Otherwise they will be plotted according to the other dimension such as feature.
+                Otherwise, they will be plotted according to the other dimension such as feature.
                 Default=False
-            * overwrite_logs_folder : bool
+            * overwrite_logs_folder : :obj:`bool`
                 Flag to remove all previous logs if existing (default False)
 
     Raises
     ------
     :exc:`.LeaspyAlgoInputError`
     """
-
-    # TODO mettre les variables par défaut à None
-    # TODO: Réfléchir aux cas d'usages : est-ce qu'on veut tout ou rien,
-    # TODO: ou bien la possibilité d'avoir l'affichage console et/ou logs dans un fold
-    # TODO: Aussi, bien définir la création du path
 
     DEFAULT_LOGS_DIR = "_outputs"
 
@@ -206,13 +199,12 @@ class AlgorithmSettings:
     """
     Used to set the algorithms' settings.
 
-    All parameters, except the choice of the algorithm, is set by default.
-    The user can overwrite all default settings.
+    All parameters except the algorithm name have default values, which can be overwritten by the user.
 
     Parameters
     ----------
     name : str
-        The algorithm's name. Must be in:
+        The algorithm's name. Must be one of:
             * For `fit` algorithms:
                 * ``'mcmc_saem'``
                 * ``'lme_fit'`` (for LME model only)
@@ -226,51 +218,49 @@ class AlgorithmSettings:
                 * ``'simulation'``
 
     **kwargs : any
-        Depending on the algorithm you are setting up, various parameters are possible (not exhaustive):
-            * seed : int, optional, default None
+        Depending on the algorithm, various parameters are possible:
+            * seed : :obj:`int`, optional, default None
                 Used for stochastic algorithms.
-            * model_initialization_method : str, optional
-                For **fit** algorithms only, give a model initialization method,
-                according to those possible in :func:`~.models.utils.initialization.model_initialization.initialize_parameters`.
-            * algo_initialization_method : str, optional
-                Personalize the algorithm initialization method,
-                according to those possible for the given algorithm (refer to its documentation in :mod:`leaspy.algo`).
-            * n_iter : int, optional
-                Number of iteration. There is no stopping criteria for the all the MCMC SAEM algorithms.
-            * n_burn_in_iter : int, optional
+            * model_initialization_method :  :obj:`str`, optional
+                For **fit** algorithms only, give a model initialization method, according to those possible
+                in :func:`~.models.utils.initialization.model_initialization.initialize_parameters`.
+            * algorithm_initialization_method : :obj:`str`, optional
+                Personalize the algorithm initialization method, according to those possible for the given algorithm
+                (refer to its documentation in :mod:`leaspy.algo`).
+            * n_iter : :obj:`int`, optional
+                Number of iteration. Note that there is no stopping criteria for MCMC SAEM algorithms.
+            * n_burn_in_iter : :obj:`int`, optional
                 Number of iteration during burning phase, used for the MCMC SAEM algorithms.
-            * use_jacobian : bool, optional, default True
+            * use_jacobian : :obj:`bool`, optional, default True
                 Used in ``scipy_minimize`` algorithm to perform a `L-BFGS` instead of a `Powell` algorithm.
-            * n_jobs : int, optional, default 1
+            * n_jobs : :obj:`bool`, optional, default 1
                 Used in ``scipy_minimize`` algorithm to accelerate calculation with parallel derivation using joblib.
-            * progress_bar : bool, optional, default True
+            * progress_bar : :obj:`bool`, optional, default True
                 Used to display a progress bar during computation.
-            * device: str or torch.device, optional
-                Specifies on which device the algorithm will run.
-                Only 'cpu' and 'cuda' are supported for this argument.
+            * device : :obj:`int` or torch.device, optional
+                Specifies on which device the algorithm will run. Only 'cpu' and 'cuda' are supported for this argument.
                 Only ``'mcmc_saem'``, ``'mean_real'`` and ``'mode_real'`` algorithms support this setting.
 
         For the complete list of the available parameters for a given algorithm, please directly refer to its documentation.
 
     Attributes
     ----------
-    name : str
+    name : :obj:`str`
         The algorithm's name.
-    model_initialization_method : str, optional
-        For fit algorithms, give a model initialization method,
-        according to those possible in :func:`~.models.utils.initialization.model_initialization.initialize_parameters`.
-    algo_initialization_method : str, optional
-        Personalize the algorithm initialization method,
-        according to those possible for the given algorithm (refer to its documentation in :mod:`leaspy.algo`).
-    seed : int, optional, default None
+    model_initialization_method : :obj:`str`, optional
+        For **fit** algorithms only. Specifies a method for initializing model parameters.
+        See: :func:`~.models.utils.initialization.model_initialization.initialize_parameters`.
+    algorithm_initialization_method : :obj:`str`, optional
+        Personalize the algorithm initialization method, according to those possible for the given algorithm
+        (refer to its documentation in :mod:`leaspy.algo`).
+    seed : :obj:`int`, optional, default None
         Used for stochastic algorithms.
-    parameters : dict
+    parameters :  :obj:`dict`
         Contains the other parameters: `n_iter`, `n_burn_in_iter`, `use_jacobian`, `n_jobs` & `progress_bar`.
     logs : :class:`.OutputsSettings`, optional
-        Used to create a ``logs`` file during a model calibration containing convergence information.
-    device : str (or torch.device), optional, default 'cpu'
-        Used to specify on which device the algorithm will run. This should either be:
-        'cpu' or 'cuda' and is only supported in specific algorithms (inheriting `AlgoWithDeviceMixin`).
+        Used to create a ``logs`` file containing convergence information during fitting the model.
+    device : :obj:`str` (or torch.device), optional, default 'cpu'
+        Specifies the computation device. Only `'cpu'` and `'cuda'` are supported.
         Note that specifying an indexed CUDA device (such as 'cuda:1') is not supported.
         In order to specify the precise cuda device index, one should use the `CUDA_VISIBLE_DEVICES` environment variable.
 
@@ -278,29 +268,11 @@ class AlgorithmSettings:
     ------
     :exc:`.LeaspyAlgoInputError`
 
-    See Also
-    --------
-    :mod:`leaspy.algo`
-
     Notes
     -----
-    For developers: use ``_dynamic_default_parameters`` to dynamically set some default parameters,
-    depending on other parameters that were set, while these `dynamic` parameters were not set.
+    Developers can use `_dynamic_default_parameters` to define settings that depend on other parameters when
+    not explicitly specified by the user.
 
-    Example:
-        you could want to set burn in iterations or annealing iterations
-        as fractions of non-default number of iterations given.
-
-    Format:
-
-    ::
-
-        {algo_name: [
-            (functional_condition_to_trigger_dynamic_setting(kwargs),
-            {
-                nested_keys_of_dynamic_setting: dynamic_value(kwargs)
-            })
-        ]}
     """
 
     # TODO should be in the each algo class directly?
@@ -323,7 +295,6 @@ class AlgorithmSettings:
     _known_keys = [
         "name",
         "seed",
-        "algorithm_initialization_method",
         "model_initialization_method",
         "parameters",
         "device",
@@ -405,7 +376,7 @@ class AlgorithmSettings:
 
         Parameters
         ----------
-        path_to_algorithm_settings : str
+        path_to_algorithm_settings :  :obj:`str`
             Path of the json file.
 
         Returns
@@ -473,7 +444,7 @@ class AlgorithmSettings:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             Path to store the AlgorithmSettings.
         **kwargs
             Keyword arguments for json.dump method.
@@ -512,28 +483,29 @@ class AlgorithmSettings:
         """
         Use this method to monitor the convergence of a model fit.
 
-        It creates graphs and csv files of the values of the population parameters (fixed effects) during the fit
+        This method creates CSV files and plots to track the evolution of population parameters
+        (i.e., fixed effects) during the fitting.
 
         Parameters
         ----------
-        path : str, optional
-            The path of the folder to store the graphs and csv files.
-            No data will be saved if it is None, as well as save_periodicity and plot_periodicity.
+        path : :obj:`str`, optional
+            The path of the folder where graphs and csv files will be saved.
+            If None, no data will be saved. Even if `save_periodicity` or `plot_periodicity` is set.
         **kwargs
-            * print_periodicity: int, optional, default 100
-                Display logs in the console/terminal every N iterations.
-            * save_periodicity: int, optional, default 50
+            * print_periodicity : :obj:`int`, optional, default 100
+                Prints every N iterations.
+            * save_periodicity : :obj:`int`, optional, default 50
                 Saves the values in csv files every N iterations.
-            * plot_periodicity: int, optional, default 1000
+            * plot_periodicity : :obj:`int`, optional, default 1000
                 Generates plots from saved values every N iterations.
-                Note that:
-                    * it should be a multiple of save_periodicity
-                    * setting a too low value (frequent) we seriously slow down you fit
-            * plot_sourcewise : bool, optional, default False
+                Notes:
+                    * Must be a multiple of `save_periodicity`.
+                    * Setting this value too low may significantly slow down the fitting process.
+            * plot_sourcewise : :obj:`bool`, optional, default False
                 Set this to True to plot the source-based parameters sourcewise.
-            * overwrite_logs_folder: bool, optional, default False
+            * overwrite_logs_folder : :obj:`bool`, optional, default False
                 Set it to ``True`` to overwrite the content of the folder in ``path``.
-            * nb_of_patients_to_plot: int, optional default 5
+            * nb_of_patients_to_plot : :obj:`int`, optional default 5
                 number of patients to plot
 
         Raises

@@ -11,27 +11,26 @@ __all__ = ["AlgoWithAnnealingMixin"]
 
 class AlgoWithAnnealingMixin:
     """
-    Mixin to use in algorithms needing `temperature_inv`; inherit from this class first.
+    Mixin class to use in algorithms that requires `temperature_inv`.
 
-    Note that this mixin is to be used with a class inheriting from `AbstractAlgo`
-    (and in particular that have a `algo_parameters` attribute)
+    Note that this mixin should be used with a class inheriting from `AbstractAlgo`, which must have `algo_parameters`
+    attribute.
 
     Parameters
     ----------
     settings : :class:`.AlgorithmSettings`
         The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
 
-        Please note that you can customize the number of iterations with annealing by setting either:
-        * `annealing.n_iter` directly (deprecated but has priority over following setting, not defined by default)
-        * `annealing.n_iter_frac`, such that iterations with annealing is a ratio of algorithm `n_iter` (default of 50%)
+        Please note that you can customize the number of iterations with annealing by setting:
+             * `annealing.n_iter_frac`, such that iterations with annealing is a ratio of algorithm `n_iter` (default = 50%)
 
     Attributes
     ----------
-    annealing_on : bool
-        Is annealing activated or not?
+    annealing_on : :obj:`bool`
+        Activates annealing.
 
     temperature : float >= 1
-    temperature_inv : float in ]0, 1]
+    temperature_inv : float in [0, 1]
         Temperature and its inverse when using annealing
     """
 

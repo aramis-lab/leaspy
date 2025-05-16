@@ -40,10 +40,10 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`~.models.lme_model.LMEModel`
-            A subclass object of leaspy `LMEModel`.
+        model : :class:`~.models.LMEModel`
+            The used model
         dataset : :class:`.Dataset`
-            Dataset object build with leaspy class objects Data, algo & model
+            Dataset object
 
         Returns
         -------
@@ -56,7 +56,7 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
 
         if model.features != dataset.headers:
             raise ValueError(
-                "Your data and the model you are using for personnalisation do not have the same headers."
+                "Your data and the model you are using for personalisation do not have the same headers."
             )
 
         for it in range(dataset.n_individuals):
