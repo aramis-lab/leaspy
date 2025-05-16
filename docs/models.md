@@ -38,7 +38,7 @@ $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}
 $$
 
-*Interpretation*: Space shifts ( $w_{i,k}$)  are more interpretable than sources ( $s_i $), as they encapsulate total spatial variability effects.
+*Interpretation*: Space shifts ($w_{i,k}$)  are more interpretable than sources ($s_i $), as they encapsulate total spatial variability effects.
 
 ## Logistic Model
 ### Definition
@@ -73,11 +73,10 @@ For one patient, the event time and event bool are the same for each row.
 
 For the importation of dataframe:
 
-```{python}
+```python
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 data_joint = Data.from_dataframe(dataset, "joint")
 ```
-
   
 ### Mathematical background
 #### Longitudinal Submodel
@@ -96,10 +95,37 @@ where:
 #### Survival Submodel
 **Cause-Specific Weibull Hazards** (for competing risks):
 
-This submodel captures how variations in the disease longitudinal outcomes progression, influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To do so, we adopt a cause-specific structure For each event $l$ and patient $i$, we model a cause-specific hazard $ \h_{i_l}(t) $ {cite}`prentice_regression_1978, cheng_prediction_1998` because it allows us to model the risk of each event separately, while still accounting for the presence of other events. This is particularly useful in the context of competing risks, where the occurrence of one event may preclude the occurrence of another. A Weibull distribution is used to model the time-to-event data, as it is flexible and can accommodate various hazard shapes (increasing, decreasing, or constant) depending on the parameters chosen. The Weibull distribution is defined by two parameters: a scale parameter $\nu_l$ and a shape parameter $\rho_l$ and is modulated with a Cox-proportional hazard effect of the sources on the hazard using survival shifts:
-$
-\h_{i_l}(t)=\h_{0_i_l}(t) x e^{\u_i,l}
-$
+This submodel captures how variations in the progression of longitudinal disease outcomes influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To achieve this, leaspy joint model uses a cause-specific hazard structure.  
+
+For each event $l$ and patient $i$, we model a cause-specific hazard $h_{i,l}(t)$ {cite}`prentice_regression_1978, cheng_prediction_1998`. This framework allows us to: Estimate the risk of each event separately and account for the presence of competing risks (where one event precludes others)
+
+A Weibull distribution is used to model time-to-event data due to its flexibility in representing:  
+- Increasing, decreasing, or constant hazard shapes,  
+- Dependence on two interpretable parameters:  
+  - Scale parameter $\nu_l$,  
+  - Shape parameter $\rho_l$.  
+
+The hazard is modulated via a Cox-proportional hazard framework to incorporate the effect of longitudinal biomarkers using survival shifts.
+
+Let $u_{i} = \zeta s_{i}$. The cause-specific hazard $h_{i,l}(t)$ for event $l$ and subject $i$ is defined as:
+
+$$
+h_{i,l}(t) = h_{0,i,l}(t) \cdot \exp(u_{i,l})
+$$
+
+Expanding the baseline hazard $h_{0,i,l}(t)$, we get:
+
+$$
+h_{i,l}(t) = \frac{\rho_l e^{\xi_i}}{\nu_l} \cdot \left( \frac{e^{\xi_i} (t - \tau_i)}{\nu_l} \right)^{\rho_l - 1} \cdot \exp(u_{i,l})
+$$
+
+**Where**:
+- $\nu_l$: Scale parameter of the Weibull distribution for event $l$,
+- $\rho_l$: Shape parameter of the Weibull distribution for event $l$,
+- $\xi_i$: Subject-specific parameter,
+- $\tau_i$:  Estimated reference time for individual $i$,
+
+Cumulative Incident Function (CIF) for event $l$ and subject $i$ is defined as:
 
 $$
 \text{CIF}_{i,l}(t) = \int_0^t h_{i,l}(x) \prod_{q=1}^L S_{i,q}(x) \, dx \
@@ -107,7 +133,7 @@ $$
 $$
 
 #### Model summary
-For patient $( i )$, outcome $( k )$, and event $( l )$:
+For patient $i$, outcome $k$, and event $l$:
 
 $$
 \begin{cases}
