@@ -121,7 +121,7 @@ $$
 
 In practice in leaspy, to use joint model, you need to precise "joint" in Leaspy object creation, then you can use it to fit, personnalize, estimate and simulate.
 
-```{python}
+```python
 leaspy_joint = Leaspy("joint", nb_events=2, dimension=9, source_dimension=7)
 leaspy_joint.fit(data_joint, settings=algo_settings_joint_fit)
 ```
