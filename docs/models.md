@@ -11,7 +11,7 @@
 
 ### Definition
 
-Joint models are a class of statistical models that simultaneously analyze longitudinal data (repeated measurements over time) and survival data (time-to-event outcomes). Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects or latent processes, models account for their interdependence, reducing biases from informative dropout or measurement error.
+Joint models are a class of statistical models that simultaneously analyze longitudinal data (repeated measurements over time) and survival data (time-to-event outcomes). Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms. For example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two sub-models, typically through shared random effects or latent processes, models account for their interdependence, reducing biases from informative dropout or measurement error.
 
 In Leaspy, the joint model {cite}`ortholand:tel-04770912` is implemented as a longitudinal temporal-spatial model, and a survival model, that are linked through a shared latent disease age. This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
@@ -25,14 +25,14 @@ A joint model is relevant when you have:
 ### Mathematical background
 
 #### Temporal Random Effects
-Individual variability for patient $i$ is modeled vwith the latent disease age $\psi_i(t)$:  
+Individual variability for patient $i$ is modeled with the latent disease age $\psi_i(t)$:  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
 $$
 
 where:
-- $ \e^{\xi_i} $ : Individual speed factor
+- $ e^{\xi_i} $ : Individual speed factor
 - $ \tau_i $ : Estimated reference time
 - $ t_0 $ : Population reference time
 
@@ -51,13 +51,13 @@ $$
 \mathbf{A} = (\mathbf{B}\beta)^T
 $$
 
-Each event ( $l$ ) has a survival shift:
+Each event $l$ has a survival shift:
 
 $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}
 $$
 
-*Interpretation*: Space shifts ( $w_{i,k}$) and survival shifts ( $u_{i,l} $) are more interpretable than sources ( $s_i $), as they encapsulate total spatial variability effects.
+*Interpretation*: Space shifts ($w_{i,k}$) and survival shifts ($u_{i,l} $) are more interpretable than sources ($s_i $), as they encapsulate total spatial variability effects.
 
 #### Longitudinal Submodel
 
