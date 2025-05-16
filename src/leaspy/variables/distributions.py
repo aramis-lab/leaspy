@@ -9,8 +9,8 @@ from typing import Any, Callable, ClassVar, Type
 
 import torch
 from torch.autograd import grad
+from torch.distributions.multivariate_normal import MultivariateNormal
 
-# from torch.distributions.multivariate_normal import MultivariateNormal
 from leaspy.constants import constants
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import MultinomialDistribution
@@ -380,6 +380,42 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
+    def dist_factory(
+        cls,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+        covariates: torch.Tensor,
+    ) -> MultivariateNormal:
+        """
+        Returns a bivariate normal distribution with given means, stds, and correlation.
+        Assumes shape broadcasting is consistent.
+        """
+        # Covariance matrix
+        cov_11 = scale[0] ** 2
+        cov_22 = scale[1] ** 2
+        cov_12 = coeff_corr * scale[0] * scale[1]
+
+        cov = torch.stack(
+            [
+                torch.stack([cov_11, cov_12], dim=-1),
+                torch.stack([cov_12, cov_22], dim=-1),
+            ],
+            dim=-2,
+        )  # shape (..., 2, 2)
+
+        mean = torch.stack([loc[0], loc[1]], dim=-1)  # shape (..., 2)
+
+        return MultivariateNormal(loc=mean, covariance_matrix=cov)
+
+    @classmethod
+    def sample(
+        cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
+    ) -> torch.Tensor:
+        dist = cls.dist_factory(*params)
+        return dist.sample(sample_shape)  # shape = sample_shape + (..., 2)
+
+    @classmethod
     def mode(
         cls,
         loc: torch.Tensor,
@@ -403,6 +439,8 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
             The value of the distribution's mode.
         """
         # `loc`, but with possible broadcasting of shape
+
+        # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
         return loc[0] * covariates + loc[1]
 
     @classmethod
@@ -430,6 +468,8 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         """
         # Hardcode method for efficiency
         # `loc`, but with possible broadcasting of shape
+
+        # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
         return loc[0] * covariates + loc[1]
 
     @classmethod
@@ -457,6 +497,8 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         """
         # Hardcode method for efficiency
         # `scale`, but with possible broadcasting of shape
+
+        # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
         return torch.sqrt(
             (scale[0] * covariates) ** 2
             + scale[1] ** 2

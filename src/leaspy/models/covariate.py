@@ -176,10 +176,10 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
                 )
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
-            log_v0=LinkedVariable(
-                Affine("phi_v0", "covariates")
-            ),  # log_v0=phi_mod_v0*covariate+phi_ref_v0 donc ça dépend de la covariable
-            v0=LinkedVariable(Exp("log_v0")),
+            # log_v0=LinkedVariable(
+            #     Affine("phi_v0", "covariates")
+            # ),
+            # v0=LinkedVariable(Exp("log_v0")),
             metric=LinkedVariable(
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
@@ -436,11 +436,11 @@ class CovariateLogisticMultivariateModel(
             phi_g=PopulationLatentVariable(
                 NormalCovariateLinear("phi_g_mean", "phi_g_std", "rho_g", "covariates")
             ),  # phi_g = (phi_mod_g, phi_ref_g)
-            # LINKED VARS
-            log_g=LinkedVariable(
-                Affine("phi_g", "covariates")
-            ),  # log_g=phi_mod_g*covariate+phi_ref_g
-            g=LinkedVariable(Exp("log_g")),
+            # # LINKED VARS
+            # log_g=LinkedVariable(
+            #     Affine("phi_g", "covariates")
+            # ),  # log_g=phi_mod_g*covariate+phi_ref_g
+            # g=LinkedVariable(Exp("log_g")),
         )
 
         return d

@@ -134,7 +134,7 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 )
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
-            tau=LinkedVariable(Affine("phi_tau", "covariates")),
+            # tau=LinkedVariable(AffineFromVector("phi_tau", "covariates")),
             alpha=LinkedVariable(Exp("xi")),
         )
 
