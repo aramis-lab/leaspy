@@ -180,7 +180,7 @@ class State(MutableMapping):
 
         Returns
         -------
-        :class:`~leaspy.variables.state.Sate` :
+        :class:`~leaspy.variables.state.State` :
             The new cloned state instance.
         """
         cloned = State(
@@ -434,19 +434,15 @@ class State(MutableMapping):
             raise LeaspyInputError(
                 "`n_individuals` should not be None when `method` is not None."
             )
-
-        # TMP --> fix order of random variables as previously to pass functional tests...
-        vars_order = set(self.dag.sorted_variables_by_type[IndividualLatentVariable])
-        if vars_order == {"tau", "xi"}:
-            vars_order = ["tau", "xi"]
-        elif vars_order == {"tau", "xi", "sources"}:
-            vars_order = ["tau", "xi", "sources"]
-        # END TMP
-
+        individual_parameters = set(
+            self.dag.sorted_variables_by_type[IndividualLatentVariable]
+        )
         if df is not None:
-            for ip in vars_order:
-                if ip in ["tau", "xi"]:
-                    self[ip] = torch.tensor(df[[ip]].values, dtype=torch.double)
+            for individual_parameter in individual_parameters:
+                if individual_parameter in ("tau", "xi"):
+                    self[individual_parameter] = torch.tensor(
+                        df[[individual_parameter]].values, dtype=torch.double
+                    )
                 else:
                     nb_sources = len(df.columns) - 2
                     list_sources_name = [f"sources_{i}" for i in range(nb_sources)]
@@ -459,13 +455,14 @@ class State(MutableMapping):
                         df[list_sources_name].values, dtype=torch.double
                     ).float()
         else:
-            # for ip, var in self.dag.sorted_variables_by_type[IndividualLatentVariable].items():
-            for ip in vars_order:
-                var: IndividualLatentVariable = self.dag[ip]  # for type-hint only
+            for individual_parameter in individual_parameters:
+                var: IndividualLatentVariable = self.dag[
+                    individual_parameter
+                ]  # for type-hint only
                 if method is None:
-                    self[ip] = None
+                    self[individual_parameter] = None
                 else:
-                    self[ip] = var.get_init_func(
+                    self[individual_parameter] = var.get_init_func(
                         method, n_individuals=n_individuals
                     ).call(self)
 
