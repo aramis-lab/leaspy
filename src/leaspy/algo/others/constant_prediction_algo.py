@@ -16,24 +16,23 @@ __all__ = ["ConstantPredictionAlgorithm"]
 
 class ConstantPredictionAlgorithm(AbstractAlgo):
     r"""
-    ConstantPredictionAlgorithm is the algorithm that outputs a constant prediction
+    ConstantPredictionAlgorithm is an algorithm that provides constant predictions
 
-    It is associated to :class:`~.models.constant_model.ConstantModel`
+    It is used with the :class:`~leaspy.models.ConstantModel`.
 
     TODO: it should be a child of `AbstractPersonalizeAlgorithm` (refactoring needed)
 
     Parameters
     ----------
     settings : :class:`.AlgorithmSettings`
-        The settings of constant prediction algorithm.
-        It may define `prediction_type` (str):
-            * ``'last'``: last value seen during calibration (even if NaN) [default],
-            * ``'last_known'``: last non NaN value seen during calibration*§,
-            * ``'max'``: maximum (=worst) value seen during calibration*§,
-            * ``'mean'``: average of values seen during calibration§.
+        The settings of constant prediction algorithm. It supports the following  `prediction_type` values (str)::
+            * ``'last'``: last value even if NaN,
+            * ``'last_known'``: last non NaN value,
+            * ``'max'``: maximum (=worst) value ,
+            * ``'mean'``: average of values
 
-        | \\* <!> depending on features, the `last_known` / `max` value may correspond to different visits.
-        | § <!> for a given feature, value will be NaN if and only if all values for this feature were NaN.
+        depending on features, the `last_known` / `max` value may correspond to different visits.
+        For a given feature, value will be NaN if and only if all values for this feature are NaN.
 
     Raises
     ------
@@ -60,7 +59,7 @@ class ConstantPredictionAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:`~.models.constant_model.ConstantModel`
+        model : :class:`~leaspy.models.ConstantModel`
             A subclass object of leaspy `ConstantModel`.
         dataset : :class:`.Dataset`
             Dataset object build with leaspy class objects Data, algo & model

@@ -21,8 +21,8 @@ class AlgoWithDeviceMixin:
 
     Attributes
     ----------
-    algorithm_device : str
-        Valid torch device (only the `type` of the device is used)
+    algorithm_device : :obj:`str`
+        Valid torch device
     """
 
     def __init__(self, settings: AlgorithmSettings):

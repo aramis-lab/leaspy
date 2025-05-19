@@ -17,19 +17,12 @@ __all__ = ["LMEFitAlgorithm"]
 
 class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
     """
-    Calibration algorithm associated to :class:`~.models.lme_model.LMEModel`
+    Fitting algorithm associated to :class:`~.models.LMEModel`
 
     Parameters
     ----------
     settings : :class:`.AlgorithmSettings`
-        * with_random_slope_age : bool
-            If False: only varying intercepts
-            If True: random intercept & random slope w.r.t ages
-
-            .. deprecated:: 1.2
-
-            You should rather define this directly as an hyperparameter of LME model.
-        * force_independent_random_effects : bool
+        * force_independent_random_effects : :obj:`bool`
             Force independence of random intercept & random slope
         * other keyword arguments passed to :meth:`statsmodels.regression.mixed_linear_model.MixedLM.fit`
 
@@ -69,9 +62,9 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
         Parameters
         ----------
         model : :class:`~.LMEModel`
-            A subclass object of leaspy `LMEModel`.
+            The used model
         dataset : :class:`.Dataset`
-            Dataset object build with leaspy class objects Data, algo & model
+            Dataset object
 
         Returns
         -------
