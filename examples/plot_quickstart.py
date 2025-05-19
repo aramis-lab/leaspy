@@ -106,7 +106,7 @@ print(alzheimer_df.head())
 # %%
 # Going further
 # .............
-# You can check the [user_guide](../user_guide.md) and the full [API documentation](../).
+# You can check the [user_guide](../user_guide.md) and the full API documentation.
 #
 # You can also dive into the [examples](./index.rst).
 #
