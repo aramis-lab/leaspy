@@ -53,9 +53,7 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
         state = super()._initialize_algo(model, dataset)
         # Initialize individual latent variables (population ones should be initialized before)
         model.put_individual_parameters(state, dataset)
-        # Samplers mixin
         self._initialize_samplers(state, dataset)
-        # Annealing mixin
         self._initialize_annealing()
 
         return state
@@ -76,31 +74,13 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
         model : :class:`~leaspy.models.AbstractModel`
         state : :class:`~leaspy.variables.state.State`
         """
-        vars_order = list(
-            state.dag.sorted_variables_by_type[PopulationLatentVariable]
-        ) + list(state.dag.sorted_variables_by_type[IndividualLatentVariable])
-        # TMP --> fix order of random variables as previously to pass functional tests...
-        if set(vars_order) == {"log_g", "log_v0", "xi", "tau"}:
-            vars_order = ["log_g", "log_v0", "tau", "xi"]
-        elif set(vars_order) == {"log_g", "betas", "log_v0", "xi", "tau", "sources"}:
-            vars_order = ["log_g", "log_v0", "betas", "tau", "xi", "sources"]
-        elif set(vars_order) == {"g", "log_v0", "xi", "tau"}:
-            vars_order = ["g", "log_v0", "tau", "xi"]
-        elif set(vars_order) == {"g", "betas", "log_v0", "xi", "tau", "sources"}:
-            vars_order = ["g", "log_v0", "betas", "tau", "xi", "sources"]
-        elif set(vars_order) == {"betas", "deltas", "log_g", "sources", "tau", "xi"}:
-            vars_order = ["log_g", "deltas", "betas", "tau", "xi", "sources"]
-        elif set(vars_order) == {"deltas", "log_g", "tau", "xi"}:
-            vars_order = ["log_g", "deltas", "tau", "xi"]
-        # END TMP
+        variables = sorted(
+            list(state.dag.sorted_variables_by_type[PopulationLatentVariable])
+            + list(state.dag.sorted_variables_by_type[IndividualLatentVariable])
+        )
         if self.random_order_variables:
-            shuffle(vars_order)  # shuffle order in-place!
-
-        for key in vars_order:
-            self.samplers[key].sample(state, temperature_inv=self.temperature_inv)
-
-        # Maximization step
+            shuffle(variables)
+        for variable in variables:
+            self.samplers[variable].sample(state, temperature_inv=self.temperature_inv)
         self._maximization_step(model, state)
-
-        # Annealing mixin
         self._update_temperature()
