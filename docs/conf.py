@@ -67,7 +67,8 @@ myst_enable_extensions = [
     "dollarmath",
     "colon_fence",
 ]
-nbsphinx_timeout = 600
+# nbsphinx_timeout = 600
+nb_execution_timeout = 600
 autoapi_dirs = ["../src"]
 autoapi_root = "reference/api"
 autodoc_typehints = "description"
@@ -82,7 +83,7 @@ autoapi_options = [
 sphinx_gallery_conf = {
     "examples_dirs": "../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "cell_timeout": 300,
+    # "cell_timeout": 300,
 }
 
 # this is needed for some reason...
