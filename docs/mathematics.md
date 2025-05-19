@@ -7,7 +7,7 @@
 ## Riemanian framework
 
 ### Disease progression represented as trajectory
-As presented in the figure, the model draws a parallel line between a clinical and a Riemannian point of view of the disease progression. The idea is to see the variability of the disease progression as a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an individual trajectory $\gamma_i$ that traverses the manifold. 
+As presented in the figure, the model draws a parallel line between a clinical and a Riemannian point of view of the disease progression. The idea is to see the variability of the disease progression mapped onto a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an individual trajectory $\gamma_i$ that traverses the manifold. 
 
 ![intuition](./_static/images/intuition.png)
 __From clinical to Riemannian point of view (extracted from {cite}`ortholand_joint_2024`)__
