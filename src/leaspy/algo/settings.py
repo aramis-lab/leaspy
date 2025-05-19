@@ -37,7 +37,7 @@ class OutputsSettings:
                 Save convergence data every N iterations
                 Default=50.
             * plot_periodicity : :obj:`int` >= 1 or None
-                Plot convergence data every N iterations
+                Plot convergence data every N iterations.
                 If None, no plots will be saved.
                 Note that plotting requires saving to be realized and can not be more than saves.
             * plot_sourcewise : :obj:`bool`
