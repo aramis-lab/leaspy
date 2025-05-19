@@ -107,43 +107,6 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
 
         return leaspy, data
 
-    def _tmp_convert_old_to_new(self, old_model_dict, new_model_dict) -> None:
-        # TODO/WIP: on-the-fly conversion old<->new models:
-        # 1. new obs_models supplanting noise_model
-        # 2. modification of some model (hyper-)parameter names & shapes
-        # 3. some new/renamed/deleted fit-metrics
-        from leaspy.models import ModelSettings
-
-        ModelSettings._check_settings(old_model_dict)
-
-        # Transition tests refacto/old
-        old_model_dict["fit_metrics"]["nll_regul_ind_sum"] = old_model_dict[
-            "fit_metrics"
-        ]["nll_regul_tot"]
-
-        for ip in ("tau", "xi", "sources", "tot"):
-            old_model_dict["fit_metrics"].pop(f"nll_regul_{ip}", None)
-        for p in ("tau_mean", "tau_std", "xi_std"):
-            new_shape = torch.tensor(new_model_dict["parameters"][p]).shape
-            old_model_dict["parameters"][p] = (
-                torch.tensor(old_model_dict["parameters"][p]).expand(new_shape).tolist()
-            )
-        # Transition tests refacto/old
-        for pp in (
-            "log_g_std",
-            "log_v0_std",
-            "g_std",
-            "betas_std",
-            "deltas_std",
-            "sources_mean",
-            "sources_std",
-            "xi_mean",
-        ):
-            new_model_dict["parameters"].pop(pp, None)
-
-        del new_model_dict["obs_models"]
-        del old_model_dict["obs_models"]
-
     def check_model_consistency(
         self, leaspy: Leaspy, path_to_backup_model: str, **allclose_kwds
     ):
@@ -160,15 +123,6 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
             expected_model_parameters = json.load(f1)
         with open(path_to_tmp_saved_model, "r") as f2:
             model_parameters_new = json.load(f2)
-
-        # TODO/WIP: on-the-fly conversion old<->new models.
-        # This condition is a way to check if the model loaded is in the old or new version as the parameter
-        # "log_g_std" is available in all the different models but only in the new version
-        if expected_model_parameters["leaspy_version"] != "2.0.0-dev":
-            self._tmp_convert_old_to_new(
-                expected_model_parameters, model_parameters_new
-            )
-        # END WIP
 
         # Remove the temporary file saved (before asserts since they may fail!)
         os.remove(path_to_tmp_saved_model)
