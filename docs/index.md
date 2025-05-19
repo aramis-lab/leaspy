@@ -9,7 +9,7 @@
  :caption: Getting Started
 
 install
-nutshell
+auto_examples/plot_quickstart
 ```
 
 ```{toctree}
