@@ -20,7 +20,7 @@ print(alzheimer_df.head())
 # Each visit corresponds to the measurement of 4 different variables : the MMSE, the RAVLT, the FAQ and the FDG PET.
 # If plotted, the data would look like the following:
 #
-# .. image:: /_static/images/alzheimer-observations.png
+# .. image:: ../alzheimer-observations.png
 #     :width: 400
 #     :alt: Alzeimer observations
 
