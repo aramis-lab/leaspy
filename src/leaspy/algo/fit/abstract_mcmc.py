@@ -74,9 +74,10 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
         model : :class:`~leaspy.models.AbstractModel`
         state : :class:`~leaspy.variables.state.State`
         """
-        variables = list(
-            state.dag.sorted_variables_by_type[PopulationLatentVariable]
-        ) + list(state.dag.sorted_variables_by_type[IndividualLatentVariable])
+        variables = sorted(
+            list(state.dag.sorted_variables_by_type[PopulationLatentVariable])
+            + list(state.dag.sorted_variables_by_type[IndividualLatentVariable])
+        )
         if self.random_order_variables:
             shuffle(variables)
         for variable in variables:

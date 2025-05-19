@@ -434,8 +434,8 @@ class State(MutableMapping):
             raise LeaspyInputError(
                 "`n_individuals` should not be None when `method` is not None."
             )
-        individual_parameters = set(
-            self.dag.sorted_variables_by_type[IndividualLatentVariable]
+        individual_parameters = sorted(
+            list(set(self.dag.sorted_variables_by_type[IndividualLatentVariable]))
         )
         if df is not None:
             for individual_parameter in individual_parameters:
