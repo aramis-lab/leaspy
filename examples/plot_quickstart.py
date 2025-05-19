@@ -21,7 +21,7 @@ print(alzheimer_df.head())
 # If plotted, the data would look like the following:
 #
 # .. image:: ../alzheimer-observations.png
-#     :width: 400
+#     :width: 600
 #     :alt: Alzeimer observations
 
 # %%
@@ -55,11 +55,14 @@ algorithm.run(model, dataset)
 
 # %%
 # If we were to plot the measured average progression of the variables, see started example notebook for details, it would look like the following:
-
+#
+# .. image:: ../alzheimer-model.png
+#     :width: 600
+#     :alt: Alzeimer model
 
 # %%
 # We can also derive the individual trajectory of each subject.
-# To do this, we use a personalization algorithm called scipy_minimize:
+# To do this, we use a personalization algorithm called `scipy_minimize`:
 
 personalize_settings = AlgorithmSettings("scipy_minimize", seed=0, progress_bar=False)
 algorithm = algorithm_factory(personalize_settings)
@@ -68,6 +71,10 @@ print(individual_parameters.to_dataframe())
 
 # %%
 # Plotting the input participant data against its personalization would give the following, see started example notebook for details.
+#
+# .. image:: ../alzheimer-subject_trajectories.png
+#     :width: 600
+#     :alt: Alzeimer subject trajectories
 
 # %%
 # Using my own data
@@ -82,7 +89,7 @@ print(individual_parameters.to_dataframe())
 print(alzheimer_df.head())
 
 # %%
-# You MUST have ID and TIME, either in index or in the columns. The other columns must be the observed variables (also named features or endpoints). In this fashion, you have one column per feature and one line per visit.
+# You **MUST** have `ID` and `TIME`, either in index or in the columns. The other columns must be the observed variables (also named features or endpoints). In this fashion, you have one column per feature and one line per visit.
 
 # %%
 # Data scale & constraints
@@ -99,6 +106,6 @@ print(alzheimer_df.head())
 # %%
 # Going further
 # .............
-# You can check the :ref:`user_guide` and the full API documentation.
+# You can check the [user_guide](../user_guide.html) and the full API documentation.
 # You can also dive into the started example of the Leaspy repository.
 # The Disease Progression Modelling website also hosts a mathematical introduction and tutorials for Leaspy.
