@@ -14,10 +14,10 @@ __all__ = ["AlgoWithSamplersMixin"]
 
 class AlgoWithSamplersMixin:
     """
-    Mixin to use in algorithms needing `samplers`; inherit from this class first.
+    Mixin class to use in algorithms that require `samplers`.
 
-    Note that this mixin is to be used with a class inheriting from `AbstractAlgo`
-    (and in particular that have a `algo_parameters` attribute)
+    Note that this mixin should be used with a class inheriting from `AbstractAlgo`, which must have `algo_parameters`
+    attribute.
 
     Parameters
     ----------
@@ -25,19 +25,18 @@ class AlgoWithSamplersMixin:
         The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
 
         Please note that you can customize the number of memory-less (burn-in) iterations by setting either:
-        * `n_burn_in_iter` directly (deprecated but has priority over following setting, not defined by default)
-        * `n_burn_in_iter_frac`, such that duration of burn-in phase is a ratio of algorithm `n_iter` (default of 90%)
+            * `n_burn_in_iter_frac`, such that duration of burn-in phase is a ratio of algorithm `n_iter` (default of 90%)
 
     Attributes
     ----------
-    samplers : dict[ str, :class:`~.algo.samplers.abstract_sampler.AbstractSampler` ]
+    samplers : :obj:`dict` [:obj:`str`, :class:`~.algo.samplers.abstract_sampler.AbstractSampler` ]
         Dictionary of samplers per each variable
 
-    current_iteration : int, default 0
+    current_iteration : :obj:`int`, default 0
         Current iteration of the algorithm.
         The first iteration will be 1 and the last one `n_iter`.
 
-    random_order_variables : bool (default True)
+    random_order_variables : :obj:`bool` (default True)
         This attribute controls whether we randomize the order of variables at each iteration.
         Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
         gives a rationale on why we should activate this flag.
