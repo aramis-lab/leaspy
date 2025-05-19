@@ -106,6 +106,6 @@ print(alzheimer_df.head())
 # %%
 # Going further
 # .............
-# You can check the [user_guide](../user_guide.html) and the full API documentation.
+# You can check the [user_guide](../user_guide.md) and the full API documentation.
 # You can also dive into the started example of the Leaspy repository.
 # The Disease Progression Modelling website also hosts a mathematical introduction and tutorials for Leaspy.

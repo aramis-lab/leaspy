@@ -1,5 +1,10 @@
 # Leaspy in a nutshell
 
+``{eval-rst}
+.. raw:: html
+    :file: auto_examples/plot_quickstart.html
+``
+
 ## Comprehensive example
 
 We first load synthetic data to get of a grasp of longitudinal data:
