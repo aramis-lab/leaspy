@@ -56,7 +56,7 @@ optional = true
 numpydoc = ">=1.1.0"
 sphinx-autodoc-typehints = "*"
 sphinx-gallery = ">=0.8.1"
-sphinx = ">=3.3.1"
+sphinx = ">=7,<8"
 sphinx_rtd_theme = "*"
 sphinx_theme = ">=1.0"
 sphinx-autoapi = "*"
@@ -88,6 +88,9 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+"**/{examples}/*" = ["E402"]
 
 [tool.codespell]
 summary = ''
