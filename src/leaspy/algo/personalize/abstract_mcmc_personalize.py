@@ -78,22 +78,16 @@ class AbstractMCMCPersonalizeAlgo(
         -------
         state : :class:`.State`
         """
-
         # WIP: Would it be relevant to fit on a dedicated algo state?
         state = model.state
         with state.auto_fork(None):
-            # Set data variables
             model.put_data_variables(state, dataset)
-
-            # Initialize individual latent variables at their mode (population ones should be initialized before)
+            # Initialize individual latent variables at their mode
+            # (population ones should be initialized before)
             state.put_individual_latent_variables(
                 LatentVariableInitType.PRIOR_MODE, n_individuals=dataset.n_individuals
             )
-
-        # Samplers mixin
         self._initialize_samplers(state, dataset)
-
-        # Annealing mixin
         self._initialize_annealing()
 
         return state
@@ -107,62 +101,50 @@ class AbstractMCMCPersonalizeAlgo(
             model_state.put_individual_latent_variables(None)
         model.state = model_state
 
-    def _get_individual_parameters(self, model: AbstractModel, dataset: Dataset):
-        # Names of individual latent variables
-        ind_vars_names = list(
+    def _get_individual_parameters(
+        self,
+        model: AbstractModel,
+        dataset: Dataset,
+    ) -> IndividualParameters:
+        individual_variable_names = list(
             model.dag.sorted_variables_by_type[IndividualLatentVariable]
         )
-        # TMP fix order of sampling to reproduce old behavior
-        if set(ind_vars_names) == {"tau", "xi"}:
-            ind_vars_names = ["tau", "xi"]
-        elif set(ind_vars_names) == {"tau", "xi", "sources"}:
-            ind_vars_names = ["tau", "xi", "sources"]
-        # END TMP
-
-        # Initialize values storage object
-        values_history = {ip: [] for ip in ind_vars_names}
+        values_history = {name: [] for name in individual_variable_names}
         attachment_history = []
         regularity_history = []
-
         with self._device_manager(model, dataset):
             state = self._initialize_algo(model, dataset)
-
             n_iter = self.algo_parameters["n_iter"]
             if self.algo_parameters.get("progress_bar", True):
                 self._display_progress_bar(-1, n_iter, suffix="iterations")
-
             # Gibbs sample `n_iter` times (only individual parameters)
             for self.current_iteration in range(1, n_iter + 1):
                 if self.random_order_variables:
-                    shuffle(ind_vars_names)  # shuffle in-place!
-
-                for ind_var_name in ind_vars_names:
-                    self.samplers[ind_var_name].sample(
+                    shuffle(individual_variable_names)
+                for individual_variable_name in individual_variable_names:
+                    self.samplers[individual_variable_name].sample(
                         state, temperature_inv=self.temperature_inv
                     )
-
                 # Append current values if "burn-in phase" is finished
                 if not self._is_burn_in():
-                    for ip in ind_vars_names:
-                        values_history[ip].append(state[ip])
+                    for individual_variable_name in individual_variable_names:
+                        values_history[individual_variable_name].append(
+                            state[individual_variable_name]
+                        )
                     attachment_history.append(state.get_tensor_value("nll_attach_ind"))
                     regularity_history.append(
                         state.get_tensor_value("nll_regul_ind_sum_ind")
                     )
-
-                # Annealing
                 self._update_temperature()
-
                 # TODO? print(self) periodically? or refact OutputManager for not fit algorithms...
-
                 if self.algo_parameters.get("progress_bar", True):
                     self._display_progress_bar(
                         self.current_iteration - 1, n_iter, suffix="iterations"
                     )
-
             # Stack tensor values as well as attachments and tot_regularities
             torch_values = {
-                ip: torch.stack(ip_values) for ip, ip_values in values_history.items()
+                individual_variable_name: torch.stack(individual_variable_values)
+                for individual_variable_name, individual_variable_values in values_history.items()
             }
             torch_attachments = torch.stack(attachment_history)
             torch_tot_regularities = torch.stack(regularity_history)
@@ -170,17 +152,13 @@ class AbstractMCMCPersonalizeAlgo(
             # TODO? we could also return the full posterior when credible intervals are needed
             # (but currently it would not fit with `IndividualParameters` structure, which expects point-estimates)
             # return torch_values, torch_attachments, torch_tot_regularities
-
             # Derive individual parameters from `values_history` list
             individual_parameters_torch = (
                 self._compute_individual_parameters_from_samples_torch(
                     torch_values, torch_attachments, torch_tot_regularities
                 )
             )
-
-        # Clean-up model state & so on
         self._terminate_algo(model, state)
-
         # Create the IndividualParameters object
         return IndividualParameters.from_pytorch(
             dataset.indices, individual_parameters_torch
