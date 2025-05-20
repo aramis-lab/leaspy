@@ -9,7 +9,7 @@
  :caption: Getting Started
 
 install
-nutshell
+auto_examples/plot_quickstart
 ```
 
 ```{toctree}
@@ -18,6 +18,7 @@ nutshell
  :caption: Documentation
 
 user_guide
+auto_examples/index.rst
 glossary
 changelog
 license

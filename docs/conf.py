@@ -14,7 +14,6 @@ import ast
 import os
 import re
 from datetime import date
-from distutils.version import LooseVersion
 
 import sphinx
 
@@ -44,15 +43,10 @@ extensions = [
     "autoapi.extension",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    # 'sphinx.ext.doctest',
     "sphinx.ext.intersphinx",
-    # 'sphinx.ext.viewcode',
     "numpydoc",
-    # 'rinoh.frontend.sphinx',
     "sphinx_rtd_theme",
-    # 'sphinx.ext.napoleon',
-    # 'pytsdtwdoc',
-    # 'sphinx_gallery.gen_gallery',
+    "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
 ]
@@ -67,7 +61,7 @@ myst_enable_extensions = [
     "dollarmath",
     "colon_fence",
 ]
-
+nb_execution_timeout = 600
 autoapi_dirs = ["../src"]
 autoapi_root = "reference/api"
 autodoc_typehints = "description"
@@ -78,6 +72,12 @@ autoapi_options = [
     "show-module-summary",
     "imported-members",
 ]
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
+}
 
 # this is needed for some reason...
 # see https://github.com/numpy/numpydoc/issues/69
