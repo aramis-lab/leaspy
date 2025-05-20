@@ -3,7 +3,7 @@
 ## Introduction to spatio-temporal models
 
 ### Temporal Random Effects
-Individual variability for patient $i$ is modeled vwith the latent disease age $\psi_i(t)$:  
+Individual variability for patient $i$ is modeled with the latent disease age $\psi_i(t)$:  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
@@ -46,15 +46,27 @@ $$
    - *"When you have this type of data, it is relevant to use this model"*
 ### Mathematical background
 
+Logistic trajectories for outcome $k$, and from the latent disease age $\psi_i(t)$ is defined by:
+
+$$
+\gamma_{i,k}(t) = \left[ 1 + g_k x \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
+$$
+
+where:  
+- $ t_0 $: Population reference time
+- $ v_{0,k} $: Logistic curve speed at $ t_0 $
+- $ \frac{1}{1+g_k} $: Logistic curve value at $ t_0 $
+
+
 ### References
 
 ## Joint Model
 
 ### Definition
 
-Joint models are a class of statistical models that simultaneously analyze longitudinal data (repeated measurements over time) and survival data (time-to-event outcomes) {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, or fraitly {cite}`rondeau_frailtypack_2012` models account for their interdependence, reducing biases from informative dropout or measurement error.
+Joint models are a class of statistical models that simultaneously analyze longitudinal data (repeated measurements over time) and survival data (time-to-event outcomes) {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error.
 
-In Leaspy, the joint model {cite}`ortholand:tel-04770912` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age. This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
+In Leaspy, the joint model {cite}`ortholand:tel-04770912` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description](##Introduction to spatio-temporal models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
 
 ### Data
@@ -81,16 +93,7 @@ data_joint = Data.from_dataframe(dataset, "joint")
 ### Mathematical background
 #### Longitudinal Submodel
 
-Logistic trajectories for outcome $k$, and from the latent disease age $\psi_i(t)$ is defined by:
-
-$$
-\gamma_{i,k}(t) = \left[ 1 + g_k x \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
-$$
-
-where:  
-- $ t_0 $: Population reference time
-- $ v_{0,k} $: Logistic curve speed at $ t_0 $
-- $ \frac{1}{1+g_k} $: Logistic curve value at $ t_0 $
+The longitudinal submodel that can be used here is the logistic model, please have a look to part ([see description](## Logistic model)).
 
 #### Survival Submodel
 **Cause-Specific Weibull Hazards** (for competing risks):
@@ -124,6 +127,12 @@ $$
 - $\rho_l$: Shape parameter of the Weibull distribution for event $l$,
 - $\xi_i$: Subject-specific parameter,
 - $\tau_i$:  Estimated reference time for individual $i$,
+
+Survival function $S_{i,l}(t)$ is defined as:
+
+$$
+S_{i,l}(t) = \exp\left( -\left( \frac{e^{\xi_i (t - \tau_i)}}{\nu_l} \right)^{\rho_l} \exp(u_{i,l}) \right)
+$$
 
 Cumulative Incident Function (CIF) for event $l$ and subject $i$ is defined as:
 
