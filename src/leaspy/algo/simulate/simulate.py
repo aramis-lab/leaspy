@@ -129,7 +129,19 @@ class SimulationAlgorithm(AbstractAlgo):
         if errors:
             raise LeaspyAlgoInputError("\n".join(errors))
 
-    def check_logistic_model(self, model: AbstractModel):
+    def _check_logistic_model(self, model: AbstractModel):
+        """Check if the model is a logistic model.
+
+        This method checks if the model type is 'logistic' and raises an error if not.
+        Parameters
+        ----------
+        model : :class:~.models.abstract_model.AbstractModel
+            A Leaspy model object previously trained on longitudinal data.
+        Raises
+        ------
+        LeaspyAlgoInputError
+            If the model type is not 'logistic'.
+        """
         if model.to_dict()["name"] != "logistic":
             raise LeaspyAlgoInputError(
                 "The model type should be 'logistic' for simulation."
@@ -409,7 +421,7 @@ class SimulationAlgorithm(AbstractAlgo):
             This method updates the `leaspy` attribute in-place.
         """
 
-        self.check_logistic_model(model)
+        self._check_logistic_model(model)
         self.leaspy = Leaspy("logistic", source_dimension=model.source_dimension)
         self.leaspy.model = model
 
@@ -509,21 +521,21 @@ class SimulationAlgorithm(AbstractAlgo):
             The model used for estimating the individual parameters (in get_ip_rm function) and generating
             the simulated values.
 
-        dict_timepoints : dict
+        dict_timepoints : :obj:`dict`
             A dictionary mapping individual IDs to their respective visit timepoints (according to visit_type)
 
-        individual_parameters_from_model_parameters : pd.DataFrame
+        individual_parameters_from_model_parameters : :obj:`pd.DataFrame`
             DataFrame containing the simulated individual parameters (e.g., 'xi', 'tau', and sources)
             for each individual, used in generating the simulated data.
 
-        min_days_spacing_between_visits : int
+        min_days_spacing_between_visits : :obj:`int`
             Minimum number of days between visits. If two visits are closer than this value,
             the second visit will be removed from the dataset.
             This is used to avoid too close visits in the simulated dataset.
 
         Returns
         -------
-        pd.DataFrame
+        :obj:`pd.DataFrame`
             A DataFrame containing the simulated dataset with ["ID","TIME] as the index
             and features as columns. The dataset includes both the generated values,
             with visits that are too close to each other removed.
