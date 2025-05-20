@@ -20,6 +20,7 @@ auto_examples/plot_quickstart
 user_guide
 auto_examples/index.rst
 glossary
+notations
 changelog
 license
 ```
