@@ -6,7 +6,7 @@ Quickstart with Leaspy
 # %%
 # Comprehensive example
 # ---------------------
-# We first load synthetic data to get of a grasp of longitudinal data:
+# We first load synthetic data in a long format to get of a grasp of longitudinal data:
 
 from leaspy.datasets import load_dataset
 
@@ -17,7 +17,7 @@ print(alzheimer_df.head())
 
 # %%
 # The data correspond to repeated visits (`TIME` index) of different participants (`ID` index).
-# Each visit corresponds to the measurement of 4 different variables : the MMSE, the RAVLT, the FAQ and the FDG PET.
+# Each visit corresponds to the measurement of 4 different outcomes : the MMSE, the RAVLT, the FAQ and the FDG PET.
 # If plotted, the data would look like the following:
 #
 # .. image:: ../alzheimer-observations.png
@@ -35,7 +35,7 @@ dataset = Dataset(data)
 
 # %%
 # Leaspy core functionality is to estimate the group-average trajectory of the different variables that are measured in a population.
-# Let's initialize a multivariate logistic model:
+# Clinical scores often have a ceiling and a floor effect, so let's initialize a multivariate logistic model:
 
 from leaspy.models import LogisticMultivariateModel
 
@@ -83,7 +83,7 @@ print(individual_parameters.to_dataframe())
 # Data format
 # ...........
 #
-# Leaspy uses its own data container. To use it properly, you need to provide a csv file or a pandas.DataFrame in the right format.
+# Leaspy uses its own data container. To use it properly, you need to provide a csv file or a pandas.DataFrame in the right format: longitudinal data in a long format.
 # Let's have a look at the data used in the previous example:
 
 print(alzheimer_df.head())
