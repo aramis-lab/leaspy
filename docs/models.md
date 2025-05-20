@@ -1,6 +1,6 @@
 # Models
 
-## Introduction to spatio-temporal models
+## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
 Individual variability for patient $i$ is modeled with the latent disease age $\psi_i(t)$:  
@@ -11,7 +11,6 @@ $$
 
 where:
 - $ e^{\xi_i} $ : Individual speed factor
-- $ e^{\xi_i} $ : Individual speed factor
 - $ \tau_i $ : Estimated reference time
 - $ t_0 $ : Population reference time
 
@@ -20,11 +19,11 @@ The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from
 *Key Hypothesis*: Longitudinal and survival processes are linked by a shared latent disease age.
 
 ### Spatial Random Effects
-Disease presentation variability is captured by $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
-- $\mathbf{A}$: Mixing matrix (dimension reduction with $N_s \leq K-1 $ independent sources)  
+Disease presentation variability is captured by space-shifts : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
+- $\mathbf{A}$: Mixing matrix (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of space shifts)
 - $ \mathbf{s}_i$: Independent sources  
 
-For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ , so that:
+For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ {cite}`schirattiBayesianMixedEffectsModel`, so that:
 
 $$
 \mathbf{A} = (\mathbf{B}\beta)^T
@@ -87,20 +86,34 @@ For the importation of dataframe:
 
 ```python
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
+print(dataset.head())
+
+FEATURE_1  FEATURE_2  EVENT_TIME  EVENT_BOOL
+  ID       TIME                                                           
+  132-S2-0 81.661               0.44444    0.04000        84.0           1
+          82.13600000000001    0.60000    0.00000        84.0           1
+          82.682               0.39267    0.04000        84.0           1
+          83.139               0.58511    0.00000        84.0           1
+          83.691               0.57044    0.00000        84.0           1
+  184-S2-0 80.994               0.32600    0.00000        83.4           0
+          81.47199999999998    0.35556    0.00000        83.4           0
+          82.08800000000001    0.40000    0.00000        83.4           0
+          82.488               0.31111    0.00000        83.4           0
+
 data_joint = Data.from_dataframe(dataset, "joint")
 ```
   
 ### Mathematical background
 #### Longitudinal Submodel
 
-The longitudinal submodel that can be used here is the logistic model, please have a look to part ([see description](## Logistic model)).
+The longitudinal submodel that can be used here is the logistic model, please have a look to part [description logistic model](#logistic-model) for more details.
 
 #### Survival Submodel
 **Cause-Specific Weibull Hazards** (for competing risks):
 
 This submodel captures how variations in the progression of longitudinal disease outcomes influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To achieve this, leaspy joint model uses a cause-specific hazard structure.  
 
-For each event $l$ and patient $i$, we model a cause-specific hazard $h_{i,l}(t)$ {cite}`prentice_regression_1978, cheng_prediction_1998`. This framework allows us to: Estimate the risk of each event separately and account for the presence of competing risks (where one event precludes others)
+For each event $l$ and patient $i$, we model a cause-specific hazard $h_{i,l}(t)$ {cite}`prentice_regression_1978, cheng_prediction_1998`. This framework allows us to estimate the risk of each event separately and account for the presence of competing risks (where one event precludes others)
 
 A Weibull distribution is used to model time-to-event data due to its flexibility in representing:  
 - Increasing, decreasing, or constant hazard shapes,  
@@ -110,7 +123,7 @@ A Weibull distribution is used to model time-to-event data due to its flexibilit
 
 The hazard is modulated via a Cox-proportional hazard framework to incorporate the effect of longitudinal biomarkers using survival shifts.
 
-Let $u_{i} = \zeta s_{i}$. The cause-specific hazard $h_{i,l}(t)$ for event $l$ and subject $i$ is defined as:
+Let $u_{i} = \zeta s_{i}$, $\zeta$ being the survival shift and $s$ sources. The cause-specific hazard $h_{i,l}(t)$ for event $l$ and subject $i$ is defined as:
 
 $$
 h_{i,l}(t) = h_{0,i,l}(t) \cdot \exp(u_{i,l})
@@ -128,13 +141,13 @@ $$
 - $\xi_i$: Subject-specific parameter,
 - $\tau_i$:  Estimated reference time for individual $i$,
 
-Survival function $S_{i,l}(t)$ is defined as:
+Survival function $S_{i,l}(t)$ is then defined as:
 
 $$
 S_{i,l}(t) = \exp\left( -\left( \frac{e^{\xi_i (t - \tau_i)}}{\nu_l} \right)^{\rho_l} \exp(u_{i,l}) \right)
 $$
 
-Cumulative Incident Function (CIF) for event $l$ and subject $i$ is defined as:
+Finally, Cumulative Incident Function (CIF) for event $l$ and subject $i$ is defined as:
 
 $$
 \text{CIF}_{i,l}(t) = \int_0^t h_{i,l}(x) \prod_{q=1}^L S_{i,q}(x) \, dx \
@@ -160,6 +173,7 @@ In practice in leaspy, to use joint model, you need to precise "joint" in Leaspy
 leaspy_joint = Leaspy("joint", nb_events=2, dimension=9, source_dimension=7)
 leaspy_joint.fit(data_joint, settings=algo_settings_joint_fit)
 ```
+For estimation, it is the CIF that is outputted by the model. Note that for prediction purposes, the cumulative incidence function (CIF) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
 ### References
 
