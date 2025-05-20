@@ -337,7 +337,7 @@ class JointModel(LogisticMultivariateModel):
 
         # Set the right initialisation point fpr barrier methods
         df_inter = pd.concat(
-            [df["EVENT_TIME"] - self.init_tolerance, df_ind["tau"]], axis=1
+            [df[dataset.event_time_name] - self.init_tolerance, df_ind["tau"]], axis=1
         )
         df_ind["tau"] = df_inter.min(axis=1)
 
