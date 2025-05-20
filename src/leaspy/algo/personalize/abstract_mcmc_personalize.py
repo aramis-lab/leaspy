@@ -106,8 +106,8 @@ class AbstractMCMCPersonalizeAlgo(
         model: AbstractModel,
         dataset: Dataset,
     ) -> IndividualParameters:
-        individual_variable_names = list(
-            model.dag.sorted_variables_by_type[IndividualLatentVariable]
+        individual_variable_names = sorted(
+            list(model.dag.sorted_variables_by_type[IndividualLatentVariable])
         )
         values_history = {name: [] for name in individual_variable_names}
         attachment_history = []
