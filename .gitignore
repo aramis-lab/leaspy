@@ -132,6 +132,9 @@ venv.bak/
 
 # mkdocs documentation
 /site
+docs/auto_examples/
+docs/sg_execution_times.rst
+examples/_outputs/
 
 # mypy
 .mypy_cache/
