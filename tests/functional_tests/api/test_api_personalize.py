@@ -648,12 +648,14 @@ class LeaspyPersonalizeRobustnessDataSparsityTest(LeaspyPersonalizeTestMixin):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
             "mode_posterior",
+            {"n_iter": 100},
         )
 
     def test_multivariate_logistic_diagonal_mean_posterior(self):
         self._robustness_to_data_sparsity(
             "logistic_diag_noise",
             "mean_posterior",
+            {"n_iter": 100},
         )
 
     def test_multivariate_logistic_diagonal_no_source_scipy_minimize(self):
