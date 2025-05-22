@@ -8,7 +8,7 @@ The following table displays the relationships between a variable mathematical n
 
 | Notation   | Concept                                                | Name in the DAG |
 |------------|--------------------------------------------------------|-----------------|
-| $ \tau_i $ | [estimated reference time](#estimated-reference-time)  | ???             |
+| $ \tau_i $ | [estimated reference time](#estimated-reference-time)  | `tau`            |
 |  $ e^{\xi_i} $ | [individual speed factor](#individual-speed-factor) | ???             |
 | $ \gamma_i(t) $ | [individual trajectory](#individual-trajectory) | ???             |
 | $ \psi_i(t) $ | [latent disease age](#latent-disease-age) | ???             |
