@@ -1,23 +1,22 @@
 {
-  "leaspy_version": "1.1",
-  "name": "univariate_linear",
-  "features": ["Y0"],
-  "noise_model": {
-    "name": "gaussian-scalar",
-    "scale": 0.15
-  },
-  "dimension": 1,
-  "source_dimension": 0,
-  "parameters": {
-    "g": [0.5],
-    "tau_mean": 78.0,
-    "tau_std": 5.0,
-    "xi_mean": 0.0,
-    "xi_std": 0.5,
-    "v0": [-4.0],
-    "betas": [],
-    "mixing_matrix": [],
-    "sources_mean": 0,
-    "sources_std": 1
-  }
+    "leaspy_version": "2.0.0",
+    "name": "univariate_linear",
+    "features": [
+        "Y0"
+    ],
+    "dimension": 1,
+    "source_dimension": 0,
+    "parameters": {
+        "tau_mean": 78.0,
+        "tau_std": 5.0,
+        "xi_std": 0.5,
+        "noise_std": 0.15,
+        "log_v0_mean": [
+            -4.0
+        ],
+        "g_mean": [
+            0.5
+        ]
+    },
+    "obs_models": "gaussian-scalar"
 }

@@ -1,23 +1,59 @@
 {
-  "leaspy_version": "1.1",
-  "name": "linear",
-  "features": ["Y0", "Y1", "Y2", "Y3"],
-  "dimension": 4,
-  "source_dimension": 2,
-  "noise_model": {
-    "name": "gaussian-scalar",
-    "scale": 0.1
-  },
-  "parameters": {
-    "g": [0.5, 0.06, 0.1, 0.3],
-    "v0": [-0.5, -0.5, -0.5, -0.5],
-    "betas": [[0.1, -0.5], [-0.1, 0.1], [-0.8, -0.1]],
-    "tau_mean": 75.2,
-    "tau_std": 0.9,
-    "xi_mean": 0.0,
-    "xi_std": 0.3,
-    "sources_mean": 0.0,
-    "sources_std": 1.0,
-    "mixing_matrix": [[0.4000, 0.2500], [0.2333, -0.4167], [0.0333, 0.1833], [-0.6667, -0.0167]]
-  }
+    "leaspy_version": "2.0.0",
+    "name": "linear",
+    "features": [
+        "Y0",
+        "Y1",
+        "Y2",
+        "Y3"
+    ],
+    "dimension": 4,
+    "source_dimension": 2,
+    "parameters": {
+        "tau_mean": 75.2,
+        "tau_std": 0.9,
+        "xi_std": 0.3,
+        "mixing_matrix": [
+            [
+                0.4000000059604645,
+                0.23330000042915344,
+                0.0333000011742115,
+                -0.666700005531311
+            ],
+            [
+                0.25,
+                -0.41670000553131104,
+                0.18330000340938568,
+                -0.016699999570846558
+            ]
+        ],
+        "noise_std": 0.1,
+        "log_v0_mean": [
+            -0.5,
+            -0.5,
+            -0.5,
+            -0.5
+        ],
+        "betas_mean": [
+            [
+                0.1,
+                -0.5
+            ],
+            [
+                -0.1,
+                0.1
+            ],
+            [
+                -0.8,
+                -0.1
+            ]
+        ],
+        "g_mean": [
+            0.5,
+            0.06,
+            0.1,
+            0.3
+        ]
+    },
+    "obs_models": "gaussian-scalar"
 }

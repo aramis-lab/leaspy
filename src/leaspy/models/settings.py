@@ -59,35 +59,3 @@ class ModelSettings:
                 "Please consider re-calibrating your model with your current leaspy version.\n"
                 "If you really want to load it as is (at your own risk) please use leaspy == 1.0.*"
             )
-        # TMP dirty transpose old parameters
-        assert settings["leaspy_version"] is not None
-        if int(settings["leaspy_version"].split(".")[0]) < 2:
-            import torch
-
-            if "noise_model" in settings:
-                settings["obs_models"] = settings["noise_model"]["name"]
-                if "gaussian" in settings["obs_models"]:
-                    settings["parameters"]["noise_std"] = settings["noise_model"][
-                        "scale"
-                    ]
-                del settings["noise_model"]
-            if "source_dimension" in settings:
-                for p_to_delete in ("sources_mean", "sources_std", "xi_mean") + (
-                    "betas",
-                    "mixing_matrix",
-                ) * (settings["source_dimension"] == 0):
-                    settings["parameters"].pop(p_to_delete, None)
-            dict_rename = {
-                "v0": "log_v0_mean",
-                "betas": "betas_mean",
-                "deltas": "deltas_mean",
-                "g": "g_mean" if "linear" in settings["name"] else "log_g_mean",
-            }
-            for p_old, p_new in dict_rename.items():
-                v = settings["parameters"].pop(p_old, None)
-                if v is not None:
-                    settings["parameters"][p_new] = v
-            mm = settings["parameters"].get("mixing_matrix", None)
-            if mm is not None:
-                settings["parameters"]["mixing_matrix"] = torch.tensor(mm).t().tolist()
-        # END TMP
