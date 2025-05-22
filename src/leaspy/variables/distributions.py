@@ -22,7 +22,7 @@ __all__ = [
     "StatelessDistributionFamilyFromTorchDistribution",
     "BernoulliFamily",
     "NormalFamily",
-    "NormalCovariateLinearFamily",
+    "BivariateNormalFamily",
     "AbstractWeibullRightCensoredFamily",
     "WeibullRightCensoredFamily",
     "WeibullRightCensoredWithSourcesFamily",
@@ -372,10 +372,10 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
 
-class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistribution):
-    """Normal / Gaussian family (stateless)."""
+class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """Bivariate Normal / Gaussian family (stateless)."""
 
-    parameters: ClassVar = ("loc", "scale", "coeff_corr", "covariates")
+    parameters: ClassVar = ("loc", "scale", "coeff_corr")
     # dist_factory: ClassVar = torch.distributions.Normal
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
@@ -385,16 +385,33 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> MultivariateNormal:
         """
         Returns a bivariate normal distribution with given means, stds, and correlation.
         Assumes shape broadcasting is consistent.
         """
+
+        if loc.dim() == 1:
+            loc = loc.unsqueeze(0)
+        if scale.dim() == 1:
+            scale = scale.unsqueeze(0)
+        if coeff_corr.dim() == 0:
+            coeff_corr = coeff_corr.unsqueeze(0)
+
         # Covariance matrix
-        cov_11 = scale[0] ** 2
-        cov_22 = scale[1] ** 2
-        cov_12 = coeff_corr * scale[0] * scale[1]
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
+
+        print(f"loc shape: {loc.shape}")
+        print(f"scale shape: {scale.shape}")
+        print(f"x_mu shape: {x_mu.shape}, y_mu shape: {y_mu.shape}")
+        print(f"x_std shape: {x_std.shape}, y_std shape: {y_std.shape}")
+        print(f"rho shape: {rho.shape}")
+
+        cov_11 = x_std**2
+        cov_22 = y_std**2
+        cov_12 = rho * x_std * y_std
 
         cov = torch.stack(
             [
@@ -404,7 +421,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
             dim=-2,
         )  # shape (..., 2, 2)
 
-        mean = torch.stack([loc[0], loc[1]], dim=-1)  # shape (..., 2)
+        mean = torch.stack([x_mu, y_mu], dim=-1)  # shape (..., 2)
 
         return MultivariateNormal(loc=mean, covariance_matrix=cov)
 
@@ -421,7 +438,6 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> torch.Tensor:
         """Return the mode of the distribution given the distribution's loc and scale parameters.
 
@@ -441,7 +457,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         # `loc`, but with possible broadcasting of shape
 
         # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
-        return loc[0] * covariates + loc[1]
+        return loc
 
     @classmethod
     def mean(
@@ -449,7 +465,6 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> torch.Tensor:
         """Return the mean of the distribution, given the distribution loc and scale parameters.
 
@@ -470,7 +485,7 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         # `loc`, but with possible broadcasting of shape
 
         # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
-        return loc[0] * covariates + loc[1]
+        return loc
 
     @classmethod
     def stddev(
@@ -478,7 +493,6 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> torch.Tensor:
         """Return the standard-deviation of the distribution, given loc and scale of the distribution.
 
@@ -498,101 +512,100 @@ class NormalCovariateLinearFamily(StatelessDistributionFamilyFromTorchDistributi
         # Hardcode method for efficiency
         # `scale`, but with possible broadcasting of shape
 
-        # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
-        return torch.sqrt(
-            (scale[0] * covariates) ** 2
-            + scale[1] ** 2
-            + 2 * covariates * coeff_corr * scale[0] * scale[1]
-        )
+        # TODO
+        return scale
 
     @classmethod
     def _nll(
         cls,
-        x: WeightedTensor,
+        values: WeightedTensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> WeightedTensor:
-        x_mod, x_ref = x.value.unbind(-1)
-        obs = x_mod * covariates + x_ref
-        mu = loc[0] * covariates + loc[1]
-        var = (
-            (scale[0] * covariates) ** 2
-            + scale[1] ** 2
-            + 2 * covariates * coeff_corr * scale[0] * scale[1]
+        x, y = values.value.unbind(-1)
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
+
+        norm_x = (x - x_mu) / x_std
+        norm_y = (y - y_mu) / y_std
+
+        log_part = (
+            torch.log(2 * torch.tensor(math.pi))
+            + torch.log(x_std)
+            + torch.log(y_std)
+            + 0.5 * torch.log(1 - rho**2)
+        )
+        quad_part = (norm_x**2 - 2 * rho * norm_x * norm_y + norm_y**2) / (
+            2 * (1 - rho**2)
         )
 
-        return WeightedTensor(
-            (
-                0.5 * (obs - mu) ** 2 / (var)
-                + 0.5 * torch.log(var)
-                + cls.nll_constant_standard
-            ),
-            x.weight,
-        )
+        nll = log_part + quad_part
+
+        return WeightedTensor(nll, values.weight)
 
     @classmethod
     def _nll_jacobian(
         cls,
-        x: WeightedTensor,
+        values: WeightedTensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> WeightedTensor:
-        x_mod, x_ref = x.value.unbind(-1)
-        obs = x_mod * covariates + x_ref
-        mu = loc[0] * covariates + loc[1]
-        var = (
-            (scale[0] * covariates) ** 2
-            + scale[1] ** 2
-            + 2 * covariates * coeff_corr * scale[0] * scale[1]
-        )
-        delta = obs - mu
+        x, y = values.value.unbind(-1)
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
 
-        # Gradients
-        dloc0 = delta * covariates / var  # d NLL / d phi_mod
-        dloc1 = delta / var  # d NLL / d phi_ref
-        # drho = (
-        #     (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
-        # )  # d NLL / d rho
+        norm_x = (x - x_mu) / x_std
+        norm_y = (y - y_mu) / y_std
 
-        grads = torch.stack([dloc0, dloc1], dim=-1)
+        dx = (norm_x - rho * norm_y) / (x_std * (1 - rho**2))
+        dy = (norm_y - rho * norm_x) / (y_std * (1 - rho**2))
 
-        return WeightedTensor(grads, x.weight.unsqueeze(-1).expand_as(grads))
+        grads = torch.stack([dx, dy], dim=1)
+
+        return WeightedTensor(grads, values.weight.unsqueeze(-1).expand_as(grads))
 
     @classmethod
     def _nll_and_jacobian(
         cls,
-        x: WeightedTensor,
+        values: WeightedTensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
-        covariates: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
-        x_mod, x_ref = x.value.unbind(-1)
-        obs = x_mod * covariates + x_ref
-        mu = loc[0] * covariates + loc[1]
-        var = (
-            (scale[0] * covariates) ** 2
-            + scale[1] ** 2
-            + 2 * covariates * coeff_corr * scale[0] * scale[1]
+        x, y = values.value.unbind(-1)
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
+
+        norm_x = (x - x_mu) / x_std
+        norm_y = (y - y_mu) / y_std
+
+        # NLL
+        log_part = (
+            torch.log(2 * torch.tensor(math.pi))
+            + torch.log(x_std)
+            + torch.log(y_std)
+            + 0.5 * torch.log(1 - rho**2)
         )
-        delta = obs - mu
+        quad_part = (norm_x**2 - 2 * rho * norm_x * norm_y + norm_y**2) / (
+            2 * (1 - rho**2)
+        )
 
-        nll = 0.5 * delta**2 / (var) + 0.5 * torch.log(var) + cls.nll_constant_standard
+        nll = log_part + quad_part
 
-        # Gradients
-        dloc0 = delta * covariates / var  # d NLL / d phi_mod
-        dloc1 = delta / var  # d NLL / d phi_ref
-        # drho = (
-        #     (covariate * scale[0] * scale[1]) * (var - delta**2) / var**2
-        # )  # d NLL / d rho
+        # Jacobian matrix
+        dx = (norm_x - rho * norm_y) / (x_std * (1 - rho**2))
+        dy = (norm_y - rho * norm_x) / (y_std * (1 - rho**2))
 
-        grads = torch.stack([dloc0, dloc1], dim=-1)
+        grads = torch.stack([dx, dy], dim=1)
 
-        return WeightedTensor(nll, x.weight), WeightedTensor(grads, x.weight)
+        return WeightedTensor(nll, values.weight), WeightedTensor(
+            grads, values.weight.unsqueeze(-1).expand_as(grads)
+        )
 
 
 class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
@@ -1114,7 +1127,7 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
-NormalCovariateLinear = SymbolicDistribution.bound_to(NormalCovariateLinearFamily)
+BivariateNormal = SymbolicDistribution.bound_to(BivariateNormalFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
 WeibullRightCensoredWithSources = SymbolicDistribution.bound_to(

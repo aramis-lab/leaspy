@@ -12,7 +12,7 @@ from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import Normal, NormalCovariateLinear
+from leaspy.variables.distributions import BivariateNormal, Normal
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,
@@ -171,15 +171,11 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             phi_v0=PopulationLatentVariable(
-                NormalCovariateLinear(
-                    "phi_v0_mean", "phi_v0_std", "rho_v0", "covariates"
-                )
+                BivariateNormal("phi_v0_mean", "phi_v0_std", "rho_v0")
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
-            # log_v0=LinkedVariable(
-            #     Affine("phi_v0", "covariates")
-            # ),
-            # v0=LinkedVariable(Exp("log_v0")),
+            log_v0=LinkedVariable(Affine("phi_v0", "covariates")),
+            v0=LinkedVariable(Exp("log_v0")),
             metric=LinkedVariable(
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
@@ -371,17 +367,17 @@ class CovariateLogisticMultivariateInitializationMixin:
         )  # always "works" for ordinal (values >= 1)
 
         parameters = {
-            "phi_tau_mean": torch.Tensor([0.0, t0]),
+            "phi_tau_mean": torch.Tensor([1.0, t0]),
             "phi_g_mean": torch.stack(
                 [
-                    torch.zeros(self.dimension),  # slopes
+                    torch.full((self.dimension,), 0.01),  # slopes
                     torch.log(1.0 / values - 1.0),  # intercepts (logit)
                 ],
                 dim=0,
             ).T,
             "phi_v0_mean": torch.stack(
                 [
-                    torch.zeros(self.dimension),  # slopes
+                    torch.full((self.dimension,), 0.01),  # slopes
                     get_log_velocities(slopes, self.features),  # intercepts
                 ],
                 dim=0,
@@ -434,13 +430,13 @@ class CovariateLogisticMultivariateModel(
             ),
             # LATENT VARS
             phi_g=PopulationLatentVariable(
-                NormalCovariateLinear("phi_g_mean", "phi_g_std", "rho_g", "covariates")
+                BivariateNormal("phi_g_mean", "phi_g_std", "rho_g")
             ),  # phi_g = (phi_mod_g, phi_ref_g)
-            # # LINKED VARS
-            # log_g=LinkedVariable(
-            #     Affine("phi_g", "covariates")
-            # ),  # log_g=phi_mod_g*covariate+phi_ref_g
-            # g=LinkedVariable(Exp("log_g")),
+            # LINKED VARS
+            log_g=LinkedVariable(
+                Affine("phi_g", "covariates")
+            ),  # log_g=phi_mod_g*covariate+phi_ref_g
+            g=LinkedVariable(Exp("log_g")),
         )
 
         return d

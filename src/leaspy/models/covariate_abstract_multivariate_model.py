@@ -9,7 +9,7 @@ from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Affine, Exp, MatMul
 from leaspy.utils.typing import KwargsType
-from leaspy.variables.distributions import Normal, NormalCovariateLinear
+from leaspy.variables.distributions import BivariateNormal, Normal
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,
@@ -129,12 +129,10 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             # LATENT VARS
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             phi_tau=IndividualLatentVariable(
-                NormalCovariateLinear(
-                    "phi_tau_mean", "phi_tau_std", "rho_tau", "covariates"
-                )
+                BivariateNormal("phi_tau_mean", "phi_tau_std", "rho_tau")
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
-            # tau=LinkedVariable(AffineFromVector("phi_tau", "covariates")),
+            tau=LinkedVariable(Affine("phi_tau", "covariates")),
             alpha=LinkedVariable(Exp("xi")),
         )
 
