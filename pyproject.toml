@@ -102,6 +102,6 @@ line-ending = "auto"
 
 [tool.codespell]
 summary = ''
-skip = ".git,LICENSE.txt,.spell-check.txt,*.m"
+skip = ".git,LICENSE.txt,.spell-check.txt,*.m,poetry.lock"
 quiet-level = 3
 ignore-words = ".spell-check.txt"
