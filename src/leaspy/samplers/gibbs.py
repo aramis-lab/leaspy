@@ -40,7 +40,7 @@ class GibbsSamplerMixin:
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
@@ -230,7 +230,7 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
@@ -399,7 +399,7 @@ class PopulationGibbsSampler(AbstractPopulationGibbsSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
@@ -496,7 +496,7 @@ class PopulationFastGibbsSampler(AbstractPopulationGibbsSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
@@ -541,7 +541,7 @@ class PopulationMetropolisHastingsSampler(AbstractPopulationGibbsSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
@@ -585,7 +585,7 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
