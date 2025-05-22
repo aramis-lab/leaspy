@@ -9,14 +9,14 @@ The following table displays the relationships between a variable mathematical n
 | Notation   | Concept                                                | Name in the DAG |
 |------------|--------------------------------------------------------|-----------------|
 | $ \tau_i $ | [estimated reference time](#estimated-reference-time)  | `tau`            |
-|  $ e^{\xi_i} $ | [individual speed factor](#individual-speed-factor) | ???             |
-| $ \gamma_i(t) $ | [individual trajectory](#individual-trajectory) | ???             |
-| $ \psi_i(t) $ | [latent disease age](#latent-disease-age) | ???             |
+|  $ \xi_i $ | [individual log speed factor](#individual-speed-factor) | `xi`             |
+| $ \gamma_i(t) $ | [individual trajectory](#individual-trajectory) | `model`             |
+| $ \psi_i(t) $ | [latent disease age](#latent-disease-age) | `rt`             |
 | $ \mathbf{A} $ | [mixing matrix](#mixing-matrix) | `mixing_matrix` |
-| $ t_0 $ | [population reference time](#population-reference-time) | ???             |
+| $ t_0 $ | [population reference time](#population-reference-time) | `tau_mean`             |
 | $ \mathbf{s}_i$ | [sources](#sources) | `sources` |
 | $ w_{i,k} $ | [space shift](#space-shift) | `space_shifts`  |
-| $ u_{i,l} $ | [survival shift](#survival-shift) | ???             |
+| $ u_{i,l} $ | [survival shift](#survival-shift) | `survival_shifts`             |
 
 ## Concept definitions
 
@@ -24,21 +24,21 @@ This section explains each mathematical concept and provides mathematical defini
 
 ### Estimated reference time
 
-The *estimated reference time* for a given individual $ i $ is denoted as $ \tau_i $ and is defined as **TODO**.
+The *estimated reference time* for a given individual $ i $ is denoted as $ \tau_i $. It follows $\tau_i \sim \mathcal{N}(t_0, \sigma^2_{\tau})$.
 
-### Individual speed factor
+### Individual log speed factor
 
-The *individual speed factor* for a given individual $ i $ is denoted as $ e^{\xi_i} $ and is defined as **TODO**.
+The *individual log speed factor* for a given individual $ i $ is denoted as $ \xi_i $ . It follows $\xi_i \sim \mathcal{N}(0, \sigma^2_{\xi})$.
 
 ### Individual trajectory
 
-The *individual trajectory* for a given individual $ i $ is denoted as $ \gamma_i(t) $ and represents **TODO**.
+The *individual trajectory* for a given individual $ i $ is denoted as $ \gamma_i(t) $ and represents the disease progression of the patient $i$. It can be indexed by $k$ when $K$ outcomes are estimated.  
 
 ### Latent disease age
 
 The *latent disease age*, for a given individual $ i $, is denoted as $ \psi_i(t) $.
 
-It represents **TODO** and is defined as:
+It represents a transformation from chronological time $t$ to latent disease age that is related to its stage in the disease and is defined as:
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
