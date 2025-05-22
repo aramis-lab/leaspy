@@ -9,7 +9,7 @@ The following table displays the relationships between a variable mathematical n
 | Notation   | Concept                                                | Name in the DAG |
 |------------|--------------------------------------------------------|-----------------|
 | $ \tau_i $ | [estimated reference time](#estimated-reference-time)  | `tau`            |
-|  $ \xi_i $ | [individual log speed factor](#individual-speed-factor) | `xi`             |
+|  $ \xi_i $ | [individual log speed factor](#individual-log-speed-factor) | `xi`             |
 | $ \gamma_i(t) $ | [individual trajectory](#individual-trajectory) | `model`             |
 | $ \psi_i(t) $ | [latent disease age](#latent-disease-age) | `rt`             |
 | $ \mathbf{A} $ | [mixing matrix](#mixing-matrix) | `mixing_matrix` |
