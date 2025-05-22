@@ -1,25 +1,29 @@
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "leaspy"
 version = "2.0.0.dev"
 description = "Leaspy is a software package for the statistical analysis of longitudinal data."
-readme = "README.md"
-documentation = "https://leaspy.readthedocs.io"
-homepage = "https://gitlab.com/icm-institute/aramislab/leaspy"
-repository = "https://gitlab.com/icm-institute/aramislab/leaspy"
 license = "BSD-3-Clause"
-authors = ["AramisLab Research Team"]
-maintainers = ["Nicolas Gensollen <nicolas.gensollen@inria.fr>"]
+authors = [
+    { name = "AramisLab Research Team" },
+]
+maintainers = [
+    { name = "Nicolas Gensollen", email = "nicolas.gensollen@inria.fr" },
+    { name = "Caglayan Tuna", email = "caglayan.tuna@inria.fr" },
+]
+readme = "README.md"
+packages = [{include = "leaspy", from = "src"}]
+requires-python = ">=3.9,<3.13"
 keywords = [
     "leaspy",
     "longitudinal",
     "mixed-model",
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
@@ -29,19 +33,23 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-packages = [{include = "leaspy", from = "src"}]
+dependencies = [
+    "joblib (>=1.2.0)",
+    "lifelines (>=0.27.4)",
+    "matplotlib (>=3.6.3,<4)",
+    "numpy (>=1.26.4,<2)",
+    "pandas (>=2.2.2,<3)",
+    "scikit-learn (>=1.2.2,<2)",
+    "scipy (>=1.13.1)",
+    "statsmodels (>=0.13.5,<1)",
+    "torch (>=2.2.0)",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.13"
-joblib = ">=1.2.0"
-lifelines = ">=0.27.4"
-matplotlib = ">=3.6.3,<4"
-numpy = ">=1.26.4,<2"
-pandas = ">=2.2.2,<3"
-scikit-learn = ">=1.2.2,<2"
-scipy = ">=1.13.1"
-statsmodels = ">=0.13.5,<1"
-torch = ">=2.2.0"
+[project.urls]
+homepage = "https://leaspy.readthedocs.io"
+documentation = "https://leaspy.readthedocs.io"
+sources = "https://github.com/aramis-lab/leaspy"
+issues = "https://github.com/aramis-lab/leaspy/issues"
 
 [tool.poetry.group.dev.dependencies]
 numpydoc = "*"
