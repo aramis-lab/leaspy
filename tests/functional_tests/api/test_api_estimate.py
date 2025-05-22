@@ -1,7 +1,4 @@
 from typing import Dict, Iterable, List
-from unittest import skip
-
-import pandas as pd
 
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from tests import LeaspyTestCase
@@ -78,7 +75,7 @@ class LeaspyEstimateTest(LeaspyEstimateTestMixin):
         )
         timepoints = {"idx1": [78, 81], "idx2": [71]}
         # first batch of tests same logistic model but with / without diag noise (no impact in estimation!)
-        models = ("univariate_logistic",)
+        models = ("logistic",)
         expected_ests = {"idx1": [[0.999607], [0.9999857]], "idx2": [[0.03098414]]}
         self.batch_checks(individual_parameters, timepoints, models, expected_ests)
 

@@ -19,14 +19,12 @@ from leaspy.variables.specs import (
 
 from .abstract_multivariate_model import AbstractMultivariateModel
 from .base import InitializationMethod
-from .multivariate import LogisticMultivariateInitializationMixin
+from .multivariate import LogisticInitializationMixin
 
 __all__ = ["MultivariateParallelModel"]
 
 
-class MultivariateParallelModel(
-    LogisticMultivariateInitializationMixin, AbstractMultivariateModel
-):
+class MultivariateParallelModel(LogisticInitializationMixin, AbstractMultivariateModel):
     """
     Logistic model for multiple variables of interest, imposing same average
     evolution pace for all variables (logistic curves are only time-shifted).

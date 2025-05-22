@@ -19,8 +19,8 @@ __all__ = [
 
 
 class DatasetName(str, Enum):
-    ALZHEIMER_MULTIVARIATE = "alzheimer-multivariate"
-    PARKINSON_MULTIVARIATE = "parkinson-multivariate"
+    ALZHEIMER = "alzheimer"
+    PARKINSON = "parkinson"
     PARKINSON_PUTAMEN = "parkinson-putamen"
     PARKINSON_PUTAMEN_TRAIN_TEST = "parkinson-putamen-train_and_test"
 

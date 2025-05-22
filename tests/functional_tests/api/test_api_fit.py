@@ -2,7 +2,7 @@ import json
 import os
 import warnings
 from typing import Optional
-from unittest import skip, skipIf
+from unittest import skipIf
 
 import torch
 
@@ -274,8 +274,8 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     def test_fit_univariate_logistic(self):
         self.generic_fit(
-            "univariate_logistic",
-            "univariate_logistic",
+            "logistic",
+            "logistic",
             check_kws=DEFAULT_CHECK_KWS,
         )
 
@@ -313,7 +313,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     # @skip("Linear models are currently broken.")
     def test_fit_univariate_linear(self):
-        self.generic_fit("univariate_linear", "univariate_linear")
+        self.generic_fit("linear", "linear")
 
     # @skip("Linear models are currently broken.")
     def test_fit_linear(self):

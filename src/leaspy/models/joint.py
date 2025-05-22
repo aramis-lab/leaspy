@@ -23,7 +23,7 @@ from leaspy.variables.specs import (
 from leaspy.variables.state import State
 
 from .base import InitializationMethod
-from .multivariate import LogisticMultivariateModel
+from .multivariate import LogisticModel
 from .obs_models import observation_model_factory
 
 # TODO refact? implement a single function
@@ -38,7 +38,7 @@ __all__ = ["JointModel"]
 
 
 @doc_with_super()
-class JointModel(LogisticMultivariateModel):
+class JointModel(LogisticModel):
     """
     Joint model for multiple repeated measures (logistic) and multiple competing events.
     The model implemented is associated to this [publication](https://arxiv.org/abs/2501.08960) on arxiv.
@@ -335,7 +335,7 @@ class JointModel(LogisticMultivariateModel):
                 index=df.index,
             )
 
-        # Set the right initialisation point fpr barrier methods
+        # Set the right initialisation point for barrier methods
         df_inter = pd.concat(
             [df[dataset.event_time_name] - self.init_tolerance, df_ind["tau"]], axis=1
         )

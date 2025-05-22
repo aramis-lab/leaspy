@@ -1,6 +1,6 @@
 from unittest import skipIf
 
-from leaspy.models import LogisticUnivariateModel, ModelName, model_factory
+from leaspy.models import ModelName, model_factory
 from leaspy.models.obs_models import FullGaussianObservationModel
 from tests import LeaspyTestCase
 
@@ -50,10 +50,10 @@ class ModelFactoryTest(ModelFactoryTestMixin):
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_load_hyperparameters_univariate_linear(self):
-        self._generic_univariate_hyperparameters_checker("univariate_linear")
+        self._generic_univariate_hyperparameters_checker("linear")
 
     def test_load_hyperparameters_univariate_logistic(self):
-        self._generic_univariate_hyperparameters_checker("univariate_logistic")
+        self._generic_univariate_hyperparameters_checker("logistic")
 
     def _generic_multivariate_hyperparameters_checker(self, model_name: str) -> None:
         model = model_factory(

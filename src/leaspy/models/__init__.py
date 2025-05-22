@@ -7,13 +7,12 @@ from .generic import GenericModel
 from .joint import JointModel
 from .lme import LMEModel
 from .multivariate import (
-    LinearMultivariateModel,
-    LogisticMultivariateModel,
+    LinearModel,
+    LogisticModel,
     MultivariateModel,
 )
 from .multivariate_parallel import MultivariateParallelModel
 from .settings import ModelSettings
-from .univariate import LinearUnivariateModel, LogisticUnivariateModel
 from .univariate_joint import UnivariateJointModel
 
 __all__ = [
@@ -28,11 +27,9 @@ __all__ = [
     "model_factory",
     "ModelSettings",
     "MultivariateModel",
-    "LogisticMultivariateModel",
-    "LinearMultivariateModel",
+    "LogisticModel",
+    "LinearModel",
     "MultivariateParallelModel",
-    "LinearUnivariateModel",
-    "LogisticUnivariateModel",
     "UnivariateJointModel",
     "JointModel",
 ]

@@ -125,34 +125,6 @@ class AbstractModel(BaseModel):
 
         self.tracked_variables: Set[str, ...] = set()
 
-    # @property
-    # def noise_model(self) -> BaseNoiseModel:
-    #     if self._noise_model is None:
-    #         raise LeaspyModelInputError("The `noise_model` was not properly initialized.")
-    #     return self._noise_model
-    #
-    # @noise_model.setter
-    # def noise_model(self, model: NoiseModelFactoryInput):
-    #     noise_model = noise_model_factory(model)
-    #     self.check_noise_model_compatibility(noise_model)
-    #     self._noise_model = noise_model
-    #
-    # def check_noise_model_compatibility(self, model: BaseNoiseModel) -> None:
-    #    """
-    #    Raise a LeaspyModelInputError is the provided noise model isn't compatible with the model instance.
-    #    This needs to be implemented in subclasses.
-    #
-    #    Parameters
-    #    ----------
-    #    model : BaseNoiseModel
-    #        The noise model with which to check compatibility.
-    #    """
-    #    if not isinstance(model, BaseNoiseModel):
-    #        raise LeaspyModelInputError(
-    #            "Expected a subclass of BaselNoiseModel, but received "
-    #            f"a {type(model).__name__} instead."
-    #        )
-
     @property
     def state(self) -> State:
         if self._state is None:
@@ -904,14 +876,6 @@ class AbstractModel(BaseModel):
         """
         return alpha * (t - tau)
 
-    # @abstractmethod
-    # def model(self, **kws) -> torch.Tensor:
-    #    pass
-    #
-    # @abstractmethod
-    # def model_jacobian(self, **kws) -> torch.Tensor:
-    #    pass
-
     def get_variables_specs(self) -> NamedVariables:
         """
         Return the specifications of the variables (latent variables,
@@ -926,27 +890,13 @@ class AbstractModel(BaseModel):
             {
                 "t": DataVariable(),
                 "rt": LinkedVariable(self.time_reparametrization),
-                # "model": LinkedVariable(self.model),  # function arguments may depends on hyperparameters so postpone (e.g. presence of sources or not)
-                # "model_jacobian_{ip}": LinkedVariable(self.model_jacobian), for ip in IndividualLatentVariables....
             }
         )
-
         single_obs_model = len(self.obs_models) == 1
         for obs_model in self.obs_models:
             d.update(
                 obs_model.get_variables_specs(named_attach_vars=not single_obs_model)
             )
-
-        # if not single_obs_model:
-        #    raise NotImplementedError(
-        #        "WIP: Only 1 noise model supported for now, but to be extended."
-        #    )
-        #    d.update(
-        #        #nll_attach_full=LinkedVariable(Sum(...)),
-        #        nll_attach_ind=LinkedVariable(Sum(...)),
-        #        nll_attach=LinkedVariable(Sum(...)),
-        #        # TODO Same for nll_attach_ind jacobian, w.r.t each observation var???
-        #    )
 
         return d
 
@@ -995,7 +945,6 @@ class AbstractModel(BaseModel):
         with self._state.auto_fork(None):
             # Set model parameters
             self._initialize_model_parameters(dataset, method=method)
-
             # Initialize population latent variables to their mode
             self._state.put_population_latent_variables(
                 LatentVariableInitType.PRIOR_MODE

@@ -1,13 +1,14 @@
+from typing import Optional
+
 import torch
 
 from leaspy.exceptions import LeaspyInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super  # doc_with_
-from leaspy.utils.typing import DictParams, Optional
 
 from .joint import JointModel
+from .multivariate import LogisticModel
 from .obs_models import observation_model_factory
-from .univariate import LogisticUnivariateModel
 
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
@@ -21,7 +22,7 @@ __all__ = ["UnivariateJointModel"]
 
 
 @doc_with_super()
-class UnivariateJointModel(LogisticUnivariateModel, JointModel):
+class UnivariateJointModel(JointModel):
     """
     Manifold model for multiple variables of interest (logistic or linear formulation).
 
@@ -42,7 +43,10 @@ class UnivariateJointModel(LogisticUnivariateModel, JointModel):
     init_tolerance = 0.3
 
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+        if "dimension" not in kwargs:
+            super().__init__(name, dimension=1, **kwargs)
+        else:
+            super().__init__(name, **kwargs)
         obs_models_to_string = [o.to_string() for o in self.obs_models]
         if "gaussian-scalar" not in obs_models_to_string:
             self.obs_models += (
