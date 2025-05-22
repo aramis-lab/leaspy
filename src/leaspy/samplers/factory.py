@@ -42,7 +42,7 @@ def sampler_factory(
     Parameters
     ----------
     sampler : :class:`.AbstractSampler` or :obj:`str`
-        If an instance of a subclass of :class:`.AbstractSampler`, returns the instance (no copy).
+        If an instance of a subclass of :class:`.AbstractSampler`, returns the instance.
         If a string, returns a new instance of the appropriate class (with optional parameters `kwargs`).
 
     variable_type : :class:`.VariableType`
