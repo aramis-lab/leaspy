@@ -38,6 +38,7 @@ class SimulationAlgorithm(AbstractAlgo):
             ("time_follow_up_std", (int, float)),
             ("distance_visit_mean", (int, float)),
             ("distance_visit_std", (int, float)),
+            ("min_spacing_between_visits", (int, float)),
         ],
     }
 
@@ -125,7 +126,6 @@ class SimulationAlgorithm(AbstractAlgo):
             errors.append("Type problems :\n- " + "\n- ".join(type_errors))
         if value_errors:
             errors.append("Invalid value :\n- " + "\n- ".join(value_errors))
-
         if errors:
             raise LeaspyAlgoInputError("\n".join(errors))
 
@@ -230,6 +230,11 @@ class SimulationAlgorithm(AbstractAlgo):
                     Standard deviation of distance_visits: std time delta between two visits.
                 Time delta between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std),
                 thus setting distance_visit_std to 0 enable to simulate regularly spaced visits.
+                - 'min_spacing_between_visits' : :obj:`float`
+                    Minimum delta between visits. This delta has to be in the same unit as the TIME column.
+                    If two visits are closer than this value, the second visit will be removed from the dataset.
+                    This is used to avoid too close visits in the simulated dataset.
+                    Default is 1/365 (1 day).
 
         Returns
         -------
@@ -256,11 +261,11 @@ class SimulationAlgorithm(AbstractAlgo):
                 "distance_visit_std": dict_param["distance_visit_std"],
             }
 
-        # Add optional spacing param if provided
-        if "min_spacing_between_visits" in dict_param:
-            self.param_study["min_spacing_between_visits"] = dict_param[
-                "min_spacing_between_visits"
-            ]
+            # Add optional spacing param if provided
+            if "min_spacing_between_visits" in dict_param:
+                self.param_study["min_spacing_between_visits"] = dict_param[
+                    "min_spacing_between_visits"
+                ]
 
     def run_impl(self, model: AbstractModel) -> Result:
         """Run the simulation pipeline using a leaspy model.
@@ -301,6 +306,7 @@ class SimulationAlgorithm(AbstractAlgo):
         )
 
         min_spacing = self.param_study.get("min_spacing_between_visits", 1 / 365)
+
         df_sim = self._generate_dataset(
             model,
             dict_timepoints,
@@ -505,7 +511,7 @@ class SimulationAlgorithm(AbstractAlgo):
         model: AbstractModel,
         dict_timepoints: dict,
         individual_parameters_from_model_parameters: pd.DataFrame,
-        min_spacing_between_visits: int,
+        min_spacing_between_visits: float,
     ) -> pd.DataFrame:
         """
         Generate a simulated dataset based on simulated individual parameters and model timepoints.
@@ -514,7 +520,8 @@ class SimulationAlgorithm(AbstractAlgo):
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
         If the visits time are too close to each other, we keep only the first occurrence.
-        The user can fix a min delta between two visits. When the delta between the simulated visits is below the threshold, we keep only the first occurrence.
+        Min delta spacing is 1 day by default, considering that TIME is in years. If TIME is in another time units, the min_spacing_between_visits will have to be updated
+
         Parameters
         ----------
         model : :class::~.models.abstract_model.AbstractModel
@@ -528,7 +535,8 @@ class SimulationAlgorithm(AbstractAlgo):
             DataFrame containing the simulated individual parameters (e.g., 'xi', 'tau', and sources)
             for each individual, used in generating the simulated data.
 
-        min_spacing_between_visits : :obj:`float`
+        min_spacing_between_visits : :obj:`float`, optional
+            Default is 1/365 (1 day).
             Minimum delta between visits. This delta has to be in the same unit as the TIME column.
             If two visits are closer than this value, the second visit will be removed from the dataset. This is used to avoid too close visits in the simulated dataset.
 
@@ -603,6 +611,7 @@ class SimulationAlgorithm(AbstractAlgo):
             2: 0.01,  # 0.01 years ~ 3.65 days
             3: 0.001,  # 0.001 years ~ 0.365 days (~1 day) - User will never want precision above 1 day.
         }
+
         rounding_precision = None
         for precision, val in sorted(rounding_options.items()):
             if val <= min_spacing_between_visits:
