@@ -27,9 +27,9 @@ IteratorIndicesType = List[Tuple[int, ...]]
 
 class GibbsSamplerMixin:
     """
-    Mixin class for all Gibbs samplers (individual and population).
+    Mixin class for Gibbs samplers (individual and population).
 
-    This class contains the logic common to all Gibbs samplers.
+    This class contains common logic for all Gibbs samplers.
 
     Parameters
     ----------
@@ -40,30 +40,31 @@ class GibbsSamplerMixin:
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra factor will be applied on top of this scale (hyperparameters):
+        An extra factor will be applied on top of this scale :
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
-        Note that if you pass a :class:`torch.Tensor`, its shape should be compatible with shape of the variable.
+        Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
-        This parameter controls whether we randomize the order of indices during the sampling loop.
-        (only for population variables, since we perform group sampling for individual variables)
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
-    mean_acceptation_rate_target_bounds : :obj:`tuple`[lower_bound: float, upper_bound: float] with 0 < lower_bound < upper_bound < 1
-        Bounds on mean acceptation rate.
-        Outside this range, the adaptation of the std-dev of sampler is triggered
-        so to maintain a target acceptation rate in between these too bounds (e.g: ~30%).
-    adaptive_std_factor : :obj:`float` in ]0, 1[
-        Factor by which we increase or decrease the std-dev of sampler when we are out of
-        the custom bounds for the mean acceptation rate. We decrease it by `1 - factor` if too low,
-        and increase it with `1 + factor` if too high.
+        Whether to randomize the order of dimensions during the sampling loop.
+        This is applied only to population variables as group sampling is used for individual variables.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
+    mean_acceptation_rate_target_bounds : :obj:`tuple` [lower_bound: :obj:`float`, upper_bound: :obj:`float`] with 0 < lower_bound < upper_bound < 1
+        Bounds on the mean acceptation rate.
+        If the rate is outside this range, the adaptive std-dev will be updated
+        to maintain the target acceptance rate. (e.g: ~30%).
+    adaptive_std_factor : :obj:`float` in (0, 1)
+        The factor by which the sampler's std-dev is adapted:
+
+        * If acceptance rate is too low → decrease by ``1 - factor``
+        * If too high → increase by ``1 + factor``
     **base_sampler_kws
-        Keyword arguments passed to `AbstractSampler` init method.
-        In particular, you may pass the `acceptation_history_length` hyperparameter.
+        Additional keyword arguments passed to :class:`~leaspy.samplers.AbstractSampler` init method.
+        For example, you may pass `acceptation_history_length`.
 
     Attributes
     ----------
-    In addition to the attributes present in :class:`.AbstractSampler`:
+    In addition to the attributes present in AbstractSampler :
 
     std : :class:`torch.Tensor`
         Adaptive std-dev of variable
@@ -105,6 +106,7 @@ class GibbsSamplerMixin:
 
     @property
     def shape_acceptation(self) -> Tuple[int, ...]:
+        """Shape of adaptative variance."""
         return self.shape_adapted_std
 
     def _set_acceptation_bounds(
@@ -136,9 +138,9 @@ class GibbsSamplerMixin:
 
     def validate_scale(self, scale: Union[float, torch.Tensor]) -> torch.Tensor:
         """
-        Validate user provided scale in :obj:`float` or :class:`torch.Tensor` form.
+        Validate the user provided scale if it is a :obj:`float` or :class:`torch.Tensor`.
 
-        Scale of variable should always be positive (component-wise if multidimensional).
+        The scale must be positive. If the input is multidimensional, all components must be positive.
 
         Parameters
         ----------
@@ -149,6 +151,11 @@ class GibbsSamplerMixin:
         -------
         :class:`torch.Tensor` :
             Valid scale.
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError`
+            If the scale contains any non-positive value.
         """
         if not isinstance(scale, torch.Tensor):
             scale = torch.tensor(scale)
@@ -191,7 +198,7 @@ class GibbsSamplerMixin:
         For default parameters:
             - `std-dev` is increased if frequency of acceptation is > 40%
             - `std-dev` is decreased if frequency of acceptation is < 20%
-              (so as to stay close to 30%).
+              (to stay close to 30%).
         """
         self._counter += 1
 
@@ -216,39 +223,44 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
 
     Parameters
     ----------
-    name : str
+    name : :obj:`str`
         The name of the random variable to sample.
-    shape : tuple[int, ...]
+    shape : :obj:`tuple` of :obj:`int`
         The shape of the random variable to sample.
-    scale : float > 0 or :class:`torch.FloatTensor` > 0
+    scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra 1% factor will be applied on top of this scale (STD_SCALE_FACTOR)
-        Note that if you pass a torch tensor, its shape should be compatible with shape of the variable.
-    random_order_dimension : bool (default True)
-        This parameter controls whether we randomize the order of indices during the sampling loop.
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
-    mean_acceptation_rate_target_bounds : tuple[lower_bound: float, upper_bound: float] with 0 < lower_bound < upper_bound < 1
-        Bounds on mean acceptation rate.
-        Outside this range, the adaptation of the std-dev of sampler is triggered
-        so to maintain a target acceptation rate in between these too bounds (e.g: ~30%).
-    adaptive_std_factor : float in ]0, 1[
-        Factor by which we increase or decrease the std-dev of sampler when we are out of
-        the custom bounds for the mean acceptation rate. We decrease it by `1 - factor` if too low,
-        and increase it with `1 + factor` if too high.
+        An extra factor will be applied on top of this scale :
+            * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
+            * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+        Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
+    random_order_dimension : :obj:`bool` (default True)
+        Whether to randomize the order of dimensions during the sampling loop.
+        This is applied only to population variables as group sampling is used for individual variables.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
+    mean_acceptation_rate_target_bounds : :obj:`tuple` [lower_bound: :obj:`float`, upper_bound: :obj:`float`] with 0 < lower_bound < upper_bound < 1
+        Bounds on the mean acceptation rate.
+        If the rate is outside this range, the adaptive std-dev will be updated
+        to maintain the target acceptance rate. (e.g: ~30%).
+    adaptive_std_factor : :obj:`float` in (0, 1)
+        The factor by which the sampler's std-dev is adapted:
+
+        * If acceptance rate is too low → decrease by ``1 - factor``
+        * If too high → increase by ``1 + factor``
     **base_sampler_kws
-        Keyword arguments passed to `AbstractSampler` init method.
-        In particular, you may pass the `acceptation_history_length` hyperparameter.
+        Additional keyword arguments passed to :class:`~leaspy.samplers.AbstractSampler` init method.
+        For example, you may pass `acceptation_history_length`.
+
     """
 
     STD_SCALE_FACTOR = 0.01
 
     def validate_scale(self, scale: Union[float, torch.Tensor]) -> torch.Tensor:
         """
-        Validate user provided scale in :obj:`float` or :class:`torch.Tensor` form.
+        Validate the user provided scale in :obj:`float` or :class:`torch.Tensor`.
 
-        If necessary, scale is casted to a :class:`torch.Tensor`.
+        If necessary, the scale is cast to a :class:`torch.Tensor`.
 
         Parameters
         ----------
@@ -274,21 +286,18 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
         temperature_inv: float,
     ) -> None:
         """
-        For each dimension (1D or 2D) of the population variable, compute current attachment and regularity.
+        Apply a Metropolis-Hastings (MH) sampling step for each dimension of the population variable.
 
-        Propose a new value for the given dimension of the given population variable,
-        and compute new attachment and regularity thanks to State.
-
-        Do a MH step, keeping if better, or if worse with a probability.
+        For each dimension (1D or 2D):
+         - Compute the current attachment and regularity terms.
+         - Propose a new value for the dimension.
+         - Recompute the attachment and regularity based on the new value.
+         - Apply a Metropolis-Hastings step to accept or reject the proposal.
 
         Parameters
         ----------
         state : :class:`.State`
-            Instance holding values for all model variables (including latent variables), as well as:
-            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
-            - dataset : ...
-                Contains the data of the subjects, in particular the subjects'
-                time-points and the mask for nan values & padded visits
+            Object containing values for all model variables, including latent variables
         temperature_inv : :obj:`float` > 0
             The temperature to use.
         """
@@ -390,23 +399,27 @@ class PopulationGibbsSampler(AbstractPopulationGibbsSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra 1% factor will be applied on top of this scale (STD_SCALE_FACTOR)
-        Note that if you pass a torch tensor, its shape should be compatible with shape of the variable.
+        An extra factor will be applied on top of this scale :
+            * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
+            * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+        Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
-        This parameter controls whether we randomize the order of indices during the sampling loop.
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
-    mean_acceptation_rate_target_bounds : :obj:`tuple`[lower_bound: float, upper_bound: float] with 0 < lower_bound < upper_bound < 1
-        Bounds on mean acceptation rate.
-        Outside this range, the adaptation of the std-dev of sampler is triggered
-        so to maintain a target acceptation rate in between these too bounds (e.g: ~30%).
-    adaptive_std_factor : :obj:`float` in ]0, 1[
-        Factor by which we increase or decrease the std-dev of sampler when we are out of
-        the custom bounds for the mean acceptation rate. We decrease it by `1 - factor` if too low,
-        and increase it with `1 + factor` if too high.
+        Whether to randomize the order of dimensions during the sampling loop.
+        This is applied only to population variables as group sampling is used for individual variables.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
+    mean_acceptation_rate_target_bounds : :obj:`tuple` [lower_bound: :obj:`float`, upper_bound: :obj:`float`] with 0 < lower_bound < upper_bound < 1
+        Bounds on the mean acceptation rate.
+        If the rate is outside this range, the adaptive std-dev will be updated
+        to maintain the target acceptance rate. (e.g: ~30%).
+    adaptive_std_factor : :obj:`float` in (0, 1)
+        The factor by which the sampler's std-dev is adapted:
+
+        * If acceptance rate is too low → decrease by ``1 - factor``
+        * If too high → increase by ``1 + factor``
     **base_sampler_kws
-        Keyword arguments passed to :meth:`.AbstractSampler.__init__` method.
-        In particular, you may pass the `acceptation_history_length` hyperparameter.
+        Additional keyword arguments passed to :class:`~leaspy.samplers.AbstractSampler` init method.
+        For example, you may pass `acceptation_history_length`.
     """
 
     def __init__(
@@ -472,7 +485,7 @@ class PopulationFastGibbsSampler(AbstractPopulationGibbsSampler):
 
     .. note::
         The sampling batches along the dimensions except the first one.
-        This speeds up sampling process for 2 dimensional parameters.
+        This accelerates sampling process for 2D parameters.
 
     Parameters
     ----------
@@ -483,23 +496,27 @@ class PopulationFastGibbsSampler(AbstractPopulationGibbsSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra 1% factor will be applied on top of this scale (STD_SCALE_FACTOR)
-        Note that if you pass a torch tensor, its shape should be compatible with shape of the variable.
+        An extra factor will be applied on top of this scale :
+            * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
+            * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+        Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
-        This parameter controls whether we randomize the order of indices during the sampling loop.
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
-    mean_acceptation_rate_target_bounds : :obj:`tuple`[lower_bound: float, upper_bound: float] with 0 < lower_bound < upper_bound < 1
-        Bounds on mean acceptation rate.
-        Outside this range, the adaptation of the std-dev of sampler is triggered
-        so to maintain a target acceptation rate in between these too bounds (e.g: ~30%).
-    adaptive_std_factor : :obj:`float` in ]0, 1[
-        Factor by which we increase or decrease the std-dev of sampler when we are out of
-        the custom bounds for the mean acceptation rate. We decrease it by `1 - factor` if too low,
-        and increase it with `1 + factor` if too high.
+        Whether to randomize the order of dimensions during the sampling loop.
+        This is applied only to population variables as group sampling is used for individual variables.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
+    mean_acceptation_rate_target_bounds : :obj:`tuple` [lower_bound: :obj:`float`, upper_bound: :obj:`float`] with 0 < lower_bound < upper_bound < 1
+        Bounds on the mean acceptation rate.
+        If the rate is outside this range, the adaptive std-dev will be updated
+        to maintain the target acceptance rate. (e.g: ~30%).
+    adaptive_std_factor : :obj:`float` in (0, 1)
+        The factor by which the sampler's std-dev is adapted:
+
+        * If acceptance rate is too low → decrease by ``1 - factor``
+        * If too high → increase by ``1 + factor``
     **base_sampler_kws
-        Keyword arguments passed to `AbstractSampler` init method.
-        In particular, you may pass the `acceptation_history_length` hyperparameter.
+        Additional keyword arguments passed to :class:`~leaspy.samplers.AbstractSampler` init method.
+        For example, you may pass `acceptation_history_length`.
     """
 
     @property
@@ -512,8 +529,8 @@ class PopulationMetropolisHastingsSampler(AbstractPopulationGibbsSampler):
     Metropolis-Hastings sampler for population variables.
 
     .. note::
-        The sampling is done for all values at once.
-        This speeds up considerably sampling but usually requires more iterations.
+        The sampling is implemented for all values at once.
+        This accelerates sampling process but usually requires more iterations.
 
     Parameters
     ----------
@@ -524,23 +541,27 @@ class PopulationMetropolisHastingsSampler(AbstractPopulationGibbsSampler):
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra 1% factor will be applied on top of this scale (STD_SCALE_FACTOR)
-        Note that if you pass a torch tensor, its shape should be compatible with shape of the variable.
+        An extra factor will be applied on top of this scale :
+            * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
+            * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+        Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
-        This parameter controls whether we randomize the order of indices during the sampling loop.
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
-    mean_acceptation_rate_target_bounds : :obj:`tuple`[lower_bound: float, upper_bound: float] with 0 < lower_bound < upper_bound < 1
-        Bounds on mean acceptation rate.
-        Outside this range, the adaptation of the std-dev of sampler is triggered
-        so to maintain a target acceptation rate in between these too bounds (e.g: ~30%).
-    adaptive_std_factor : :obj:`float` in ]0, 1[
-        Factor by which we increase or decrease the std-dev of sampler when we are out of
-        the custom bounds for the mean acceptation rate. We decrease it by `1 - factor` if too low,
-        and increase it with `1 + factor` if too high.
+        Whether to randomize the order of dimensions during the sampling loop.
+        This is applied only to population variables as group sampling is used for individual variables.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
+    mean_acceptation_rate_target_bounds : :obj:`tuple` [lower_bound: :obj:`float`, upper_bound: :obj:`float`] with 0 < lower_bound < upper_bound < 1
+        Bounds on the mean acceptation rate.
+        If the rate is outside this range, the adaptive std-dev will be updated
+        to maintain the target acceptance rate. (e.g: ~30%).
+    adaptive_std_factor : :obj:`float` in (0, 1)
+        The factor by which the sampler's std-dev is adapted:
+
+        * If acceptance rate is too low → decrease by ``1 - factor``
+        * If too high → increase by ``1 + factor``
     **base_sampler_kws
-        Keyword arguments passed to `AbstractSampler` init method.
-        In particular, you may pass the `acceptation_history_length` hyperparameter.
+        Additional keyword arguments passed to :class:`~leaspy.samplers.AbstractSampler` init method.
+        For example, you may pass `acceptation_history_length`.
     """
 
     @property
@@ -552,8 +573,8 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
     """
     Gibbs sampler for individual variables.
 
-    Individual variables are handled with a grouped Gibbs sampler.
-    There is currently no other sampler available for individual variables.
+    Individual variables are handled using a grouped Gibbs sampler.
+    Currently, this is the only sampler implemented for individual variables.
 
     Parameters
     ----------
@@ -561,28 +582,30 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         The name of the random variable to sample.
     shape : :obj:`tuple` of :obj:`int`
         The shape of the random variable to sample.
-    n_patients : :obj:`int`
-        Number of patients.
     scale : :obj:`float` > 0 or :class:`torch.FloatTensor` > 0
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
-        An extra 1% factor will be applied on top of this scale (STD_SCALE_FACTOR)
-        Note that if you pass a torch tensor, its shape should be compatible with shape of the variable.
+        An extra factor will be applied on top of this scale :
+            * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
+            * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+        Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
-        This parameter controls whether we randomize the order of indices during the sampling loop.
-        Article https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html
-        gives a rationale on why we should activate this flag.
-    mean_acceptation_rate_target_bounds : :obj:`tuple`[lower_bound: float, upper_bound: float] with 0 < lower_bound < upper_bound < 1
-        Bounds on mean acceptation rate.
-        Outside this range, the adaptation of the std-dev of sampler is triggered
-        so to maintain a target acceptation rate in between these too bounds (e.g: ~30%).
-    adaptive_std_factor : :obj:`float` in ]0, 1[
-        Factor by which we increase or decrease the std-dev of sampler when we are out of
-        the custom bounds for the mean acceptation rate. We decrease it by `1 - factor` if too low,
-        and increase it with `1 + factor` if too high.
+        Whether to randomize the order of dimensions during the sampling loop.
+        This is applied only to population variables as group sampling is used for individual variables.
+        `Article <https://proceedings.neurips.cc/paper/2016/hash/e4da3b7fbbce2345d7772b0674a318d5-Abstract.html>`_
+        gives a reason on why we should activate this flag.
+    mean_acceptation_rate_target_bounds : :obj:`tuple` [lower_bound: :obj:`float`, upper_bound: :obj:`float`] with 0 < lower_bound < upper_bound < 1
+        Bounds on the mean acceptation rate.
+        If the rate is outside this range, the adaptive std-dev will be updated
+        to maintain the target acceptance rate. (e.g: ~30%).
+    adaptive_std_factor : :obj:`float` in (0, 1)
+        The factor by which the sampler's std-dev is adapted:
+
+        * If acceptance rate is too low → decrease by ``1 - factor``
+        * If too high → increase by ``1 + factor``
     **base_sampler_kws
-        Keyword arguments passed to `AbstractSampler` init method.
-        In particular, you may pass the `acceptation_history_length` hyperparameter.
+        Additional keyword arguments passed to :class:`~leaspy.samplers.AbstractSampler` init method.
+        For example, you may pass `acceptation_history_length`.
     """
 
     STD_SCALE_FACTOR = 0.5
@@ -616,13 +639,13 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
 
         Parameters
         ----------
-        scale : float or torch.Tensor
+        scale : :obj:`float` or :class:`torch.Tensor`
             The scale to be validated.
 
         Returns
         -------
-        torch.Tensor :
-            The validated scale.
+        :class:`torch.Tensor` :
+            Valid scale.
         """
         scale = super().validate_scale(scale)
         # <!> scale should always be a scalar tensor for individual sampler
@@ -661,31 +684,32 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         temperature_inv: float,
     ) -> None:
         """
-        For each individual variable, compute current patient-batched attachment and regularity.
+        Apply a grouped Metropolis-Hastings (MH) sampling step for individual variables.
 
-        Propose a new value for the individual variable,
-        and compute new patient-batched attachment and regularity.
+        For each individual variable:
+          - Compute the current attachment and regularity.
+          - Propose a new value for the variable.
+          - Recompute the attachment and regularity.
+          - Accept or reject the proposal using the MH criterion, based on the inverse temperature.
 
-        Do a MH step, keeping if better, or if worse with a probability.
 
         Parameters
         ----------
         state : :class:`.State`
-            Instance holding values for all model variables (including latent variables), as well as:
-            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
-            - dataset : ...
-                Contains the data of the subjects, in particular the subjects'
-                time-points and the mask for nan values & padded visits
+            Object containing values for all model variables, including latent variables
         temperature_inv : :obj:`float` > 0
             The temperature to use.
 
         Notes
         -----
-        The population variables are fixed during this sampling step (since we update an individual parameter), but:
-        - if we are in a calibration: we may have updated them just before and have NOT yet propagated these changes
-          into the master model parameters, so we SHOULD use the MCMC state for model computations (default)
-        - if we are in a personalization (mode/mean real): we are not updating the population parameters any more
-          so we should NOT use a MCMC state any more (not defined, only the "fitted model" state is defined)
+        Population variables remain fixed during this step since we are updating individual variables. However:
+
+        - In fit, population variables might have just been updated,
+          and their effects not yet propagated to the model.
+          In this case, model computations should use the current MCMC state (default behavior).
+
+        - In personalization (mode or mean posterior), population variables are not updated.
+          Therefore, the MCMC state should not be used.
         """
 
         def compute_attachment_regularity():

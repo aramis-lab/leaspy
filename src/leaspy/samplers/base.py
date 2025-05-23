@@ -86,18 +86,14 @@ class AbstractSampler(ABC):
         temperature_inv: float,
     ) -> None:
         """
-        Sample new realization of latent variable named `self.name` that is included in model-and-data state.
+        Apply a sampling step
 
-        <!> It will modified in-place the internal state, caching all intermediate values needed to efficient.
+        <!> It will modify in-place the internal state, caching all intermediate values needed to efficient.
 
         Parameters
         ----------
         state : :class:`.State`
-            Instance holding values for all model variables (including latent individual variables), as well as:
-            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
-            - dataset : ...
-                Contains the data of the subjects, in particular the subjects'
-                time-points and the mask for nan values & padded visits
+            Object containing values for all model variables, including latent variables
         temperature_inv : :obj:`float` > 0
             Inverse of the temperature used in tempered MCMC-SAEM
         """
@@ -228,8 +224,8 @@ class AbstractPopulationSampler(AbstractSampler):
         Deepness (= number of iterations) of the history kept for computing the mean acceptation rate.
         (It is the same for population or individual variables.)
     mask : :class:`torch.Tensor`, optional
-        If not None, mask should be 0/1 tensor indicating the sampling variable to adapt variance from
-        1 indices are kept for sampling while 0 are excluded.
+        A binary (0/1) tensor indicating which elements to sample.
+        Elements with value 1 (True) are included in the sampling; elements with 0 (False) are excluded.
 
     Attributes
     ----------
@@ -243,9 +239,9 @@ class AbstractPopulationSampler(AbstractSampler):
     acceptation_history : :class:`torch.Tensor`
         History of binary acceptations to compute mean acceptation rate for the sampler in MCMC-SAEM algorithm.
         It keeps the history of the last `acceptation_history_length` steps.
-    mask : :class:`torch.Tensor` of `obj`:bool, optional
-        If not None, mask should be 0/1 tensor indicating the sampling variable to adapt variance from
-        1 (True) indices are kept for sampling while 0 (False) are excluded.
+    mask : :class:`torch.Tensor` of :obj:`bool`, optional
+        A binary (0/1) tensor indicating which elements to sample.
+        Elements with value 1 (True) are included in the sampling; elements with 0 (False) are excluded.
     """
 
     def __init__(
