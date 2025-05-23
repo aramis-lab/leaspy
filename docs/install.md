@@ -1,8 +1,12 @@
 # Installation
 
+```{warning}
 Leaspy requires Python >= 3.9, < 3.13.
+```
 
+```{tip}
 Whether you wish to install a released version of Leaspy, or to install its development version, it is **highly recommended** to use a virtual environment to install the project and its dependencies.
+```
 
 There exists multiple solutions for that, the most common option is to use `conda`:
 
@@ -36,9 +40,11 @@ cd leaspy
 
 This project relies on [poetry](https://python-poetry.org) that you would need to install (see the [official instructions](https://python-poetry.org/docs/#installation)).
 
+```{tip}
 It is recommended install it in a dedicated environment, separated from the one in which you will install Leaspy and its dependencies. One possibility is to install it with a tool called [pipx](https://pipx.pypa.io/stable/).
 
 If you don't have `pipx` installed, already, you can follow the [official installation guidelines](https://pipx.pypa.io/stable/installation/).
+```
 
 In short, you can do:
 

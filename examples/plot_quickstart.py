@@ -88,15 +88,22 @@ print(individual_parameters.to_dataframe())
 
 print(alzheimer_df.head())
 
-# %%
+# %% [markdown]
+# ```{warning}
 # You **MUST** have `ID` and `TIME`, either in index or in the columns. The other columns must be the observed variables (also named features or endpoints). In this fashion, you have one column per feature and one line per visit.
+# ```
 
 # %%
 # Data scale & constraints
 # ........................
 #
-# Leaspy uses linear and logistic models. The features MUST be increasing with time. For the logistic model, you need to rescale your data between 0 and 1.
-#
+
+# %% [markdwon]
+# ```{warning}
+# - Leaspy uses linear and logistic models.
+# - The features **MUST** be increasing with time.
+# - For the logistic model, you need to rescale your data between 0 and 1.
+# ```
 
 # %%
 # Missing data
