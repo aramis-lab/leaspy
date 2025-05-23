@@ -10,7 +10,7 @@ Quickstart with Leaspy
 
 from leaspy.datasets import load_dataset
 
-alzheimer_df = load_dataset("alzheimer-multivariate")
+alzheimer_df = load_dataset("alzheimer")
 print(alzheimer_df.columns)
 alzheimer_df = alzheimer_df[["MMSE", "RAVLT", "FAQ", "FDG PET"]]
 print(alzheimer_df.head())
@@ -37,9 +37,9 @@ dataset = Dataset(data)
 # Leaspy core functionality is to estimate the group-average trajectory of the different variables that are measured in a population.
 # Clinical scores often have a ceiling and a floor effect, so let's initialize a multivariate logistic model:
 
-from leaspy.models import LogisticMultivariateModel
+from leaspy.models import LogisticModel
 
-model = LogisticMultivariateModel(name="test-model", source_dimension=2)
+model = LogisticModel(name="test-model", source_dimension=2)
 
 # %%
 # As well as the algorithm needed to estimate the group-average trajectory:
