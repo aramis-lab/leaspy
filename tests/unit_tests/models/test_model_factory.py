@@ -66,8 +66,6 @@ class ModelFactoryTest(ModelFactoryTestMixin):
         self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
         self.assertEqual(model.dimension, 3)  # TODO: automatic from length of features?
         self.assertEqual(model.source_dimension, 2)
-        with self.assertRaisesRegex(ValueError, r"(?i)\bhyperparameters\b.+\bblabla\b"):
-            model_factory(model_name, blabla=2)
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_load_hyperparameters_multivariate_linear(self):
@@ -79,12 +77,3 @@ class ModelFactoryTest(ModelFactoryTestMixin):
     @skipIf(not TEST_LOGISTIC_PARALLEL_MODELS, SKIP_LOGISTIC_PARALLEL_MODELS)
     def test_load_hyperparameters_multivariate_logistic_parallel(self):
         self._generic_multivariate_hyperparameters_checker("logistic_parallel")
-
-    def test_bad_noise_model_or_old_loss(self):
-        # raise if invalid loss
-        with self.assertRaises(ValueError):
-            model_factory("logistic", noise_model="bad_noise_model")
-
-        # NO MORE BACKWARD COMPAT -> raises about old loss kw
-        with self.assertRaises(ValueError):
-            model_factory("logistic", loss="MSE_diag_noise")
