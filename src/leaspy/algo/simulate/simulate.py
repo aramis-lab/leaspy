@@ -300,7 +300,7 @@ class SimulationAlgorithm(AbstractAlgo):
             individual_parameters_from_model_parameters
         )
 
-        min_spacing = self.param_study.get("min_spacing_between_visits", 1)
+        min_spacing = self.param_study.get("min_spacing_between_visits", 1 / 365)
         df_sim = self._generate_dataset(
             model,
             dict_timepoints,
