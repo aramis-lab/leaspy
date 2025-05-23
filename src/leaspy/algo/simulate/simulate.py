@@ -38,7 +38,6 @@ class SimulationAlgorithm(AbstractAlgo):
             ("time_follow_up_std", (int, float)),
             ("distance_visit_mean", (int, float)),
             ("distance_visit_std", (int, float)),
-            ("min_spacing_between_visits", (int, float)),
         ],
     }
 
@@ -118,6 +117,16 @@ class SimulationAlgorithm(AbstractAlgo):
 
             if param.endswith("_std") and value < 0:
                 value_errors.append(f"Standard deviation ({param}) can't be negative")
+
+        if "min_spacing_between_visits" in self.param_study:
+            value = self.param_study["min_spacing_between_visits"]
+            if not isinstance(value, (int, float)):
+                type_errors.append(
+                    "Parameter 'min_spacing_between_visits': Expected type int or float, "
+                    f"given {type(value).__name__}"
+                )
+            if value < 0:
+                value_errors.append("Parameter 'min_spacing_between_visits' cannot be negative")
 
         errors = []
         if missing_params:
