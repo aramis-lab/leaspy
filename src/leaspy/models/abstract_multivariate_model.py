@@ -205,8 +205,6 @@ class AbstractMultivariateModel(AbstractModel):
         hyperparameters : KwargsType
             The hyperparameters to be loaded.
         """
-        expected_hyperparameters = ("features", "dimension", "source_dimension")
-
         if "features" in hyperparameters:
             self.features = hyperparameters["features"]
 
@@ -232,10 +230,6 @@ class AbstractMultivariateModel(AbstractModel):
                     f"not {hyperparameters['source_dimension']}"
                 )
             self.source_dimension = hyperparameters["source_dimension"]
-
-        self._raise_if_unknown_hyperparameters(
-            expected_hyperparameters, hyperparameters
-        )
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """
