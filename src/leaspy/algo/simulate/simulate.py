@@ -520,6 +520,7 @@ class SimulationAlgorithm(AbstractAlgo):
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
         If the visits time are too close to each other, we keep only the first occurrence.
+        The user can fix a min delta between two visits. When the delta between the simulated visits is below the threshold, we keep only the first occurence.
         Min delta spacing is 1 day by default, considering that TIME is in years. If TIME is in another time units, the min_spacing_between_visits will have to be updated
 
         Parameters
