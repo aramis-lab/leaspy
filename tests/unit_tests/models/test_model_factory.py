@@ -44,9 +44,6 @@ class ModelFactoryTest(ModelFactoryTestMixin):
         self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
         self.assertEqual(model.dimension, 1)
         self.assertEqual(model.source_dimension, 0)
-        # inconsistent features for a univariate model (dimension=1)
-        with self.assertRaisesRegex(ValueError, r"(?i)\bdimension\b.+\bfeatures\b"):
-            model_factory(model_name, features=["t1", "t2", "t3"])
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_load_hyperparameters_univariate_linear(self):

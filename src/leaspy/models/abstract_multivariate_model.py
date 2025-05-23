@@ -83,7 +83,7 @@ class AbstractMultivariateModel(AbstractModel):
         #    raise LeaspyModelInputError(
         #        "You should not provide `source_dimension` != 0 for univariate model."
         #    )
-        self.source_dimension: Optional[int] = source_dimension
+        # self.source_dimension: Optional[int] = source_dimension
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
             observation_models = (
@@ -110,6 +110,34 @@ class AbstractMultivariateModel(AbstractModel):
                 observation_model_factory(observation_models, dimension=dimension),
             )
         super().__init__(name, **kwargs)
+        self._source_dimension = self._validate_source_dimension(source_dimension)
+
+    @property
+    def source_dimension(self) -> Optional[int]:
+        return self._source_dimension
+
+    @source_dimension.setter
+    def source_dimension(self, source_dimension: Optional[int] = None):
+        self._source_dimension = self._validate_source_dimension(source_dimension)
+
+    def _validate_source_dimension(self, source_dimension: Optional[int] = None) -> int:
+        if self.dimension == 1:
+            return 0
+        if source_dimension is not None:
+            if not isinstance(source_dimension, int):
+                raise LeaspyModelInputError(
+                    f"`source_dimension` must be an integer, not {type(source_dimension)}"
+                )
+            if source_dimension < 0:
+                raise LeaspyModelInputError(
+                    f"`source_dimension` must be >= 0, you provided {source_dimension}"
+                )
+            if self.dimension is not None and source_dimension > self.dimension - 1:
+                raise LeaspyModelInputError(
+                    f"Source dimension should be within [0, {self.dimension - 1}], "
+                    f"you provided {source_dimension}"
+                )
+        return source_dimension
 
     def get_variables_specs(self) -> NamedVariables:
         """

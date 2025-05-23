@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List
 from unittest import skip
 
+from leaspy.exceptions import LeaspyModelInputError
 from leaspy.models import AbstractMultivariateModel
 
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
@@ -51,10 +52,10 @@ class AbstractMultivariateModelTest(ManifoldModelTestMixin):
             AbstractMultivariateModel("dummy", features=["x", "y"], dimension=3)
 
     def test_bad_initialize_source_dim(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyModelInputError):
             AbstractMultivariateModel("dummy", source_dimension=-1)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LeaspyModelInputError):
             AbstractMultivariateModel("dummy", source_dimension=0.5)
 
         m = AbstractMultivariateModel("dummy", source_dimension=3)
