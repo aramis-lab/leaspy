@@ -21,6 +21,7 @@ user_guide
 auto_examples/index.rst
 glossary
 notations
+references
 changelog
 license
 ```
