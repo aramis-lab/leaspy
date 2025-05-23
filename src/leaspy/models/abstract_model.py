@@ -560,7 +560,8 @@ class AbstractModel(BaseModel):
         """
         Compute scores values at the given time-point(s) given a subject's individual parameters.
 
-        Nota: model uses its current internal state.
+        .. note::
+            The model uses its current internal state.
 
         Parameters
         ----------
