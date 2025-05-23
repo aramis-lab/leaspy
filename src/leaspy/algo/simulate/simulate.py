@@ -256,9 +256,9 @@ class SimulationAlgorithm(AbstractAlgo):
             }
 
         # Add optional spacing param if provided
-        if "min_days_spacing_between_visits" in dict_param:
-            self.param_study["min_days_spacing_between_visits"] = dict_param[
-                "min_days_spacing_between_visits"
+        if "min_spacing_between_visits" in dict_param:
+            self.param_study["min_spacing_between_visits"] = dict_param[
+                "min_spacing_between_visits"
             ]
 
     def run_impl(self, model: AbstractModel) -> Result:
@@ -299,12 +299,12 @@ class SimulationAlgorithm(AbstractAlgo):
             individual_parameters_from_model_parameters
         )
 
-        min_spacing = self.param_study.get("min_days_spacing_between_visits", 1)
+        min_spacing = self.param_study.get("min_spacing_between_visits", 1)
         df_sim = self._generate_dataset(
             model,
             dict_timepoints,
             individual_parameters_from_model_parameters,
-            min_days_spacing_between_visits=min_spacing,
+            min_spacing_between_visits=min_spacing,
         )
 
         simulated_data = Data.from_dataframe(df_sim)
@@ -504,7 +504,7 @@ class SimulationAlgorithm(AbstractAlgo):
         model: AbstractModel,
         dict_timepoints: dict,
         individual_parameters_from_model_parameters: pd.DataFrame,
-        min_days_spacing_between_visits: int,
+        min_spacing_between_visits: int,
     ) -> pd.DataFrame:
         """
         Generate a simulated dataset based on simulated individual parameters and model timepoints.
@@ -513,8 +513,7 @@ class SimulationAlgorithm(AbstractAlgo):
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
         If the visits time are too close to each other, we keep only the first occurrence.
-        By "too close", we mean if the visits happened on the same day.
-
+        The user can fix a min delta between two visits. When the delta between the simulated visits is below the threshold, we keep only the first occurrence.
         Parameters
         ----------
         model : :class::~.models.abstract_model.AbstractModel
@@ -528,10 +527,10 @@ class SimulationAlgorithm(AbstractAlgo):
             DataFrame containing the simulated individual parameters (e.g., 'xi', 'tau', and sources)
             for each individual, used in generating the simulated data.
 
-        min_days_spacing_between_visits : :obj:`int`
-            Minimum number of days between visits. If two visits are closer than this value,
-            the second visit will be removed from the dataset.
-            This is used to avoid too close visits in the simulated dataset.
+        min_spacing_between_visits : :obj:`float`
+            Minimum delta between visits. This delta has to be in the same unit as the TIME column.
+            If two visits are closer than this value, the second visit will be removed from the dataset. This is used to avoid too close visits in the simulated dataset.
+
 
         Returns
         -------
@@ -597,7 +596,6 @@ class SimulationAlgorithm(AbstractAlgo):
         df_sim = df_long[self.features]
 
         # Drop too close visits
-        spacing_years = min_days_spacing_between_visits / 365.25
         rounding_options = {
             0: 1,  # 1 year
             1: 0.1,  # 0.1 years ~ 36.5 days
@@ -606,10 +604,9 @@ class SimulationAlgorithm(AbstractAlgo):
         }
         rounding_precision = None
         for precision, val in sorted(rounding_options.items()):
-            if val <= spacing_years:
+            if val <= min_spacing_between_visits:
                 rounding_precision = precision
                 break
-
         df_sim.reset_index(inplace=True)
         df_sim.loc[:, "TIME"] = df_sim["TIME"].round(rounding_precision)
         df_sim.set_index(["ID", "TIME"], inplace=True)
