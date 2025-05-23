@@ -228,7 +228,8 @@ class SimulationAlgorithm(AbstractAlgo):
                     Mean of distance_visits: mean time delta between two visits.
                 - 'distance_visit_std' : :obj:`float`
                     Standard deviation of distance_visits: std time delta between two visits.
-                Time delta between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std).
+                Time delta between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std),
+                thus setting distance_visit_std to 0 enable to simulate regularly spaced visits.
 
         Returns
         -------
