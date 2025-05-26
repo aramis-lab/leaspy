@@ -1,6 +1,6 @@
 {
   "leaspy_version": "2.0.0-dev",
-  "name": "logistic_parallel",
+  "name": "shared_speed_logistic",
   "features": [
     "Y0",
     "Y1",

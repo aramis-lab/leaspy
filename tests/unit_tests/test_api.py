@@ -20,8 +20,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
     model_names = (
         "linear",
         "logistic",
-        "logistic_parallel",
-        # "mixed_linear-logistic",
+        "shared_speed_logistic",
     )
 
     def test_constructor(self):
@@ -29,8 +28,6 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         Test attribute's initialization of leaspy univariate model
         """
         for name in self.model_names:
-            # default_noise = GaussianScalarNoiseModel if 'univariate' in name else GaussianDiagonalNoiseModel
-
             leaspy = Leaspy(name)
             self.assertEqual(leaspy.type, name)
             self.assertIsInstance(
@@ -38,7 +35,6 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             )
             self.assertEqual(type(leaspy.model), type(model_factory(name)))
             self.check_model_factory_constructor(leaspy.model)
-
             with self.assertRaisesRegex(ValueError, "not been initialized"):
                 leaspy.check_if_initialized()
 
@@ -61,12 +57,10 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
                     [(observation_model_name, "gaussian-scalar"), {"w": 0, "s": 1}],
                     [("gaussian-scalar", observation_model_name), {"w": 1, "s": 0}],
                 ]
-
                 for input, output in to_test:
                     # If no observational model given
                     leaspy = Leaspy("joint", dimension=1, obs_models=input)
                     self.assertEqual(leaspy.type, "joint")
-
                     self.assertIsInstance(
                         leaspy.model.obs_models[output["w"]], observation_model
                     )
@@ -74,20 +68,15 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
                         leaspy.model.obs_models[output["s"]],
                         OBSERVATION_MODELS[ObservationModelNames.GAUSSIAN_SCALAR],
                     )
-
         for name in (
             "linear",
             "logistic",
-            "logistic_parallel",
-            # "mixed_linear-logistic",
+            "shared_speed_logistic",
         ):
             leaspy = Leaspy(name, source_dimension=2)
             self.assertEqual(leaspy.model.source_dimension, 2)
 
-        for name in (
-            "linear",
-            "logistic",
-        ):
+        for name in ("linear", "logistic"):
             leaspy = Leaspy(name, dimension=1)
             self.assertEqual(leaspy.model.source_dimension, 0)
             self.assertEqual(leaspy.model.dimension, 1)
@@ -105,17 +94,12 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         """
         leaspy = self.get_hardcoded_model("logistic_scalar_noise")
 
-        # Test the name
         self.assertEqual(leaspy.type, "logistic")
         self.assertEqual(type(leaspy.model), type(model_factory("logistic")))
-
-        # Test the hyperparameters
         self.assertEqual(leaspy.model.dimension, 4)
         self.assertEqual(leaspy.model.features, ["Y0", "Y1", "Y2", "Y3"])
         self.assertEqual(leaspy.model.source_dimension, 2)
         self.assertIsInstance(leaspy.model.obs_models[0], FullGaussianObservationModel)
-
-        # Test the parameters
         parameters = {
             # "g": [0.5, 1.5, 1.0, 2.0],  broken...
             # "v0": [-2.0, -3.5, -3.0, -2.5],  broken...
@@ -134,19 +118,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
                     torch.tensor(param_value),
                 )
             )
-
-        # self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
-        # self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.2})
-
-        # Test the initialization
         self.assertEqual(leaspy.model.is_initialized, True)
-
-        # Test that the model attributes were initialized
-        # attrs = leaspy.model._get_attributes(None)
-        # self.assertIsNotNone(attrs)
-        # self.assertIsInstance(attrs, tuple)
-        # self.assertEqual(len(attrs), 3)
-        # self.assertTrue(all(attr is not None for attr in attrs))
 
     @skip("logistic parallel is broken")
     def test_load_logistic_parallel_scalar_noise(self):

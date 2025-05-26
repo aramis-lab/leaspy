@@ -11,8 +11,8 @@ from .multivariate import (
     LogisticModel,
     MultivariateModel,
 )
-from .multivariate_parallel import MultivariateParallelModel
 from .settings import ModelSettings
+from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
     "ModelName",
@@ -28,6 +28,6 @@ __all__ = [
     "MultivariateModel",
     "LogisticModel",
     "LinearModel",
-    "MultivariateParallelModel",
+    "SharedSpeedLogisticModel",
     "JointModel",
 ]
