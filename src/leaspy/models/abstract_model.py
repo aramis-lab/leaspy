@@ -767,13 +767,9 @@ class AbstractModel(BaseModel):
                 LatentVariableInitType.PRIOR_MODE
             )
 
+    @abstractmethod
     def put_individual_parameters(self, state: State, dataset: Dataset):
-        if not state.are_variables_set(("xi", "tau")):
-            with state.auto_fork(None):
-                state.put_individual_latent_variables(
-                    LatentVariableInitType.PRIOR_SAMPLES,
-                    n_individuals=dataset.n_individuals,
-                )
+        raise NotImplementedError()
 
     def _put_data_timepoints(
         self, state: State, timepoints: TensorOrWeightedTensor[float]

@@ -13,11 +13,13 @@ from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     IndividualLatentVariable,
+    LatentVariableInitType,
     LinkedVariable,
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
 )
+from leaspy.variables.state import State
 
 from .abstract_model import AbstractModel
 from .obs_models import observation_model_factory
@@ -343,6 +345,14 @@ class AbstractMultivariateModel(AbstractModel):
                     f"not {hyperparameters['source_dimension']}"
                 )
             self.source_dimension = hyperparameters["source_dimension"]
+
+    def put_individual_parameters(self, state: State, dataset: Dataset):
+        if not state.are_variables_set(("xi", "tau")):
+            with state.auto_fork(None):
+                state.put_individual_latent_variables(
+                    LatentVariableInitType.PRIOR_SAMPLES,
+                    n_individuals=dataset.n_individuals,
+                )
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """
