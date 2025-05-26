@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 import torch
 
-from leaspy.exceptions import LeaspyModelInputError
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul
@@ -139,6 +139,14 @@ class AbstractMultivariateModel(AbstractModel):
                 )
         return source_dimension
 
+    @property
+    def has_sources(self) -> bool:
+        return (
+            hasattr(self, "source_dimension")
+            and isinstance(self.source_dimension, int)
+            and self.source_dimension > 0
+        )
+
     @staticmethod
     def time_reparametrization(
         *,
@@ -238,6 +246,68 @@ class AbstractMultivariateModel(AbstractModel):
                 f"but you provided `source_dimension` = {self.source_dimension} "
                 f"whereas `dimension` = {dataset.dimension}."
             )
+
+    def _audit_individual_parameters(
+        self, individual_parameters: DictParams
+    ) -> KwargsType:
+        from .utilities import is_array_like
+
+        expected_parameters = set(["xi", "tau"] + int(self.has_sources) * ["sources"])
+        given_parameters = set(individual_parameters.keys())
+        symmetric_diff = expected_parameters.symmetric_difference(given_parameters)
+        if len(symmetric_diff) > 0:
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters dict provided {given_parameters} "
+                f"is not compatible for {self.name} model. "
+                f"The expected individual parameters are {expected_parameters}."
+            )
+        ips_is_array_like = {
+            k: is_array_like(v) for k, v in individual_parameters.items()
+        }
+        ips_size = {
+            k: len(v) if ips_is_array_like[k] else 1
+            for k, v in individual_parameters.items()
+        }
+        if self.has_sources:
+            if not ips_is_array_like["sources"]:
+                raise LeaspyIndividualParamsInputError(
+                    f"Sources must be an array_like but {individual_parameters['sources']} was provided."
+                )
+            tau_xi_scalars = all(ips_size[k] == 1 for k in ["tau", "xi"])
+            if tau_xi_scalars and (ips_size["sources"] > 1):
+                # is 'sources' not a nested array? (allowed iff tau & xi are scalars)
+                if not is_array_like(individual_parameters["sources"][0]):
+                    # then update sources size (1D vector representing only 1 individual)
+                    ips_size["sources"] = 1
+            # TODO? check source dimension compatibility?
+        uniq_sizes = set(ips_size.values())
+        if len(uniq_sizes) != 1:
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters sizes are not compatible together. Sizes are {ips_size}."
+            )
+        # number of individuals present
+        n_individual_parameters = uniq_sizes.pop()
+        # properly choose unsqueezing dimension when tensorizing array_like (useful for sources)
+        # [1,2] => [[1],[2]] (expected for 2 individuals / 1D sources)
+        # [1,2] => [[1,2]] (expected for 1 individual / 2D sources)
+        unsqueeze_dim = 0 if n_individual_parameters == 1 else -1
+        # tensorized (2D) version of ips
+        tensorized_individual_parameters = {
+            name: self._tensorize_2D(value, unsqueeze_dim=unsqueeze_dim)
+            for name, value in individual_parameters.items()
+        }
+
+        return {
+            "nb_inds": n_individual_parameters,
+            "tensorized_ips": tensorized_individual_parameters,
+            "tensorized_ips_gen": (
+                {
+                    name: value[individual, :].unsqueeze(0)
+                    for name, value in tensorized_individual_parameters.items()
+                }
+                for individual in range(n_individual_parameters)
+            ),
+        }
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """

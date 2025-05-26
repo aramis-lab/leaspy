@@ -340,7 +340,10 @@ class AbstractModel(BaseModel):
                 f"Unknown hyperparameters provided: {unexpected_hyperparameters}."
             )
 
-    def _audit_individual_parameters(self, ips: DictParams) -> KwargsType:
+    @abstractmethod
+    def _audit_individual_parameters(
+        self, individual_parameters: DictParams
+    ) -> KwargsType:
         """
         Perform various consistency and compatibility (with current model) checks
         on an individual parameters dict and outputs qualified information about it.
@@ -349,7 +352,7 @@ class AbstractModel(BaseModel):
 
         Parameters
         ----------
-        ips : :obj:`dict` [param: str, Any]
+        individual_parameters : :obj:`dict` [param: str, Any]
             Contains some un-trusted individual parameters.
             If representing only one individual (in a multivariate model) it could be:
                 * {'tau':0.1, 'xi':-0.3, 'sources':[0.1,...]}
@@ -375,86 +378,6 @@ class AbstractModel(BaseModel):
         :exc:`.LeaspyIndividualParamsInputError`
             If any of the consistency/compatibility checks fail.
         """
-
-        def is_array_like(v):
-            # abc.Collection is useless here because set, np.array(scalar) or torch.tensor(scalar)
-            # are abc.Collection but are not array_like in numpy/torch sense or have no len()
-            try:
-                len(v)  # exclude np.array(scalar) or torch.tensor(scalar)
-                return hasattr(v, "__getitem__")  # exclude set
-            except Exception:
-                return False
-
-        # Model supports and needs sources?
-        has_sources = (
-            hasattr(self, "source_dimension")
-            and isinstance(self.source_dimension, int)
-            and self.source_dimension > 0
-        )
-
-        # Check parameters names
-        expected_parameters = set(["xi", "tau"] + int(has_sources) * ["sources"])
-        given_parameters = set(ips.keys())
-        symmetric_diff = expected_parameters.symmetric_difference(given_parameters)
-        if len(symmetric_diff) > 0:
-            raise LeaspyIndividualParamsInputError(
-                f"Individual parameters dict provided {given_parameters} "
-                f"is not compatible for {self.name} model. "
-                f"The expected individual parameters are {expected_parameters}."
-            )
-
-        # Check number of individuals present (with low constraints on shapes)
-        ips_is_array_like = {k: is_array_like(v) for k, v in ips.items()}
-        ips_size = {k: len(v) if ips_is_array_like[k] else 1 for k, v in ips.items()}
-
-        if has_sources:
-            if not ips_is_array_like["sources"]:
-                raise LeaspyIndividualParamsInputError(
-                    f"Sources must be an array_like but {ips['sources']} was provided."
-                )
-
-            tau_xi_scalars = all(ips_size[k] == 1 for k in ["tau", "xi"])
-            if tau_xi_scalars and (ips_size["sources"] > 1):
-                # is 'sources' not a nested array? (allowed iff tau & xi are scalars)
-                if not is_array_like(ips["sources"][0]):
-                    # then update sources size (1D vector representing only 1 individual)
-                    ips_size["sources"] = 1
-
-            # TODO? check source dimension compatibility?
-
-        uniq_sizes = set(ips_size.values())
-        if len(uniq_sizes) != 1:
-            raise LeaspyIndividualParamsInputError(
-                f"Individual parameters sizes are not compatible together. Sizes are {ips_size}."
-            )
-
-        # number of individuals present
-        n_inds = uniq_sizes.pop()
-
-        # properly choose unsqueezing dimension when tensorizing array_like (useful for sources)
-        unsqueeze_dim = (
-            -1
-        )  # [1,2] => [[1],[2]] (expected for 2 individuals / 1D sources)
-        if n_inds == 1:
-            unsqueeze_dim = (
-                0  # [1,2] => [[1,2]] (expected for 1 individual / 2D sources)
-            )
-
-        # tensorized (2D) version of ips
-        t_ips = {
-            k: self._tensorize_2D(v, unsqueeze_dim=unsqueeze_dim)
-            for k, v in ips.items()
-        }
-
-        # construct logs
-        return {
-            "nb_inds": n_inds,
-            "tensorized_ips": t_ips,
-            "tensorized_ips_gen": (
-                {k: v[i, :].unsqueeze(0) for k, v in t_ips.items()}
-                for i in range(n_inds)
-            ),
-        }
 
     @staticmethod
     def _tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
@@ -502,16 +425,15 @@ class AbstractModel(BaseModel):
         skip_ips_checks: bool = False,
     ) -> Tuple[torch.Tensor, DictParamsTorch]:
         if not skip_ips_checks:
-            # Perform checks on ips and gets tensorized version if needed
-            ips_info = self._audit_individual_parameters(individual_parameters)
-            n_inds = ips_info["nb_inds"]
-            individual_parameters = ips_info["tensorized_ips"]
-
-            if n_inds != 1:
+            individual_parameters_info = self._audit_individual_parameters(
+                individual_parameters
+            )
+            individual_parameters = individual_parameters_info["tensorized_ips"]
+            if (n_individual_parameters := individual_parameters_info["nb_inds"]) != 1:
                 raise LeaspyModelInputError(
-                    f"Only one individual computation may be performed at a time. {n_inds} was provided."
+                    "Only one individual computation may be performed at a time. "
+                    f"{n_individual_parameters} was provided."
                 )
-
         # Convert the timepoints (list of numbers, or single number) to a 2D torch tensor
         timepoints = self._tensorize_2D(timepoints, unsqueeze_dim=0)  # 1 individual
         return timepoints, individual_parameters
@@ -573,13 +495,15 @@ class AbstractModel(BaseModel):
         timepoints, individual_parameters = self._get_tensorized_inputs(
             timepoints, individual_parameters, skip_ips_checks=skip_ips_checks
         )
-
         # TODO? ability to revert back after **several** assignments?
         # instead of cloning the state for this op?
         local_state = self.state.clone(disable_auto_fork=True)
         self._put_data_timepoints(local_state, timepoints)
-        for ip, ip_v in individual_parameters.items():
-            local_state[ip] = ip_v
+        for (
+            individual_parameter_name,
+            individual_parameter_value,
+        ) in individual_parameters.items():
+            local_state[individual_parameter_name] = individual_parameter_value
 
         return local_state["model"]
 
