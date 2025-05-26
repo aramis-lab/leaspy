@@ -6,7 +6,7 @@ from .constant import ConstantModel
 from .joint import JointModel
 from .lme import LMEModel
 from .multivariate import LinearModel, LogisticModel
-from .multivariate_parallel import MultivariateParallelModel
+from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
     "ModelName",
@@ -20,7 +20,7 @@ class ModelName(str, Enum):
     JOINT = "joint"
     LOGISTIC = "logistic"
     LINEAR = "linear"
-    LOGISTIC_PARALLEL = "logistic_parallel"
+    SHARED_SPEED_LOGISTIC = "shared_speed_logistic"
     LME = "lme"
     CONSTANT = "constant"
 
@@ -57,8 +57,8 @@ def model_factory(
         return LogisticModel(instance_name, **kwargs)
     if name == ModelName.LINEAR:
         return LinearModel(instance_name, **kwargs)
-    if name == ModelName.LOGISTIC_PARALLEL:
-        return MultivariateParallelModel(instance_name, **kwargs)
+    if name == ModelName.SHARED_SPEED_LOGISTIC:
+        return SharedSpeedLogisticModel(instance_name, **kwargs)
     if name == ModelName.LME:
         return LMEModel(instance_name, **kwargs)
     if name == ModelName.CONSTANT:
