@@ -28,8 +28,6 @@ class AbstractModelTest(LeaspyTestCase):
             # "update_model_parameters_normal",
             # "compute_regularity_realization",
             # "compute_regularity_variable",
-            "compute_individual_ages_from_biomarker_values",
-            "compute_individual_ages_from_biomarker_values_tensorized",
             "compute_individual_trajectory",
             "compute_jacobian_tensorized",
             "compute_mean_traj",

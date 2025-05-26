@@ -15,10 +15,8 @@ from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import (
     DictParams,
     DictParamsTorch,
-    FeatureType,
     Iterable,
     KwargsType,
-    List,
     Optional,
     Set,
     Tuple,
@@ -32,7 +30,6 @@ from leaspy.variables.specs import (
     Hyperparameter,
     IndividualLatentVariable,
     LatentVariableInitType,
-    LinkedVariable,
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
@@ -641,89 +638,6 @@ class AbstractModel(BaseModel):
             timepoints, LatentVariableInitType.PRIOR_MODE
         )
 
-    # TODO: unit tests? (functional tests covered by api.estimate)
-    def compute_individual_ages_from_biomarker_values(
-        self,
-        value: Union[float, List[float]],
-        individual_parameters: DictParams,
-        feature: Optional[FeatureType] = None,
-    ) -> torch.Tensor:
-        """
-        For one individual, compute age(s) at which the given features values
-        are reached (given the subject's individual parameters).
-
-        Consistency checks are done in the main :term:`API` layer.
-
-        Parameters
-        ----------
-        value : scalar or array_like[scalar] (:obj:`list`, :obj:`tuple`, :class:`numpy.ndarray`)
-            Contains the :term:`biomarker` value(s) of the subject.
-
-        individual_parameters : :obj:`dict`
-            Contains the individual parameters.
-            Each individual parameter should be a scalar or array_like.
-
-        feature : :obj:`str` (or None)
-            Name of the considered :term:`biomarker`.
-
-            .. note::
-                Optional for :class:`.UnivariateModel`, compulsory
-                for :class:`.MultivariateModel`.
-
-        Returns
-        -------
-        :class:`torch.Tensor`
-            Contains the subject's ages computed at the given values(s).
-            Shape of tensor is ``(1, n_values)``.
-
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            If computation is tried on more than 1 individual.
-        """
-        raise NotImplementedError("TODO")
-        value, individual_parameters = self._get_tensorized_inputs(
-            value, individual_parameters, skip_ips_checks=False
-        )
-        return self.compute_individual_ages_from_biomarker_values_tensorized(
-            value, individual_parameters, feature
-        )
-
-    # @abstractmethod
-    def compute_individual_ages_from_biomarker_values_tensorized(
-        self,
-        value: torch.Tensor,
-        individual_parameters: DictParamsTorch,
-        feature: Optional[FeatureType],
-    ) -> torch.Tensor:
-        """
-        For one individual, compute age(s) at which the given features values are
-        reached (given the subject's individual parameters), with tensorized inputs.
-
-        Parameters
-        ----------
-        value : :class:`torch.Tensor` of shape ``(1, n_values)``
-            Contains the :term:`biomarker` value(s) of the subject.
-
-        individual_parameters : DictParamsTorch
-            Contains the individual parameters.
-            Each individual parameter should be a :class:`torch.Tensor`.
-
-        feature : :obj:`str` (or None)
-            Name of the considered :term:`biomarker`.
-
-            .. note::
-                Optional for :class:`.UnivariateModel`, compulsory
-                for :class:`.MultivariateModel`.
-
-        Returns
-        -------
-        :class:`torch.Tensor`
-            Contains the subject's ages computed at the given values(s).
-            Shape of tensor is ``(n_values, 1)``.
-        """
-        raise NotImplementedError("TODO in child classes")
-
     def compute_jacobian_tensorized(
         self,
         state: State,
@@ -744,11 +658,11 @@ class AbstractModel(BaseModel):
         :obj:`dict` [ param_name: :obj:`str`, :class:`torch.Tensor` ] :
             Tensors are of shape ``(n_individuals, n_timepoints, n_features, n_dims_param)``.
         """
-        raise NotImplementedError("TODO")
-        return {
-            ip: state[f"model_jacobian_{ip}"]
-            for ip in self.get_individual_variable_names()
-        }
+        # return {
+        #     ip: state[f"model_jacobian_{ip}"]
+        #     for ip in self.get_individual_variable_names()
+        # }
+        raise NotImplementedError("This method is currently not implemented.")
 
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
