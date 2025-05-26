@@ -18,11 +18,9 @@ from tests.unit_tests.models.test_model_factory import ModelFactoryTestMixin
 
 class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
     model_names = (
-        "univariate_logistic",
-        "univariate_linear",
         "linear",
         "logistic",
-        # "logistic_parallel",
+        "logistic_parallel",
         # "mixed_linear-logistic",
     )
 
@@ -66,8 +64,8 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
 
                 for input, output in to_test:
                     # If no observational model given
-                    leaspy = Leaspy("univariate_joint", obs_models=input)
-                    self.assertEqual(leaspy.type, "univariate_joint")
+                    leaspy = Leaspy("joint", dimension=1, obs_models=input)
+                    self.assertEqual(leaspy.type, "joint")
 
                     self.assertIsInstance(
                         leaspy.model.obs_models[output["w"]], observation_model
@@ -80,7 +78,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         for name in (
             "linear",
             "logistic",
-            # "logistic_parallel",
+            "logistic_parallel",
             # "mixed_linear-logistic",
         ):
             leaspy = Leaspy(name, source_dimension=2)
@@ -90,19 +88,9 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             "linear",
             "logistic",
         ):
-            leaspy = Leaspy(f"univariate_{name}")
+            leaspy = Leaspy(name, dimension=1)
             self.assertEqual(leaspy.model.source_dimension, 0)
             self.assertEqual(leaspy.model.dimension, 1)
-
-            with self.assertRaisesRegex(ValueError, r"`dimension`.+univariate model"):
-                Leaspy(f"univariate_{name}", dimension=42)
-            with self.assertRaisesRegex(
-                ValueError, r"`source_dimension`.+univariate model"
-            ):
-                Leaspy(f"univariate_{name}", source_dimension=1)
-
-        with self.assertRaises(ValueError):
-            Leaspy("univariate")  # old name
 
     def test_load_hyperparameters(self):
         leaspy = self.get_hardcoded_model("logistic_diag_noise")
@@ -250,11 +238,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         """
         Test the initialization of a linear model from a json file
         """
-        leaspy = self.get_hardcoded_model("univariate_logistic")
-
-        # Test the name
-        self.assertEqual(leaspy.type, "univariate_logistic")
-        self.assertEqual(type(leaspy.model), type(model_factory("univariate_logistic")))
+        leaspy = self.get_hardcoded_model("logistic")
 
         # Test the hyperparameters
         self.assertEqual(leaspy.model.features, ["Y0"])
@@ -301,12 +285,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         """
         Test the initialization of a linear model from a json file
         """
-        leaspy = self.get_hardcoded_model("univariate_linear")
-
-        # Test the name
-        self.assertEqual(leaspy.type, "univariate_linear")
-        self.assertEqual(type(leaspy.model), type(model_factory("univariate_linear")))
-
+        leaspy = self.get_hardcoded_model("linear")
         # Test the hyperparameters
         self.assertEqual(leaspy.model.features, ["Y0"])
         # self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)

@@ -2,7 +2,7 @@ import json
 import os
 import warnings
 from typing import Optional
-from unittest import skip, skipIf
+from unittest import skipIf
 
 import torch
 
@@ -274,17 +274,19 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     def test_fit_univariate_logistic(self):
         self.generic_fit(
-            "univariate_logistic",
+            "logistic",
             "univariate_logistic",
             check_kws=DEFAULT_CHECK_KWS,
+            dimension=1,
         )
 
     def test_fit_univariate_joint(self):
         self.generic_fit(
-            "univariate_joint",
+            "joint",
             "univariate_joint",
             check_kws=DEFAULT_CHECK_KWS,
             check_model=True,
+            dimension=1,
         )
 
     def test_fit_joint_no_sources(self):
@@ -313,7 +315,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     # @skip("Linear models are currently broken.")
     def test_fit_univariate_linear(self):
-        self.generic_fit("univariate_linear", "univariate_linear")
+        self.generic_fit("linear", "univariate_linear", dimension=1)
 
     # @skip("Linear models are currently broken.")
     def test_fit_linear(self):

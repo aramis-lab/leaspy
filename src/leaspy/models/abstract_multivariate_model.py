@@ -64,9 +64,12 @@ class AbstractMultivariateModel(AbstractModel):
     def sources_std(self) -> float:
         return self._sources_std
 
-    def __init__(self, name: str, **kwargs):
-        self.source_dimension: Optional[int] = None
-
+    def __init__(
+        self,
+        name: str,
+        source_dimension: Optional[int] = None,
+        **kwargs,
+    ):
         # TODO / WIP / TMP: dirty for now...
         # Should we:
         # - use factory of observation models instead? dataset -> ObservationModel
@@ -75,6 +78,12 @@ class AbstractMultivariateModel(AbstractModel):
         dimension = kwargs.get("dimension", None)
         if "features" in kwargs:
             dimension = len(kwargs["features"])
+        # source_dimension = kwargs.get("source_dimension", None)
+        # if dimension == 1 and source_dimension not in {0, None}:
+        #    raise LeaspyModelInputError(
+        #        "You should not provide `source_dimension` != 0 for univariate model."
+        #    )
+        # self.source_dimension: Optional[int] = source_dimension
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
             observation_models = (
@@ -101,6 +110,34 @@ class AbstractMultivariateModel(AbstractModel):
                 observation_model_factory(observation_models, dimension=dimension),
             )
         super().__init__(name, **kwargs)
+        self._source_dimension = self._validate_source_dimension(source_dimension)
+
+    @property
+    def source_dimension(self) -> Optional[int]:
+        return self._source_dimension
+
+    @source_dimension.setter
+    def source_dimension(self, source_dimension: Optional[int] = None):
+        self._source_dimension = self._validate_source_dimension(source_dimension)
+
+    def _validate_source_dimension(self, source_dimension: Optional[int] = None) -> int:
+        if self.dimension == 1:
+            return 0
+        if source_dimension is not None:
+            if not isinstance(source_dimension, int):
+                raise LeaspyModelInputError(
+                    f"`source_dimension` must be an integer, not {type(source_dimension)}"
+                )
+            if source_dimension < 0:
+                raise LeaspyModelInputError(
+                    f"`source_dimension` must be >= 0, you provided {source_dimension}"
+                )
+            if self.dimension is not None and source_dimension > self.dimension - 1:
+                raise LeaspyModelInputError(
+                    f"Source dimension should be within [0, {self.dimension - 1}], "
+                    f"you provided {source_dimension}"
+                )
+        return source_dimension
 
     def get_variables_specs(self) -> NamedVariables:
         """
@@ -174,27 +211,6 @@ class AbstractMultivariateModel(AbstractModel):
                 f"but you provided `source_dimension` = {self.source_dimension} "
                 f"whereas `dimension` = {dataset.dimension}."
             )
-
-    # def load_parameters(self, parameters: KwargsType) -> None:
-    #    """
-    #    Updates all model parameters from the provided parameters.
-    #
-    #    Parameters
-    #    ----------
-    #    parameters : KwargsType
-    #        The parameters to be loaded.
-    #    """
-    #    self.parameters = {}
-    #    for k, v in parameters.items():
-    #        if k in ('mixing_matrix',):
-    #            # The mixing matrix will always be recomputed from `betas`
-    #            # and the other needed model parameters (g, v0)
-    #            continue
-    #        if not isinstance(v, torch.Tensor):
-    #            v = torch.tensor(v)
-    #        self.parameters[k] = v
-    #
-    #    self._check_ordinal_parameters_consistency()
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """

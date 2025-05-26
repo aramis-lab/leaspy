@@ -1,8 +1,6 @@
-from unittest import skip
-
+from leaspy.models import LinearModel, LogisticModel
 from leaspy.models.abstract_model import AbstractModel
 from leaspy.models.obs_models import FullGaussianObservationModel
-from leaspy.models.univariate import LinearUnivariateModel, LogisticUnivariateModel
 from tests import LeaspyTestCase
 
 
@@ -26,8 +24,8 @@ class UnivariateModelTest(ManifoldModelTestMixin):
         """
         Test attribute's initialization of leaspy univariate logistic model.
         """
-        model = LogisticUnivariateModel("test_model")
-        self.assertIsInstance(model, LogisticUnivariateModel)
+        model = LogisticModel("test_model", dimension=1)
+        self.assertIsInstance(model, LogisticModel)
         self._generic_testing(model)
 
     # @skip("Linear models are currently broken")
@@ -35,6 +33,6 @@ class UnivariateModelTest(ManifoldModelTestMixin):
         """
         Test attribute's initialization of leaspy univariate linear model.
         """
-        model = LinearUnivariateModel("test_model")
-        self.assertIsInstance(model, LinearUnivariateModel)
+        model = LinearModel("test_model", dimension=1)
+        self.assertIsInstance(model, LinearModel)
         self._generic_testing(model)

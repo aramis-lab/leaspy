@@ -1,6 +1,6 @@
 from unittest import skipIf
 
-from leaspy.models import LogisticUnivariateModel, ModelName, model_factory
+from leaspy.models import ModelName, model_factory
 from leaspy.models.obs_models import FullGaussianObservationModel
 from tests import LeaspyTestCase
 
@@ -44,16 +44,13 @@ class ModelFactoryTest(ModelFactoryTestMixin):
         self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
         self.assertEqual(model.dimension, 1)
         self.assertEqual(model.source_dimension, 0)
-        # inconsistent features for a univariate model (dimension=1)
-        with self.assertRaisesRegex(ValueError, r"(?i)\bdimension\b.+\bfeatures\b"):
-            model_factory(model_name, features=["t1", "t2", "t3"])
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_load_hyperparameters_univariate_linear(self):
-        self._generic_univariate_hyperparameters_checker("univariate_linear")
+        self._generic_univariate_hyperparameters_checker("linear")
 
     def test_load_hyperparameters_univariate_logistic(self):
-        self._generic_univariate_hyperparameters_checker("univariate_logistic")
+        self._generic_univariate_hyperparameters_checker("logistic")
 
     def _generic_multivariate_hyperparameters_checker(self, model_name: str) -> None:
         model = model_factory(

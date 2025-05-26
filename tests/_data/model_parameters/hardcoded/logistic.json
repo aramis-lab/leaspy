@@ -1,6 +1,6 @@
 {
     "leaspy_version": "2.0.0",
-    "name": "univariate_logistic",
+    "name": "logistic",
     "features": [
         "Y0"
     ],

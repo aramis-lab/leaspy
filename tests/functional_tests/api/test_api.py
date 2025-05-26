@@ -140,7 +140,7 @@ class LeaspyAPITest(
 
     def test_usecase_univariate_joint(self):
         self.generic_usecase(
-            "univariate_joint",
+            "joint",
             model_codename="univariate_joint",
             fit_check_kws={"atol": 1e-2, "rtol": 1e-2},
             personalization_algo="mode_posterior",
@@ -150,6 +150,7 @@ class LeaspyAPITest(
                 "delay_btw_visits": lambda n: [0.5] * min(n, 2) + [1.0] * max(0, n - 2),
                 "number_of_subjects": 100,
             },
+            dimension=1,
         )
 
     def test_usecase_logistic_diagonal_noise(self):
