@@ -7,9 +7,11 @@ import torch
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Affine, Exp, MatMul
+from leaspy.utils.functional import AffineFromVector, Exp, MatMul
 from leaspy.utils.typing import KwargsType
+from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.distributions import BivariateNormal, Normal
+from leaspy.variables.state import State
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,
@@ -132,7 +134,7 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
                 BivariateNormal("phi_tau_mean", "phi_tau_std", "rho_tau")
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
-            tau=LinkedVariable(Affine("phi_tau", "covariates")),
+            tau=LinkedVariable(AffineFromVector("phi_tau", "covariates")),
             alpha=LinkedVariable(Exp("xi")),
         )
 
@@ -162,6 +164,12 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
             )
 
         return d
+
+    def put_data_variables(self, state: State, dataset: Dataset) -> None:
+        super().put_data_variables(state, dataset)
+
+        covariates_tensor = torch.tensor(dataset.covariates, dtype=torch.int)
+        state["covariates"] = WeightedTensor(covariates_tensor)
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None

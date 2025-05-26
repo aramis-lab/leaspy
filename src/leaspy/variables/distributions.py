@@ -403,12 +403,6 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         x_std, y_std = scale.unbind(-1)
         rho = coeff_corr
 
-        print(f"loc shape: {loc.shape}")
-        print(f"scale shape: {scale.shape}")
-        print(f"x_mu shape: {x_mu.shape}, y_mu shape: {y_mu.shape}")
-        print(f"x_std shape: {x_std.shape}, y_std shape: {y_std.shape}")
-        print(f"rho shape: {rho.shape}")
-
         cov_11 = x_std**2
         cov_22 = y_std**2
         cov_12 = rho * x_std * y_std

@@ -35,8 +35,8 @@ def _identity(x: S) -> S:
     return x
 
 
-def _affine(
-    coeffs: Tuple[torch.Tensor, torch.Tensor],
+def _affine_from_vector(
+    coeffs: torch.Tensor,
     x: torch.Tensor,
 ) -> torch.Tensor:
     """
@@ -45,7 +45,7 @@ def _affine(
 
     Supports broadcasting.
     """
-    slope, intercept = coeffs
+    slope, intercept = coeffs.unbind(-1)
     return slope * x + intercept
 
 

@@ -1,5 +1,5 @@
 from ._functions import (
-    Affine,
+    AffineFromVector,
     Exp,
     Identity,
     MatMul,
@@ -27,5 +27,5 @@ __all__ = [
     "Std",
     "Sum",
     "SumDim",
-    "Affine",
+    "AffineFromVector",
 ]

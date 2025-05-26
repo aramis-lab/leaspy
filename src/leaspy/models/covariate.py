@@ -6,7 +6,7 @@ import torch
 
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Affine, Exp, OrthoBasis, Sqr
+from leaspy.utils.functional import AffineFromVector, Exp, OrthoBasis, Sqr
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
@@ -174,7 +174,7 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
                 BivariateNormal("phi_v0_mean", "phi_v0_std", "rho_v0")
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
-            log_v0=LinkedVariable(Affine("phi_v0", "covariates")),
+            log_v0=LinkedVariable(AffineFromVector("phi_v0", "covariates")),
             v0=LinkedVariable(Exp("log_v0")),
             metric=LinkedVariable(
                 self.metric
@@ -434,7 +434,7 @@ class CovariateLogisticMultivariateModel(
             ),  # phi_g = (phi_mod_g, phi_ref_g)
             # LINKED VARS
             log_g=LinkedVariable(
-                Affine("phi_g", "covariates")
+                AffineFromVector("phi_g", "covariates")
             ),  # log_g=phi_mod_g*covariate+phi_ref_g
             g=LinkedVariable(Exp("log_g")),
         )
