@@ -245,28 +245,25 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             check_kws=DEFAULT_CHECK_KWS,
         )
 
-    # @skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_scalar_noise",
             obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=2,
         )
 
-    # @skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel_diagonal_noise(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_diag_noise",
             obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=2,
         )
 
-    # @skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel_diagonal_noise_no_source(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_diag_noise_no_source",
             obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=0,
@@ -346,7 +343,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
     # @skip("Logistic parallel models are currently broken.")
     def test_fit_logistic_parallel_binary(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_binary",
             obs_models=observation_model_factory("bernoulli"),
             source_dimension=2,
@@ -389,7 +386,7 @@ class LeaspyFitGPUTest(LeaspyFitTestMixin):
 
     def test_fit_logistic_parallel_diagonal_noise(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_diag_noise_gpu",
             obs_models=observation_model_factory("gaussian-diagonal"),
             source_dimension=2,
