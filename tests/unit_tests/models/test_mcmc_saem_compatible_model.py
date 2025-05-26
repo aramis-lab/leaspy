@@ -4,19 +4,21 @@ import torch
 
 from leaspy.algo import AlgorithmSettings
 from leaspy.api import Leaspy
-from leaspy.models import AbstractModel, ModelName, model_factory
+from leaspy.models import McmcSaemCompatibleModel, ModelName, model_factory
 from tests import LeaspyTestCase
 
 
 class AbstractModelTest(LeaspyTestCase):
     crossentropy_compatible = ("logistic",)
 
-    @LeaspyTestCase.allow_abstract_class_init(AbstractModel)
+    @LeaspyTestCase.allow_abstract_class_init(McmcSaemCompatibleModel)
     def test_abstract_model_constructor(self):
         """
         Test initialization of abstract model class object.
         """
-        model = AbstractModel("dummy_abstractmodel", obs_models="gaussian-scalar")
+        model = McmcSaemCompatibleModel(
+            "dummy_abstractmodel", obs_models="gaussian-scalar"
+        )
         self.assertFalse(model.is_initialized)
         self.assertEqual(model.name, "dummy_abstractmodel")
         # self.assertEqual(model.parameters, None)
@@ -111,7 +113,9 @@ class AbstractModelTest(LeaspyTestCase):
         ):
             self.assertTrue(
                 torch.equal(
-                    AbstractModel._tensorize_2D(x, unsqueeze_dim=unsqueeze_dim),
+                    McmcSaemCompatibleModel._tensorize_2D(
+                        x, unsqueeze_dim=unsqueeze_dim
+                    ),
                     expected_out,
                 )
             )

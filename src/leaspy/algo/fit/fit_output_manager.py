@@ -1,6 +1,3 @@
-import csv
-import math
-import os
 import re
 import time
 from pathlib import Path
@@ -15,14 +12,15 @@ from matplotlib import colormaps
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
 
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.io.data import Dataset
+from leaspy.models import McmcSaemCompatibleModel
 
-from ..data import Dataset
+from .abstract_fit_algo import AbstractFitAlgo
 
 
 class FitOutputManager:
     """
-    Class used by :class:`.AbstractAlgo` (and its child classes) to display & save plots and statistics during algorithm execution.
+    Class used by :class:`~leaspy.algo.AbstractAlgo` (and its child classes) to display & save plots and statistics during algorithm execution.
 
     Parameters
     ----------
@@ -72,8 +70,8 @@ class FitOutputManager:
 
     def iteration(
         self,
-        algo,
-        model: AbstractModel,
+        algo: AbstractFitAlgo,
+        model: McmcSaemCompatibleModel,
         data: Dataset,
     ) -> None:
         """
@@ -82,9 +80,9 @@ class FitOutputManager:
 
         Parameters
         ----------
-        algo : :class:`.AbstractAlgo`
+        algo : :class:`~leaspy.algo.fit.AbstractFitAlgo`
             The running algorithm
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model used by the computation
         data : :class:`.Dataset`
             The data used by the computation
@@ -122,30 +120,30 @@ class FitOutputManager:
         print(f"Duration since last print: {current_time - self.time:.3f}s")
         self.time = current_time
 
-    def print_model_statistics(self, model: AbstractModel):
+    def print_model_statistics(self, model: McmcSaemCompatibleModel):
         """
         Prints model's statistics
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model used by the computation
         """
         print(model)
 
-    def print_algo_statistics(self, algo):
+    def print_algo_statistics(self, algo: AbstractFitAlgo):
         """
         Prints algorithm's statistics
 
         Parameters
         ----------
-        algo : :class:`.AbstractAlgo`
+        algo : :class:`~leaspy.algo.fit.AbstractFitAlgo`
             The running algorithm
         """
         print(algo)
 
     def save_model_parameters_convergence(
-        self, iteration: int, model: AbstractModel
+        self, iteration: int, model: McmcSaemCompatibleModel
     ) -> None:
         """
         Saves the current state of the model's parameters
@@ -154,21 +152,21 @@ class FitOutputManager:
         ----------
         iteration : :obj:`int`
             The current iteration
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~.models.abstract_model.McmcSaemCompatibleModel`
             The model used by the computation
         """
         model.state.save(
-            self.path_save_model_parameters_convergence,
+            str(self.path_save_model_parameters_convergence),
             iteration=iteration,
         )
 
-    def save_plot_convergence_model_parameters(self, model: AbstractModel):
+    def save_plot_convergence_model_parameters(self, model: McmcSaemCompatibleModel):
         """
         Saves figures of the model parameters' convergence in multiple pages of a PDF.
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model used by the computation
         """
         width = 10
@@ -193,7 +191,7 @@ class FitOutputManager:
 
         # If plot sourcewise is true, new sourcewise csv files will be created
 
-        if self.plot_sourcewise:
+        if self.plot_sourcewise and hasattr(model, "source_dimension"):
             files_to_plot = [
                 file
                 for file in files_to_plot
@@ -241,7 +239,7 @@ class FitOutputManager:
     def save_plot_patient_reconstructions(
         self,
         iteration: int,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         data: Dataset,
     ) -> None:
         """
@@ -252,7 +250,7 @@ class FitOutputManager:
         ----------
         iteration : :obj:`int`
             The current iteration
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model used by the computation
         data : :class:`~leaspy.io.data.Dataset`
             The dataset used by the computation
@@ -369,7 +367,6 @@ class FitOutputManager:
 
          Examples
          --------
-
          >>> _extract_parameter_name_and_index("mixing_matrix_10")
         ('mixing_matrix', 10)
          >>> _extract_parameter_name_and_index("mixing_matrix_1")
@@ -394,7 +391,7 @@ class FitOutputManager:
         ax: plt.Axes,
         i: int,
         parameter_name: str,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         index: int,
     ) -> plt.Axes:
         """
@@ -408,7 +405,7 @@ class FitOutputManager:
             The index of the current plot.
         parameter_name : :obj:`str`
             The name of the parameter being plotted.
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model containing features and event information.
         index : :obj:`int`
             The index of the specific feature or event, or None if not applicable.
@@ -442,7 +439,7 @@ class FitOutputManager:
         params_with_feature_labels: Iterable[str],
         params_with_sources: Iterable[str],
         params_with_events: Iterable[str],
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
     ) -> plt.Axes:
         """
         Set the legend for the plot based on the parameter name and the model's features, sources, or events.
@@ -461,7 +458,7 @@ class FitOutputManager:
             A list of parameters associated with sources.
         params_with_events : list[:obj:`str`]
             A list of parameters associated with events.
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model containing the necessary information for legends.
 
         Returns
@@ -471,20 +468,23 @@ class FitOutputManager:
         """
         if parameter_name in params_with_feature_labels:
             ax[i].legend(model.features, loc="best")
-        if parameter_name in params_with_sources:
+        if hasattr(model, "source_dimension") and parameter_name in params_with_sources:
             sources = [
                 "Source" + " " + str(i + 1) for i in range(model.source_dimension)
             ]
             ax[i].legend(sources, loc="best")
-        if parameter_name in params_with_events:
-            events = ["Event" + " " + str(i + 1) for i in range(model.nb_events)]
-            ax[i].legend(events, loc="best")
-        if parameter_name.startswith("sourcewise"):
-            if "mixing_matrix" in parameter_name:
-                ax[i].legend(model.features, loc="best")
-            if "zeta" in parameter_name:
+        if hasattr(model, "nb_events"):
+            if parameter_name in params_with_events:
                 events = ["Event" + " " + str(i + 1) for i in range(model.nb_events)]
                 ax[i].legend(events, loc="best")
+            if parameter_name.startswith("sourcewise"):
+                if "mixing_matrix" in parameter_name:
+                    ax[i].legend(model.features, loc="best")
+                if "zeta" in parameter_name:
+                    events = [
+                        "Event" + " " + str(i + 1) for i in range(model.nb_events)
+                    ]
+                    ax[i].legend(events, loc="best")
         return ax
 
     def _compute_files_sourcewise(

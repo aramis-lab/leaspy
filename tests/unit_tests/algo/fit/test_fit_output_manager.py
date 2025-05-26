@@ -1,11 +1,11 @@
 import os
 
 import pytest
-from tests import LeaspyTestCase
 
+from leaspy.algo.fit import FitOutputManager
 from leaspy.algo.settings import OutputsSettings
 from leaspy.api import Leaspy
-from leaspy.io.logs import FitOutputManager
+from tests import LeaspyTestCase
 
 
 def test_fit_output_manager(tmp_path):

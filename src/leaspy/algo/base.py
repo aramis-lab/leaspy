@@ -6,14 +6,13 @@ import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Optional, Tuple, Type, Union
+from typing import Any, Optional, Type, Union
 
 import numpy as np
 import torch
 
-from leaspy.exceptions import LeaspyAlgoInputError, LeaspyModelInputError
-from leaspy.io.logs.fit_output_manager import FitOutputManager
-from leaspy.models import AbstractModel
+from leaspy.exceptions import LeaspyAlgoInputError
+from leaspy.models import McmcSaemCompatibleModel
 
 from .settings import AlgorithmSettings, OutputsSettings
 
@@ -72,8 +71,6 @@ class AbstractAlgo(ABC):
         the :attr:`leaspy.algo.AlgorithmSettings.parameters` class attribute.
     seed : :obj:`int`, optional
         Seed used by :mod:`numpy` and :mod:`torch`.
-    output_manager : :class:`~leaspy.io.logs.fit_output_manager.FitOutputManager`
-        Optional output manager of the algorithm
     """
 
     # Identifier of algorithm (classes variables)
@@ -91,7 +88,11 @@ class AbstractAlgo(ABC):
         # modified within algorithm (e.g. `n_burn_in_iter`) and we would not want the original
         # settings parameters to be also modified (e.g. to be able to re-use them without any trouble)
         self.algo_parameters = deepcopy(settings.parameters)
-        self.output_manager: Optional[FitOutputManager] = None
+        self.output_manager = None
+
+    @abstractmethod
+    def set_output_manager(self, output_settings: OutputsSettings) -> None:
+        raise NotImplementedError
 
     @staticmethod
     def _initialize_seed(seed: Optional[int]):
@@ -116,7 +117,7 @@ class AbstractAlgo(ABC):
     @abstractmethod
     def run_impl(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         *args,
         **extra_kwargs,
     ) -> tuple[Any, Optional[torch.Tensor]]:
@@ -126,7 +127,7 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The used model.
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
@@ -144,7 +145,7 @@ class AbstractAlgo(ABC):
         :class:`.SimulationAlgorithm`
         """
 
-    def run(self, model: AbstractModel, *args, **extra_kwargs) -> Any:
+    def run(self, model: McmcSaemCompatibleModel, *args, **extra_kwargs) -> Any:
         """
         Main method, run the algorithm.
 
@@ -152,7 +153,7 @@ class AbstractAlgo(ABC):
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The used model.
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
@@ -255,31 +256,6 @@ class AbstractAlgo(ABC):
                 # TODO? log it instead (level=INFO or DEBUG)
                 print(f"Replacing {k} parameter from value {previous_v} to value {v}")
             self.algo_parameters[k] = v
-
-    def set_output_manager(self, output_settings: OutputsSettings) -> None:
-        """
-        Set a :class:`~leaspy.io.logs.FitOutputManager` object for the run of the algorithm
-
-        Parameters
-        ----------
-        output_settings : :class:`~leaspy.algo.OutputsSettings`
-            Contains the logs settings for the computation run (console print periodicity, plot periodicity ...)
-
-        Examples
-        --------
-        >>> from leaspy.algo import AlgorithmSettings, algorithm_factory, OutputsSettings
-        >>> algo_settings = AlgorithmSettings("mcmc_saem")
-        >>> my_algo = algorithm_factory(algo_settings)
-        >>> settings = {
-            'path': 'brouillons',
-            'print_periodicity': 50,
-            'plot_periodicity': 100,
-            'save_periodicity': 50
-        }
-        >>> my_algo.set_output_manager(OutputsSettings(settings))
-        """
-        if output_settings is not None:
-            self.output_manager = FitOutputManager(output_settings)
 
     @staticmethod
     def _display_progress_bar(

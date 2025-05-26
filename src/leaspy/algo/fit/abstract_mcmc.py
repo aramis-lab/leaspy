@@ -3,7 +3,7 @@
 from random import shuffle
 
 from leaspy.io.data import Dataset
-from leaspy.models import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 from leaspy.variables.specs import (
     IndividualLatentVariable,
     PopulationLatentVariable,
@@ -46,7 +46,7 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
 
     def _initialize_algo(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         dataset: Dataset,
     ) -> State:
         # TODO? mutualize with perso mcmc algo?
@@ -60,7 +60,7 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
 
     def iteration(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         state: State,
     ) -> None:
         """
@@ -71,7 +71,7 @@ class AbstractFitMCMC(AlgoWithAnnealingMixin, AlgoWithSamplersMixin, AbstractFit
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
         state : :class:`~leaspy.variables.state.State`
         """
         variables = sorted(

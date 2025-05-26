@@ -5,7 +5,6 @@ import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
@@ -21,14 +20,13 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-from .abstract_model import AbstractModel
+from .mcmc_saem_compatible import McmcSaemCompatibleModel
 from .obs_models import observation_model_factory
 
-__all__ = ["AbstractMultivariateModel"]
+__all__ = ["RiemanianManifoldModel"]
 
 
-@doc_with_super()
-class AbstractMultivariateModel(AbstractModel):
+class RiemanianManifoldModel(McmcSaemCompatibleModel):
     """
     Contains the common attributes & methods of the multivariate models.
 
@@ -49,22 +47,6 @@ class AbstractMultivariateModel(AbstractModel):
     _tau_std = 5.0
     _noise_std = 0.1
     _sources_std = 1.0
-
-    @property
-    def xi_std(self) -> torch.Tensor:
-        return torch.tensor([self._xi_std])
-
-    @property
-    def tau_std(self) -> torch.Tensor:
-        return torch.tensor([self._tau_std])
-
-    @property
-    def noise_std(self) -> torch.Tensor:
-        return torch.tensor(self._noise_std)
-
-    @property
-    def sources_std(self) -> float:
-        return self._sources_std
 
     def __init__(
         self,
@@ -113,6 +95,22 @@ class AbstractMultivariateModel(AbstractModel):
             )
         super().__init__(name, **kwargs)
         self._source_dimension = self._validate_source_dimension(source_dimension)
+
+    @property
+    def xi_std(self) -> torch.Tensor:
+        return torch.tensor([self._xi_std])
+
+    @property
+    def tau_std(self) -> torch.Tensor:
+        return torch.tensor([self._tau_std])
+
+    @property
+    def noise_std(self) -> torch.Tensor:
+        return torch.tensor(self._noise_std)
+
+    @property
+    def sources_std(self) -> float:
+        return self._sources_std
 
     @property
     def source_dimension(self) -> Optional[int]:

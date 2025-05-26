@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 
 from leaspy.algo import OutputsSettings
-from leaspy.io.logs import FitOutputManager
+from leaspy.algo.fit import FitOutputManager
 from tests import LeaspyTestCase
 
 

@@ -3,7 +3,6 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-import torch
 
 from leaspy.algo import AlgorithmSettings, algorithm_factory
 from leaspy.exceptions import LeaspyInputError, LeaspyTypeError

@@ -1,18 +1,17 @@
-from leaspy.models import LinearModel, LogisticModel
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import LinearModel, LogisticModel, McmcSaemCompatibleModel
 from leaspy.models.obs_models import FullGaussianObservationModel
 from tests import LeaspyTestCase
 
 
 class ManifoldModelTestMixin(LeaspyTestCase):
-    def check_common_attrs(self, model: AbstractModel):
-        self.assertIsInstance(model, AbstractModel)
+    def check_common_attrs(self, model: McmcSaemCompatibleModel):
+        self.assertIsInstance(model, McmcSaemCompatibleModel)
         for variable in ("g", "tau_mean", "tau_std", "xi_mean", "xi_std"):
             self.assertIn(variable, model.state.dag)
 
 
 class UnivariateModelTest(ManifoldModelTestMixin):
-    def _generic_testing(self, model: AbstractModel):
+    def _generic_testing(self, model: McmcSaemCompatibleModel):
         self.assertEqual(model.name, "test_model")
         self.assertEqual(model.dimension, 1)
         self.assertEqual(model.source_dimension, 0)

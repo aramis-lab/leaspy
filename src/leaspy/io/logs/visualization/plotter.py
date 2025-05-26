@@ -12,7 +12,7 @@ import torch
 from matplotlib.lines import Line2D
 
 from leaspy.exceptions import LeaspyInputError
-from leaspy.models.abstract_model import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 from leaspy.utils.typing import DictParamsTorch
 
 from ...data import Dataset
@@ -45,7 +45,7 @@ class Plotter:
     def _torch_model_values_to_numpy_postprocessed_values(
         model_values: torch.Tensor,
         *,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
     ) -> np.ndarray:
         """
         Convert torch model values to numpy & apply them the default
@@ -62,7 +62,7 @@ class Plotter:
     @classmethod
     def _compute_mean_traj_postprocessed(
         cls,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         timepoints: torch.Tensor,
     ) -> np.ndarray:
         mean_trajectory = model.compute_mean_traj(timepoints)
@@ -73,7 +73,7 @@ class Plotter:
     @classmethod
     def _compute_individual_tensorized_postprocessed(
         cls,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         timepoints: torch.Tensor,
         individual_parameters: DictParamsTorch,
         **kws,
@@ -88,7 +88,7 @@ class Plotter:
     @classmethod
     def _compute_individual_trajectory_postprocessed(
         cls,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         timepoints: torch.Tensor,
         individual_parameters: DictParamsTorch,
         **kws,
@@ -106,7 +106,7 @@ class Plotter:
 
     def plot_mean_trajectory(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         *,
         n_pts: int = 100,
         n_std_left: int = 3,
@@ -196,7 +196,9 @@ class Plotter:
         self.plt_show()
         plt.close()
 
-    def plot_mean_validity(self, model: AbstractModel, results, **kwargs) -> None:
+    def plot_mean_validity(
+        self, model: McmcSaemCompatibleModel, results, **kwargs
+    ) -> None:
         t0 = model.parameters["tau_mean"].numpy()
         hist = []
 
@@ -217,7 +219,7 @@ class Plotter:
         plt.close()
 
     def plot_patient_trajectory(
-        self, model: AbstractModel, results, indices, **kwargs
+        self, model: McmcSaemCompatibleModel, results, indices, **kwargs
     ) -> None:
         colors = (
             kwargs["color"]
@@ -276,7 +278,7 @@ class Plotter:
 
     def plot_from_individual_parameters(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         indiv_parameters: DictParamsTorch,
         timepoints: torch.Tensor,
         **kwargs,
@@ -345,7 +347,7 @@ class Plotter:
 
     def plot_patients_mapped_on_mean_trajectory(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         results,
         *,
         n_std_left: int = 2,
@@ -409,7 +411,13 @@ class Plotter:
 
     @classmethod
     def plot_error(
-        cls, path, dataset, model: AbstractModel, param_ind, colors=None, labels=None
+        cls,
+        path,
+        dataset,
+        model: McmcSaemCompatibleModel,
+        param_ind,
+        colors=None,
+        labels=None,
     ):
         model_values_np = cls._compute_individual_tensorized_postprocessed(
             model, dataset.timepoints, param_ind
@@ -463,7 +471,7 @@ class Plotter:
         cls,
         path: str,
         dataset: Dataset,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         param_ind: DictParamsTorch,
         *,
         max_patient_number: int = 5,

@@ -44,20 +44,12 @@ from .base import BaseModel, InitializationMethod
 from .obs_models import ObservationModel
 from .utilities import tensor_to_list
 
-#  TODO? refact so to only contain methods needed for the Leaspy api + add another
-#  abstract class (interface) on top of it for MCMC fittable models + one for "manifold models"
-
-# TODO: not 100% clear to me whether:
-# 1. model should have an internal state? or only provide methods to define suited states (i.e. with the right DAG) and interact with such states
-# 2. model methods should have a `state: State` argument, or the state used is always the model internal one?
+__all__ = ["McmcSaemCompatibleModel"]
 
 
-__all__ = ["AbstractModel"]
-
-
-class AbstractModel(BaseModel):
+class McmcSaemCompatibleModel(BaseModel):
     """
-    Contains the common attributes & methods of the different probabilistic models.
+    Defines probabilistic models compatible with an MCMC SAEM estimation.
 
     Parameters
     ----------
