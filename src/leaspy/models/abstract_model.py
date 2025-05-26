@@ -105,24 +105,16 @@ class AbstractModel(BaseModel):
         **kwargs,
     ):
         super().__init__(name, **kwargs)
-
-        # observation models: one or multiple (WIP - e.g. for joint model)
         if isinstance(obs_models, ObservationModel):
             obs_models = (obs_models,)
         self.obs_models = tuple(obs_models)
-
-        # Internal state to hold all model & data variables
-        # WIP: cf. comment regarding inclusion of state here
         self._state: Optional[State] = None  # = state
-
         # load hyperparameters
         # <!> some may still be missing at this point (e.g. `dimension`, `source_dimension`, ...)
         # (thus we sh/could NOT instantiate the DAG right now!)
         self._load_hyperparameters(kwargs)
-
         # TODO: dirty hack for now, cf. AbstractFitAlgo
         self.fit_metrics = fit_metrics
-
         self.tracked_variables: Set[str, ...] = set()
 
     def track_variable(self, variable: VariableName) -> None:
@@ -869,34 +861,6 @@ class AbstractModel(BaseModel):
 
         return output
 
-    @staticmethod
-    def time_reparametrization(
-        *,
-        t: TensorOrWeightedTensor[float],
-        alpha: torch.Tensor,
-        tau: torch.Tensor,
-    ) -> TensorOrWeightedTensor[float]:
-        """
-        Tensorized time reparametrization formula.
-
-        .. warning::
-            Shapes of tensors must be compatible between them.
-
-        Parameters
-        ----------
-        t : :class:`torch.Tensor`
-            Timepoints to reparametrize
-        alpha : :class:`torch.Tensor`
-            Acceleration factors of individual(s)
-        tau : :class:`torch.Tensor`
-            Time-shift(s).
-
-        Returns
-        -------
-        :class:`torch.Tensor` of same shape as `timepoints`
-        """
-        return alpha * (t - tau)
-
     def get_variables_specs(self) -> NamedVariables:
         """
         Return the specifications of the variables (latent variables,
@@ -907,19 +871,13 @@ class AbstractModel(BaseModel):
         NamedVariables :
             The specifications of the model's variables.
         """
-        d = NamedVariables(
-            {
-                "t": DataVariable(),
-                "rt": LinkedVariable(self.time_reparametrization),
-            }
-        )
+        specifications = NamedVariables({"t": DataVariable()})
         single_obs_model = len(self.obs_models) == 1
         for obs_model in self.obs_models:
-            d.update(
+            specifications.update(
                 obs_model.get_variables_specs(named_attach_vars=not single_obs_model)
             )
-
-        return d
+        return specifications
 
     def _initialize_state(self) -> None:
         """

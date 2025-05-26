@@ -1,14 +1,14 @@
 import warnings
 from typing import Optional
 
-import pandas as pd
 import torch
 
-from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
+from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul
 from leaspy.utils.typing import KwargsType
+from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
     Hyperparameter,
@@ -139,6 +139,34 @@ class AbstractMultivariateModel(AbstractModel):
                 )
         return source_dimension
 
+    @staticmethod
+    def time_reparametrization(
+        *,
+        t: TensorOrWeightedTensor[float],
+        alpha: torch.Tensor,
+        tau: torch.Tensor,
+    ) -> TensorOrWeightedTensor[float]:
+        """
+        Tensorized time reparametrization formula.
+
+        .. warning::
+            Shapes of tensors must be compatible between them.
+
+        Parameters
+        ----------
+        t : :class:`torch.Tensor`
+            Timepoints to reparametrize
+        alpha : :class:`torch.Tensor`
+            Acceleration factors of individual(s)
+        tau : :class:`torch.Tensor`
+            Time-shift(s).
+
+        Returns
+        -------
+        :class:`torch.Tensor` of same shape as `timepoints`
+        """
+        return alpha * (t - tau)
+
     def get_variables_specs(self) -> NamedVariables:
         """
         Return the specifications of the variables (latent variables,
@@ -149,9 +177,9 @@ class AbstractMultivariateModel(AbstractModel):
         NamedVariables :
             The specifications of the model's variables.
         """
-        d = super().get_variables_specs()
-
-        d.update(
+        specifications = super().get_variables_specs()
+        specifications.update(
+            rt=LinkedVariable(self.time_reparametrization),
             # PRIORS
             tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
@@ -162,9 +190,8 @@ class AbstractMultivariateModel(AbstractModel):
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
         )
-
         if self.source_dimension >= 1:
-            d.update(
+            specifications.update(
                 # PRIORS
                 betas_mean=ModelParameter.for_pop_mean(
                     "betas",
@@ -188,7 +215,7 @@ class AbstractMultivariateModel(AbstractModel):
                 ),  # shape: (Ni, Nfts)
             )
 
-        return d
+        return specifications
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
