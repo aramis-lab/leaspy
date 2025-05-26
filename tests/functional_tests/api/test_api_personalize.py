@@ -1,11 +1,9 @@
 import math
-import os
 import warnings
-from typing import Optional, Union
+from typing import Optional
 from unittest import skipIf
 
 import pandas as pd
-import torch
 from numpy import nan
 
 from leaspy.io.data import Data, Dataset
@@ -300,12 +298,9 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
             "mean_posterior",
         )
 
-    ################################################################
-    # Univariate logistic
-
     def test_univariate_logistic_scipy_minimize(self):
         self._personalize_generic(
-            "univariate_logistic",
+            "logistic",
             "scipy_minimize",
             {"use_jacobian": False},
         )
@@ -313,29 +308,20 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
     @skipIf(not TEST_LOGISTIC_MODELS_WITH_JACOBIAN, SKIP_LOGISTIC_MODELS_WITH_JACOBIAN)
     def test_univariate_logistic_scipy_minimize_with_jacobian(self):
         self._personalize_generic(
-            "univariate_logistic",
+            "logistic",
             "scipy_minimize",
             {"use_jacobian": True},
         )
 
     def test_univariate_logistic_mode_posterior(self):
-        self._personalize_generic(
-            "univariate_logistic",
-            "mode_posterior",
-        )
+        self._personalize_generic("logistic", "mode_posterior")
 
     def test_univariate_logistic_mean_posterior(self):
-        self._personalize_generic(
-            "univariate_logistic",
-            "mean_posterior",
-        )
-
-    ################################################################
-    # Univariate joint
+        self._personalize_generic("logistic", "mean_posterior")
 
     def test_univariate_joint_scipy_minimize(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "scipy_minimize",
             {"use_jacobian": False},
         )
@@ -343,20 +329,20 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
     @skipIf(not TEST_LOGISTIC_MODELS_WITH_JACOBIAN, SKIP_LOGISTIC_MODELS_WITH_JACOBIAN)
     def test_univariate_joint_scipy_minimize_with_jacobian(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "scipy_minimize",
             {"use_jacobian": True},
         )
 
     def test_univariate_joint_mode_posterior(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "mode_posterior",
         )
 
     def test_univariate_joint_mean_posterior(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "mean_posterior",
         )
 
@@ -376,24 +362,15 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
         )
 
     def test_joint_mode_erior(self):
-        self._personalize_generic(
-            "joint_diagonal",
-            "mode_posterior",
-        )
+        self._personalize_generic("joint_diagonal", "mode_posterior")
 
     def test_joint_mean_posterior(self):
-        self._personalize_generic(
-            "joint_diagonal",
-            "mean_posterior",
-        )
-
-    ################################################################
-    # Univariate linear
+        self._personalize_generic("joint_diagonal", "mean_posterior")
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_univariate_linear_scipy_minimize(self):
         self._personalize_generic(
-            "univariate_linear",
+            "linear",
             "scipy_minimize",
             {"use_jacobian": False},
         )
@@ -401,24 +378,18 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
     @skipIf(not TEST_LINEAR_MODELS_WITH_JACOBIAN, SKIP_LINEAR_MODELS_WITH_JACOBIAN)
     def test_univariate_linear_scipy_minimize_with_jacobian(self):
         self._personalize_generic(
-            "univariate_linear",
+            "linear",
             "scipy_minimize",
             {"use_jacobian": True},
         )
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_univariate_linear_mode_posterior(self):
-        self._personalize_generic(
-            "univariate_linear",
-            "mode_posterior",
-        )
+        self._personalize_generic("linear", "mode_posterior")
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_univariate_linear_mean_posterior(self):
-        self._personalize_generic(
-            "univariate_linear",
-            "mean_posterior",
-        )
+        self._personalize_generic("linear", "mean_posterior")
 
     @skipIf(not TEST_LINEAR_MODELS, SKIP_LINEAR_MODELS)
     def test_multivariate_linear_scipy_minimize(self):

@@ -39,10 +39,10 @@ from .obs_models import FullGaussianObservationModel
 
 __all__ = [
     "MultivariateModel",
-    "LinearMultivariateInitializationMixin",
-    "LinearMultivariateModel",
-    "LogisticMultivariateInitializationMixin",
-    "LogisticMultivariateModel",
+    "LinearInitializationMixin",
+    "LinearModel",
+    "LogisticInitializationMixin",
+    "LogisticModel",
 ]
 
 
@@ -71,7 +71,6 @@ class MultivariateModel(AbstractMultivariateModel):
         **kwargs,
     ):
         super().__init__(name, **kwargs)
-
         default_variables_to_track = [
             "g",
             "v0",
@@ -89,7 +88,6 @@ class MultivariateModel(AbstractMultivariateModel):
             "nll_regul_all_sum",
             "nll_tot",
         ]
-
         if self.source_dimension:
             default_variables_to_track += [
                 "sources",
@@ -97,326 +95,7 @@ class MultivariateModel(AbstractMultivariateModel):
                 "mixing_matrix",
                 "space_shifts",
             ]
-
-        variables_to_track = variables_to_track or default_variables_to_track
-        self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
-
-    """
-    @suffixed_method
-    def compute_individual_tensorized(
-        self,
-        timepoints: torch.Tensor,
-        individual_parameters: dict,
-        *,
-        attribute_type=None,
-    ) -> torch.Tensor:
-        pass
-
-    def compute_individual_tensorized_linear(
-        self,
-        timepoints: torch.Tensor,
-        individual_parameters: dict,
-        *,
-        attribute_type=None,
-    ) -> torch.Tensor:
-        # Population parameters
-        positions, velocities, mixing_matrix = self._get_attributes(attribute_type)
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
-
-        # TODO: use rt instead
-        reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
-
-        # Reshaping
-        reparametrized_time = reparametrized_time.unsqueeze(-1)  # for automatic broadcast on n_features (last dim)
-
-        # Model expected value
-        model = positions + velocities * reparametrized_time
-
-        if self.source_dimension != 0:
-            sources = individual_parameters['sources']
-            wi = sources.matmul(mixing_matrix.t())
-            model += wi.unsqueeze(-2)
-
-        return model  # (n_individuals, n_timepoints, n_features)
-
-    def compute_individual_tensorized_logistic(
-        self,
-        timepoints: torch.Tensor,
-        individual_parameters: dict,
-        *,
-        attribute_type=None,
-    ) -> torch.Tensor:
-        # Population parameters
-        g, v0, a_matrix = self._get_attributes(attribute_type)
-        g_plus_1 = 1. + g
-        b = g_plus_1 * g_plus_1 / g
-
-        # Individual parameters
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
-        reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
-
-        # Reshaping
-        reparametrized_time = reparametrized_time.unsqueeze(-1)  # (n_individuals, n_timepoints, n_features)
-
-        if self.is_ordinal:
-            # add an extra dimension for the levels of the ordinal item
-            reparametrized_time = reparametrized_time.unsqueeze(-1)
-            g = g.unsqueeze(-1)
-            b = b.unsqueeze(-1)
-            v0 = v0.unsqueeze(-1)
-            deltas = self._get_deltas(attribute_type)  # (features, max_level)
-            deltas = deltas.unsqueeze(0).unsqueeze(0)  # add (ind, timepoints) dimensions
-            # infinite deltas (impossible ordinal levels) will induce model = 0 which is intended
-            reparametrized_time = reparametrized_time - deltas.cumsum(dim=-1)
-
-        LL = v0 * reparametrized_time
-
-        if self.source_dimension != 0:
-            sources = individual_parameters['sources']
-            wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
-            if self.is_ordinal:
-                wi = wi.unsqueeze(-1)
-            LL += wi
-
-        # TODO? more efficient & accurate to compute `torch.exp(-t*b + log_g)` since we
-        #  directly sample & stored log_g
-        LL = 1. + g * torch.exp(-LL * b)
-        model = 1. / LL
-
-        # For ordinal models, compute pdf instead of survival function if needed
-        model = self.compute_appropriate_ordinal_model(model)
-
-        return model  # (n_individuals, n_timepoints, n_features [, extra_dim_ordinal_models])
-
-    @suffixed_method
-    def compute_individual_ages_from_biomarker_values_tensorized(
-        self,
-        value: torch.Tensor,
-        individual_parameters: dict,
-        feature: str,
-    ) -> torch.Tensor:
-        pass
-
-    def compute_individual_ages_from_biomarker_values_tensorized_logistic(
-        self,
-        value: torch.Tensor,
-        individual_parameters: dict,
-        feature: str,
-    ) -> torch.Tensor:
-        if value.dim() != 2:
-            raise LeaspyModelInputError(f"The biomarker value should be dim 2, not {value.dim()}!")
-
-        if self.is_ordinal:
-            return self._compute_individual_ages_from_biomarker_values_tensorized_logistic_ordinal(
-                value, individual_parameters, feature
-            )
-        # avoid division by zero:
-        value = value.masked_fill((value == 0) | (value == 1), float('nan'))
-
-        # 1/ get attributes
-        g, v0, a_matrix = self._get_attributes(None)
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
-        if self.source_dimension != 0:
-            sources = individual_parameters['sources']
-            wi = sources.matmul(a_matrix.t())
-        else:
-            wi = 0
-
-        # get feature value for g, v0 and wi
-        feat_ind = self.features.index(feature)  # all consistency checks were done in API layer
-        g = torch.tensor([g[feat_ind]])  # g and v0 were shape: (n_features in the multivariate model)
-        v0 = torch.tensor([v0[feat_ind]])
-        if self.source_dimension != 0:
-            wi = wi[0, feat_ind].item()  # wi was shape (1, n_features)
-
-        # 2/ compute age
-        ages = tau + (torch.exp(-xi) / v0) * ((g / (g + 1) ** 2) * torch.log(g/(1 / value - 1)) - wi)
-        # assert ages.shape == value.shape
-
-        return ages
-
-    def _compute_individual_ages_from_biomarker_values_tensorized_logistic_ordinal(
-        self,
-        value: torch.Tensor,
-        individual_parameters: dict,
-        feature: str,
-    ) -> torch.Tensor:
-        ""
-        For one individual, compute age(s) breakpoints at which the given features
-        levels are the most likely (given the subject's individual parameters).
-
-        Consistency checks are done in the main :term:`API` layer.
-
-        Parameters
-        ----------
-        value : :class:`torch.Tensor`
-            Contains the :term:`biomarker` level value(s) of the subject.
-
-        individual_parameters : :obj:`dict`
-            Contains the individual parameters.
-            Each individual parameter should be a scalar or array_like.
-
-        feature : :obj:`str`
-            Name of the considered :term:`biomarker`
-
-            .. note::
-                Optional for :class:`.UnivariateModel`, compulsory
-                for :class:`.MultivariateModel`.
-
-        Returns
-        -------
-        :class:`torch.Tensor`
-            Contains the subject's ages computed at the given values(s)
-            Shape of tensor is ``(1, n_values)``.
-
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            if computation is tried on more than 1 individual
-        ""
-        # 1/ get attributes
-        g, v0, a_matrix = self._get_attributes(None)
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
-        if self.source_dimension != 0:
-            sources = individual_parameters['sources']
-            wi = sources.matmul(a_matrix.t())
-        else:
-            wi = 0
-
-        # get feature value for g, v0 and wi
-        feat_ind = self.features.index(feature)  # all consistency checks were done in API layer
-        g = torch.tensor([g[feat_ind]])  # g and v0 were shape: (n_features in the multivariate model)
-        v0 = torch.tensor([v0[feat_ind]])
-        if self.source_dimension != 0:
-            wi = wi[0, feat_ind].item()  # wi was shape (1, n_features)
-
-        # 2/ compute age
-        ages_0 = tau + (torch.exp(-xi) / v0) * ((g / (g + 1) ** 2) * torch.log(g) - wi)
-        deltas_ft = self._get_deltas(None)[feat_ind]
-        delta_max = deltas_ft[torch.isfinite(deltas_ft)].sum()
-        ages_max = tau + (torch.exp(-xi) / v0) * ((g / (g + 1) ** 2) * torch.log(g) - wi + delta_max)
-
-        grid_timepoints = torch.linspace(ages_0.item(), ages_max.item(), 1000)
-
-        return self._ordinal_grid_search_value(
-            grid_timepoints,
-            value,
-            individual_parameters=individual_parameters,
-            feat_index=feat_ind,
-        )
-
-    @suffixed_method
-    def compute_jacobian_tensorized(
-        self,
-        timepoints: torch.Tensor,
-        individual_parameters: dict,
-        *,
-        attribute_type=None,
-    ) -> DictParamsTorch:
-        pass
-
-    def compute_jacobian_tensorized_linear(
-        self,
-        timepoints: torch.Tensor,
-        individual_parameters: dict,
-        *,
-        attribute_type=None,
-    ) -> DictParamsTorch:
-        # Population parameters
-        _, v0, mixing_matrix = self._get_attributes(attribute_type)
-
-        # Individual parameters
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
-        reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
-
-        # Reshaping
-        reparametrized_time = reparametrized_time.unsqueeze(-1)  # (n_individuals, n_timepoints, n_features)
-
-        alpha = torch.exp(xi).reshape(-1, 1, 1)
-        dummy_to_broadcast_n_ind_n_tpts = torch.ones_like(reparametrized_time)
-
-        # Jacobian of model expected value w.r.t. individual parameters
-        derivatives = {
-            'xi': (v0 * reparametrized_time).unsqueeze(-1),  # add a last dimension for len param
-            'tau': (v0 * -alpha * dummy_to_broadcast_n_ind_n_tpts).unsqueeze(-1),  # same
-        }
-
-        if self.source_dimension > 0:
-            derivatives['sources'] = (
-                mixing_matrix.expand((1, 1, -1, -1)) * dummy_to_broadcast_n_ind_n_tpts.unsqueeze(-1)
-            )
-
-        # dict[param_name: str, torch.Tensor of shape(n_ind, n_tpts, n_fts, n_dims_param)]
-        return derivatives
-
-    def compute_jacobian_tensorized_logistic(
-        self,
-        timepoints: torch.Tensor,
-        individual_parameters: dict,
-        *,
-        attribute_type=None,
-    ) -> DictParamsTorch:
-        # TODO: refact highly inefficient (many duplicated code from `compute_individual_tensorized_logistic`)
-
-        # Population parameters
-        g, v0, a_matrix = self._get_attributes(attribute_type)
-        g_plus_1 = 1. + g
-        b = g_plus_1 * g_plus_1 / g
-
-        # Individual parameters
-        xi, tau = individual_parameters['xi'], individual_parameters['tau']
-        reparametrized_time = self.time_reparametrization(timepoints, xi, tau)
-
-        # Reshaping
-        reparametrized_time = reparametrized_time.unsqueeze(-1)  # (n_individuals, n_timepoints, n_features)
-        alpha = torch.exp(xi).reshape(-1, 1, 1)
-
-        if self.is_ordinal:
-            # add an extra dimension for the levels of the ordinal item
-            LL = reparametrized_time.unsqueeze(-1)
-            g = g.unsqueeze(-1)
-            b = b.unsqueeze(-1)
-            deltas = self._get_deltas(attribute_type)  # (features, max_level)
-            deltas = deltas.unsqueeze(0).unsqueeze(0)  # add (ind, timepoints) dimensions
-            LL = LL - deltas.cumsum(dim=-1)
-            LL = v0.unsqueeze(-1) * LL
-
-        else:
-            LL = v0 * reparametrized_time
-
-        if self.source_dimension != 0:
-            sources = individual_parameters['sources']
-            wi = sources.matmul(a_matrix.t()).unsqueeze(-2)  # unsqueeze for (n_timepoints)
-            if self.is_ordinal:
-                wi = wi.unsqueeze(-1)
-            LL += wi
-        LL = 1. + g * torch.exp(-LL * b)
-        model = 1. / LL
-
-        # Jacobian of model expected value w.r.t. individual parameters
-        c = model * (1. - model) * b
-
-        derivatives = {
-            'xi': (v0 * reparametrized_time).unsqueeze(-1),
-            'tau': (-v0 * alpha).unsqueeze(-1),
-        }
-        if self.source_dimension > 0:
-            derivatives['sources'] = a_matrix.expand((1, 1, -1, -1))
-
-        if self.is_ordinal:
-            ordinal_lvls_shape = c.shape[-1]
-            for param in derivatives:
-                derivatives[param] = derivatives[param].unsqueeze(-2).repeat(1, 1, 1, ordinal_lvls_shape, 1)
-
-        # Multiply by common constant, and post-process derivative for ordinal models if needed
-        for param in derivatives:
-            derivatives[param] = self.compute_appropriate_ordinal_model(
-                c.unsqueeze(-1) * derivatives[param]
-            )
-
-        # dict[param_name: str, torch.Tensor of shape(n_ind, n_tpts, n_fts [, extra_dim_ordinal_models], n_dims_param)]
-        return derivatives
-    """
+        self.track_variables(variables_to_track or default_variables_to_track)
 
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:
@@ -540,7 +219,7 @@ class MultivariateModel(AbstractMultivariateModel):
         pass
 
 
-class LinearMultivariateInitializationMixin:
+class LinearInitializationMixin:
     """Compute initial values for model parameters."""
 
     def _compute_initial_values_for_model_parameters(
@@ -570,13 +249,9 @@ class LinearMultivariateInitializationMixin:
         parameters = {
             "g_mean": positions,
             "log_v0_mean": get_log_velocities(velocities, self.features),
-            # "betas": torch.zeros((self.dimension - 1, self.source_dimension)),
             "tau_mean": torch.tensor(t0),
             "tau_std": self.tau_std,
-            # "xi_mean": torch.tensor(0.),
             "xi_std": self.xi_std,
-            # "sources_mean": torch.tensor(0.),
-            # "sources_std": torch.tensor(SOURCES_STD),
         }
         if self.source_dimension >= 1:
             parameters["betas_mean"] = torch.zeros(
@@ -593,7 +268,7 @@ class LinearMultivariateInitializationMixin:
         return rounded_parameters
 
 
-class LinearMultivariateModel(LinearMultivariateInitializationMixin, MultivariateModel):
+class LinearModel(LinearInitializationMixin, MultivariateModel):
     """Manifold model for multiple variables of interest (linear formulation)."""
 
     def __init__(self, name: str, **kwargs):
@@ -639,7 +314,7 @@ class LinearMultivariateModel(LinearMultivariateInitializationMixin, Multivariat
         return (g[pop_s] + v0[pop_s] * rt + space_shifts[:, None, ...]).weighted_value
 
 
-class LogisticMultivariateInitializationMixin:
+class LogisticInitializationMixin:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
@@ -696,9 +371,7 @@ class LogisticMultivariateInitializationMixin:
         return rounded_parameters
 
 
-class LogisticMultivariateModel(
-    LogisticMultivariateInitializationMixin, MultivariateModel
-):
+class LogisticModel(LogisticInitializationMixin, MultivariateModel):
     """Manifold model for multiple variables of interest (logistic formulation)."""
 
     def __init__(self, name: str, **kwargs):

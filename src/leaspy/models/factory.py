@@ -5,10 +5,8 @@ from .base import BaseModel
 from .constant import ConstantModel
 from .joint import JointModel
 from .lme import LMEModel
-from .multivariate import LinearMultivariateModel, LogisticMultivariateModel
+from .multivariate import LinearModel, LogisticModel
 from .multivariate_parallel import MultivariateParallelModel
-from .univariate import LinearUnivariateModel, LogisticUnivariateModel
-from .univariate_joint import UnivariateJointModel
 
 __all__ = [
     "ModelName",
@@ -23,9 +21,6 @@ class ModelName(str, Enum):
     LOGISTIC = "logistic"
     LINEAR = "linear"
     LOGISTIC_PARALLEL = "logistic_parallel"
-    UNIVARIATE_JOINT = "univariate_joint"
-    UNIVARIATE_LOGISTIC = "univariate_logistic"
-    UNIVARIATE_LINEAR = "univariate_linear"
     LME = "lme"
     CONSTANT = "constant"
 
@@ -56,18 +51,12 @@ def model_factory(
     """
     name = ModelName(name)
     instance_name = instance_name or name.value
-    if name == ModelName.UNIVARIATE_JOINT:
-        return UnivariateJointModel(instance_name, **kwargs)
     if name == ModelName.JOINT:
         return JointModel(instance_name, **kwargs)
-    if name == ModelName.UNIVARIATE_LOGISTIC:
-        return LogisticUnivariateModel(instance_name, **kwargs)
-    if name == ModelName.UNIVARIATE_LINEAR:
-        return LinearUnivariateModel(instance_name, **kwargs)
     if name == ModelName.LOGISTIC:
-        return LogisticMultivariateModel(instance_name, **kwargs)
+        return LogisticModel(instance_name, **kwargs)
     if name == ModelName.LINEAR:
-        return LinearMultivariateModel(instance_name, **kwargs)
+        return LinearModel(instance_name, **kwargs)
     if name == ModelName.LOGISTIC_PARALLEL:
         return MultivariateParallelModel(instance_name, **kwargs)
     if name == ModelName.LME:

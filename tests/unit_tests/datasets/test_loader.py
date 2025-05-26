@@ -39,11 +39,7 @@ class LoaderTest(LeaspyTestCase):
         for name in DatasetName:
             if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
                 leaspy_instance = load_leaspy_instance(name)
-                if "multivariate" in name.value:
-                    self.assertEqual(leaspy_instance.type, "logistic")
-                else:
-                    self.assertEqual(leaspy_instance.type, "univariate_logistic")
-
+                self.assertEqual(leaspy_instance.type, "logistic")
         leaspy_instance = load_leaspy_instance(DatasetName.PARKINSON_PUTAMEN)
         self.assertEqual(leaspy_instance.model.features, ["PUTAMEN"])
         self.assertIsInstance(
@@ -83,7 +79,7 @@ class LoaderTest(LeaspyTestCase):
         for name in DatasetName:
             if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
                 individual_parameters = load_individual_parameters(name)
-        individual_parameters = load_individual_parameters("alzheimer-multivariate")
+        individual_parameters = load_individual_parameters("alzheimer")
 
         self.assertAlmostEqual(
             individual_parameters.get_mean("tau")[0], 76.9612, delta=1e-4
