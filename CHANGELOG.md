@@ -5,7 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.5.0] - 2024-06-03
+## Leaspy version 2
+
+These are the releases of the version 2 of Leaspy.
+
+### [2.0.0rc1] - 2025-05-28
+
+This is the first release candidate of the version 2 of Leaspy.
+
+```{warning}
+There is no backward compatibility with the version 1 of Leaspy.
+This means that the public API is different and that models serialized with the version 1 of Leaspy won't be compatible with version 2 and vice-versa.
+```
+
+Leaspy v2 introduces a whole new logic in the way model parameters and variables are handled, with the objective of being more modular than version 1 and ease the definition of new models.
+
+The main idea behind the new model specification scheme lies in the concepts of `State` and `DAG` which are two core components of Leaspy v2:
+
+- A `DAG` is a directed acyclic graph defining the symbolic relationships between parameters, hyperparameter, and variables in a model. It is basically the blueprint of your model.
+- A `State` is a `DAG` with an additional mapping between node names and current values. A `State` basically holds the model's blueprint as well as the values that are currently loaded.
+
+The fact that a model in Leaspy v2 is almost equivalent to its `DAG` makes it very easy for users to define a new model as relationships between variables are translated in a very transparent way.
+
+```{note}
+The actual release of Leaspy `v2.0.0` is an ongoing work that would benefit from user inputs. Please open issues if you had problems using this version of Leaspy or if you encountered bugs doing so.
+```
+
+## Leaspy version 1
+
+These are the releases of the version 1 of Leaspy.
+
+```{warning}
+If you are a user of Leaspy v1, it is recommended to upgrade to v2 since the maintenance of the version 1 of Leaspy will end in 2025.
+```
+
+### [1.5.0] - 2024-06-03
+
 - [COMPAT] No more support for Python 3.7 and 3.8 (see MR !99)
 - [COMPAT] Support for Python 3.10 and 3.11 (see MR !99 and !121)
 - [DOC] New glossary page added to the documentation (see MR !95)
@@ -15,17 +50,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [REF] Refactoring to decouple Algorithms and Models (see MR !90)
 - [REF] Refactoring of Realizations (see MR !92)
 
-## [1.4.0] - 2022-11-21
+### [1.4.0] - 2022-11-21
+
 - [FEAT] New ordinal models (see MR !73)
 - [FEAT] New `"Metropolis-Hastings"` and `"FastGibbs"` samplers for population variables in MCMC algorithms
 - [REFACT-FEAT] Refact and improve `Data` and `IndividualData` classes
 
-## [1.3.1] - 2022-03-11
+### [1.3.1] - 2022-03-11
+
 - [FIX] Inconsistent warning about annealing.n_iter / n_iter_frac
 - [FIX/CHORE] Fix minor typos without functional impact
 - [COMPAT] PyTorch 1.11 was tested and is compatible
 
-## [1.3.0] - 2022-03-09
+### [1.3.0] - 2022-03-09
+
 - [FIX] Fix critical regression on `AlgorithmSettings.save`
 - [FIX] Fix some presentation issues with convergence plots
 - [FIX/FEAT] Raise a `LeaspyConvergenceError` if variances of params collapse to zero
@@ -44,7 +82,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [TESTS] Much more functional tests for all the models & personalization algorithms supported
 - [COMPAT] PyTorch >=1.7.1 is now required
 
-## [1.2.0] - 2021-12-17
+### [1.2.0] - 2021-12-17
+
 - [CODE] Broad use of type annotations in Leaspy package
 - [COMPAT] As a consequence support of Python 3.6 is dropped
 - [COMPAT] PyTorch >=1.7 is now supported, as well as Python 3.9
@@ -73,7 +112,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [REFACT] Readers now implement more checks on input data; CSVDataReader now calls `pandas.read_csv` internally
 - [TESTS] Refactoring of tests with a new `LeaspyTestCase`, have a look at `tests/README.md` if you want to add or modify them
 
-## [1.1.2] - 2021-04-13
+### [1.1.2] - 2021-04-13
+
 - **Fix computation of orthonormal basis for leaspy multivariate models:**
   - **<!> this modification is breaking old multivariate models for which orthogonality**
     **between space-shifts and time-derivative of geodesic at initial time was not respected.**
@@ -92,7 +132,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Refactorization of models attributes
 - Clean-up in code and in tests
 
-## [1.0.3] - 2021-03-03
+### [1.0.3] - 2021-03-03
+
 - Fix multivariate linear model
 - Fix multivariate linear & logistic_parallel jacobian computation
 - Update requirements.txt and add a `__watermark__`
@@ -101,11 +142,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Tiny fix on `Plotting`
 - Clean-up in documentation
 
-## [1.0.2] - 2021-01-05
+### [1.0.2] - 2021-01-05
+
 - Jacobian for all models
 - Clean univariate models
 - More coherent initializations
 
-## [1.0.1] - 2021-01-04
-- First released version
+### [1.0.1] - 2021-01-04
 
+- First released version
