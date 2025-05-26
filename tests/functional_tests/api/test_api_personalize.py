@@ -321,7 +321,7 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
 
     def test_univariate_joint_scipy_minimize(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "scipy_minimize",
             {"use_jacobian": False},
         )
@@ -329,20 +329,20 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
     @skipIf(not TEST_LOGISTIC_MODELS_WITH_JACOBIAN, SKIP_LOGISTIC_MODELS_WITH_JACOBIAN)
     def test_univariate_joint_scipy_minimize_with_jacobian(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "scipy_minimize",
             {"use_jacobian": True},
         )
 
     def test_univariate_joint_mode_posterior(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "mode_posterior",
         )
 
     def test_univariate_joint_mean_posterior(self):
         self._personalize_generic(
-            "univariate_joint",
+            "joint",
             "mean_posterior",
         )
 

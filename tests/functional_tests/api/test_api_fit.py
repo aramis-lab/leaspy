@@ -282,10 +282,11 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     def test_fit_univariate_joint(self):
         self.generic_fit(
-            "univariate_joint",
+            "joint",
             "univariate_joint",
             check_kws=DEFAULT_CHECK_KWS,
             check_model=True,
+            dimension=1,
         )
 
     def test_fit_joint_no_sources(self):

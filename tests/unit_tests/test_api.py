@@ -64,8 +64,8 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
 
                 for input, output in to_test:
                     # If no observational model given
-                    leaspy = Leaspy("univariate_joint", obs_models=input)
-                    self.assertEqual(leaspy.type, "univariate_joint")
+                    leaspy = Leaspy("joint", dimension=1, obs_models=input)
+                    self.assertEqual(leaspy.type, "joint")
 
                     self.assertIsInstance(
                         leaspy.model.obs_models[output["w"]], observation_model

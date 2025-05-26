@@ -71,7 +71,6 @@ class MultivariateModel(AbstractMultivariateModel):
         **kwargs,
     ):
         super().__init__(name, **kwargs)
-
         default_variables_to_track = [
             "g",
             "v0",
@@ -89,7 +88,6 @@ class MultivariateModel(AbstractMultivariateModel):
             "nll_regul_all_sum",
             "nll_tot",
         ]
-
         if self.source_dimension:
             default_variables_to_track += [
                 "sources",
@@ -97,9 +95,7 @@ class MultivariateModel(AbstractMultivariateModel):
                 "mixing_matrix",
                 "space_shifts",
             ]
-
-        variables_to_track = variables_to_track or default_variables_to_track
-        self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
+        self.track_variables(variables_to_track or default_variables_to_track)
 
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:

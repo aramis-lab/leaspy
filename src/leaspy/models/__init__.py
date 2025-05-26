@@ -13,7 +13,6 @@ from .multivariate import (
 )
 from .multivariate_parallel import MultivariateParallelModel
 from .settings import ModelSettings
-from .univariate_joint import UnivariateJointModel
 
 __all__ = [
     "ModelName",
@@ -30,6 +29,5 @@ __all__ = [
     "LogisticModel",
     "LinearModel",
     "MultivariateParallelModel",
-    "UnivariateJointModel",
     "JointModel",
 ]

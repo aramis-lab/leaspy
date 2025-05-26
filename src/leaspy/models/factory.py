@@ -7,7 +7,6 @@ from .joint import JointModel
 from .lme import LMEModel
 from .multivariate import LinearModel, LogisticModel
 from .multivariate_parallel import MultivariateParallelModel
-from .univariate_joint import UnivariateJointModel
 
 __all__ = [
     "ModelName",
@@ -22,7 +21,6 @@ class ModelName(str, Enum):
     LOGISTIC = "logistic"
     LINEAR = "linear"
     LOGISTIC_PARALLEL = "logistic_parallel"
-    UNIVARIATE_JOINT = "univariate_joint"
     LME = "lme"
     CONSTANT = "constant"
 
@@ -53,8 +51,6 @@ def model_factory(
     """
     name = ModelName(name)
     instance_name = instance_name or name.value
-    if name == ModelName.UNIVARIATE_JOINT:
-        return UnivariateJointModel(instance_name, **kwargs)
     if name == ModelName.JOINT:
         return JointModel(instance_name, **kwargs)
     if name == ModelName.LOGISTIC:

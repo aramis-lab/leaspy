@@ -7,7 +7,6 @@ from lifelines import WeibullFitter
 
 from leaspy.exceptions import LeaspyInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.docs import doc_with_super  # doc_with_
 from leaspy.utils.functional import Exp, MatMul, Sum
 from leaspy.utils.typing import DictParams, KwargsType
 from leaspy.utils.weighted_tensor import WeightedTensor
@@ -26,18 +25,9 @@ from .base import InitializationMethod
 from .multivariate import LogisticModel
 from .obs_models import observation_model_factory
 
-# TODO refact? implement a single function
-# compute_individual_tensorized(..., with_jacobian: bool) -> returning either
-# model values or model values + jacobians wrt individual parameters
-
-# TODO refact? subclass or other proper code technique to extract model's concrete
-#  formulation depending on if linear, logistic, mixed log-lin, ...
-
-
 __all__ = ["JointModel"]
 
 
-@doc_with_super()
 class JointModel(LogisticModel):
     """
     Joint model for multiple repeated measures (logistic) and multiple competing events.
@@ -47,6 +37,7 @@ class JointModel(LogisticModel):
     ----------
     name : :obj:`str`
         The name of the model.
+
     **kwargs
         Hyperparameters of the model (including `noise_model`)
 
@@ -61,52 +52,68 @@ class JointModel(LogisticModel):
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        obs_models_to_string = [o.to_string() for o in self.obs_models]
+        self._configure_observation_models()
+        self._configure_variables_to_track()
 
-        if (self.dimension == 1) or (self.source_dimension == 0):
-            if "weibull-right-censored-with-sources" in obs_models_to_string:
-                raise LeaspyInputError(
-                    "You cannot use a weibull with sources for an univariate model"
-                )
-            if "weibull-right-censored" not in obs_models_to_string:
-                self.obs_models += (
-                    observation_model_factory(
-                        "weibull-right-censored",
-                        nu="nu",
-                        rho="rho",
-                        xi="xi",
-                        tau="tau",
-                    ),
-                )
-                obs_models_to_string += ["weibull-right-censored"]
+    def _configure_variables_to_track(self):
+        self.track_variables(["nu", "rho", "nll_attach_y", "nll_attach_event"])
+        if self.has_observation_model_with_name("weibull-right-censored-with-sources"):
+            self.track_variables(["zeta", "survival_shifts"])
         else:
-            if "weibull-right-censored" in obs_models_to_string:
-                warnings.warn(
-                    "You are using a multivariate model with a weibull model without sources"
-                )
-            elif "weibull-right-censored-with-sources" not in obs_models_to_string:
-                self.obs_models += (
-                    observation_model_factory(
-                        "weibull-right-censored-with-sources",
-                        nu="nu",
-                        rho="rho",
-                        zeta="zeta",
-                        xi="xi",
-                        tau="tau",
-                        sources="sources",
-                    ),
-                )
-                obs_models_to_string += ["weibull-right-censored-with-sources"]
+            self.track_variables(
+                [
+                    "n_log_nu_mean",
+                    "log_rho_mean",
+                    "nll_attach_y",
+                    "nll_attach_event",
+                ]
+            )
 
-        variables_to_track = [
-            "nu",
-            "rho",
-            "nll_attach_y",
-            "nll_attach_event",
-        ]
-        if "weibull-right-censored-with-sources" in obs_models_to_string:
-            variables_to_track += ["zeta", "survival_shifts"]
-        self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
+    def _configure_observation_models(self):
+        if (self.dimension == 1) or (self.source_dimension == 0):
+            self._configure_univariate_observation_models()
+        else:
+            self._configure_multivariate_observation_models()
+
+    def _configure_univariate_observation_models(self):
+        if self.has_observation_model_with_name("weibull-right-censored-with-sources"):
+            raise LeaspyInputError(
+                "You cannot use a weibull with sources for an univariate model."
+            )
+        if not self.has_observation_model_with_name("gaussian-scalar"):
+            self.obs_models += (
+                observation_model_factory("gaussian-scalar", dimension=1),
+            )
+        if not self.has_observation_model_with_name("weibull-right-censored"):
+            self.obs_models += (
+                observation_model_factory(
+                    "weibull-right-censored",
+                    nu="nu",
+                    rho="rho",
+                    xi="xi",
+                    tau="tau",
+                ),
+            )
+
+    def _configure_multivariate_observation_models(self):
+        if self.has_observation_model_with_name("weibull-right-censored"):
+            warnings.warn(
+                "You are using a multivariate model with a weibull model without sources"
+            )
+        elif not self.has_observation_model_with_name(
+            "weibull-right-censored-with-sources"
+        ):
+            self.obs_models += (
+                observation_model_factory(
+                    "weibull-right-censored-with-sources",
+                    nu="nu",
+                    rho="rho",
+                    zeta="zeta",
+                    xi="xi",
+                    tau="tau",
+                    sources="sources",
+                ),
+            )
 
     def get_variables_specs(self) -> NamedVariables:
         """
@@ -208,9 +215,6 @@ class JointModel(LogisticModel):
         state["log_v0"] = state["log_v0"] + mean_xi
         state["n_log_nu"] = state["n_log_nu"] + mean_xi
 
-        # TODO: find a way to prevent re-computation of orthonormal basis since it should not have changed (v0_collinear update)
-        # self.update_MCMC_toolbox({'v0_collinear'}, realizations)
-
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """
         Load model's hyperparameters. For joint model it should contain the number of events
@@ -265,7 +269,6 @@ class JointModel(LogisticModel):
         """
         super()._validate_compatibility_of_dataset(dataset)
         # Check that there is only one event stored
-
         if not set(dataset.event_bool.unique().tolist()) == set([False, True]):
             raise LeaspyInputError(
                 "You are using a one event model, your event_bool value should only contain 0 and 1, "
@@ -297,12 +300,10 @@ class JointModel(LogisticModel):
         from leaspy.models.utilities import torch_round
 
         params = super()._compute_initial_values_for_model_parameters(dataset, method)
-
         new_parameters = self._estimate_initial_event_parameters(dataset)
         new_rounded_parameters = {
             str(p): torch_round(v.to(torch.float32)) for p, v in new_parameters.items()
         }
-
         params.update(new_rounded_parameters)
         return params
 
@@ -323,7 +324,6 @@ class JointModel(LogisticModel):
         None
         """
         df = dataset.to_pandas().reset_index("TIME").groupby("ID").min()
-
         # Initialise individual parameters if they are not already initialised
         if not state.are_variables_set(("xi", "tau")):
             df_ind = df["TIME"].to_frame(name="tau")
@@ -334,17 +334,14 @@ class JointModel(LogisticModel):
                 columns=["xi", "tau"],
                 index=df.index,
             )
-
         # Set the right initialisation point for barrier methods
         df_inter = pd.concat(
             [df[dataset.event_time_name] - self.init_tolerance, df_ind["tau"]], axis=1
         )
         df_ind["tau"] = df_inter.min(axis=1)
-
         if self.source_dimension > 0:
             for i in range(self.source_dimension):
                 df_ind[f"sources_{i}"] = 0.0
-
         with state.auto_fork(None):
             state.put_individual_latent_variables(df=df_ind)
 

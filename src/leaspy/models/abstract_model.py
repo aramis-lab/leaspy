@@ -125,6 +125,24 @@ class AbstractModel(BaseModel):
 
         self.tracked_variables: Set[str, ...] = set()
 
+    def track_variable(self, variable: VariableName) -> None:
+        self.tracked_variables.add(variable)
+
+    def track_variables(self, variables: Iterable[VariableName]) -> None:
+        for variable in variables:
+            self.track_variable(variable)
+
+    def untrack_variable(self, variable: VariableName) -> None:
+        self.tracked_variables.remove(variable)
+
+    def untrack_variables(self, variables: Iterable[VariableName]) -> None:
+        for variable in variables:
+            self.untrack_variable(variable)
+
+    @property
+    def observation_model_names(self) -> list[str]:
+        return [model.to_string() for model in self.obs_models]
+
     @property
     def state(self) -> State:
         if self._state is None:
@@ -170,6 +188,9 @@ class AbstractModel(BaseModel):
     def hyperparameters(self) -> DictParamsTorch:
         """Dictionary of values for model hyperparameters."""
         return {p: self._state[p] for p in self.hyperparameters_names}
+
+    def has_observation_model_with_name(self, name: str) -> bool:
+        return name in self.observation_model_names
 
     @abstractmethod
     def to_dict(self) -> KwargsType:
