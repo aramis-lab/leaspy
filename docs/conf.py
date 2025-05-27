@@ -77,6 +77,7 @@ sphinx_gallery_conf = {
     "examples_dirs": "../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
+    "plot_gallery": "True",
 }
 
 # this is needed for some reason...
@@ -186,11 +187,12 @@ html_theme_options = {
 }
 
 html_context = {
-    "display_gitlab": True,  # Integrate Github
-    "gitlab_user": "icm-institute/aramislab",  # Username
-    "gitlab_repo": "leaspy",  # Repo name
-    "gitlab_version": "dev",  # Version
-    "conf_py_path": "/docs/",  # Path in the checkout to the docs root
+    "display_github": True,
+    "github_url": "https://github.com",
+    "github_user": "aramis-lab",
+    "github_repo": "leaspy",
+    "github_version": "v2/",
+    "conf_py_path": "/docs/",
 }
 
 # Custom CSS files

@@ -1,6 +1,8 @@
 """
 Quickstart with Leaspy
 ======================
+
+This example shows how to quickly use Leaspy.
 """
 
 # %%
