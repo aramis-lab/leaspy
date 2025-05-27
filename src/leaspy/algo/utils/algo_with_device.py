@@ -3,7 +3,7 @@ import contextlib
 import torch
 
 from leaspy.io.data import Dataset
-from leaspy.models import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 
 from ..settings import AlgorithmSettings
 
@@ -32,7 +32,7 @@ class AlgoWithDeviceMixin:
         self._default_algorithm_tensor_type = "torch.FloatTensor"
 
     @contextlib.contextmanager
-    def _device_manager(self, model: AbstractModel, dataset: Dataset):
+    def _device_manager(self, model: McmcSaemCompatibleModel, dataset: Dataset):
         """
         Context-manager to handle the "ambient device" (i.e. the device used
         to instantiate tensors and perform computations). The provided model
@@ -43,7 +43,7 @@ class AlgoWithDeviceMixin:
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
+        model : :class:`~.models.abstract_model.McmcSaemCompatibleModel`
             The used model.
         dataset : :class:`.Dataset`
             Contains the subjects' observations in torch format to speed up computation.

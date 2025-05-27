@@ -50,16 +50,3 @@ class TestAbstractAlgo(LeaspyTestCase):
         self.assertEqual(algo.algo_parameters["param1"], 10)
         self.assertEqual(algo.algo_parameters["param2"], 2)
         self.assertEqual(algo.algo_parameters["param3"], 3)
-
-    @LeaspyTestCase.allow_abstract_class_init(AbstractAlgo)
-    def test_set_output_manager(self):
-        algo = AbstractAlgo(self.fake_algo_settings)
-        algo.set_output_manager(None)
-        self.assertEqual(algo.output_manager, None)
-
-        # TODO: capture question & answer yes automatically (use subprocess.Popen.communicate ?) or remove interactive mode
-        # settings = AlgorithmSettings('mcmc_saem')
-        # output_path = self.get_test_tmp_path('output_manager')
-        # settings.set_logs(output_path)
-        # algo.set_output_manager(settings.logs)
-        # self.assertIsInstance(algo.output_manager, FitOutputManager)

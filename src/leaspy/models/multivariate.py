@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, OrthoBasis, Sqr
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
@@ -25,9 +24,9 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-from .abstract_multivariate_model import AbstractMultivariateModel
 from .base import InitializationMethod
 from .obs_models import FullGaussianObservationModel
+from .riemanian_manifold import RiemanianManifoldModel
 
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
@@ -46,8 +45,7 @@ __all__ = [
 ]
 
 
-@doc_with_super()
-class MultivariateModel(AbstractMultivariateModel):
+class MultivariateModel(RiemanianManifoldModel):
     """
     Manifold model for multiple variables of interest (logistic or linear formulation).
 

@@ -1,17 +1,17 @@
 """This module defines the `AbstractFitAlgo` class used for fitting algorithms."""
 
 from abc import abstractmethod
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import LatentVariableInitType
 from leaspy.variables.state import State
 
 from ..base import AbstractAlgo, AlgorithmType
-from ..settings import AlgorithmSettings
+from ..settings import AlgorithmSettings, OutputsSettings
 from ..utils import AlgoWithDeviceMixin
 
 __all__ = ["AbstractFitAlgo"]
@@ -42,6 +42,8 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
     sufficient_statistics : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`] or None
         Sufficient statistics of the previous step.
         It is None during all the burn-in phase.
+    output_manager : :class:`~leaspy.io.logs.fit_output_manager.FitOutputManager`
+        Optional output manager of the algorithm
     Inherited attributes
         From :class:`~leaspy.algo.AbstractAlgo`
 
@@ -63,17 +65,43 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         self.current_iteration: int = 0
         self.sufficient_statistics: Optional[DictParamsTorch] = None
 
-    def run_impl(self, model: AbstractModel, dataset: Dataset):
+    def set_output_manager(self, output_settings: OutputsSettings) -> None:
+        """
+        Set a :class:`~leaspy.io.logs.FitOutputManager` object for the run of the algorithm
+
+        Parameters
+        ----------
+        output_settings : :class:`~leaspy.algo.OutputsSettings`
+            Contains the logs settings for the computation run (console print periodicity, plot periodicity ...)
+
+        Examples
+        --------
+        >>> from leaspy.algo import AlgorithmSettings, algorithm_factory, OutputsSettings
+        >>> algo_settings = AlgorithmSettings("mcmc_saem")
+        >>> my_algo = algorithm_factory(algo_settings)
+        >>> settings = {
+            'path': 'brouillons',
+            'print_periodicity': 50,
+            'plot_periodicity': 100,
+            'save_periodicity': 50
+        }
+        >>> my_algo.set_output_manager(OutputsSettings(settings))
+        """
+        if output_settings is not None:
+            from .fit_output_manager import FitOutputManager
+
+            self.output_manager = FitOutputManager(output_settings)
+
+    def run_impl(self, model: McmcSaemCompatibleModel, dataset: Dataset):
         """
         Main method to run the algorithm.
 
         Basically, it initializes the :class:`~leaspy.variables.state.State` object,
         updates it using the :meth:`~leaspy.algo.AbstractFitAlgo.iteration` method then returns it.
 
-
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The used model.
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains the subjects' observations in torch format to speed up computation.
@@ -83,7 +111,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         2-tuple:
             * state : :class:`~leaspy.variables.state.State`
         """
-
         with self._device_manager(model, dataset):
             state = self._initialize_algo(model, dataset)
 
@@ -167,32 +194,33 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         return out
 
     @abstractmethod
-    def iteration(self, model: AbstractModel, state: State):
+    def iteration(self, model: McmcSaemCompatibleModel, state: State):
         """
         Update the model parameters (abstract method).
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The used model.
         state : ::class:`~leaspy.variables.state.State`
             During the fit, this state holds all model variables, together with dataset observations.
         """
 
-    def _initialize_algo(self, model: AbstractModel, dataset: Dataset) -> State:
+    def _initialize_algo(
+        self, model: McmcSaemCompatibleModel, dataset: Dataset
+    ) -> State:
         """
         Initialize the fit algorithm (abstract method) and return the state to work on.
 
         Parameters
         ----------
-        model : :class:~leaspy.models.AbstractModel
+        model : :class:~leaspy.models.McmcSaemCompatibleModel
         dataset : :class:`~leaspy.io.data.Dataset`
 
         Returns
         -------
         state : :class:`~leaspy.variables.state.State`
         """
-
         # WIP: Would it be relevant to fit on a dedicated algo state?
         state = model.state
         with state.auto_fork(None):
@@ -201,14 +229,14 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
         return state
 
-    def _maximization_step(self, model: AbstractModel, state: State):
+    def _maximization_step(self, model: McmcSaemCompatibleModel, state: State):
         """
         Maximization step as in the EM algorithm. In practice parameters are set to current state (burn-in phase),
         or as a barycenter with previous state.
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
         state : :class:`~leaspy.variables.state.State`
         """
         # TODO/WIP: not 100% clear to me whether model methods should take a state param, or always use its internal state...

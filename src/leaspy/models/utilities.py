@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -8,6 +8,7 @@ from leaspy.exceptions import LeaspyConvergenceError
 from leaspy.utils.weighted_tensor import WeightedTensor
 
 __all__ = [
+    "is_array_like",
     "tensor_to_list",
     "compute_std_from_variance",
     "compute_patient_slopes_distribution",
@@ -17,6 +18,14 @@ __all__ = [
     "get_log_velocities",
     "torch_round",
 ]
+
+
+def is_array_like(v: Any) -> bool:
+    try:
+        len(v)  # exclude np.array(scalar) or torch.tensor(scalar)
+        return hasattr(v, "__getitem__")  # exclude set
+    except Exception:
+        return False
 
 
 def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
