@@ -18,7 +18,7 @@ auto_examples/plot_quickstart
  :caption: Documentation
 
 user_guide
-auto_examples/index.rst
+auto_examples/index
 glossary
 notations
 references
