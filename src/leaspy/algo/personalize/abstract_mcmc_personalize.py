@@ -7,7 +7,7 @@ import torch
 
 from leaspy.io.data import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariableInitType
 from leaspy.variables.state import State
@@ -61,7 +61,7 @@ class AbstractMCMCPersonalizeAlgo(
 
     def _initialize_algo(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         dataset: Dataset,
     ) -> State:
         """
@@ -71,7 +71,7 @@ class AbstractMCMCPersonalizeAlgo(
 
         Parameters
         ----------
-        model : :class:`.AbstractModel`
+        model : :class:`.McmcSaemCompatibleModel`
         dataset : :class:`.Dataset`
 
         Returns
@@ -92,7 +92,7 @@ class AbstractMCMCPersonalizeAlgo(
 
         return state
 
-    def _terminate_algo(self, model: AbstractModel, state: State) -> None:
+    def _terminate_algo(self, model: McmcSaemCompatibleModel, state: State) -> None:
         """Clean-up of state at end of algorithm."""
         # WIP: cf. interrogation about internal state in model or not...
         model_state = state.clone()
@@ -103,7 +103,7 @@ class AbstractMCMCPersonalizeAlgo(
 
     def _get_individual_parameters(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         dataset: Dataset,
     ) -> IndividualParameters:
         individual_variable_names = sorted(

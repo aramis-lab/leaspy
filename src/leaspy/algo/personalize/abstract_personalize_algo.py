@@ -7,10 +7,10 @@ import torch
 
 from leaspy.io.data import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models import AbstractModel
-from leaspy.utils.weighted_tensor import wsum_dim
+from leaspy.models import McmcSaemCompatibleModel
 
 from ..base import AbstractAlgo, AlgorithmType
+from ..settings import OutputsSettings
 
 __all__ = ["AbstractPersonalizeAlgo"]
 
@@ -42,16 +42,19 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
 
     family: AlgorithmType = AlgorithmType.PERSONALIZE
 
+    def set_output_manager(self, output_settings: OutputsSettings) -> None:
+        pass
+
     def run_impl(
-        self, model: AbstractModel, dataset: Dataset
+        self, model: McmcSaemCompatibleModel, dataset: Dataset
     ) -> Tuple[IndividualParameters, torch.Tensor]:
         r"""
         Main personalize function, wraps the abstract :meth:`._get_individual_parameters` method.
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
-            A subclass object of leaspy `AbstractModel`.
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
+            A subclass object of leaspy `McmcSaemCompatibleModel`.
         dataset : :class:`.Dataset`
             Dataset object build with leaspy class objects Data, algo & model
 
@@ -74,15 +77,15 @@ class AbstractPersonalizeAlgo(AbstractAlgo):
 
     @abstractmethod
     def _get_individual_parameters(
-        self, model: AbstractModel, data: Dataset
+        self, model: McmcSaemCompatibleModel, data: Dataset
     ) -> IndividualParameters:
         """
         Estimate individual parameters from a `Dataset`.
 
         Parameters
         ----------
-        model : :class:`~.models.abstract_model.AbstractModel`
-            A subclass object of leaspy AbstractModel.
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
+            A subclass object of leaspy McmcSaemCompatibleModel.
         dataset : :class:`.Dataset`
             Dataset object build with leaspy class objects Data, algo & model
 

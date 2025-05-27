@@ -14,7 +14,7 @@ from scipy.optimize import minimize
 
 from leaspy.io.data import Data, Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import (
     IndividualLatentVariable,
@@ -282,7 +282,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
     def _get_normalized_grad_tensor_from_grad_dict(
         self,
         dict_grad_tensors: DictParamsTorch,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
     ):
         """
         From a dict of gradient tensors per param (without normalization),
@@ -304,7 +304,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
     def _get_regularity(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         individual_parameters: DictParamsTorch,
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
@@ -312,7 +312,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
 
         Parameters
         ----------
-        model : :class:`.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             Model used to compute the group average parameters.
 
         individual_parameters : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [n_ind,n_dims_param]]
@@ -544,7 +544,7 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
             for k, v in individual_params_tensorized.items()
         }
 
-    def is_jacobian_implemented(self, model: AbstractModel) -> bool:
+    def is_jacobian_implemented(self, model: McmcSaemCompatibleModel) -> bool:
         """Check that the jacobian of model is implemented."""
         # TODO/WIP: quick hack for now
         return any("jacobian" in var_name for var_name in model.dag)
@@ -557,14 +557,14 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         #    return False
 
     def _get_individual_parameters(
-        self, model: AbstractModel, dataset: Dataset
+        self, model: McmcSaemCompatibleModel, dataset: Dataset
     ) -> IndividualParameters:
         """
         Compute individual parameters of all patients given a leaspy model & a leaspy dataset.
 
         Parameters
         ----------
-        model : :class:`.AbstractModel`
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             Model used to compute the group average parameters.
         dataset : :class:`.Dataset` class object
             Contains the individual scores.

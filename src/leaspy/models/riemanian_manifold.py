@@ -1,32 +1,32 @@
 import warnings
-from typing import Optional
+from typing import Optional, Union
 
-import pandas as pd
 import torch
 
-from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
+from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul
-from leaspy.utils.typing import KwargsType
+from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
+from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     IndividualLatentVariable,
+    LatentVariableInitType,
     LinkedVariable,
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
 )
+from leaspy.variables.state import State
 
-from .abstract_model import AbstractModel
+from .mcmc_saem_compatible import McmcSaemCompatibleModel
 from .obs_models import observation_model_factory
 
-__all__ = ["AbstractMultivariateModel"]
+__all__ = ["RiemanianManifoldModel"]
 
 
-@doc_with_super()
-class AbstractMultivariateModel(AbstractModel):
+class RiemanianManifoldModel(McmcSaemCompatibleModel):
     """
     Contains the common attributes & methods of the multivariate models.
 
@@ -47,22 +47,6 @@ class AbstractMultivariateModel(AbstractModel):
     _tau_std = 5.0
     _noise_std = 0.1
     _sources_std = 1.0
-
-    @property
-    def xi_std(self) -> torch.Tensor:
-        return torch.tensor([self._xi_std])
-
-    @property
-    def tau_std(self) -> torch.Tensor:
-        return torch.tensor([self._tau_std])
-
-    @property
-    def noise_std(self) -> torch.Tensor:
-        return torch.tensor(self._noise_std)
-
-    @property
-    def sources_std(self) -> float:
-        return self._sources_std
 
     def __init__(
         self,
@@ -113,6 +97,22 @@ class AbstractMultivariateModel(AbstractModel):
         self._source_dimension = self._validate_source_dimension(source_dimension)
 
     @property
+    def xi_std(self) -> torch.Tensor:
+        return torch.tensor([self._xi_std])
+
+    @property
+    def tau_std(self) -> torch.Tensor:
+        return torch.tensor([self._tau_std])
+
+    @property
+    def noise_std(self) -> torch.Tensor:
+        return torch.tensor(self._noise_std)
+
+    @property
+    def sources_std(self) -> float:
+        return self._sources_std
+
+    @property
     def source_dimension(self) -> Optional[int]:
         return self._source_dimension
 
@@ -139,6 +139,42 @@ class AbstractMultivariateModel(AbstractModel):
                 )
         return source_dimension
 
+    @property
+    def has_sources(self) -> bool:
+        return (
+            hasattr(self, "source_dimension")
+            and isinstance(self.source_dimension, int)
+            and self.source_dimension > 0
+        )
+
+    @staticmethod
+    def time_reparametrization(
+        *,
+        t: TensorOrWeightedTensor[float],
+        alpha: torch.Tensor,
+        tau: torch.Tensor,
+    ) -> TensorOrWeightedTensor[float]:
+        """
+        Tensorized time reparametrization formula.
+
+        .. warning::
+            Shapes of tensors must be compatible between them.
+
+        Parameters
+        ----------
+        t : :class:`torch.Tensor`
+            Timepoints to reparametrize
+        alpha : :class:`torch.Tensor`
+            Acceleration factors of individual(s)
+        tau : :class:`torch.Tensor`
+            Time-shift(s).
+
+        Returns
+        -------
+        :class:`torch.Tensor` of same shape as `timepoints`
+        """
+        return alpha * (t - tau)
+
     def get_variables_specs(self) -> NamedVariables:
         """
         Return the specifications of the variables (latent variables,
@@ -149,9 +185,9 @@ class AbstractMultivariateModel(AbstractModel):
         NamedVariables :
             The specifications of the model's variables.
         """
-        d = super().get_variables_specs()
-
-        d.update(
+        specifications = super().get_variables_specs()
+        specifications.update(
+            rt=LinkedVariable(self.time_reparametrization),
             # PRIORS
             tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
@@ -162,9 +198,8 @@ class AbstractMultivariateModel(AbstractModel):
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
         )
-
         if self.source_dimension >= 1:
-            d.update(
+            specifications.update(
                 # PRIORS
                 betas_mean=ModelParameter.for_pop_mean(
                     "betas",
@@ -188,7 +223,7 @@ class AbstractMultivariateModel(AbstractModel):
                 ),  # shape: (Ni, Nfts)
             )
 
-        return d
+        return specifications
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
@@ -211,6 +246,68 @@ class AbstractMultivariateModel(AbstractModel):
                 f"but you provided `source_dimension` = {self.source_dimension} "
                 f"whereas `dimension` = {dataset.dimension}."
             )
+
+    def _audit_individual_parameters(
+        self, individual_parameters: DictParams
+    ) -> KwargsType:
+        from .utilities import is_array_like
+
+        expected_parameters = set(["xi", "tau"] + int(self.has_sources) * ["sources"])
+        given_parameters = set(individual_parameters.keys())
+        symmetric_diff = expected_parameters.symmetric_difference(given_parameters)
+        if len(symmetric_diff) > 0:
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters dict provided {given_parameters} "
+                f"is not compatible for {self.name} model. "
+                f"The expected individual parameters are {expected_parameters}."
+            )
+        ips_is_array_like = {
+            k: is_array_like(v) for k, v in individual_parameters.items()
+        }
+        ips_size = {
+            k: len(v) if ips_is_array_like[k] else 1
+            for k, v in individual_parameters.items()
+        }
+        if self.has_sources:
+            if not ips_is_array_like["sources"]:
+                raise LeaspyIndividualParamsInputError(
+                    f"Sources must be an array_like but {individual_parameters['sources']} was provided."
+                )
+            tau_xi_scalars = all(ips_size[k] == 1 for k in ["tau", "xi"])
+            if tau_xi_scalars and (ips_size["sources"] > 1):
+                # is 'sources' not a nested array? (allowed iff tau & xi are scalars)
+                if not is_array_like(individual_parameters["sources"][0]):
+                    # then update sources size (1D vector representing only 1 individual)
+                    ips_size["sources"] = 1
+            # TODO? check source dimension compatibility?
+        uniq_sizes = set(ips_size.values())
+        if len(uniq_sizes) != 1:
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters sizes are not compatible together. Sizes are {ips_size}."
+            )
+        # number of individuals present
+        n_individual_parameters = uniq_sizes.pop()
+        # properly choose unsqueezing dimension when tensorizing array_like (useful for sources)
+        # [1,2] => [[1],[2]] (expected for 2 individuals / 1D sources)
+        # [1,2] => [[1,2]] (expected for 1 individual / 2D sources)
+        unsqueeze_dim = 0 if n_individual_parameters == 1 else -1
+        # tensorized (2D) version of ips
+        tensorized_individual_parameters = {
+            name: self._tensorize_2D(value, unsqueeze_dim=unsqueeze_dim)
+            for name, value in individual_parameters.items()
+        }
+
+        return {
+            "nb_inds": n_individual_parameters,
+            "tensorized_ips": tensorized_individual_parameters,
+            "tensorized_ips_gen": (
+                {
+                    name: value[individual, :].unsqueeze(0)
+                    for name, value in tensorized_individual_parameters.items()
+                }
+                for individual in range(n_individual_parameters)
+            ),
+        }
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """
@@ -247,6 +344,14 @@ class AbstractMultivariateModel(AbstractModel):
                 )
             self.source_dimension = hyperparameters["source_dimension"]
 
+    def put_individual_parameters(self, state: State, dataset: Dataset):
+        if not state.are_variables_set(("xi", "tau")):
+            with state.auto_fork(None):
+                state.put_individual_latent_variables(
+                    LatentVariableInitType.PRIOR_SAMPLES,
+                    n_individuals=dataset.n_individuals,
+                )
+
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """
         Export ``Leaspy`` object as dictionary ready for :term:`JSON` saving.
@@ -278,3 +383,85 @@ class AbstractMultivariateModel(AbstractModel):
             ].tolist()
 
         return model_settings
+
+    # TODO: unit tests? (functional tests covered by api.estimate)
+    def compute_individual_ages_from_biomarker_values(
+        self,
+        value: Union[float, list[float]],
+        individual_parameters: DictParams,
+        feature: Optional[FeatureType] = None,
+    ) -> torch.Tensor:
+        """
+        For one individual, compute age(s) at which the given features values
+        are reached (given the subject's individual parameters).
+
+        Consistency checks are done in the main :term:`API` layer.
+
+        Parameters
+        ----------
+        value : scalar or array_like[scalar] (:obj:`list`, :obj:`tuple`, :class:`numpy.ndarray`)
+            Contains the :term:`biomarker` value(s) of the subject.
+
+        individual_parameters : :obj:`dict`
+            Contains the individual parameters.
+            Each individual parameter should be a scalar or array_like.
+
+        feature : :obj:`str` (or None)
+            Name of the considered :term:`biomarker`.
+
+            .. note::
+                Optional for :class:`.UnivariateModel`, compulsory
+                for :class:`.MultivariateModel`.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Contains the subject's ages computed at the given values(s).
+            Shape of tensor is ``(1, n_values)``.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If computation is tried on more than 1 individual.
+        """
+        # value, individual_parameters = self._get_tensorized_inputs(
+        #     value, individual_parameters, skip_ips_checks=False
+        # )
+        # return self.compute_individual_ages_from_biomarker_values_tensorized(
+        #     value, individual_parameters, feature
+        # )
+        raise NotImplementedError("This method is currently not implemented.")
+
+    def compute_individual_ages_from_biomarker_values_tensorized(
+        self,
+        value: torch.Tensor,
+        individual_parameters: DictParamsTorch,
+        feature: Optional[FeatureType],
+    ) -> torch.Tensor:
+        """
+        For one individual, compute age(s) at which the given features values are
+        reached (given the subject's individual parameters), with tensorized inputs.
+
+        Parameters
+        ----------
+        value : :class:`torch.Tensor` of shape ``(1, n_values)``
+            Contains the :term:`biomarker` value(s) of the subject.
+
+        individual_parameters : DictParamsTorch
+            Contains the individual parameters.
+            Each individual parameter should be a :class:`torch.Tensor`.
+
+        feature : :obj:`str` (or None)
+            Name of the considered :term:`biomarker`.
+
+            .. note::
+                Optional for :class:`.UnivariateModel`, compulsory
+                for :class:`.MultivariateModel`.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Contains the subject's ages computed at the given values(s).
+            Shape of tensor is ``(n_values, 1)``.
+        """
+        raise NotImplementedError("This method is currently not implemented.")
