@@ -12,6 +12,7 @@ clean: clean.doc clean.py clean.test
 clean.doc:
 	@$(RM) -rf site/
 	@$(RM) -rf docs/_build/
+	@$(RM) -rf docs/auto_examples/
 
 .PHONY: clean.py
 clean.py:
@@ -23,7 +24,7 @@ clean.test:
 
 .PHONY: doc
 doc: clean.doc install.doc
-	@$(SPHINX) docs/ docs/_build/html
+	@$(SPHINX) -b html docs/ docs/_build/html
 
 .PHONY: install
 install: check.lock
