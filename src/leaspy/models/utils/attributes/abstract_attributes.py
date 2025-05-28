@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import torch
 
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import DictParamsTorch, ParamType, Set, Tuple
+from leaspy.utils.typing import DictParamsTorch, ParamType
 
 __all__ = ["AbstractAttributes"]
 
@@ -73,12 +73,12 @@ class AbstractAttributes(ABC):
                 "In model attributes, you must provide an integer in [0, dimension - 1] for the parameter `source_dimension`."
             )
 
-        self.update_possibilities: Set[ParamType] = set()
+        self.update_possibilities: set[ParamType] = set()
 
     @abstractmethod
     def get_attributes(
         self,
-    ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+    ) -> tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """
         Returns the attributes of the model, which is a tuple of three torch tensors.
 
@@ -94,7 +94,7 @@ class AbstractAttributes(ABC):
 
     @abstractmethod
     def update(
-        self, names_of_changed_values: Set[ParamType], values: DictParamsTorch
+        self, names_of_changed_values: set[ParamType], values: DictParamsTorch
     ) -> None:
         """
         Update model group average parameter(s).
@@ -127,7 +127,7 @@ class AbstractAttributes(ABC):
             if isinstance(attribute, torch.Tensor):
                 setattr(self, attribute_name, attribute.to(device))
 
-    def _check_names(self, names_of_changed_values: Set[ParamType]):
+    def _check_names(self, names_of_changed_values: set[ParamType]):
         """
         Check if the name of the parameter(s) to update are in the possibilities allowed by the model.
 

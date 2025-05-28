@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Iterable, Iterator
+from typing import Optional, Union
 
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
-from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional, Union
+from leaspy.utils.typing import FeatureType, IDType
 
 from .factory import dataframe_data_reader_factory
 from .individual_data import IndividualData
@@ -48,11 +49,11 @@ class Data(Iterable):
         Initialize the Data object
         """
         # Patients information
-        self.individuals: Dict[IDType, IndividualData] = {}
-        self.iter_to_idx: Dict[int, IDType] = {}
+        self.individuals: dict[IDType, IndividualData] = {}
+        self.iter_to_idx: dict[int, IDType] = {}
 
         # Longitudinal outcomes information
-        self.headers: Optional[List[FeatureType]] = None
+        self.headers: Optional[list[FeatureType]] = None
 
         # Event information
         self.event_time_name: Optional[str] = None
@@ -100,7 +101,7 @@ class Data(Iterable):
             return sum(len(indiv.timepoints) for indiv in self.individuals.values())
 
     @property
-    def cofactors(self) -> List[FeatureType]:
+    def cofactors(self) -> list[FeatureType]:
         """
         Feature names corresponding to cofactors
 
@@ -117,7 +118,7 @@ class Data(Iterable):
         return list(indiv.cofactors.keys())
 
     def __getitem__(
-        self, key: Union[int, IDType, slice, List[int], List[IDType]]
+        self, key: Union[int, IDType, slice, list[int], list[IDType]]
     ) -> Union[IndividualData, Data]:
         """
         Access the individuals in the Data object using their ID or integer index.
@@ -213,7 +214,7 @@ class Data(Iterable):
             )
 
     def load_cofactors(
-        self, df: pd.DataFrame, *, cofactors: Optional[List[FeatureType]] = None
+        self, df: pd.DataFrame, *, cofactors: Optional[list[FeatureType]] = None
     ) -> None:
         """
         Load cofactors from a `pandas.DataFrame` to the `Data` object
@@ -333,7 +334,7 @@ class Data(Iterable):
     def to_dataframe(
         self,
         *,
-        cofactors: Optional[Union[List[FeatureType], str]] = None,
+        cofactors: Optional[Union[list[FeatureType], str]] = None,
         reset_index: bool = True,
     ) -> pd.DataFrame:
         """
@@ -383,8 +384,8 @@ class Data(Iterable):
         return df
 
     def _validate_cofactors_input(
-        self, cofactors: Optional[Union[List[FeatureType], str]] = None
-    ) -> List[FeatureType]:
+        self, cofactors: Optional[Union[list[FeatureType], str]] = None
+    ) -> list[FeatureType]:
         """
         Validate the cofactors input for the to_dataframe method.
 
@@ -426,7 +427,7 @@ class Data(Iterable):
 
     @staticmethod
     def from_dataframe(
-        df: pd.DataFrame, data_type: str = "visit", factory_kws: Dict = {}, **kws
+        df: pd.DataFrame, data_type: str = "visit", factory_kws: dict = {}, **kws
     ) -> Data:
         """
         Create a `Data` object from a :class:`~pandas.DataFrame`.
@@ -478,14 +479,14 @@ class Data(Iterable):
 
     @staticmethod
     def from_individual_values(
-        indices: List[IDType],
-        timepoints: Optional[List[List[float]]] = None,
-        values: Optional[List[List[List[float]]]] = None,
-        headers: Optional[List[FeatureType]] = None,
+        indices: list[IDType],
+        timepoints: Optional[list[list[float]]] = None,
+        values: Optional[list[list[list[float]]]] = None,
+        headers: Optional[list[FeatureType]] = None,
         event_time_name: Optional[str] = None,
         event_bool_name: Optional[str] = None,
-        event_time: Optional[List[List[float]]] = None,
-        event_bool: Optional[List[List[int]]] = None,
+        event_time: Optional[list[list[float]]] = None,
+        event_bool: Optional[list[list[int]]] = None,
     ) -> Data:
         """
         Construct `Data` from a collection of individual data points
@@ -543,8 +544,8 @@ class Data(Iterable):
 
     @staticmethod
     def from_individuals(
-        individuals: List[IndividualData],
-        headers: Optional[List[FeatureType]] = None,
+        individuals: list[IndividualData],
+        headers: Optional[list[FeatureType]] = None,
         event_time_name: Optional[str] = None,
         event_bool_name: Optional[str] = None,
     ) -> Data:

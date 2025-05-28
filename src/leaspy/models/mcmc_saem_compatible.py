@@ -5,6 +5,7 @@ import re
 import warnings
 from abc import abstractmethod
 from inspect import signature
+from typing import Iterable, Optional, Union
 
 import torch
 from torch._tensor_str import PRINT_OPTS as torch_print_opts
@@ -12,16 +13,7 @@ from torch._tensor_str import PRINT_OPTS as torch_print_opts
 from leaspy import __version__
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.typing import (
-    DictParams,
-    DictParamsTorch,
-    Iterable,
-    KwargsType,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from leaspy.utils.typing import DictParams, DictParamsTorch, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.dag import VariablesDAG
 from leaspy.variables.specs import (
@@ -104,7 +96,7 @@ class McmcSaemCompatibleModel(BaseModel):
         self._load_hyperparameters(kwargs)
         # TODO: dirty hack for now, cf. AbstractFitAlgo
         self.fit_metrics = fit_metrics
-        self.tracked_variables: Set[str, ...] = set()
+        self.tracked_variables: set[str] = set()
 
     def track_variable(self, variable: VariableName) -> None:
         self.tracked_variables.add(variable)
@@ -415,7 +407,7 @@ class McmcSaemCompatibleModel(BaseModel):
         individual_parameters: DictParamsTorch,
         *,
         skip_ips_checks: bool = False,
-    ) -> Tuple[torch.Tensor, DictParamsTorch]:
+    ) -> tuple[torch.Tensor, DictParamsTorch]:
         if not skip_ips_checks:
             individual_parameters_info = self._audit_individual_parameters(
                 individual_parameters

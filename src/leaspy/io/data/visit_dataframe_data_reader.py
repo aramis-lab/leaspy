@@ -1,8 +1,9 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional
 
 from .abstract_dataframe_data_reader import AbstractDataframeDataReader
 from .individual_data import IndividualData
@@ -21,9 +22,6 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
     def __init__(self):
         super().__init__()
 
-    ######################################################
-    #               VISIT METHODS
-    ######################################################
     @property
     def dimension(self) -> Optional[int]:
         """
@@ -66,11 +64,7 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
                 f"please double check these individuals:\n{individuals_with_at_least_1_bad_tpt}."
             )
 
-    ######################################################
-    #               ABSTRACT METHODS IMPLEMENTED
-    ######################################################
-
-    def _check_headers(self, columns: List[str]) -> None:
+    def _check_headers(self, columns: list[str]) -> None:
         """
         Check mendatory dataframe headers
 
@@ -120,19 +114,19 @@ class VisitDataframeDataReader(AbstractDataframeDataReader):
         Parameters
         ----------
         df: pd.DataFrame
-            Dataframe with patient information
+            Dataframe with patient information.
 
         drop_full_nan: bool
-            If set to True, raw full of nan are droped
+            If set to True, raw full of nan are dropped.
 
         warn_empty_column: bool
-            If set to True, a warning is raise for columns full of nan
+            If set to True, a warning is raise for columns full of nan.
 
 
         Returns
         -------
         df: pd.DataFrame
-            Dataframe with clean information
+            Dataframe with clean information.
 
         Raises
         ------

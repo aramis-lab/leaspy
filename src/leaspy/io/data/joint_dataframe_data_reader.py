@@ -1,9 +1,10 @@
 import warnings
+from typing import Optional
 
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional
+from leaspy.utils.typing import FeatureType
 
 from .abstract_dataframe_data_reader import AbstractDataframeDataReader
 from .event_dataframe_data_reader import EventDataframeDataReader
@@ -66,7 +67,7 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
         return self.visit_reader.dimension
 
     @property
-    def long_outcome_names(self) -> List[FeatureType]:
+    def long_outcome_names(self) -> list[FeatureType]:
         """Name of the longitudinal outcomes in dataset"""
         return self.visit_reader.long_outcome_names
 
@@ -75,11 +76,7 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
         """Number of visit in the dataset"""
         return self.visit_reader.n_visits
 
-    ######################################################
-    #               ABSTRACT METHODS IMPLEMENTED
-    ######################################################
-
-    def _check_headers(self, columns: List[str]) -> None:
+    def _check_headers(self, columns: list[str]) -> None:
         """
         Check mendatory dataframe headers
 
@@ -117,19 +114,19 @@ class JointDataframeDataReader(AbstractDataframeDataReader):
         Parameters
         ----------
         df: pd.DataFrame
-            Dataframe with patient information
+            Dataframe with patient information.
 
         drop_full_nan: bool
-            If set to True, raw full of nan are droped
+            If set to True, raw full of nan are dropped.
 
         warn_empty_column: bool
-            If set to True, a warning is raise for columns full of nan
+            If set to True, a warning is raise for columns full of nan.
 
 
         Returns
         -------
         df: pd.DataFrame
-            Dataframe with clean information
+            Dataframe with clean information.
         """
 
         # Check visits
