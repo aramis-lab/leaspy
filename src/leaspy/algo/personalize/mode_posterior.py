@@ -5,14 +5,13 @@ import torch
 from leaspy.utils.typing import DictParamsTorch
 
 from ..base import AlgorithmName
-from .abstract_mcmc_personalize import AbstractMCMCPersonalizeAlgo
+from .mcmc import MCMCPersonalizeAlgo
 
 __all__ = ["ModePosterior"]
 
 
-class ModePosterior(AbstractMCMCPersonalizeAlgo):
-    """
-    Sampler-based algorithm that derives individual parameters as the most frequent mode posterior value from `n_iter` samplings.
+class ModePosterior(MCMCPersonalizeAlgo):
+    """Sampler-based algorithm that derives individual parameters as the most frequent mode posterior value from `n_iter` samplings.
 
     TODO? we could derive some confidence intervals on individual parameters thanks to this personalization algorithm...
 

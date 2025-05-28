@@ -25,7 +25,7 @@ from leaspy.variables.state import State
 
 from ..base import AlgorithmName
 from ..settings import AlgorithmSettings
-from .abstract_personalize_algo import AbstractPersonalizeAlgo
+from .base import PersonalizeAlgo
 
 __all__ = ["ScipyMinimize"]
 
@@ -188,10 +188,8 @@ class _AffineScalings1D:
         )
 
 
-class ScipyMinimize(AbstractPersonalizeAlgo):
-    """
-    Gradient descent based algorithm to compute individual parameters,
-    `i.e.` personalizing a model for a given set of subjects.
+class ScipyMinimize(PersonalizeAlgo[McmcSaemCompatibleModel, IndividualParameters]):
+    """Gradient descent based algorithm to compute individual parameters, `i.e.` personalizing a model for a given set of subjects.
 
     Parameters
     ----------
@@ -556,8 +554,8 @@ class ScipyMinimize(AbstractPersonalizeAlgo):
         # except NotImplementedError:
         #    return False
 
-    def _get_individual_parameters(
-        self, model: McmcSaemCompatibleModel, dataset: Dataset
+    def _compute_individual_parameters(
+        self, model: McmcSaemCompatibleModel, dataset: Dataset, **kwargs
     ) -> IndividualParameters:
         """
         Compute individual parameters of all patients given a leaspy model & a leaspy dataset.

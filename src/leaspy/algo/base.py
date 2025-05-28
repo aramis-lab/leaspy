@@ -18,12 +18,14 @@ from leaspy.models import ModelType
 from .settings import AlgorithmSettings, OutputsSettings
 
 __all__ = [
-    "AbstractAlgo",
+    "BaseAlgo",
+    "IterativeAlgo",
     "AlgorithmType",
     "AlgorithmName",
     "get_algorithm_type",
     "get_algorithm_class",
     "algorithm_factory",
+    "ReturnType",
 ]
 
 
@@ -51,10 +53,8 @@ class AlgorithmName(str, Enum):
     SIMULATE = "simulation"
 
 
-class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
-    """Abstract class containing common methods for all algorithm classes.
-
-    These classes are children of `AbstractAlgo`.
+class BaseAlgo(ABC, Generic[ModelType, ReturnType]):
+    """Base class containing common methods for all algorithm classes.
 
     Parameters
     ----------
@@ -116,35 +116,6 @@ class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
             # TODO: use logger instead (level=INFO)
             print(f" ==> Setting seed to {seed}")
 
-    @abstractmethod
-    def run_impl(
-        self,
-        model: ModelType,
-        dataset: Dataset,
-        **kwargs,
-    ) -> ReturnType:
-        """Run the algorithm (actual implementation), to be implemented in children classes.
-
-        Parameters
-        ----------
-        model : :class:`~leaspy.models.BaseModel`
-            The used model.
-
-        dataset : :class:`~leaspy.io.data.Dataset`
-            Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
-
-        Returns
-        -------
-        ReturnType :
-            Depends on the algorithm.
-
-        See Also
-        --------
-        :class:`.AbstractFitAlgo`
-        :class:`.AbstractPersonalizeAlgo`
-        """
-        raise NotImplementedError
-
     def run(self, model: ModelType, dataset: Dataset, **kwargs) -> ReturnType:
         """Main method, run the algorithm.
 
@@ -172,7 +143,7 @@ class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
             )
         self._initialize_seed(self.seed)
         time_beginning = time.time()
-        output = self.run_impl(model, dataset, **kwargs)
+        output = self._run(model, dataset, **kwargs)
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get("progress_bar"):
             print()
@@ -180,6 +151,35 @@ class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
             f"\n{self.family.value.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
         )
         return output
+
+    @abstractmethod
+    def _run(
+        self,
+        model: ModelType,
+        dataset: Dataset,
+        **kwargs,
+    ) -> ReturnType:
+        """Run the algorithm (actual implementation), to be implemented in children classes.
+
+        Parameters
+        ----------
+        model : :class:`~leaspy.models.BaseModel`
+            The used model.
+
+        dataset : :class:`~leaspy.io.data.Dataset`
+            Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
+
+        Returns
+        -------
+        ReturnType :
+            Depends on the algorithm.
+
+        See Also
+        --------
+        :class:`.AbstractFitAlgo`
+        :class:`.AbstractPersonalizeAlgo`
+        """
+        raise NotImplementedError
 
     def load_parameters(self, parameters: dict):
         """Update the algorithm's parameters by the ones in the given dictionary.
@@ -248,6 +248,50 @@ class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
             self.algo_parameters[k] = v
 
     @staticmethod
+    def _duration_to_str(seconds: float, *, seconds_fmt=".0f") -> str:
+        """
+        Convert a float representing computation time in seconds to a string giving time in hour, minutes and
+        seconds ``%h %min %s``.
+
+        If less than one hour, do not return hours. If less than a minute, do not return minutes.
+
+        Parameters
+        ----------
+        seconds : :obj:`float`
+            Computation time
+
+        Returns
+        -------
+        str
+            Time formatting in hour, minutes and seconds.
+        """
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = seconds % 60  # float
+
+        res = ""
+        if m:
+            if h:
+                res += f"{h}h "
+            res += f"{m}m "
+        res += f"{s:{seconds_fmt}}s"
+
+        return res
+
+    def __str__(self) -> str:
+        out = "=== ALGO ===\n"
+        out += f"Instance of {self.name} algo"
+        if hasattr(self, "algorithm_device"):
+            out += f" [{self.algorithm_device.upper()}]"
+        return out
+
+
+class IterativeAlgo(BaseAlgo[ModelType, ReturnType]):
+    def __init__(self, settings: AlgorithmSettings):
+        super().__init__(settings)
+        self.current_iteration: int = 0
+
+    @staticmethod
     def _display_progress_bar(
         iteration: int, n_iter: int, suffix: str, n_step_default: int = 50
     ):
@@ -284,40 +328,9 @@ class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
                 nbar = iteration_plus_1 // print_every_iter
                 sys.stdout.write("\r")
                 sys.stdout.write(
-                    f"|{'#'*nbar}{'-'*(n_step - nbar)}|   {iteration_plus_1}/{n_iter} {suffix}"
+                    f"|{'#' * nbar}{'-' * (n_step - nbar)}|   {iteration_plus_1}/{n_iter} {suffix}"
                 )
                 sys.stdout.flush()
-
-    @staticmethod
-    def _duration_to_str(seconds: float, *, seconds_fmt=".0f") -> str:
-        """
-        Convert a float representing computation time in seconds to a string giving time in hour, minutes and
-        seconds ``%h %min %s``.
-
-        If less than one hour, do not return hours. If less than a minute, do not return minutes.
-
-        Parameters
-        ----------
-        seconds : :obj:`float`
-            Computation time
-
-        Returns
-        -------
-        str
-            Time formatting in hour, minutes and seconds.
-        """
-        h = int(seconds // 3600)
-        m = int((seconds % 3600) // 60)
-        s = seconds % 60  # float
-
-        res = ""
-        if m:
-            if h:
-                res += f"{h}h "
-            res += f"{m}m "
-        res += f"{s:{seconds_fmt}}s"
-
-        return res
 
     def _get_progress_str(self) -> Optional[str]:
         # TODO in a special mixin for sequential algos with nb of iters (MCMC fit, MCMC personalize)
@@ -325,11 +338,8 @@ class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
             return None
         return f"Iteration {self.current_iteration} / {self.algo_parameters['n_iter']}"
 
-    def __str__(self):
-        out = "=== ALGO ===\n"
-        out += f"Instance of {self.name} algo"
-        if hasattr(self, "algorithm_device"):
-            out += f" [{self.algorithm_device.upper()}]"
+    def __str__(self) -> str:
+        out = super().__str__()
         progress_str = self._get_progress_str()
         if progress_str:
             out += "\n" + progress_str
@@ -356,9 +366,8 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
     return AlgorithmType.PERSONALIZE
 
 
-def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
-    """
-    Return the algorithm class.
+def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgo]:
+    """Return the algorithm class.
 
     Parameters
     ----------
@@ -375,7 +384,7 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
 
         return TensorMCMCSAEM
     if name == AlgorithmName.FIT_LME:
-        from .others import LMEFitAlgorithm
+        from .fit import LMEFitAlgorithm
 
         return LMEFitAlgorithm
     if name == AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE:
@@ -391,20 +400,19 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[AbstractAlgo]:
 
         return ModePosterior
     if name == AlgorithmName.PERSONALIZE_CONSTANT:
-        from .others import ConstantPredictionAlgorithm
+        from .personalize import ConstantPredictionAlgorithm
 
         return ConstantPredictionAlgorithm
     if name == AlgorithmName.PERSONALIZE_LME:
-        from .others import LMEPersonalizeAlgorithm
+        from .personalize import LMEPersonalizeAlgorithm
 
         return LMEPersonalizeAlgorithm
     if name == AlgorithmName.SIMULATE:
         raise ValueError("The simulation algorithm is currently broken.")
 
 
-def algorithm_factory(settings: AlgorithmSettings) -> AbstractAlgo:
-    """
-    Return the requested algorithm based on the provided settings.
+def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgo:
+    """Return the requested algorithm based on the provided settings.
 
     Parameters
     ----------

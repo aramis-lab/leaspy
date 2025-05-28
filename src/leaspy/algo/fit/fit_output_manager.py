@@ -15,7 +15,7 @@ from matplotlib.lines import Line2D
 from leaspy.io.data import Dataset
 from leaspy.models import McmcSaemCompatibleModel
 
-from .abstract_fit_algo import AbstractFitAlgo
+from .base import FitAlgo
 
 
 class FitOutputManager:
@@ -69,10 +69,7 @@ class FitOutputManager:
         self.time = time.time()
 
     def iteration(
-        self,
-        algo: AbstractFitAlgo,
-        model: McmcSaemCompatibleModel,
-        data: Dataset,
+        self, algo: FitAlgo, model: McmcSaemCompatibleModel, data: Dataset
     ) -> None:
         """
         Call methods to save state of the running computation, display statistics & plots if the current iteration
@@ -80,14 +77,15 @@ class FitOutputManager:
 
         Parameters
         ----------
-        algo : :class:`~leaspy.algo.fit.AbstractFitAlgo`
-            The running algorithm
+        algo : :class:`~leaspy.algo.fit.FitAlgo`
+            A fitting algorithm.
+
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
-            The model used by the computation
+            The model used by the computation.
+
         data : :class:`.Dataset`
             The data used by the computation
         """
-
         # <!> only `current_iteration` defined for AbstractFitAlgorithm... TODO -> generalize where possible?
         if not hasattr(algo, "current_iteration"):
             # emit a warning?
@@ -113,16 +111,13 @@ class FitOutputManager:
                 self.save_plot_convergence_model_parameters(model)
 
     def print_time(self):
-        """
-        Prints the duration since the last periodic point
-        """
+        """Prints the duration since the last periodic point."""
         current_time = time.time()
         print(f"Duration since last print: {current_time - self.time:.3f}s")
         self.time = current_time
 
     def print_model_statistics(self, model: McmcSaemCompatibleModel):
-        """
-        Prints model's statistics
+        """Prints model's statistics.
 
         Parameters
         ----------
@@ -131,27 +126,26 @@ class FitOutputManager:
         """
         print(model)
 
-    def print_algo_statistics(self, algo: AbstractFitAlgo):
-        """
-        Prints algorithm's statistics
+    def print_algo_statistics(self, algo: FitAlgo):
+        """Prints algorithm's statistics
 
         Parameters
         ----------
-        algo : :class:`~leaspy.algo.fit.AbstractFitAlgo`
-            The running algorithm
+        algo : :class:`~leaspy.algo.fit.FitAlgo`
+            A fitting algorithm.
         """
         print(algo)
 
     def save_model_parameters_convergence(
         self, iteration: int, model: McmcSaemCompatibleModel
     ) -> None:
-        """
-        Saves the current state of the model's parameters
+        """Saves the current state of the model's parameters
 
         Parameters
         ----------
         iteration : :obj:`int`
-            The current iteration
+            The current iteration.
+
         model : :class:`~.models.abstract_model.McmcSaemCompatibleModel`
             The model used by the computation
         """
@@ -161,8 +155,7 @@ class FitOutputManager:
         )
 
     def save_plot_convergence_model_parameters(self, model: McmcSaemCompatibleModel):
-        """
-        Saves figures of the model parameters' convergence in multiple pages of a PDF.
+        """Saves figures of the model parameters' convergence in multiple pages of a PDF.
 
         Parameters
         ----------
@@ -330,8 +323,7 @@ class FitOutputManager:
         plt.close()
 
     def _get_files_related_to_parameters(self, parameters: Iterable[str]) -> list[Path]:
-        """
-        Retrieve the list of file paths related to the given parameters.
+        """Retrieve the list of file paths related to the given parameters.
 
         Parameters
         ----------
@@ -352,8 +344,7 @@ class FitOutputManager:
     def _extract_parameter_name_and_index(
         self, parameter_name: str
     ) -> tuple[Optional[str], Optional[int]]:
-        """
-         Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
+        """Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
 
          Parameters
          ----------
@@ -394,8 +385,7 @@ class FitOutputManager:
         model: McmcSaemCompatibleModel,
         index: int,
     ) -> plt.Axes:
-        """
-        Set the title for the plot based on the parameter name and the model's features or other information.
+        """Set the title for the plot based on the parameter name and the model's features or other information.
 
         Parameters
         ----------
@@ -441,8 +431,7 @@ class FitOutputManager:
         params_with_events: Iterable[str],
         model: McmcSaemCompatibleModel,
     ) -> plt.Axes:
-        """
-        Set the legend for the plot based on the parameter name and the model's features, sources, or events.
+        """Set the legend for the plot based on the parameter name and the model's features, sources, or events.
 
         Parameters
         ----------
@@ -490,8 +479,7 @@ class FitOutputManager:
     def _compute_files_sourcewise(
         self, params_with_sources: Iterable[str], num_sources: int
     ) -> list[Path]:
-        """
-        This function processes parameters that have sources and generates new csv files for each source.
+        """This function processes parameters that have sources and generates new csv files for each source.
 
         Parameters
         ----------
@@ -523,8 +511,7 @@ class FitOutputManager:
     def _concatenate_and_save_sourcewise_parameters(
         self, parameter_name: str, files: Iterable[Path], source_idx: int
     ) -> Path:
-        """
-        Concatenates data for the specific source and saves it as a csv file.
+        """Concatenates data for the specific source and saves it as a csv file.
 
         Parameters
         ----------
@@ -548,8 +535,7 @@ class FitOutputManager:
     def _concatenate_parameters(
         self, files: Iterable[Path], source_idx: int
     ) -> pd.DataFrame:
-        """
-        Extracts and concatenates a specific column from multiple csv files into a single DataFrame
+        """Extracts and concatenates a specific column from multiple csv files into a single DataFrame
 
         Parameters
         ----------

@@ -12,17 +12,19 @@ from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariableInitType
 from leaspy.variables.state import State
 
-from ..utils import AlgoWithAnnealingMixin, AlgoWithDeviceMixin, AlgoWithSamplersMixin
-from .abstract_personalize_algo import AbstractPersonalizeAlgo
+from ..algo_with_annealing import AlgoWithAnnealingMixin
+from ..algo_with_device import AlgoWithDeviceMixin
+from ..algo_with_samplers import AlgoWithSamplersMixin
+from .base import PersonalizeAlgo
 
-__all__ = ["AbstractMCMCPersonalizeAlgo"]
+__all__ = ["MCMCPersonalizeAlgo"]
 
 
-class AbstractMCMCPersonalizeAlgo(
+class MCMCPersonalizeAlgo(
     AlgoWithAnnealingMixin,
     AlgoWithSamplersMixin,
     AlgoWithDeviceMixin,
-    AbstractPersonalizeAlgo,
+    PersonalizeAlgo[McmcSaemCompatibleModel, IndividualParameters],
 ):
     """
     Base class for MCMC-based personalization algorithms.
@@ -35,71 +37,16 @@ class AbstractMCMCPersonalizeAlgo(
         Settings of the algorithm.
     """
 
-    @abstractmethod
-    def _compute_individual_parameters_from_samples_torch(
-        self,
-        values: DictParamsTorch,
-        attachments: torch.Tensor,
-        regularities: torch.Tensor,
-    ) -> DictParamsTorch:
-        """
-        Compute dictionary of individual parameters from stacked values, attachments and regularities.
-
-        Parameters
-        ----------
-        values : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
-            The stacked history of values for individual latent variables.
-        attachments : `torch.Tensor[float]` of shape (n_iter, n_individuals)
-            The stacked history of attachments (per individual).
-        regularities : `torch.Tensor[float]` of shape (n_iter, n_individuals)
-            The stacked history of regularities (per individual; but summed on all individual variables and all of their dimensions).
-
-        Returns
-        -------
-        dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
-        """
-
-    def _initialize_algo(
-        self,
-        model: McmcSaemCompatibleModel,
-        dataset: Dataset,
-    ) -> State:
-        """
-        Initialize the individual latent variables in state, the algo samplers & the annealing.
-
-        TODO? mutualize some code with leaspy.algo.fit.abstract_mcmc? (<!> `LatentVariableInitType` is different in personalization)
-
-        Parameters
-        ----------
-        model : :class:`.McmcSaemCompatibleModel`
-        dataset : :class:`.Dataset`
-
-        Returns
-        -------
-        state : :class:`.State`
-        """
-        # WIP: Would it be relevant to fit on a dedicated algo state?
-        state = model.state
-        with state.auto_fork(None):
-            model.put_data_variables(state, dataset)
-            # Initialize individual latent variables at their mode
-            # (population ones should be initialized before)
-            state.put_individual_latent_variables(
-                LatentVariableInitType.PRIOR_MODE, n_individuals=dataset.n_individuals
-            )
-        self._initialize_samplers(state, dataset)
-        self._initialize_annealing()
-
-        return state
-
-    def _terminate_algo(self, model: McmcSaemCompatibleModel, state: State) -> None:
-        """Clean-up of state at end of algorithm."""
-        # WIP: cf. interrogation about internal state in model or not...
-        model_state = state.clone()
-        with model_state.auto_fork(None):
-            model.reset_data_variables(model_state)
-            model_state.put_individual_latent_variables(None)
-        model.state = model_state
+    def _compute_individual_parameters(
+        self, model: McmcSaemCompatibleModel, dataset: Dataset, **kwargs
+    ) -> IndividualParameters:
+        individual_parameters = self._get_individual_parameters(model, dataset)
+        local_state = model.state.clone(disable_auto_fork=True)
+        model.put_data_variables(local_state, dataset)
+        _, pyt_individual_parameters = individual_parameters.to_pytorch()
+        for ip, ip_vals in pyt_individual_parameters.items():
+            local_state[ip] = ip_vals
+        return individual_parameters
 
     def _get_individual_parameters(
         self,
@@ -163,3 +110,69 @@ class AbstractMCMCPersonalizeAlgo(
         return IndividualParameters.from_pytorch(
             dataset.indices, individual_parameters_torch
         )
+
+    def _initialize_algo(
+        self,
+        model: McmcSaemCompatibleModel,
+        dataset: Dataset,
+    ) -> State:
+        """
+        Initialize the individual latent variables in state, the algo samplers & the annealing.
+
+        TODO? mutualize some code with leaspy.algo.fit.abstract_mcmc? (<!> `LatentVariableInitType` is different in personalization)
+
+        Parameters
+        ----------
+        model : :class:`.McmcSaemCompatibleModel`
+        dataset : :class:`.Dataset`
+
+        Returns
+        -------
+        state : :class:`.State`
+        """
+        # WIP: Would it be relevant to fit on a dedicated algo state?
+        state = model.state
+        with state.auto_fork(None):
+            model.put_data_variables(state, dataset)
+            # Initialize individual latent variables at their mode
+            # (population ones should be initialized before)
+            state.put_individual_latent_variables(
+                LatentVariableInitType.PRIOR_MODE, n_individuals=dataset.n_individuals
+            )
+        self._initialize_samplers(state, dataset)
+        self._initialize_annealing()
+        return state
+
+    @abstractmethod
+    def _compute_individual_parameters_from_samples_torch(
+        self,
+        values: DictParamsTorch,
+        attachments: torch.Tensor,
+        regularities: torch.Tensor,
+    ) -> DictParamsTorch:
+        """
+        Compute dictionary of individual parameters from stacked values, attachments and regularities.
+
+        Parameters
+        ----------
+        values : dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_iter, n_individuals, *ind_var.shape)]
+            The stacked history of values for individual latent variables.
+        attachments : `torch.Tensor[float]` of shape (n_iter, n_individuals)
+            The stacked history of attachments (per individual).
+        regularities : `torch.Tensor[float]` of shape (n_iter, n_individuals)
+            The stacked history of regularities (per individual; but summed on all individual variables and all of their dimensions).
+
+        Returns
+        -------
+        dict[ind_var_name: str, `torch.Tensor[float]` of shape (n_individuals, *ind_var.shape)]
+        """
+        raise NotImplementedError
+
+    def _terminate_algo(self, model: McmcSaemCompatibleModel, state: State) -> None:
+        """Clean-up of state at end of algorithm."""
+        # WIP: cf. interrogation about internal state in model or not...
+        model_state = state.clone()
+        with model_state.auto_fork(None):
+            model.reset_data_variables(model_state)
+            model_state.put_individual_latent_variables(None)
+        model.state = model_state

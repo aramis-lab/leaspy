@@ -178,7 +178,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
             no_warning=True,
         )
         with self.assertWarnsRegex(UserWarning, r"`use_jacobian\s?=\s?False`"):
-            self.default_algorithm._get_individual_parameters(model, mini_dataset)
+            self.default_algorithm._compute_individual_parameters(model, mini_dataset)
 
     @skip("Broken : ScipyMinimize has not _pull_individual_parameters method")
     def test_get_reconstruction_error(self):

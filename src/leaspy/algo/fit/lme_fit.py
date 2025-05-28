@@ -9,15 +9,15 @@ from leaspy.exceptions import LeaspyDataInputError
 from leaspy.io.data import Dataset
 from leaspy.models import LMEModel
 
-from ..base import AbstractAlgo, AlgorithmName, AlgorithmType
-from ..settings import AlgorithmSettings
+from ..base import AlgorithmName
+from ..settings import AlgorithmSettings, OutputsSettings
+from .base import FitAlgo
 
 __all__ = ["LMEFitAlgorithm"]
 
 
-class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
-    """
-    Fitting algorithm associated to :class:`~.models.LMEModel`
+class LMEFitAlgorithm(FitAlgo[LMEModel, tuple]):
+    """Fitting algorithm associated to :class:`~.models.LMEModel`.
 
     Parameters
     ----------
@@ -32,7 +32,6 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
     """
 
     name: AlgorithmName = AlgorithmName.FIT_LME
-    family: AlgorithmType = AlgorithmType.FIT
 
     def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
@@ -44,25 +43,21 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
             for hp_name in LMEModel._hyperparameters.keys()
             if hp_name in params
         }
-
         # Algorithm true parameters
         self.force_independent_random_effects = params.pop(
             "force_independent_random_effects"
         )
-
         # Remaining parameters are parameters of statsmodels `fit` method
         self.sm_fit_parameters = params  # popped from other params
 
-    def run_impl(self, model: LMEModel, dataset: Dataset):
-        """
-        Main method, refer to abstract definition in :meth:`~.algo.fit.abstract_fit_algo.AbstractFitAlgo.run`.
-
-        TODO fix proper inheritance
+    def _run(self, model: LMEModel, dataset: Dataset, **kwargs) -> tuple:
+        """Main method, refer to abstract definition in :meth:`~.algo.fit.abstract_fit_algo.AbstractFitAlgo.run`.
 
         Parameters
         ----------
-        model : :class:`~.LMEModel`
-            The used model
+        model : :class:`~leaspy.models.LMEModel`
+            The used model.
+
         dataset : :class:`.Dataset`
             Dataset object
 
@@ -72,7 +67,6 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
             * None
             * noise scale (std-dev), scalar
         """
-
         # DEPRECATED - TO BE REMOVED: Store some algo "hyperparameters" for the model
         model_hps_in_algo_settings = {
             hp: v
@@ -168,7 +162,7 @@ class LMEFitAlgorithm(AbstractAlgo):  # AbstractFitAlgo not so generic (EM)
         subjects_with_repeat = subjects_with_repeat[torch.flatten(dataset.mask > 0)]
         return subjects_with_repeat
 
-    def set_output_manager(self, output_settings):
+    def set_output_manager(self, output_settings: OutputsSettings) -> None:
         """
         Not implemented.
         """

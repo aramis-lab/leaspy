@@ -326,8 +326,8 @@ class AlgorithmSettings:
         """
         Check internal consistency of algorithm settings and warn or raise a `LeaspyAlgoInputError` if not.
         """
-        from leaspy.algo import AlgorithmType, get_algorithm_class, get_algorithm_type
-        from leaspy.algo.utils import AlgoWithDeviceMixin
+        from .algo_with_device import AlgoWithDeviceMixin
+        from .base import AlgorithmType, get_algorithm_class, get_algorithm_type
 
         if (
             self.model_initialization_method is not None
@@ -372,8 +372,7 @@ class AlgorithmSettings:
 
     @classmethod
     def load(cls, path_to_algorithm_settings: Union[str, Path]):
-        """
-        Instantiate a AlgorithmSettings object a from json file.
+        """Instantiate a AlgorithmSettings object a from json file.
 
         Parameters
         ----------
