@@ -17,9 +17,10 @@ from ..utils import AlgoWithDeviceMixin
 __all__ = ["AbstractFitAlgo"]
 
 
-class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
-    r"""
-    Abstract class containing common method for all `fit` algorithm classes.
+class AbstractFitAlgo(
+    AlgoWithDeviceMixin, AbstractAlgo[McmcSaemCompatibleModel, State]
+):
+    r"""Abstract class containing common method for all `fit` algorithm classes.
 
     The algorithm is proven to converge if the sequence `burn_in_step` is positive, with an
     infinite sum :math:`\sum_k \epsilon_k = +\infty` and a finite sum of the squares
@@ -66,8 +67,7 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         self.sufficient_statistics: Optional[DictParamsTorch] = None
 
     def set_output_manager(self, output_settings: OutputsSettings) -> None:
-        """
-        Set a :class:`~leaspy.io.logs.FitOutputManager` object for the run of the algorithm
+        """Set a :class:`~leaspy.algo.fit.FitOutputManager` object for the run of the algorithm.
 
         Parameters
         ----------
@@ -92,9 +92,10 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
 
             self.output_manager = FitOutputManager(output_settings)
 
-    def run_impl(self, model: McmcSaemCompatibleModel, dataset: Dataset):
-        """
-        Main method to run the algorithm.
+    def run_impl(
+        self, model: McmcSaemCompatibleModel, dataset: Dataset, **kwargs
+    ) -> State:
+        """Main method to run the algorithm.
 
         Basically, it initializes the :class:`~leaspy.variables.state.State` object,
         updates it using the :meth:`~leaspy.algo.AbstractFitAlgo.iteration` method then returns it.
@@ -102,23 +103,22 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         Parameters
         ----------
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
-            The used model.
+            The used model. It must be a subclass of :class:`~leaspy.models.McmcSaemCompatibleModel`.
+
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains the subjects' observations in torch format to speed up computation.
 
         Returns
         -------
-        2-tuple:
-            * state : :class:`~leaspy.variables.state.State`
+        :class:`~leaspy.variables.state.State` :
+            The fitted state.
         """
         with self._device_manager(model, dataset):
             state = self._initialize_algo(model, dataset)
-
             if self.algo_parameters["progress_bar"]:
                 self._display_progress_bar(
                     -1, self.algo_parameters["n_iter"], suffix="iterations"
                 )
-
             for self.current_iteration in range(1, self.algo_parameters["n_iter"] + 1):
                 self.iteration(model, state)
 
@@ -134,17 +134,16 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                         self.algo_parameters["n_iter"],
                         suffix="iterations",
                     )
-
         model.fit_metrics = self._get_fit_metrics()
         model_state = state.clone()
         with model_state.auto_fork(None):
-            # <!> At the end of the MCMC, population and individual latent variables may have diverged from final model parameters
-            # Thus we reset population latent variables to their mode
+            # <!> At the end of the MCMC, population and individual latent variables
+            # may have diverged from final model parameters.
+            # Thus, we reset population latent variables to their mode
             model_state.put_population_latent_variables(
                 LatentVariableInitType.PRIOR_MODE
             )
         model.state = model_state
-
         return state
 
     def log_current_iteration(self, state: State):
@@ -171,10 +170,10 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             and self.current_iteration % self.logs.save_periodicity == 0
         )
 
-    def _get_fit_metrics(self) -> Optional[Dict[str, float]]:
+    def _get_fit_metrics(self) -> Optional[dict[str, float]]:
         # TODO: finalize metrics handling, a bit dirty to place them in sufficient stats, only with a prefix...
         if self.sufficient_statistics is None:
-            return
+            return None
         return {
             # (scalars only)
             k: v.item()
@@ -190,31 +189,31 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
             out += "\n= Metrics ="
             for m, v in fit_metrics.items():
                 out += f"\n    {m} : {v:.5g}"
-
         return out
 
     @abstractmethod
     def iteration(self, model: McmcSaemCompatibleModel, state: State):
-        """
-        Update the model parameters (abstract method).
+        """Update the model parameters (abstract method).
 
         Parameters
         ----------
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The used model.
+
         state : ::class:`~leaspy.variables.state.State`
             During the fit, this state holds all model variables, together with dataset observations.
         """
+        raise NotImplementedError
 
     def _initialize_algo(
         self, model: McmcSaemCompatibleModel, dataset: Dataset
     ) -> State:
-        """
-        Initialize the fit algorithm (abstract method) and return the state to work on.
+        """Initialize the fit algorithm (abstract method) and return the state to work on.
 
         Parameters
         ----------
-        model : :class:~leaspy.models.McmcSaemCompatibleModel
+        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
+
         dataset : :class:`~leaspy.io.data.Dataset`
 
         Returns
@@ -224,24 +223,22 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
         # WIP: Would it be relevant to fit on a dedicated algo state?
         state = model.state
         with state.auto_fork(None):
-            # Set data variables
             model.put_data_variables(state, dataset)
-
         return state
 
     def _maximization_step(self, model: McmcSaemCompatibleModel, state: State):
-        """
-        Maximization step as in the EM algorithm. In practice parameters are set to current state (burn-in phase),
-        or as a barycenter with previous state.
+        """Maximization step as in the EM algorithm.
+
+        In practice parameters are set to current state (burn-in phase), or as a barycenter with previous state.
 
         Parameters
         ----------
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
+
         state : :class:`~leaspy.variables.state.State`
         """
         # TODO/WIP: not 100% clear to me whether model methods should take a state param, or always use its internal state...
         sufficient_statistics = model.compute_sufficient_statistics(state)
-
         if (
             self._is_burn_in()
             or self.current_iteration == 1 + self.algo_parameters["n_burn_in_iter"]
@@ -260,7 +257,6 @@ class AbstractFitAlgo(AlgoWithDeviceMixin, AbstractAlgo):
                 k: v * (1.0 - burn_in_step) + burn_in_step * sufficient_statistics[k]
                 for k, v in self.sufficient_statistics.items()
             }
-
         # TODO: use the same method in both cases (<!> very minor differences that might break
         #  exact reproducibility in tests)
         model.update_parameters(
