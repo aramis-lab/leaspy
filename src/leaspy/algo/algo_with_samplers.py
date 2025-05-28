@@ -9,10 +9,10 @@ from leaspy.variables.state import State
 
 from .settings import AlgorithmSettings
 
-__all__ = ["AlgoWithSamplersMixin"]
+__all__ = ["AlgorithmWithSamplersMixin"]
 
 
-class AlgoWithSamplersMixin:
+class AlgorithmWithSamplersMixin:
     """Mixin class to use in algorithms that require `samplers`.
 
     Note that this mixin should be used with a class inheriting from `AbstractAlgo`, which must have `algo_parameters`

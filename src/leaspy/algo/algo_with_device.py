@@ -7,10 +7,10 @@ from leaspy.models import McmcSaemCompatibleModel
 
 from .settings import AlgorithmSettings
 
-__all__ = ["AlgoWithDeviceMixin"]
+__all__ = ["AlgorithmWithDeviceMixin"]
 
 
-class AlgoWithDeviceMixin:
+class AlgorithmWithDeviceMixin:
     """Mixin class containing common attributes & methods for algorithms with a torch device.
 
     Parameters

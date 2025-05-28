@@ -9,7 +9,7 @@ from leaspy.utils.typing import FeatureType
 
 from ..base import AlgorithmName
 from ..settings import AlgorithmSettings
-from .base import PersonalizeAlgo
+from .base import PersonalizeAlgorithm
 
 __all__ = ["ConstantPredictionAlgorithm"]
 
@@ -21,7 +21,9 @@ class PredictionType(str, Enum):
     MEAN = "mean"
 
 
-class ConstantPredictionAlgorithm(PersonalizeAlgo[ConstantModel, IndividualParameters]):
+class ConstantPredictionAlgorithm(
+    PersonalizeAlgorithm[ConstantModel, IndividualParameters]
+):
     r"""ConstantPredictionAlgorithm is an algorithm that provides constant predictions.
 
     It is used with the :class:`~leaspy.models.ConstantModel`.

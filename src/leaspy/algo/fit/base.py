@@ -5,13 +5,13 @@ from typing import Optional
 from leaspy.models import ModelType
 from leaspy.utils.typing import DictParamsTorch
 
-from ..base import AlgorithmType, IterativeAlgo, ReturnType
+from ..base import AlgorithmType, IterativeAlgorithm, ReturnType
 from ..settings import AlgorithmSettings, OutputsSettings
 
-__all__ = ["FitAlgo"]
+__all__ = ["FitAlgorithm"]
 
 
-class FitAlgo(IterativeAlgo[ModelType, ReturnType]):
+class FitAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
     r"""Abstract class containing common method for all `fit` algorithm classes.
 
     The algorithm is proven to converge if the sequence `burn_in_step` is positive, with an

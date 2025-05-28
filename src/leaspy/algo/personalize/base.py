@@ -6,13 +6,13 @@ from leaspy.io.data import Dataset
 from leaspy.io.outputs import IndividualParameters
 from leaspy.models import ModelType
 
-from ..base import AlgorithmType, IterativeAlgo, ReturnType
+from ..base import AlgorithmType, IterativeAlgorithm, ReturnType
 from ..settings import OutputsSettings
 
-__all__ = ["PersonalizeAlgo"]
+__all__ = ["PersonalizeAlgorithm"]
 
 
-class PersonalizeAlgo(IterativeAlgo[ModelType, ReturnType]):
+class PersonalizeAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
     """Abstract class for `personalize` algorithm.
 
     Estimation of individual parameters of a given `Data` file with

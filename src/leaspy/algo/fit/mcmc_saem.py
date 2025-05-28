@@ -12,21 +12,21 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-from ..algo_with_annealing import AlgoWithAnnealingMixin
-from ..algo_with_device import AlgoWithDeviceMixin
-from ..algo_with_samplers import AlgoWithSamplersMixin
+from ..algo_with_annealing import AlgorithmWithAnnealingMixin
+from ..algo_with_device import AlgorithmWithDeviceMixin
+from ..algo_with_samplers import AlgorithmWithSamplersMixin
 from ..base import AlgorithmName
 from ..settings import AlgorithmSettings
-from .base import FitAlgo
+from .base import FitAlgorithm
 
-__all__ = ["TensorMCMCSAEM"]
+__all__ = ["TensorMcmcSaemAlgorithm"]
 
 
-class TensorMCMCSAEM(
-    AlgoWithDeviceMixin,
-    AlgoWithAnnealingMixin,
-    AlgoWithSamplersMixin,
-    FitAlgo[McmcSaemCompatibleModel, State],
+class TensorMcmcSaemAlgorithm(
+    AlgorithmWithDeviceMixin,
+    AlgorithmWithAnnealingMixin,
+    AlgorithmWithSamplersMixin,
+    FitAlgorithm[McmcSaemCompatibleModel, State],
 ):
     """Main algorithm for MCMC-SAEM.
 

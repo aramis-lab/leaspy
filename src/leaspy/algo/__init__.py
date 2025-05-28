@@ -1,7 +1,7 @@
 from .base import (
     AlgorithmName,
     AlgorithmType,
-    BaseAlgo,
+    BaseAlgorithm,
     algorithm_factory,
     get_algorithm_class,
     get_algorithm_type,
@@ -9,7 +9,7 @@ from .base import (
 from .settings import AlgorithmSettings, OutputsSettings, algo_default_data_dir
 
 __all__ = [
-    "BaseAlgo",
+    "BaseAlgorithm",
     "AlgorithmSettings",
     "OutputsSettings",
     "AlgorithmType",

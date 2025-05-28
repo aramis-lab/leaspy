@@ -15,7 +15,7 @@ from matplotlib.lines import Line2D
 from leaspy.io.data import Dataset
 from leaspy.models import McmcSaemCompatibleModel
 
-from .base import FitAlgo
+from .base import FitAlgorithm
 
 
 class FitOutputManager:
@@ -69,7 +69,7 @@ class FitOutputManager:
         self.time = time.time()
 
     def iteration(
-        self, algo: FitAlgo, model: McmcSaemCompatibleModel, data: Dataset
+        self, algo: FitAlgorithm, model: McmcSaemCompatibleModel, data: Dataset
     ) -> None:
         """
         Call methods to save state of the running computation, display statistics & plots if the current iteration
@@ -126,7 +126,7 @@ class FitOutputManager:
         """
         print(model)
 
-    def print_algo_statistics(self, algo: FitAlgo):
+    def print_algo_statistics(self, algo: FitAlgorithm):
         """Prints algorithm's statistics
 
         Parameters

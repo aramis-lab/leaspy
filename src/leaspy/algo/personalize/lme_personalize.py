@@ -8,12 +8,12 @@ from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import LMEModel
 
 from ..base import AlgorithmName
-from .base import PersonalizeAlgo
+from .base import PersonalizeAlgorithm
 
 __all__ = ["LMEPersonalizeAlgorithm"]
 
 
-class LMEPersonalizeAlgorithm(PersonalizeAlgo[LMEModel, IndividualParameters]):
+class LMEPersonalizeAlgorithm(PersonalizeAlgorithm[LMEModel, IndividualParameters]):
     r"""Personalization algorithm associated to :class:`~leaspy.models.LMEModel`.
 
     Parameters

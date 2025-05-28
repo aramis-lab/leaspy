@@ -1,11 +1,11 @@
-from .base import FitAlgo
+from .base import FitAlgorithm
 from .fit_output_manager import FitOutputManager
 from .lme_fit import LMEFitAlgorithm
-from .mcmc_saem import TensorMCMCSAEM
+from .mcmc_saem import TensorMcmcSaemAlgorithm
 
 __all__ = [
-    "FitAlgo",
-    "TensorMCMCSAEM",
+    "FitAlgorithm",
+    "TensorMcmcSaemAlgorithm",
     "FitOutputManager",
     "LMEFitAlgorithm",
 ]

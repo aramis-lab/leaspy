@@ -12,22 +12,21 @@ from leaspy.utils.typing import DictParamsTorch
 from leaspy.variables.specs import IndividualLatentVariable, LatentVariableInitType
 from leaspy.variables.state import State
 
-from ..algo_with_annealing import AlgoWithAnnealingMixin
-from ..algo_with_device import AlgoWithDeviceMixin
-from ..algo_with_samplers import AlgoWithSamplersMixin
-from .base import PersonalizeAlgo
+from ..algo_with_annealing import AlgorithmWithAnnealingMixin
+from ..algo_with_device import AlgorithmWithDeviceMixin
+from ..algo_with_samplers import AlgorithmWithSamplersMixin
+from .base import PersonalizeAlgorithm
 
-__all__ = ["MCMCPersonalizeAlgo"]
+__all__ = ["McmcPersonalizeAlgorithm"]
 
 
-class MCMCPersonalizeAlgo(
-    AlgoWithAnnealingMixin,
-    AlgoWithSamplersMixin,
-    AlgoWithDeviceMixin,
-    PersonalizeAlgo[McmcSaemCompatibleModel, IndividualParameters],
+class McmcPersonalizeAlgorithm(
+    AlgorithmWithAnnealingMixin,
+    AlgorithmWithSamplersMixin,
+    AlgorithmWithDeviceMixin,
+    PersonalizeAlgorithm[McmcSaemCompatibleModel, IndividualParameters],
 ):
-    """
-    Base class for MCMC-based personalization algorithms.
+    """Base class for MCMC-based personalization algorithms.
 
     Individual parameters are derived from values of individual variables of the model.
 

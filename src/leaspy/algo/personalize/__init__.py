@@ -1,17 +1,17 @@
-from .base import PersonalizeAlgo
+from .base import PersonalizeAlgorithm
 from .constant_prediction_algo import ConstantPredictionAlgorithm
 from .lme_personalize import LMEPersonalizeAlgorithm
-from .mcmc import MCMCPersonalizeAlgo
-from .mean_posterior import MeanPosterior
-from .mode_posterior import ModePosterior
-from .scipy_minimize import ScipyMinimize
+from .mcmc import McmcPersonalizeAlgorithm
+from .mean_posterior import MeanPosteriorAlgorithm
+from .mode_posterior import ModePosteriorAlgorithm
+from .scipy_minimize import ScipyMinimizeAlgorithm
 
 __all__ = [
-    "MCMCPersonalizeAlgo",
-    "PersonalizeAlgo",
-    "MeanPosterior",
-    "ModePosterior",
-    "ScipyMinimize",
+    "McmcPersonalizeAlgorithm",
+    "PersonalizeAlgorithm",
+    "MeanPosteriorAlgorithm",
+    "ModePosteriorAlgorithm",
+    "ScipyMinimizeAlgorithm",
     "ConstantPredictionAlgorithm",
     "LMEPersonalizeAlgorithm",
 ]

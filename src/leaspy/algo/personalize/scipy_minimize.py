@@ -25,9 +25,9 @@ from leaspy.variables.state import State
 
 from ..base import AlgorithmName
 from ..settings import AlgorithmSettings
-from .base import PersonalizeAlgo
+from .base import PersonalizeAlgorithm
 
-__all__ = ["ScipyMinimize"]
+__all__ = ["ScipyMinimizeAlgorithm"]
 
 
 @dataclass(frozen=True)
@@ -188,7 +188,9 @@ class _AffineScalings1D:
         )
 
 
-class ScipyMinimize(PersonalizeAlgo[McmcSaemCompatibleModel, IndividualParameters]):
+class ScipyMinimizeAlgorithm(
+    PersonalizeAlgorithm[McmcSaemCompatibleModel, IndividualParameters]
+):
     """Gradient descent based algorithm to compute individual parameters, `i.e.` personalizing a model for a given set of subjects.
 
     Parameters

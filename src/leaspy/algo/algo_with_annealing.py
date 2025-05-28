@@ -6,10 +6,10 @@ from leaspy.exceptions import LeaspyAlgoInputError
 
 from .settings import AlgorithmSettings
 
-__all__ = ["AlgoWithAnnealingMixin"]
+__all__ = ["AlgorithmWithAnnealingMixin"]
 
 
-class AlgoWithAnnealingMixin:
+class AlgorithmWithAnnealingMixin:
     """Mixin class to use in algorithms that requires `temperature_inv`.
 
     Note that this mixin should be used with a class inheriting from `AbstractAlgo`, which must have `algo_parameters`

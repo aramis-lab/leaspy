@@ -18,8 +18,8 @@ from leaspy.models import ModelType
 from .settings import AlgorithmSettings, OutputsSettings
 
 __all__ = [
-    "BaseAlgo",
-    "IterativeAlgo",
+    "BaseAlgorithm",
+    "IterativeAlgorithm",
     "AlgorithmType",
     "AlgorithmName",
     "get_algorithm_type",
@@ -53,7 +53,7 @@ class AlgorithmName(str, Enum):
     SIMULATE = "simulation"
 
 
-class BaseAlgo(ABC, Generic[ModelType, ReturnType]):
+class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
     """Base class containing common methods for all algorithm classes.
 
     Parameters
@@ -286,7 +286,7 @@ class BaseAlgo(ABC, Generic[ModelType, ReturnType]):
         return out
 
 
-class IterativeAlgo(BaseAlgo[ModelType, ReturnType]):
+class IterativeAlgorithm(BaseAlgorithm[ModelType, ReturnType]):
     def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
         self.current_iteration: int = 0
@@ -366,7 +366,7 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
     return AlgorithmType.PERSONALIZE
 
 
-def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgo]:
+def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
     """Return the algorithm class.
 
     Parameters
@@ -376,29 +376,29 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgo]:
 
     Returns
     -------
-    algorithm class: :class:`leaspy.algo.AbstractAlgo`
+    algorithm class: :class:`~leaspy.algo.BaseAlgorithm`
     """
     name = AlgorithmName(name)
     if name == AlgorithmName.FIT_MCMC_SAEM:
-        from .fit import TensorMCMCSAEM
+        from .fit import TensorMcmcSaemAlgorithm
 
-        return TensorMCMCSAEM
+        return TensorMcmcSaemAlgorithm
     if name == AlgorithmName.FIT_LME:
         from .fit import LMEFitAlgorithm
 
         return LMEFitAlgorithm
     if name == AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE:
-        from .personalize import ScipyMinimize
+        from .personalize import ScipyMinimizeAlgorithm
 
-        return ScipyMinimize
+        return ScipyMinimizeAlgorithm
     if name == AlgorithmName.PERSONALIZE_MEAN_POSTERIOR:
-        from .personalize import MeanPosterior
+        from .personalize import MeanPosteriorAlgorithm
 
-        return MeanPosterior
+        return MeanPosteriorAlgorithm
     if name == AlgorithmName.PERSONALIZE_MODE_POSTERIOR:
-        from .personalize import ModePosterior
+        from .personalize import ModePosteriorAlgorithm
 
-        return ModePosterior
+        return ModePosteriorAlgorithm
     if name == AlgorithmName.PERSONALIZE_CONSTANT:
         from .personalize import ConstantPredictionAlgorithm
 
@@ -411,7 +411,7 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgo]:
         raise ValueError("The simulation algorithm is currently broken.")
 
 
-def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgo:
+def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgorithm:
     """Return the requested algorithm based on the provided settings.
 
     Parameters
@@ -421,7 +421,7 @@ def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgo:
 
     Returns
     -------
-    algorithm : child class of :class:`leaspy.algo.AbstractAlgo`
+    algorithm : child class of :class:`~leaspy.algo.BaseAlgorithm`
         The requested algorithm. If it exists, it will be compatible with algorithm family.
     """
     algorithm = get_algorithm_class(settings.name)(settings)

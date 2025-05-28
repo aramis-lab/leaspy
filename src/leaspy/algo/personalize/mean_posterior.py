@@ -5,12 +5,12 @@ import torch
 from leaspy.utils.typing import DictParamsTorch
 
 from ..base import AlgorithmName
-from .mcmc import MCMCPersonalizeAlgo
+from .mcmc import McmcPersonalizeAlgorithm
 
-__all__ = ["MeanPosterior"]
+__all__ = ["MeanPosteriorAlgorithm"]
 
 
-class MeanPosterior(MCMCPersonalizeAlgo):
+class MeanPosteriorAlgorithm(McmcPersonalizeAlgorithm):
     """Sampler-based algorithm that derives individual parameters as the most frequent mean posterior value from `n_iter` samplings.
 
     Parameters

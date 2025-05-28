@@ -1,14 +1,14 @@
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.personalize import PersonalizeAlgo
+from leaspy.algo.personalize import PersonalizeAlgorithm
 from tests import LeaspyTestCase
 
 
 class AbstractPersonalizeAlgoTest(LeaspyTestCase):
-    @LeaspyTestCase.allow_abstract_class_init(PersonalizeAlgo)
+    @LeaspyTestCase.allow_abstract_class_init(PersonalizeAlgorithm)
     def test_constructor(self):
         settings = AlgorithmSettings("scipy_minimize")
-        PersonalizeAlgo.name = "scipy_minimize"
-        algo = PersonalizeAlgo(settings)
+        PersonalizeAlgorithm.name = "scipy_minimize"
+        algo = PersonalizeAlgorithm(settings)
 
         self.assertEqual(algo.name, "scipy_minimize")
         self.assertEqual(algo.seed, None)

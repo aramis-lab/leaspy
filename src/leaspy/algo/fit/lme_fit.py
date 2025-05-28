@@ -11,12 +11,12 @@ from leaspy.models import LMEModel
 
 from ..base import AlgorithmName
 from ..settings import AlgorithmSettings, OutputsSettings
-from .base import FitAlgo
+from .base import FitAlgorithm
 
 __all__ = ["LMEFitAlgorithm"]
 
 
-class LMEFitAlgorithm(FitAlgo[LMEModel, tuple]):
+class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
     """Fitting algorithm associated to :class:`~.models.LMEModel`.
 
     Parameters
