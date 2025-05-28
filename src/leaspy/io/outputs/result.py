@@ -3,6 +3,7 @@ import json
 import os
 import warnings
 from collections.abc import Iterable
+from typing import Union
 
 import pandas as pd
 import torch
@@ -12,7 +13,7 @@ from leaspy.exceptions import (
     LeaspyInputError,
     LeaspyTypeError,
 )
-from leaspy.utils.typing import Dict, DictParamsTorch, IDType, List, ParamType, Union
+from leaspy.utils.typing import DictParamsTorch, IDType, ParamType
 
 from ..data import Data, Dataset
 
@@ -54,14 +55,14 @@ class Result:
     ):
         self.data = data
         self.individual_parameters = individual_parameters
-        self.ID_to_idx: Dict[IDType, int] = {
+        self.ID_to_idx: dict[IDType, int] = {
             key: i for i, key in enumerate(data.individuals)
         }
         self.noise_std = noise_std
 
     # TODO : this method is used only once in plotting => delete it ?
     def get_torch_individual_parameters(
-        self, ID: Union[IDType, List[IDType]] = None
+        self, ID: Union[IDType, list[IDType]] = None
     ) -> DictParamsTorch:
         """
         Getter function for the individual parameters.
@@ -98,7 +99,7 @@ class Result:
 
     # TODO: unit test & functional test
     def get_dataframe_individual_parameters(
-        self, cofactors: Union[str, List[str]] = None
+        self, cofactors: Union[str, list[str]] = None
     ) -> pd.DataFrame:
         """
         Return the dataframe of the individual parameters.
@@ -128,7 +129,10 @@ class Result:
         dataset & get the corresponding dataframe with the genetic APOE cofactor
 
         >>> import pandas as pd
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy, Plotter
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.io.data import Data
+        >>> from leaspy.io.logs.visualization import Plotter
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv')  # replace with your own path!
         >>> genes_cofactors = pd.read_csv('data/genes_cofactors.csv')  # replace with your own path!
@@ -195,7 +199,7 @@ class Result:
         return df_individual_parameters
 
     def save_individual_parameters_csv(
-        self, path: str, idx: List[IDType] = None, cofactors=None, **args
+        self, path: str, idx: list[IDType] = None, cofactors=None, **args
     ):
         """
         Save the individual parameters in a csv format.
@@ -220,7 +224,9 @@ class Result:
         --------
         Save the individual parameters of the twenty first subjects.
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.io.data import Data
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv') # replace with your own path!
         >>> genes_cofactors = pd.read_csv('data/genes_cofactors.csv')  # replace with your own path!
@@ -248,7 +254,7 @@ class Result:
         df_individual_parameters.to_csv(path, index=True, **args)
 
     def save_individual_parameters_json(
-        self, path: str, idx: List[IDType] = None, human_readable=None, **args
+        self, path: str, idx: list[IDType] = None, human_readable=None, **args
     ):
         """
         Save the individual parameters in a json format.
@@ -278,7 +284,9 @@ class Result:
         --------
         Save the individual parameters of the twenty first subjects.
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.io.data import Data
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv')
         >>> model_settings = AlgorithmSettings('mcmc_saem', seed=0)
@@ -307,7 +315,7 @@ class Result:
                 json.dump(dump, fp, **args)
 
     def save_individual_parameters_torch(
-        self, path: str, idx: List[IDType] = None, **args
+        self, path: str, idx: list[IDType] = None, **args
     ):
         """
         Save the individual parameters in a torch format.
@@ -330,7 +338,9 @@ class Result:
         --------
         Save the individual parameters of the twenty first subjects.
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.io.data import Data
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv')
         >>> model_settings = AlgorithmSettings('mcmc_saem', seed=0)
@@ -354,7 +364,7 @@ class Result:
                 f"Cannot save individual parameter at path {path}. The folder does not exist!"
             )
 
-    def _get_dump(self, idx: List[IDType] = None):
+    def _get_dump(self, idx: list[IDType] = None):
         """
         Convert the individual_parameters attribute into a dictionary of list. The univariate parameters values
         like xi and tau are squeeze from shape (n_subjects, 1) to (n_subjects,).
@@ -418,7 +428,7 @@ class Result:
         --------
         Load an individual parameters dictionary from a saved file.
 
-        >>> from leaspy import Result
+        >>> from leaspy.io.outputs import Result
         >>> path = 'outputs/logistic_seed0-mode_real_seed0-individual_parameter.csv'
         >>> individual_parameters = Result.load_individual_parameters_from_csv(path)
         """
@@ -480,7 +490,7 @@ class Result:
         --------
         Load an individual parameters dictionary from a saved file.
 
-        >>> from leaspy import Result
+        >>> from leaspy.io.outputs import Result
         >>> path = 'outputs/logistic_seed0-mode_real_seed0-individual_parameter.json'
         >>> individual_parameters = Result.load_individual_parameters_from_json(path)
         """
@@ -536,7 +546,7 @@ class Result:
         --------
         Load an individual parameters dictionary from a saved file.
 
-        >>> from leaspy import Result
+        >>> from leaspy.io.outputs import Result
         >>> path = 'outputs/logistic_seed0-mode_real_seed0-individual_parameter.pt'
         >>> individual_parameters = Result.load_individual_parameters_from_torch(path)
         """
@@ -621,7 +631,10 @@ class Result:
         --------
         Launch an individual parameters estimation, save it and reload it.
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy, Result
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.io.outputs import Result
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.io.data import Data
         >>> leaspy_logistic = Leaspy('logistic')
         >>> data = Data.from_csv_file('data/my_leaspy_data.csv')
         >>> model_settings = AlgorithmSettings('mcmc_saem', seed=0)
@@ -685,7 +698,9 @@ class Result:
         --------
         Get mean absolute error per feature:
 
-        >>> from leaspy import AlgorithmSettings, Data, Leaspy
+        >>> from leaspy.algo import AlgorithmSettings
+        >>> from leaspy.api import Leaspy
+        >>> from leaspy.io.data import Data
         >>> data = Data.from_csv_file("/my/data/path")
         >>> leaspy_logistic = Leaspy('logistic')
         >>> settings = AlgorithmSettings("mcmc_saem", seed=0)
@@ -732,7 +747,7 @@ class Result:
     ###############################################################
 
     @staticmethod
-    def get_cofactor_states(cofactors: List) -> List:
+    def get_cofactor_states(cofactors: list) -> list:
         """
         .. deprecated:: 1.0
 

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.utils.typing import Dict, FeatureType, IDType, List
+from leaspy.utils.typing import IDType
 
 from .individual_data import IndividualData
 
@@ -24,8 +24,8 @@ class AbstractDataframeDataReader:
     time_rounding_digits = 6
 
     def __init__(self):
-        self.individuals: Dict[IDType, IndividualData] = {}
-        self.iter_to_idx: Dict[int, IDType] = {}
+        self.individuals: dict[IDType, IndividualData] = {}
+        self.iter_to_idx: dict[int, IDType] = {}
         self.n_individuals: int = 0
 
     ######################################################
@@ -106,7 +106,7 @@ class AbstractDataframeDataReader:
         Parameters
         ----------
         df: pd.DataFrame
-            The whole dataframe with patient informations
+            The whole dataframe with patient information.
 
         Returns
         -------
@@ -151,18 +151,18 @@ class AbstractDataframeDataReader:
         Parameters
         ----------
         df: pd.DataFrame
-            Dataframe with patient information
+            Dataframe with patient information.
 
         drop_full_nan: bool
-            If set to True, raw full of nan are droped
+            If set to True, raw full of nan are dropped.
 
         warn_empty_column: bool
-            If set to True, a warning is raise for columns full of nan
+            If set to True, a warning is raise for columns full of nan.
 
         Returns
         -------
         df: pd.DataFrame
-            Dataframe with clean numeric information
+            Dataframe with clean numeric information.
         """
         # Check and clean numerical values
         types_nok = {
@@ -208,11 +208,8 @@ class AbstractDataframeDataReader:
 
         return df
 
-    ######################################################
-    #               ABSTRACT METHODS
-    ######################################################
     @abstractmethod
-    def _check_headers(self, columns: List[str]) -> None:
+    def _check_headers(self, columns: list[str]) -> None:
         """
         Check mendatory dataframe headers
 
@@ -248,19 +245,19 @@ class AbstractDataframeDataReader:
         Parameters
         ----------
         df: pd.DataFrame
-            Dataframe with patient information
+            Dataframe with patient information.
 
         drop_full_nan: bool
-            If set to True, raw full of nan are droped
+            If set to True, raw full of nan are dropped.
 
         warn_empty_column: bool
-            If set to True, a warning is raise for columns full of nan
+            If set to True, a warning is raise for columns full of nan.
 
 
         Returns
         -------
         df: pd.DataFrame
-            Dataframe with clean information
+            Dataframe with clean information.
         """
 
     @abstractmethod

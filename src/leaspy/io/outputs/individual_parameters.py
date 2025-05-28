@@ -3,23 +3,14 @@ import json
 import operator
 import os
 import warnings
+from typing import Callable, Iterable
 
 import numpy as np
 import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError
-from leaspy.utils.typing import (
-    Callable,
-    Dict,
-    DictParams,
-    DictParamsTorch,
-    IDType,
-    Iterable,
-    List,
-    ParamType,
-    Tuple,
-)
+from leaspy.utils.typing import DictParams, DictParamsTorch, IDType, ParamType
 
 __all__ = ["IndividualParameters"]
 
@@ -47,13 +38,13 @@ class IndividualParameters:
     VALID_IO_EXTENSIONS = ["csv", "json"]
 
     def __init__(self):
-        self._indices: List[IDType] = []
-        self._individual_parameters: Dict[IDType, DictParams] = {}
+        self._indices: list[IDType] = []
+        self._individual_parameters: dict[IDType, DictParams] = {}
         self._parameters_shape = None  # {p_name: p_shape as tuple}
         self._default_saving_type = "csv"
 
     @property
-    def _parameters_size(self) -> Dict[ParamType, int]:
+    def _parameters_size(self) -> dict[ParamType, int]:
         # convert parameter shape to parameter size
         # e.g. () -> 1, (1,) -> 1, (2,3) -> 6
         shape_to_size = lambda shape: functools.reduce(operator.mul, shape, 1)
@@ -221,7 +212,7 @@ class IndividualParameters:
 
         return ip
 
-    def get_aggregate(self, parameter: ParamType, function: Callable) -> List:
+    def get_aggregate(self, parameter: ParamType, function: Callable) -> list:
         r"""
         Returns the result of aggregation by `function` of parameter values across all patients
 
@@ -377,7 +368,7 @@ class IndividualParameters:
         `IndividualParameters`
         """
         # Check the names to keep
-        df_names: List[ParamType] = list(df.columns.values)
+        df_names: list[ParamType] = list(df.columns.values)
 
         final_names = {}
         for name in df_names:
@@ -404,7 +395,7 @@ class IndividualParameters:
         return ip
 
     @staticmethod
-    def from_pytorch(indices: List[IDType], dict_pytorch: DictParamsTorch):
+    def from_pytorch(indices: list[IDType], dict_pytorch: DictParamsTorch):
         r"""
         Static method that returns an IndividualParameters object from the indices and pytorch dictionary
 
@@ -452,7 +443,7 @@ class IndividualParameters:
 
         return ip
 
-    def to_pytorch(self) -> Tuple[List[IDType], DictParamsTorch]:
+    def to_pytorch(self) -> tuple[list[IDType], DictParamsTorch]:
         r"""
         Returns the indices and pytorch dictionary of individual parameters
 

@@ -3,7 +3,6 @@ import pytest
 
 from leaspy.exceptions import LeaspyDataInputError, LeaspyTypeError
 from leaspy.io.data.data import Data
-from leaspy.utils.typing import Tuple
 from tests import LeaspyTestCase
 
 
@@ -130,7 +129,7 @@ class DataTest(LeaspyTestCase):
             if iter > 4:
                 break
 
-    def get_data_and_cofactors_df(self) -> Tuple[Data, pd.DataFrame]:
+    def get_data_and_cofactors_df(self) -> tuple[Data, pd.DataFrame]:
         data = self.load_multivariate_data()
         idx_list = data.individuals.keys()
         cofactors_list = ["Cofactor_1", "Cofactor_2"]

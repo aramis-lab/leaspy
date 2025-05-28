@@ -1,8 +1,9 @@
 import json
+from typing import Union
 
 from leaspy import __version__
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import KwargsType, Union
+from leaspy.utils.typing import KwargsType
 
 __all__ = ["ModelSettings"]
 

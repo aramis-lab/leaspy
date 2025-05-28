@@ -1,6 +1,6 @@
 """Define some useful type aliases for static type checks and better input understanding."""
 
-from typing import *
+from typing import Any
 
 import torch
 
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 # Generic dictionary of keyword arguments
-KwargsType = Dict[str, Any]
+KwargsType = dict[str, Any]
 
 # Type for identifier of individuals
 IDType = str
@@ -25,5 +25,5 @@ ParamType = str
 # Type for feature names
 FeatureType = str
 
-DictParams = Dict[ParamType, Any]
-DictParamsTorch = Dict[ParamType, torch.Tensor]
+DictParams = dict[ParamType, Any]
+DictParamsTorch = dict[ParamType, torch.Tensor]
