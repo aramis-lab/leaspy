@@ -1,6 +1,7 @@
 import os
 import warnings
 from enum import Enum
+from typing import Callable
 from unittest import skip
 
 import pandas as pd
@@ -8,7 +9,6 @@ import torch
 
 from leaspy.io.data import Data
 from leaspy.io.outputs import Result
-from leaspy.utils.typing import Callable
 from tests import LeaspyTestCase
 
 

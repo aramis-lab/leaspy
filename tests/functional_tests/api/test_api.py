@@ -1,9 +1,7 @@
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
 import os
 import platform
-from unittest import skip
-
-from leaspy.utils.typing import Dict, List, Optional, Union
+from typing import Optional
 
 from .test_api_fit import LeaspyFitTestMixin
 from .test_api_personalize import LeaspyPersonalizeTestMixin
@@ -25,10 +23,10 @@ class LeaspyAPITest(
         personalization_algo: str,
         fit_algo: str = "mcmc_saem",
         simulate_algo: str = "simulation",
-        fit_check_kws: Optional[Dict] = None,
-        fit_algo_params: Optional[Dict] = None,
-        personalization_algo_params: Optional[Dict] = None,
-        simulate_algo_params: Optional[Dict] = None,
+        fit_check_kws: Optional[dict] = None,
+        fit_algo_params: Optional[dict] = None,
+        personalization_algo_params: Optional[dict] = None,
+        simulate_algo_params: Optional[dict] = None,
         simulate_tol: float = 1e-4,
         **model_hyperparams,
     ):
