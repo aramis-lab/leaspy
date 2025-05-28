@@ -1,10 +1,10 @@
 import warnings
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional
 
 from .abstract_dataframe_data_reader import AbstractDataframeDataReader
 from .individual_data import IndividualData
@@ -40,12 +40,8 @@ class EventDataframeDataReader(AbstractDataframeDataReader):
         self.event_bool_name = event_bool_name
         self.nb_events = nb_events
 
-    ######################################################
-    #               ABSTRACT METHODS IMPLEMENTED
-    ######################################################
-
     @staticmethod
-    def _check_headers(columns: List[str]) -> None:
+    def _check_headers(columns: list[str]) -> None:
         """
         Check mendatory dataframe headers
 

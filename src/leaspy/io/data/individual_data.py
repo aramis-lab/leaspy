@@ -1,10 +1,11 @@
 from bisect import bisect
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError, LeaspyInputError, LeaspyTypeError
-from leaspy.utils.typing import Any, Dict, FeatureType, IDType, List
+from leaspy.utils.typing import FeatureType, IDType
 
 __all__ = ["IndividualData"]
 
@@ -41,10 +42,10 @@ class IndividualData:
         self.observations: np.ndarray = None
         self.event_time: Optional[np.ndarray] = None
         self.event_bool: Optional[np.ndarray] = None
-        self.cofactors: Dict[FeatureType, Any] = {}
+        self.cofactors: dict[FeatureType, Any] = {}
 
     def add_observations(
-        self, timepoints: List[float], observations: List[List[float]]
+        self, timepoints: list[float], observations: list[list[float]]
     ) -> None:
         """
         Include new observations and associated timepoints
@@ -77,7 +78,7 @@ class IndividualData:
                     [self.observations[:index], [obs], self.observations[index:]]
                 )
 
-    def add_event(self, event_time: List[float], event_bool: List[bool]) -> None:
+    def add_event(self, event_time: list[float], event_bool: list[bool]) -> None:
         """
         Include event time and associated censoring bool
 
@@ -92,7 +93,7 @@ class IndividualData:
         self.event_time = np.array(event_time)
         self.event_bool = np.array(event_bool)
 
-    def add_cofactors(self, cofactors: Dict[FeatureType, Any]) -> None:
+    def add_cofactors(self, cofactors: dict[FeatureType, Any]) -> None:
         """
         Include new cofactors
 

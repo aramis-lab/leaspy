@@ -9,7 +9,7 @@ import torch
 
 from leaspy import __version__
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.utils.typing import KwargsType, Tuple
+from leaspy.utils.typing import KwargsType
 
 from .base import BaseModel
 
@@ -48,7 +48,7 @@ class GenericModel(BaseModel):
     # dict of {hyperparam_name: (default_value, type_hint)} instead?
     _hyperparameters: KwargsType = {}
     # top-level "hyperparameters" that are FULLY defined by others hyperparameters
-    _properties: Tuple[str, ...] = ("dimension",)
+    _properties: tuple[str, ...] = ("dimension",)
 
     # _parameters = () # names may be dynamic depending on hyperparameters...
     # _attributes = () # TODO: really pertinent? why not a model parameter? cf. "mixing_matrix"

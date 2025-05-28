@@ -1,13 +1,12 @@
 import abc
 from collections.abc import Sequence
 from random import shuffle
-from typing import ClassVar
+from typing import ClassVar, Union
 
 import torch
 from numpy import ndindex
 
 from leaspy.exceptions import LeaspyInputError
-from leaspy.utils.typing import List, Tuple, Union
 from leaspy.variables.state import State
 
 from .base import AbstractIndividualSampler, AbstractPopulationSampler
@@ -22,7 +21,7 @@ __all__ = [
     "IndividualGibbsSampler",
 ]
 
-IteratorIndicesType = List[Tuple[int, ...]]
+IteratorIndicesType = list[tuple[int, ...]]
 
 
 class GibbsSamplerMixin:
@@ -83,7 +82,7 @@ class GibbsSamplerMixin:
         *,
         scale: Union[float, torch.FloatTensor],
         random_order_dimension: bool = True,
-        mean_acceptation_rate_target_bounds: Tuple[float, float] = (0.2, 0.4),
+        mean_acceptation_rate_target_bounds: tuple[float, float] = (0.2, 0.4),
         adaptive_std_factor: float = 0.1,
         **base_sampler_kws,
     ):
@@ -101,16 +100,16 @@ class GibbsSamplerMixin:
 
     @property
     @abc.abstractmethod
-    def shape_adapted_std(self) -> Tuple[int, ...]:
+    def shape_adapted_std(self) -> tuple[int, ...]:
         """Shape of adaptative variance."""
 
     @property
-    def shape_acceptation(self) -> Tuple[int, ...]:
+    def shape_acceptation(self) -> tuple[int, ...]:
         """Shape of adaptative variance."""
         return self.shape_adapted_std
 
     def _set_acceptation_bounds(
-        self, mean_acceptation_rate_target_bounds: Tuple[float, float]
+        self, mean_acceptation_rate_target_bounds: tuple[float, float]
     ) -> None:
         if not (
             isinstance(mean_acceptation_rate_target_bounds, Sequence)
@@ -174,7 +173,7 @@ class GibbsSamplerMixin:
         return f"{self.name} rate : {mean_acceptation_rate.item():.1%}, std: {mean_std.item():.1e}"
 
     @property
-    def _meaningful_indices(self) -> Tuple[torch.Tensor, ...]:
+    def _meaningful_indices(self) -> tuple[torch.Tensor, ...]:
         """
         Return the subset of indices that are relevant for both adapted-variance
         and acceptations tensors.
@@ -364,7 +363,7 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
     def _should_mask_changes(self) -> bool:
         return self.mask is not None
 
-    def _proposed_change_idx(self, idx: Tuple[int, ...]) -> torch.Tensor:
+    def _proposed_change_idx(self, idx: tuple[int, ...]) -> torch.Tensor:
         """
         The previous version with `_proposal` was not incorrect but computationally inefficient:
         because we were sampling on the full shape of `std` whereas we only needed `std[idx]` (smaller)
@@ -429,7 +428,7 @@ class PopulationGibbsSampler(AbstractPopulationGibbsSampler):
         *,
         scale: Union[float, torch.FloatTensor],
         random_order_dimension: bool = True,
-        mean_acceptation_rate_target_bounds: Tuple[float, float] = (0.2, 0.4),
+        mean_acceptation_rate_target_bounds: tuple[float, float] = (0.2, 0.4),
         adaptive_std_factor: float = 0.1,
         **base_sampler_kws,
     ):
@@ -618,7 +617,7 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         n_patients: int,
         scale: Union[float, torch.FloatTensor],
         random_order_dimension: bool = True,
-        mean_acceptation_rate_target_bounds: Tuple[float, float] = (0.2, 0.4),
+        mean_acceptation_rate_target_bounds: tuple[float, float] = (0.2, 0.4),
         adaptive_std_factor: float = 0.1,
         **base_sampler_kws,
     ):

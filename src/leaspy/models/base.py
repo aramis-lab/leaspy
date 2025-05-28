@@ -1,10 +1,11 @@
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Optional
 
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.typing import FeatureType, List, Optional
+from leaspy.utils.typing import FeatureType
 
 __all__ = [
     "InitializationMethod",
@@ -50,15 +51,15 @@ class BaseModel(ABC):
     def __init__(self, name: str, **kwargs):
         self.is_initialized: bool = False
         self.name = name
-        self._features: Optional[List[FeatureType]] = None
+        self._features: Optional[list[FeatureType]] = None
         self._dimension: Optional[int] = None
 
     @property
-    def features(self) -> Optional[List[FeatureType]]:
+    def features(self) -> Optional[list[FeatureType]]:
         return self._features
 
     @features.setter
-    def features(self, features: Optional[List[FeatureType]]):
+    def features(self, features: Optional[list[FeatureType]]):
         """
         Features setter.
         Ensure coherence between dimension and features attributes.
@@ -156,7 +157,7 @@ class BaseModel(ABC):
             warn_msg = "<!> Re-initializing an already initialized model."
             if dataset and dataset.headers != self.features:
                 warn_msg += (
-                    f" Overwritting previous model features ({self.features}) "
+                    f" Overwriting previous model features ({self.features}) "
                     f"with new ones ({dataset.headers})."
                 )
                 self.features = (
