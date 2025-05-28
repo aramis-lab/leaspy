@@ -6,13 +6,14 @@ import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Optional, Type, Union
+from typing import Generic, Optional, Type, TypeVar, Union
 
 import numpy as np
 import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.models import McmcSaemCompatibleModel
+from leaspy.io.data import Dataset
+from leaspy.models import ModelType
 
 from .settings import AlgorithmSettings, OutputsSettings
 
@@ -24,6 +25,9 @@ __all__ = [
     "get_algorithm_class",
     "algorithm_factory",
 ]
+
+
+ReturnType = TypeVar("ReturnType")
 
 
 class AlgorithmType(str, Enum):
@@ -47,9 +51,9 @@ class AlgorithmName(str, Enum):
     SIMULATE = "simulation"
 
 
-class AbstractAlgo(ABC):
-    """
-    Abstract class containing common methods for all algorithm classes.
+class AbstractAlgo(ABC, Generic[ModelType, ReturnType]):
+    """Abstract class containing common methods for all algorithm classes.
+
     These classes are children of `AbstractAlgo`.
 
     Parameters
@@ -73,7 +77,6 @@ class AbstractAlgo(ABC):
         Seed used by :mod:`numpy` and :mod:`torch`.
     """
 
-    # Identifier of algorithm (classes variables)
     name: AlgorithmName = None
     family: AlgorithmType = None
     deterministic: bool = False
@@ -86,7 +89,7 @@ class AbstractAlgo(ABC):
         self.seed = settings.seed
         # we deepcopy the settings.parameters, because those algo_parameters may be
         # modified within algorithm (e.g. `n_burn_in_iter`) and we would not want the original
-        # settings parameters to be also modified (e.g. to be able to re-use them without any trouble)
+        # settings parameters to be also modified (e.g. to be able to reuse them without any trouble)
         self.algo_parameters = deepcopy(settings.parameters)
         self.output_manager = None
 
@@ -96,8 +99,7 @@ class AbstractAlgo(ABC):
 
     @staticmethod
     def _initialize_seed(seed: Optional[int]):
-        """
-        Set :mod:`random`, :mod:`numpy` and :mod:`torch` seeds and display it (static method).
+        """Set :mod:`random`, :mod:`numpy` and :mod:`torch` seeds and display it (static method).
 
         Notes - numpy seed is needed for reproducibility for the simulation algorithm which use the scipy kernel
         density estimation function. Indeed, scipy use numpy random seed.
@@ -117,84 +119,72 @@ class AbstractAlgo(ABC):
     @abstractmethod
     def run_impl(
         self,
-        model: McmcSaemCompatibleModel,
-        *args,
-        **extra_kwargs,
-    ) -> tuple[Any, Optional[torch.Tensor]]:
-        """
-        Run the algorithm (actual implementation), to be implemented in children classes.
-
+        model: ModelType,
+        dataset: Dataset,
+        **kwargs,
+    ) -> ReturnType:
+        """Run the algorithm (actual implementation), to be implemented in children classes.
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
+        model : :class:`~leaspy.models.BaseModel`
             The used model.
+
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
 
         Returns
         -------
-        A 2-tuple containing:
-            * the result to send back to user
-            * optional float tensor representing loss (to be printed)
+        ReturnType :
+            Depends on the algorithm.
 
         See Also
         --------
         :class:`.AbstractFitAlgo`
         :class:`.AbstractPersonalizeAlgo`
-        :class:`.SimulationAlgorithm`
         """
+        raise NotImplementedError
 
-    def run(self, model: McmcSaemCompatibleModel, *args, **extra_kwargs) -> Any:
-        """
-        Main method, run the algorithm.
-
-        TODO fix proper abstract class method: input depends on algorithm... (esp. simulate != from others...)
+    def run(self, model: ModelType, dataset: Dataset, **kwargs) -> ReturnType:
+        """Main method, run the algorithm.
 
         Parameters
         ----------
-        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
+        model : :class:`~leaspy.models.BaseModel`
             The used model.
+
         dataset : :class:`~leaspy.io.data.Dataset`
             Contains all the subjects' observations with corresponding timepoints, in torch format to speed up computations.
 
         Returns
         -------
-        Depends on algorithm class: TODO change?
+        ReturnType:
+            Depends on algorithm class.
 
         See Also
         --------
         :class:`.AbstractFitAlgo`
         :class:`.AbstractPersonalizeAlgo`
-        :class:`.SimulationAlgorithm`
         """
-
-        # Check algo is well-defined
         if self.algo_parameters is None:
             raise LeaspyAlgoInputError(
                 f"The `{self.name}` algorithm was not properly created."
             )
-
         self._initialize_seed(self.seed)
-
         time_beginning = time.time()
-
-        output = self.run_impl(model, *args, **extra_kwargs)
-
+        output = self.run_impl(model, dataset, **kwargs)
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get("progress_bar"):
-            # new line for clarity
             print()
         print(
             f"\n{self.family.value.title()} with `{self.name}` took: {self._duration_to_str(duration_in_seconds)}"
         )
-
         return output
 
     def load_parameters(self, parameters: dict):
-        """
-        Update the algorithm's parameters by the ones in the given dictionary. The keys in the input which does not
-        belong to the algorithm's parameters are ignored.
+        """Update the algorithm's parameters by the ones in the given dictionary.
+
+        The keys in the input which does not belong to the algorithm's parameters are ignored.
 
         Parameters
         ----------
@@ -332,7 +322,7 @@ class AbstractAlgo(ABC):
     def _get_progress_str(self) -> Optional[str]:
         # TODO in a special mixin for sequential algos with nb of iters (MCMC fit, MCMC personalize)
         if not hasattr(self, "current_iteration"):
-            return
+            return None
         return f"Iteration {self.current_iteration} / {self.algo_parameters['n_iter']}"
 
     def __str__(self):
@@ -347,8 +337,7 @@ class AbstractAlgo(ABC):
 
 
 def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
-    """
-    Return the algorithm type.
+    """Return the algorithm type.
 
     Parameters
     ----------
