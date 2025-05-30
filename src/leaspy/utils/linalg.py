@@ -4,6 +4,7 @@ from leaspy.exceptions import LeaspyModelInputError
 
 __all__ = [
     "compute_orthonormal_basis",
+    "compute_orthonormal_basis_batch",
 ]
 
 
@@ -118,3 +119,18 @@ def compute_orthonormal_basis(
 
     # concat columns (get rid of the one collinear to `dgamma_t0`)
     return torch.cat((q_matrix[:, :strip_col], q_matrix[:, strip_col + 1 :]), dim=1)
+
+
+def compute_orthonormal_basis_batch(
+    dgamma_t0: torch.Tensor, G_metric: torch.Tensor, *, strip_col: int = 0
+) -> torch.Tensor:
+    """
+    Applique compute_orthonormal_basis individuellement à chaque (dgamma_t0[i], G_metric[i]).
+    """
+    bases = []
+    for i in range(dgamma_t0.shape[0]):
+        basis_i = compute_orthonormal_basis(
+            dgamma_t0[i], G_metric[i], strip_col=strip_col
+        )
+        bases.append(basis_i)
+    return torch.stack(bases)  # -> shape (N, D, D-1)

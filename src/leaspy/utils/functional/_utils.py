@@ -42,11 +42,41 @@ def _affine_from_vector(
     """
     Affine transformation from (slope, intercept) and input x:
     y = slope * x + intercept
-
     Supports broadcasting.
     """
+    print("coeffs: ", coeffs)
+    print("coeffs.shape =", coeffs.shape)
+    print("covariates.shape =", x.shape)
+
+    if coeffs.dim() == 3 and coeffs.shape[1] == 1:
+        coeffs = coeffs.squeeze(1)  # enlève la dimension de taille 1 au milieu
+
     slope, intercept = coeffs.unbind(-1)
-    return slope * x + intercept
+
+    if hasattr(x, "value"):
+        x_tensor = x.value
+    else:
+        x_tensor = x
+
+    if coeffs.dim() == 1:
+        return slope * x_tensor + intercept
+
+    elif coeffs.dim() == 2:
+        slope = slope.unsqueeze(-1)
+        intercept = intercept.unsqueeze(-1)
+        if x_tensor.dim() == 1:
+            x_tensor = x_tensor.unsqueeze(0)
+        return slope * x_tensor + intercept
+
+    else:
+        raise ValueError("coeffs doit être de dimension (2,) ou (n,2)")
+
+
+def _unique_wrapper(x) -> torch.Tensor:
+    # Si c'est un WeightedTensor, récupère son .weighted_value, sinon laisse tel quel
+    if isinstance(x, WeightedTensor):
+        x = x.weighted_value
+    return torch.unique(x)
 
 
 def get_named_parameters(f: Callable) -> Tuple[str, ...]:

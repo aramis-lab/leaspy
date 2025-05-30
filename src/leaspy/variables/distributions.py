@@ -380,6 +380,10 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
+    def shape(cls, loc_shape, scale_shape, coeff_corr_shape):
+        return loc_shape
+
+    @classmethod
     def dist_factory(
         cls,
         loc: torch.Tensor,

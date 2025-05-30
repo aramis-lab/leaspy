@@ -5,11 +5,13 @@ from ._functions import (
     MatMul,
     Mean,
     OrthoBasis,
+    OrthoBasisBatch,
     Prod,
     Sqr,
     Std,
     Sum,
     SumDim,
+    Unique,
 )
 from ._named_input_function import NamedInputFunction
 from ._utils import get_named_parameters
@@ -22,10 +24,12 @@ __all__ = [
     "Mean",
     "NamedInputFunction",
     "OrthoBasis",
+    "OrthoBasisBatch",
     "Prod",
     "Sqr",
     "Std",
     "Sum",
     "SumDim",
     "AffineFromVector",
+    "Unique",
 ]

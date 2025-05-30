@@ -6,7 +6,14 @@ import torch
 
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import AffineFromVector, Exp, OrthoBasis, Sqr
+from leaspy.utils.functional import (
+    AffineFromVector,
+    Exp,
+    OrthoBasis,
+    OrthoBasisBatch,
+    Sqr,
+    Unique,
+)
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
@@ -174,7 +181,8 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
                 BivariateNormal("phi_v0_mean", "phi_v0_std", "rho_v0")
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
-            log_v0=LinkedVariable(AffineFromVector("phi_v0", "covariates")),
+            unique_covariates=LinkedVariable(Unique("covariates")),
+            log_v0=LinkedVariable(AffineFromVector("phi_v0", "unique_covariates")),
             v0=LinkedVariable(Exp("log_v0")),
             metric=LinkedVariable(
                 self.metric
@@ -185,7 +193,7 @@ class CovariateMultivariateModel(CovariateAbstractMultivariateModel):
             d.update(
                 model=LinkedVariable(self.model_with_sources),
                 metric_sqr=LinkedVariable(Sqr("metric")),
-                orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr")),
+                orthonormal_basis=LinkedVariable(OrthoBasisBatch("v0", "metric_sqr")),
             )
         else:
             d["model"] = LinkedVariable(self.model_no_sources)
@@ -434,7 +442,7 @@ class CovariateLogisticMultivariateModel(
             ),  # phi_g = (phi_mod_g, phi_ref_g)
             # LINKED VARS
             log_g=LinkedVariable(
-                AffineFromVector("phi_g", "covariates")
+                AffineFromVector("phi_g", "unique_covariates")
             ),  # log_g=phi_mod_g*covariate+phi_ref_g
             g=LinkedVariable(Exp("log_g")),
         )

@@ -11,7 +11,6 @@ from leaspy.utils.functional import AffineFromVector, Exp, MatMul
 from leaspy.utils.typing import KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.distributions import BivariateNormal, Normal
-from leaspy.variables.state import State
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,
@@ -21,6 +20,7 @@ from leaspy.variables.specs import (
     NamedVariables,
     PopulationLatentVariable,
 )
+from leaspy.variables.state import State
 
 from .abstract_model import AbstractModel
 from .obs_models import observation_model_factory
@@ -29,7 +29,7 @@ __all__ = ["CovariateAbstractMultivariateModel"]
 
 
 @doc_with_super()
-class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
+class CovariateAbstractMultivariateModel(AbstractModel):
     """
     Contains the common attributes & methods of the multivariate models.
 
@@ -168,7 +168,7 @@ class CovariateAbstractMultivariateModel(AbstractModel):  # OrdinalModelMixin,
     def put_data_variables(self, state: State, dataset: Dataset) -> None:
         super().put_data_variables(state, dataset)
 
-        covariates_tensor = torch.tensor(dataset.covariates, dtype=torch.int)
+        covariates_tensor = dataset.covariates.clone().detach().to(torch.int)
         state["covariates"] = WeightedTensor(covariates_tensor)
 
     def _validate_compatibility_of_dataset(
