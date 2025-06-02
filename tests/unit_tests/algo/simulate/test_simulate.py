@@ -22,7 +22,7 @@ class SimulateAlgoTest(LeaspyTestCase):
     def setUpClass(cls):
         temp_instance = cls()
 
-        putamen_df = load_dataset("parkinson-multivariate")
+        putamen_df = load_dataset("parkinson")
         data = Data.from_dataframe(
             putamen_df[
                 [

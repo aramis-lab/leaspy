@@ -1,4 +1,5 @@
 import json
+import warnings
 from abc import ABC
 from enum import Enum
 
@@ -14,7 +15,7 @@ from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.data import Data
 from leaspy.io.outputs import IndividualParameters
 from leaspy.io.outputs.result import Result
-from leaspy.models import AbstractModel
+from leaspy.models import McmcSaemCompatibleModel
 
 
 class VisitType(str, Enum):
@@ -22,7 +23,7 @@ class VisitType(str, Enum):
     RANDOM = "random"  # Random spaced visits
 
 
-class SimulationAlgorithm(AbstractAlgo):
+class SimulationAlgorithm(AbstractAlgo[McmcSaemCompatibleModel, Result]):
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
 
@@ -126,7 +127,9 @@ class SimulationAlgorithm(AbstractAlgo):
                     f"given {type(value).__name__}"
                 )
             if value < 0:
-                value_errors.append("Parameter 'min_spacing_between_visits' cannot be negative")
+                value_errors.append(
+                    "Parameter 'min_spacing_between_visits' cannot be negative"
+                )
 
         errors = []
         if missing_params:
@@ -138,13 +141,13 @@ class SimulationAlgorithm(AbstractAlgo):
         if errors:
             raise LeaspyAlgoInputError("\n".join(errors))
 
-    def _check_logistic_model(self, model: AbstractModel):
+    def _check_logistic_model(self, model: McmcSaemCompatibleModel):
         """Check if the model is a logistic model.
 
         This method checks if the model type is 'logistic' and raises an error if not.
         Parameters
         ----------
-        model : :class:~.models.abstract_model.AbstractModel
+        model : :class:~.models.abstract_model.McmcSaemCompatibleModel
             A Leaspy model object previously trained on longitudinal data.
         Raises
         ------
@@ -276,7 +279,7 @@ class SimulationAlgorithm(AbstractAlgo):
                     "min_spacing_between_visits"
                 ]
 
-    def run_impl(self, model: AbstractModel) -> Result:
+    def run_impl(self, model: McmcSaemCompatibleModel) -> Result:
         """Run the simulation pipeline using a leaspy model.
 
         This method simulates longitudinal data using the given leaspy model.
@@ -291,7 +294,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:~.models.abstract_model.AbstractModel
+        model : :class:~.models.abstract_model.McmcSaemCompatibleModel
             A Leaspy model object previously trained on longitudinal data.
 
         Returns
@@ -332,7 +335,7 @@ class SimulationAlgorithm(AbstractAlgo):
         return result_obj
 
     def _sample_individual_parameters_from_model_parameters(
-        self, model: AbstractModel
+        self, model: McmcSaemCompatibleModel
     ) -> pd.DataFrame:
         """
         Generate individual parameters for repeated measures simulation, from the model parameters of the loaded model.
@@ -344,7 +347,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:~.models.abstract_model.AbstractModel
+        model : :class:~.models.abstract_model.McmcSaemCompatibleModel
             A Leaspy model instance containing model parameters,
             among which the mean and standard deviation values for xi, tau, and the mixing matrix.
 
@@ -419,7 +422,7 @@ class SimulationAlgorithm(AbstractAlgo):
             [individual_parameters_from_model_parameters, space_shifts], axis=1
         )
 
-    def _get_leaspy_model(self, model: AbstractModel) -> None:
+    def _get_leaspy_model(self, model: McmcSaemCompatibleModel) -> None:
         """
         Initialize and store a Leaspy model instance.
 
@@ -428,7 +431,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
         Parameters
         ----------
-        model : :class:~.models.abstract_model.AbstractModel
+        model : :class:~.models.abstract_model.McmcSaemCompatibleModel
             A pre-trained Leaspy model to be used for simulation (compute observations).
 
         Returns
@@ -517,7 +520,7 @@ class SimulationAlgorithm(AbstractAlgo):
 
     def _generate_dataset(
         self,
-        model: AbstractModel,
+        model: McmcSaemCompatibleModel,
         dict_timepoints: dict,
         individual_parameters_from_model_parameters: pd.DataFrame,
         min_spacing_between_visits: float,
@@ -529,12 +532,12 @@ class SimulationAlgorithm(AbstractAlgo):
         values based on the simulated individual parameters: xi, tau and the sources.
         It then adds a beta noise to the simulated values.
         If the visits time are too close to each other, we keep only the first occurrence.
-        The user can fix a min delta between two visits. When the delta between the simulated visits is below the threshold, we keep only the first occurence.
+        The user can fix a min delta between two visits. When the delta between the simulated visits is below the threshold, we keep only the first occurrence.
         Min delta spacing is 1 day by default, considering that TIME is in years. If TIME is in another time units, the min_spacing_between_visits will have to be updated
 
         Parameters
         ----------
-        model : :class::~.models.abstract_model.AbstractModel
+        model : :class::~.models.abstract_model.McmcSaemCompatibleModel
             The model used for estimating the individual parameters (in get_ip_rm function) and generating
             the simulated values.
 
@@ -592,6 +595,11 @@ class SimulationAlgorithm(AbstractAlgo):
             # Clamp variance where necessary (too big variance and mu too close to 1)
             max_var = mu * (1 - mu)
             adj_var = np.minimum(var, 0.99 * max_var)
+            if adj_var != var:
+                # If variance is adjusted, we warn the user
+                warnings.warn(
+                    f"Visits chosen for simulation corresponds to patients too advanced in the disease. "
+                )
 
             # Mean and variance parametrization
             alpha_param = mu * ((mu * (1 - mu) / adj_var) - 1)
