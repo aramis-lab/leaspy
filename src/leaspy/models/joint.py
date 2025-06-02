@@ -22,8 +22,8 @@ from leaspy.variables.specs import (
 from leaspy.variables.state import State
 
 from .base import InitializationMethod
-from .multivariate import LogisticModel
 from .obs_models import observation_model_factory
+from .riemanian_manifold import LogisticModel
 
 __all__ = ["JointModel"]
 
