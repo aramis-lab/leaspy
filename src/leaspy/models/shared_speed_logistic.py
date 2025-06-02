@@ -18,13 +18,13 @@ from leaspy.variables.specs import (
 )
 
 from .base import InitializationMethod
-from .multivariate import LogisticInitializationMixin
-from .riemanian_manifold import RiemanianManifoldModel
+from .riemanian_manifold import LogisticInitializationMixin
+from .time_reparametrized import TimeReparametrizedModel
 
 __all__ = ["SharedSpeedLogisticModel"]
 
 
-class SharedSpeedLogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
+class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedModel):
     """
     Logistic model for multiple variables of interest, imposing same average
     evolution pace for all variables (logistic curves are only time-shifted).

@@ -1,6 +1,6 @@
 import torch
 
-from leaspy.models.multivariate import LogisticModel
+from leaspy.models import LogisticModel
 from tests import LeaspyTestCase
 
 
