@@ -3,7 +3,7 @@ import pandas as pd
 import torch
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.others import LMEPersonalizeAlgorithm
+from leaspy.algo.personalize import LMEPersonalizeAlgorithm
 from leaspy.io.data import Data, Dataset
 from leaspy.models import LMEModel
 from tests import LeaspyTestCase
@@ -16,7 +16,7 @@ class LMEPersonalizeAlgorithmTest(LeaspyTestCase):
         super().setUpClass()
 
         # Leaspy
-        cls.model = LMEModel("lme", with_random_slope_age=False)
+        cls.model = LMEModel(name="lme", with_random_slope_age=False)
         # TODO? redo test with realistic values...?
         cls.parameters = {
             "ages_mean": 0.0,

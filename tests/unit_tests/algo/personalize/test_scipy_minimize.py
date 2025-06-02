@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.personalize import ScipyMinimize
+from leaspy.algo.personalize import ScipyMinimizeAlgorithm
 from leaspy.io.data import Data, Dataset
 from leaspy.models import BaseModel
 from leaspy.models.obs_models import (
@@ -28,8 +28,8 @@ class ScipyMinimizeTest(LeaspyTestCase):
         return AlgorithmSettings("scipy_minimize")
 
     @property
-    def default_algorithm(self) -> ScipyMinimize:
-        return ScipyMinimize(self.default_settings)
+    def default_algorithm(self) -> ScipyMinimizeAlgorithm:
+        return ScipyMinimizeAlgorithm(self.default_settings)
 
     def check_individual_parameters(
         self,
@@ -67,11 +67,11 @@ class ScipyMinimizeTest(LeaspyTestCase):
         self.assertEqual(self.default_algorithm.seed, None)
         self.assertEqual(
             self.default_algorithm.scipy_minimize_params,
-            ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN,
+            ScipyMinimizeAlgorithm.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN,
         )
         self.assertEqual(
             self.default_algorithm.format_convergence_issues,
-            ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES,
+            ScipyMinimizeAlgorithm.DEFAULT_FORMAT_CONVERGENCE_ISSUES,
         )
         self.assertEqual(self.default_algorithm.logger.__name__, "_default_logger")
 
@@ -88,18 +88,17 @@ class ScipyMinimizeTest(LeaspyTestCase):
                 "custom_format_convergence_issues": None,
             },
         )
-
-        algo = ScipyMinimize(settings)
+        algo = ScipyMinimizeAlgorithm(settings)
 
         self.assertEqual(algo.name, "scipy_minimize")
         self.assertEqual(algo.seed, None)
         self.assertEqual(
             algo.scipy_minimize_params,
-            ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN,
+            ScipyMinimizeAlgorithm.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN,
         )
         self.assertEqual(
             algo.format_convergence_issues,
-            ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES,
+            ScipyMinimizeAlgorithm.DEFAULT_FORMAT_CONVERGENCE_ISSUES,
         )
         self.assertEqual(algo.logger, algo._default_logger)
 
@@ -124,7 +123,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
             custom_scipy_minimize_params=custom_scipy_minimize_params,
         )
         settings.logger = custom_logger
-        algo = ScipyMinimize(settings)
+        algo = ScipyMinimizeAlgorithm(settings)
         self.assertEqual(algo.name, "scipy_minimize")
         self.assertEqual(algo.seed, 24)
         self.assertEqual(
@@ -178,7 +177,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
             no_warning=True,
         )
         with self.assertWarnsRegex(UserWarning, r"`use_jacobian\s?=\s?False`"):
-            self.default_algorithm._get_individual_parameters(model, mini_dataset)
+            self.default_algorithm._compute_individual_parameters(model, mini_dataset)
 
     @skip("Broken : ScipyMinimize has not _pull_individual_parameters method")
     def test_get_reconstruction_error(self):
@@ -377,7 +376,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
             leaspy.model.obs_model = (observation_model_factory(obs_model),)
 
         settings = AlgorithmSettings("scipy_minimize", seed=0, **algo_kwargs)
-        algo = ScipyMinimize(settings)
+        algo = ScipyMinimizeAlgorithm(settings)
 
         # manually initialize seed since it's not done by algo itself (no call to run afterwards)
         algo._initialize_seed(algo.seed)

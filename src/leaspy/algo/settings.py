@@ -326,8 +326,8 @@ class AlgorithmSettings:
         """
         Check internal consistency of algorithm settings and warn or raise a `LeaspyAlgoInputError` if not.
         """
-        from leaspy.algo import AlgorithmType, get_algorithm_class, get_algorithm_type
-        from leaspy.algo.utils import AlgoWithDeviceMixin
+        from .algo_with_device import AlgorithmWithDeviceMixin
+        from .base import AlgorithmType, get_algorithm_class, get_algorithm_type
 
         if (
             self.model_initialization_method is not None
@@ -342,7 +342,9 @@ class AlgorithmSettings:
             warnings.warn(
                 f"You can skip defining `seed` since the algorithm {self.name} is deterministic."
             )
-        if hasattr(self, "device") and not issubclass(algo_class, AlgoWithDeviceMixin):
+        if hasattr(self, "device") and not issubclass(
+            algo_class, AlgorithmWithDeviceMixin
+        ):
             warnings.warn(
                 f'The algorithm "{self.name}" does not support user-specified devices (this '
                 "is supported only for specific algorithms) and will use the default device (CPU)."
@@ -372,8 +374,7 @@ class AlgorithmSettings:
 
     @classmethod
     def load(cls, path_to_algorithm_settings: Union[str, Path]):
-        """
-        Instantiate a AlgorithmSettings object a from json file.
+        """Instantiate a AlgorithmSettings object a from json file.
 
         Parameters
         ----------

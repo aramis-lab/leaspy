@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.others import ConstantPredictionAlgorithm
+from leaspy.algo.personalize import ConstantPredictionAlgorithm
 from leaspy.io.data import Data, Dataset
-from leaspy.models.constant import ConstantModel
+from leaspy.models import ConstantModel
 from tests import LeaspyTestCase
 
 
@@ -36,12 +36,12 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
         self.assertTrue(algo.deterministic)
         self.assertEqual(algo.family, "personalize")
 
-        for prediction_type in ["last", "last_known", "max", "mean"]:
+        for prediction_type in ["last", "last-known", "max", "mean"]:
             settings = AlgorithmSettings(
                 "constant_prediction", prediction_type=prediction_type
             )
             algo = ConstantPredictionAlgorithm(settings)
-            self.assertEqual(algo.prediction_type, prediction_type)
+            self.assertEqual(algo.prediction_type.value, prediction_type)
 
     def test_get_individual_last_values(self):
         times = [31, 32, 34, 33]
@@ -51,7 +51,7 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
 
         results = [
             ("last", {"A": None, "B": 2.0}),
-            ("last_known", {"A": 3.0, "B": 2.0}),
+            ("last-known", {"A": 3.0, "B": 2.0}),
             ("max", {"A": 3.0, "B": 2.0}),
             ("mean", {"A": 2.0, "B": 1.0}),
         ]
@@ -61,7 +61,9 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
                 "constant_prediction", prediction_type=prediction_type
             )
             algo = ConstantPredictionAlgorithm(settings)
-            ind_ip = algo._get_individual_last_values(times, values, fts=["A", "B"])
+            ind_ip = algo._get_individual_last_values(
+                times, values, features=["A", "B"]
+            )
 
             # replace nans by None for comparisons
             ind_ip = {k: None if isnan(v) else v for k, v in ind_ip.items()}
@@ -71,7 +73,7 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
     def test_run_last(self):
         results = [
             ("last", {"1": {"A": 3.0, "B": float("nan")}}),
-            ("last_known", {"1": {"A": 3, "B": 3.0}}),
+            ("last-known", {"1": {"A": 3, "B": 3.0}}),
             ("max", {"1": {"A": 4.0, "B": 3.0}}),
             ("mean", {"1": {"A": 3.0, "B": 2.0}}),
         ]
@@ -81,7 +83,7 @@ class ConstantPredictionAlgorithmTest(LeaspyTestCase):
                 "constant_prediction", prediction_type=pred_type
             )
             algo = ConstantPredictionAlgorithm(settings)
-            model = ConstantModel("constant")
+            model = ConstantModel(name="constant")
 
             ip = algo.run(model, self.dataset)
             self.assertListEqual(ip._indices, ["1"])

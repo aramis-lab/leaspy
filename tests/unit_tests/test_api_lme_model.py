@@ -6,7 +6,7 @@ import statsmodels.formula.api as smf
 from statsmodels.regression.mixed_linear_model import MixedLMParams
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.others import LMEFitAlgorithm
+from leaspy.algo.fit import LMEFitAlgorithm
 from leaspy.api import Leaspy
 from leaspy.io.data import Data
 from tests import LeaspyTestCase

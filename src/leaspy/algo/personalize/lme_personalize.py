@@ -3,19 +3,18 @@ import warnings
 import numpy as np
 import statsmodels.api as sm
 
+from leaspy.io.data import Dataset
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from leaspy.models import LMEModel
 
-from ..base import AbstractAlgo, AlgorithmName, AlgorithmType
+from ..base import AlgorithmName
+from .base import PersonalizeAlgorithm
 
 __all__ = ["LMEPersonalizeAlgorithm"]
 
 
-class LMEPersonalizeAlgorithm(AbstractAlgo):
-    r"""
-    Personalization algorithm associated to :class:`~.models.lme_model.LMEModel`
-
-    TODO: it should be a child of `AbstractPersonalizeAlgorithm` (refactoring needed)
+class LMEPersonalizeAlgorithm(PersonalizeAlgorithm[LMEModel, IndividualParameters]):
+    r"""Personalization algorithm associated to :class:`~leaspy.models.LMEModel`.
 
     Parameters
     ----------
@@ -29,50 +28,28 @@ class LMEPersonalizeAlgorithm(AbstractAlgo):
     """
 
     name: AlgorithmName = AlgorithmName.PERSONALIZE_LME
-    family: AlgorithmType = AlgorithmType.PERSONALIZE
     deterministic: bool = True
 
-    def run_impl(self, model, dataset):
-        """
-        Main method, refer to abstract definition in :meth:`~.algo.personalize.abstract_personalize_algo.AbstractPersonalizeAlgo.run`.
-
-        TODO fix proper inheritance
-
-        Parameters
-        ----------
-        model : :class:`~.models.LMEModel`
-            The used model
-        dataset : :class:`.Dataset`
-            Dataset object
-
-        Returns
-        -------
-        individual_parameters : :class:`.IndividualParameters`
-            Contains individual parameters.
-        """
-
-        ip = IndividualParameters()
+    def _compute_individual_parameters(
+        self, model: LMEModel, dataset: Dataset, **kwargs
+    ) -> IndividualParameters:
+        individual_parameters = IndividualParameters()
         residuals = []
-
         if model.features != dataset.headers:
             raise ValueError(
                 "Your data and the model you are using for personalisation do not have the same headers."
             )
-
-        for it in range(dataset.n_individuals):
-            idx = dataset.indices[it]
-            times = dataset.get_times_patient(it)
-            values = dataset.get_values_patient(it).numpy()
-
+        for individual in range(dataset.n_individuals):
+            idx = dataset.indices[individual]
+            times = dataset.get_times_patient(individual)
+            values = dataset.get_values_patient(individual).numpy()
             ind_ip, ind_residuals = self._get_individual_random_effects_and_residuals(
                 model, times, values
             )
-
             residuals.append(ind_residuals)
+            individual_parameters.add_individual_parameters(str(idx), ind_ip)
 
-            ip.add_individual_parameters(str(idx), ind_ip)
-
-        return ip
+        return individual_parameters
 
     @staticmethod
     def _remove_nans(values, times):

@@ -4,7 +4,7 @@ from leaspy.algo import (
     algorithm_factory,
     get_algorithm_class,
 )
-from leaspy.algo.fit import TensorMCMCSAEM
+from leaspy.algo.fit import TensorMcmcSaemAlgorithm
 from tests import LeaspyTestCase
 
 
@@ -14,7 +14,7 @@ class TestAlgoFactory(LeaspyTestCase):
         # Test for one name
         settings = AlgorithmSettings("mcmc_saem")
         algo = algorithm_factory(settings)
-        self.assertIsInstance(algo, TensorMCMCSAEM)
+        self.assertIsInstance(algo, TensorMcmcSaemAlgorithm)
 
         # Test if raise ValueError if wrong string arg for name
         wrong_arg_exemples = ["mcmc", "blabla"]
@@ -24,7 +24,7 @@ class TestAlgoFactory(LeaspyTestCase):
 
     def test_get_class(self):
         algo_class = get_algorithm_class("mcmc_saem")
-        self.assertIs(algo_class, TensorMCMCSAEM)
+        self.assertIs(algo_class, TensorMcmcSaemAlgorithm)
 
         with self.assertRaises(ValueError):
             get_algorithm_class("unknown-algo")
