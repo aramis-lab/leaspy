@@ -9,7 +9,7 @@ import torch
 from scipy.stats import beta
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.base import AbstractAlgo, AlgorithmType
+from leaspy.algo.base import AlgorithmType, BaseAlgorithm
 from leaspy.api import Leaspy
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.data import Data
@@ -23,7 +23,7 @@ class VisitType(str, Enum):
     RANDOM = "random"  # Random spaced visits
 
 
-class SimulationAlgorithm(AbstractAlgo[McmcSaemCompatibleModel, Result]):
+class SimulationAlgorithm(BaseAlgorithm):
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
 
@@ -595,10 +595,10 @@ class SimulationAlgorithm(AbstractAlgo[McmcSaemCompatibleModel, Result]):
             # Clamp variance where necessary (too big variance and mu too close to 1)
             max_var = mu * (1 - mu)
             adj_var = np.minimum(var, 0.99 * max_var)
-            if adj_var != var:
-                # If variance is adjusted, we warn the user
+            differences = adj_var[adj_var != var]
+            for (ID, TIME), adj_val in differences.items():
                 warnings.warn(
-                    f"Visits chosen for simulation corresponds to patients too advanced in the disease. "
+                    f"Patient {ID} is too advanced in the disease at TIME {np.round(TIME, 3)}. Variance value ({np.round(var, 3)}) out of range for feature {feat}, clamped to {np.round(adj_val, 3)}."
                 )
 
             # Mean and variance parametrization

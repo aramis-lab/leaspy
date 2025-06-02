@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from leaspy.algo import AlgorithmSettings, algorithm_factory
-from leaspy.algo.base import AbstractAlgo, AlgorithmType
+from leaspy.algo.base import AlgorithmType, BaseAlgorithm
 from leaspy.algo.simulate import SimulationAlgorithm
 from leaspy.api import Leaspy
 from leaspy.datasets import load_dataset
