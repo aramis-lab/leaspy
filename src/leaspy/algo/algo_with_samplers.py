@@ -7,14 +7,13 @@ from leaspy.samplers import AbstractSampler, sampler_factory
 from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 from leaspy.variables.state import State
 
-from ..settings import AlgorithmSettings
+from .settings import AlgorithmSettings
 
-__all__ = ["AlgoWithSamplersMixin"]
+__all__ = ["AlgorithmWithSamplersMixin"]
 
 
-class AlgoWithSamplersMixin:
-    """
-    Mixin class to use in algorithms that require `samplers`.
+class AlgorithmWithSamplersMixin:
+    """Mixin class to use in algorithms that require `samplers`.
 
     Note that this mixin should be used with a class inheriting from `AbstractAlgo`, which must have `algo_parameters`
     attribute.

@@ -3,18 +3,16 @@
 from abc import abstractmethod
 
 from leaspy.io.data import Dataset
-from leaspy.io.outputs.individual_parameters import IndividualParameters
-from leaspy.models import McmcSaemCompatibleModel
+from leaspy.io.outputs import IndividualParameters
+from leaspy.models import ModelType
 
-from ..base import AbstractAlgo, AlgorithmType
+from ..base import AlgorithmType, IterativeAlgorithm, ReturnType
 from ..settings import OutputsSettings
 
-__all__ = ["AbstractPersonalizeAlgo"]
+__all__ = ["PersonalizeAlgorithm"]
 
 
-class AbstractPersonalizeAlgo(
-    AbstractAlgo[McmcSaemCompatibleModel, IndividualParameters]
-):
+class PersonalizeAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
     """Abstract class for `personalize` algorithm.
 
     Estimation of individual parameters of a given `Data` file with
@@ -48,9 +46,7 @@ class AbstractPersonalizeAlgo(
         """
         pass
 
-    def run_impl(
-        self, model: McmcSaemCompatibleModel, dataset: Dataset, **kwargs
-    ) -> IndividualParameters:
+    def _run(self, model: ModelType, dataset: Dataset, **kwargs) -> ReturnType:
         r"""Main personalize function, wraps the abstract :meth:`._get_individual_parameters` method.
 
         Parameters
@@ -66,30 +62,10 @@ class AbstractPersonalizeAlgo(
         individual_parameters : :class:`.IndividualParameters`
             Contains individual parameters.
         """
-        individual_parameters = self._get_individual_parameters(model, dataset)
-        local_state = model.state.clone(disable_auto_fork=True)
-        model.put_data_variables(local_state, dataset)
-        _, pyt_individual_parameters = individual_parameters.to_pytorch()
-        for ip, ip_vals in pyt_individual_parameters.items():
-            local_state[ip] = ip_vals
-        return individual_parameters
+        return self._compute_individual_parameters(model, dataset, **kwargs)
 
     @abstractmethod
-    def _get_individual_parameters(
-        self, model: McmcSaemCompatibleModel, data: Dataset
+    def _compute_individual_parameters(
+        self, model: ModelType, dataset: Dataset, **kwargs
     ) -> IndividualParameters:
-        """Estimate individual parameters from a `Dataset`.
-
-        Parameters
-        ----------
-        model : :class:`~leaspy.models.McmcSaemCompatibleModel`
-            A subclass object of leaspy McmcSaemCompatibleModel.
-
-        dataset : :class:`.Dataset`
-            Dataset object build with leaspy class objects Data, algo & model
-
-        Returns
-        -------
-        :class:`.IndividualParameters`
-        """
         raise NotImplementedError()

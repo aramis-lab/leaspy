@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import torch
 
-from leaspy.algo import AbstractAlgo
+from leaspy.algo import BaseAlgorithm
 from tests import LeaspyTestCase
 
 
@@ -21,9 +21,9 @@ class TestAbstractAlgo(LeaspyTestCase):
 
         cls.fake_algo_settings = FakeAlgorithmSettings()
 
-    @LeaspyTestCase.allow_abstract_class_init(AbstractAlgo)
+    @LeaspyTestCase.allow_abstract_class_init(BaseAlgorithm)
     def test_constructor(self):
-        algo = AbstractAlgo(self.fake_algo_settings)
+        algo = BaseAlgorithm(self.fake_algo_settings)
         self.assertEqual(algo.algo_parameters, None)
         self.assertEqual(algo.name, None)
         self.assertEqual(algo.output_manager, None)
@@ -31,16 +31,16 @@ class TestAbstractAlgo(LeaspyTestCase):
         self.assertIsNone(algo.family)
         self.assertFalse(algo.deterministic)
 
-    @LeaspyTestCase.allow_abstract_class_init(AbstractAlgo)
+    @LeaspyTestCase.allow_abstract_class_init(BaseAlgorithm)
     def test_initialize_seed(self):
-        algo = AbstractAlgo(self.fake_algo_settings)
+        algo = BaseAlgorithm(self.fake_algo_settings)
         seed = torch.randint(10000, (1,)).item()
         algo._initialize_seed(seed)
         self.assertEqual(seed, torch.random.initial_seed())
 
-    @LeaspyTestCase.allow_abstract_class_init(AbstractAlgo)
+    @LeaspyTestCase.allow_abstract_class_init(BaseAlgorithm)
     def test_load_parameters(self):
-        algo = AbstractAlgo(self.fake_algo_settings)
+        algo = BaseAlgorithm(self.fake_algo_settings)
         algo.algo_parameters = {"param1": 1, "param2": 2}
         parameters = {"param1": 10, "param3": 3}
         algo.load_parameters(parameters)
