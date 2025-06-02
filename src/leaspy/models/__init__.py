@@ -7,14 +7,14 @@ from .generic import GenericModel
 from .joint import JointModel
 from .lme import LMEModel
 from .mcmc_saem_compatible import McmcSaemCompatibleModel
-from .multivariate import (
+from .riemanian_manifold import (
     LinearModel,
     LogisticModel,
-    MultivariateModel,
+    RiemanianManifoldModel,
 )
-from .riemanian_manifold import RiemanianManifoldModel
 from .settings import ModelSettings
 from .shared_speed_logistic import SharedSpeedLogisticModel
+from .time_reparametrized import TimeReparametrizedModel
 
 ModelType = TypeVar("ModelType", bound="BaseModel")
 
@@ -23,14 +23,14 @@ __all__ = [
     "ModelType",
     "InitializationMethod",
     "McmcSaemCompatibleModel",
-    "RiemanianManifoldModel",
+    "TimeReparametrizedModel",
     "BaseModel",
     "ConstantModel",
     "GenericModel",
     "LMEModel",
     "model_factory",
     "ModelSettings",
-    "MultivariateModel",
+    "RiemanianManifoldModel",
     "LogisticModel",
     "LinearModel",
     "SharedSpeedLogisticModel",
