@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 These are the releases of the version 2 of Leaspy.
 
-### [2.0.0rc1] - 2025-05-28
+### [2.0.0rc1] - 2025-06-02
 
 This is the first release candidate of the version 2 of Leaspy.
 
