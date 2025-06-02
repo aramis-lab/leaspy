@@ -1,17 +1,20 @@
 import os
 import re
 import shutil
+from typing import Any, Dict, List, Optional, Sized, Tuple
 from unittest import TestCase
 from unittest.mock import patch
-from typing import Any, Dict, List, Sized, Tuple, Optional
 
 import numpy as np
 import pandas as pd
 import torch
 
-from leaspy import Data, AlgorithmSettings, Leaspy, IndividualParameters
+from leaspy.algo import AlgorithmSettings
+from leaspy.api import Leaspy
+from leaspy.io.data import Data
+from leaspy.io.outputs.individual_parameters import IndividualParameters
 
-from .class_property import classproperty_support, classproperty
+from .class_property import classproperty, classproperty_support
 
 KwargsType = Dict[str, Any]
 
@@ -45,9 +48,14 @@ class LeaspyTestCase(TestCase):
 
     # Main mock of data for tests
     example_data_path = os.path.join(_test_data_dir, "data_mock", "data_tiny.csv")
-    example_data_covars_path = os.path.join(_test_data_dir, "data_mock", "data_tiny_covariate.csv")
+    example_data_covars_path = os.path.join(
+        _test_data_dir, "data_mock", "data_tiny_covariate.csv"
+    )
     binary_data_path = os.path.join(_test_data_dir, "data_mock", "binary_data.csv")
-    ordinal_data_path = os.path.join(_test_data_dir, "data_mock", "data_tiny_ordinal.csv")
+    ordinal_data_path = os.path.join(
+        _test_data_dir, "data_mock", "data_tiny_ordinal.csv"
+    )
+    joint_data_path = os.path.join(_test_data_dir, "data_mock", "data_tiny_joint.csv")
 
     # to store temporary data (used during tests)
     _test_tmp_dir = os.path.join(_test_data_dir, "_tmp")
@@ -63,7 +71,9 @@ class LeaspyTestCase(TestCase):
 
     @classmethod
     def get_test_tmp_path(cls, *rel_path_chunks: str):
-        assert not any('..' in chunk for chunk in rel_path_chunks)  # do search upper folder by error...
+        assert not any(
+            ".." in chunk for chunk in rel_path_chunks
+        )  # do search upper folder by error...
         return os.path.join(cls._test_tmp_dir, *cls.TMP_SUBFOLDER, *rel_path_chunks)
 
     @classmethod
@@ -93,12 +103,14 @@ class LeaspyTestCase(TestCase):
             os.makedirs(path)
 
     # hardcoded models: good for unit tests & functional tests independent from fit behavior
-    hardcoded_models_folder = os.path.join(_test_data_dir, "model_parameters", "hardcoded")
+    hardcoded_models_folder = os.path.join(
+        _test_data_dir, "model_parameters", "hardcoded"
+    )
 
     @classmethod
     def hardcoded_model_path(cls, model_name: str):
         """<!> `model_name` should have NO extension"""
-        return os.path.join(cls.hardcoded_models_folder, model_name + '.json')
+        return os.path.join(cls.hardcoded_models_folder, model_name + ".json")
 
     @classmethod
     def get_hardcoded_model(cls, model_name: str):
@@ -107,7 +119,9 @@ class LeaspyTestCase(TestCase):
         return lsp
 
     # models generated from fit functional tests, bad for most tests as it may change due to slights changes in fit
-    from_fit_models_folder = os.path.join(_test_data_dir, "model_parameters", "from_fit")
+    from_fit_models_folder = os.path.join(
+        _test_data_dir, "model_parameters", "from_fit"
+    )
 
     @classmethod
     def from_fit_model_path(cls, model_name: str):
@@ -115,11 +129,11 @@ class LeaspyTestCase(TestCase):
         import os
 
         from_fit_path = cls.from_fit_models_folder
-        if model_name.endswith('_gpu'):
-            from_fit_path += '/gpu'  # not tested in CI so probably out-of-date
+        if model_name.endswith("_gpu"):
+            from_fit_path += "/gpu"  # not tested in CI so probably out-of-date
         if os.uname()[4][:3] == "arm":
             model_name = f"{model_name}_arm"
-        return os.path.join(from_fit_path, model_name + '.json')
+        return os.path.join(from_fit_path, model_name + ".json")
 
     @classmethod
     def get_from_fit_model(cls, model_name: str):
@@ -128,7 +142,9 @@ class LeaspyTestCase(TestCase):
         return lsp
 
     # hardcoded individual parameters: good for unit tests & functional tests independent from personalize behavior
-    hardcoded_ips_folder = os.path.join(_test_data_dir, "individual_parameters", "hardcoded")
+    hardcoded_ips_folder = os.path.join(
+        _test_data_dir, "individual_parameters", "hardcoded"
+    )
 
     @classmethod
     def hardcoded_ip_path(cls, ip_file: str):
@@ -136,7 +152,7 @@ class LeaspyTestCase(TestCase):
         return os.path.join(cls.hardcoded_ips_folder, ip_file)
 
     @classmethod
-    def get_hardcoded_individual_params(cls, ip_file: str):
+    def get_hardcoded_individual_params(cls, ip_file: str) -> IndividualParameters:
         """
         Load the IndividualParameters from provided filename (parameters hardcoded)
         <!> `ip_file` should have its extension (since it can be json or csv)
@@ -144,7 +160,9 @@ class LeaspyTestCase(TestCase):
         return IndividualParameters.load(cls.hardcoded_ip_path(ip_file))
 
     # individual parameters from personalize: bad for most tests as it may change due to slights changes in fit and/or personalize
-    from_personalize_ips_folder = os.path.join(_test_data_dir, "individual_parameters", "from_personalize")
+    from_personalize_ips_folder = os.path.join(
+        _test_data_dir, "individual_parameters", "from_personalize"
+    )
 
     @classmethod
     def from_personalize_ip_path(cls, ip_file: str):
@@ -166,27 +184,42 @@ class LeaspyTestCase(TestCase):
     @classmethod
     def get_suited_test_data_for_model(cls, model_name: str) -> Data:
         """Helper to load the right test data for functional tests, depending on model name."""
-        if 'binary' in model_name:
-            df = pd.read_csv(cls.binary_data_path, dtype={'ID': str})
-        elif 'ordinal' in model_name:
-            df = pd.read_csv(cls.ordinal_data_path, dtype={'ID': str})
+        if "binary" in model_name:
+            df = pd.read_csv(cls.binary_data_path, dtype={"ID": str})
+        elif "ordinal" in model_name:
+            df = pd.read_csv(cls.ordinal_data_path, dtype={"ID": str})
+        elif "joint" in model_name:
+            df = pd.read_csv(cls.joint_data_path, dtype={"ID": str}, sep=";")
         else:
             # continuous
-            df = pd.read_csv(cls.example_data_path, dtype={'ID': str})
+            df = pd.read_csv(cls.example_data_path, dtype={"ID": str})
 
-        if 'univariate' in model_name:
-            df = df.iloc[:, :3]  # only pick one feature column (the first after ID & TIME)
+        if ("univariate" in model_name) and ("joint" in model_name):
+            df = df.iloc[
+                :, :5
+            ]  # only pick one feature column (the first after ID & TIME & EVENT_TIME & EVENT_BOOL)
+        elif "univariate" in model_name:
+            df = df.iloc[
+                :, :3
+            ]  # only pick one feature column (the first after ID & TIME)
 
-        return Data.from_dataframe(df)
+        if "joint" in model_name:
+            return Data.from_dataframe(df, data_type="joint")
+        else:
+            return Data.from_dataframe(df)
 
     @staticmethod
     def get_algo_settings(*, path: str = None, name: str = None, **params):
         """Helper to create the AlgorithmSettings object (either from path to saved settings or from name and kwargs)."""
-        assert (path is None) ^ (name is None), "Either `path` or `name` should be not None (and not both)."
+        assert (path is None) ^ (
+            name is None
+        ), "Either `path` or `name` should be not None (and not both)."
 
         if path is not None:
             if params:
-                raise ValueError("Keyword arguments should NOT be provided when using a path for algorithm settings.")
+                raise ValueError(
+                    "Keyword arguments should NOT be provided when using a path for algorithm settings."
+                )
             return AlgorithmSettings.load(path)
         else:
             return AlgorithmSettings(name, **params)
@@ -201,7 +234,7 @@ class LeaspyTestCase(TestCase):
         return patch.multiple(abc_klass, __abstractmethods__=set())
 
     @classmethod
-    def deep_sort(cls, obj, *, sort_seqs=(list, set, frozenset)): # tuple
+    def deep_sort(cls, obj, *, sort_seqs=(list, set, frozenset)):  # tuple
         """
         Utils function to sort `obj` recursively at all levels.
 
@@ -217,15 +250,19 @@ class LeaspyTestCase(TestCase):
             Can be empty so not that sort any of those but dictionaries.
         """
         if isinstance(obj, dict):
-            return sorted( ((k, cls.deep_sort(v, sort_seqs=sort_seqs)) for k, v in obj.items()),
-                          key=lambda tup: tup[0])
+            return sorted(
+                ((k, cls.deep_sort(v, sort_seqs=sort_seqs)) for k, v in obj.items()),
+                key=lambda tup: tup[0],
+            )
         elif isinstance(obj, sort_seqs):
             return sorted(cls.deep_sort(x, sort_seqs=sort_seqs) for x in obj)
         else:
             return obj
 
     @staticmethod
-    def try_cast_as_numpy_array(obj: Any, *, no_cast_when_subclass_of: Tuple = (np.ndarray, torch.Tensor)):
+    def try_cast_as_numpy_array(
+        obj: Any, *, no_cast_when_subclass_of: Tuple = (np.ndarray, torch.Tensor)
+    ):
         """Try to cast object as numpy.ndarray if not a subclass of any class in `no_cast_when_subclass_of`."""
         if not isinstance(obj, no_cast_when_subclass_of):
             try:
@@ -239,7 +276,7 @@ class LeaspyTestCase(TestCase):
         """Helper function to have nice (short) string for objects (esp. for floats and objects containing them)."""
 
         # check for numpy.array / torch.tensor "scalars"
-        if hasattr(obj, 'ndim') and obj.ndim == 0:
+        if hasattr(obj, "ndim") and obj.ndim == 0:
             obj = obj.item()
 
         if isinstance(obj, float):
@@ -248,21 +285,28 @@ class LeaspyTestCase(TestCase):
             # try to cast object as numpy array so representation is nicer
             obj_casted_repr = repr(cls.try_cast_as_numpy_array(obj))
 
-            return re.sub(r'^[^\(]+\((\[.+\])(?:, dtype=[^\)]+)?\)$', r'\1', obj_casted_repr)
+            return re.sub(
+                r"^[^\(]+\((\[.+\])(?:, dtype=[^\)]+)?\)$", r"\1", obj_casted_repr
+            )
 
     @classmethod
     def get_shape(cls, a: Any) -> tuple:
         """Get the shape of an input castable to a numpy array."""
-        if hasattr(a, 'shape'):
+        if hasattr(a, "shape"):
             return tuple(a.shape)
         return np.array(a).shape
 
     @classmethod
-    def is_equal_or_almost_equal(cls, left: Any, right: Any, *,
-                                 allclose_kws: KwargsType = {},
-                                 ineq_msg_template: str = 'Values are different{cmp_suffix}:\n`{left_desc}` -> {left_repr} != {right_repr} <- `{right_desc}`',
-                                 ineq_shapes_msg_template: str = 'Shapes are different:\n`{left_desc}` -> {left_shape} != {right_shape} <- `{right_desc}`',
-                                 **vars_for_ineq_msg) -> Optional[str]:
+    def is_equal_or_almost_equal(
+        cls,
+        left: Any,
+        right: Any,
+        *,
+        allclose_kws: KwargsType = {},
+        ineq_msg_template: str = "Values are different{cmp_suffix}:\n`{left_desc}` -> {left_repr} != {right_repr} <- `{right_desc}`",
+        ineq_shapes_msg_template: str = "Shapes are different:\n`{left_desc}` -> {left_shape} != {right_shape} <- `{right_desc}`",
+        **vars_for_ineq_msg,
+    ) -> Optional[str]:
         """
         Check for equality, or almost equality when relevant, of two objects.
 
@@ -292,7 +336,11 @@ class LeaspyTestCase(TestCase):
         left_shape, right_shape = cls.get_shape(left), cls.get_shape(right)
         if left_shape != right_shape:
             return ineq_shapes_msg_template.format(
-                left=left, left_shape=left_shape, right=right, right_shape=right_shape, **vars_for_ineq_msg
+                left=left,
+                left_shape=left_shape,
+                right=right,
+                right_shape=right_shape,
+                **vars_for_ineq_msg,
             )
 
         cmp_details = ["numpy.allclose"]
@@ -305,11 +353,11 @@ class LeaspyTestCase(TestCase):
             eq_or_almost_eq = np.allclose(left, right, **allclose_kws)
 
         except Exception as e:
-            if 'got an unexpected keyword argument' in str(e):
+            if "got an unexpected keyword argument" in str(e):
                 # invalid argument send to `numpy.allclose`, raise for that!
                 raise e
             # test for true equality when numpy.allclose failed for some reason
-            cmp_suffix = ''
+            cmp_suffix = ""
             try:
                 eq_or_almost_eq = bool(left == right)
             except Exception:
@@ -324,13 +372,26 @@ class LeaspyTestCase(TestCase):
             left_repr = cls.nice_repr_of_object(left)
             right_repr = cls.nice_repr_of_object(right)
 
-            return ineq_msg_template.format(left=left, left_repr=left_repr, right=right, right_repr=right_repr,
-                                            cmp_suffix=cmp_suffix, **vars_for_ineq_msg)
+            return ineq_msg_template.format(
+                left=left,
+                left_repr=left_repr,
+                right=right,
+                right_repr=right_repr,
+                cmp_suffix=cmp_suffix,
+                **vars_for_ineq_msg,
+            )
 
     @classmethod
-    def check_nested_dict_almost_equal(cls, left: dict, right: dict, *,
-                                       left_desc: str = 'left', right_desc: str = 'right',
-                                       allclose_custom: Dict[str, KwargsType] = {}, **allclose_defaults) -> List[str]:
+    def check_nested_dict_almost_equal(
+        cls,
+        left: dict,
+        right: dict,
+        *,
+        left_desc: str = "left",
+        right_desc: str = "right",
+        allclose_custom: Dict[str, KwargsType] = {},
+        **allclose_defaults,
+    ) -> List[str]:
         """
         Check for equality of two dictionaries (in-depth) with numerical values checked with customizable tolerances.
         It returns a list of issues / differences as strings if any.
@@ -373,10 +434,10 @@ class LeaspyTestCase(TestCase):
             extra_right = [k for k in right.keys() if k not in left.keys()]
             extras = []
             if extra_left:
-                extras.append(f'`{left_desc}`: +{extra_left}')
+                extras.append(f"`{left_desc}`: +{extra_left}")
             if extra_right:
-                extras.append(f'`{right_desc}`: +{extra_right}')
-            nl = '\n'
+                extras.append(f"`{right_desc}`: +{extra_right}")
+            nl = "\n"
             return [f"Keys are different:\n{nl.join(extras)}"]
 
         # loop on keys when they match
@@ -384,21 +445,34 @@ class LeaspyTestCase(TestCase):
         for k, left_v in left.items():
             right_v = right[k]
             # nest key in error messages
-            left_k_desc = f'{left_desc}.{k}'
-            right_k_desc = f'{right_desc}.{k}'
+            left_k_desc = f"{left_desc}.{k}"
+            right_k_desc = f"{right_desc}.{k}"
 
             if isinstance(left_v, dict) or isinstance(right_v, dict):
                 # do not fail early as before
-                errs += cls.check_nested_dict_almost_equal(left_v, right_v,
-                                                           left_desc=left_k_desc, right_desc=right_k_desc,
-                                                           allclose_custom=allclose_custom, **allclose_defaults)
+                errs += cls.check_nested_dict_almost_equal(
+                    left_v,
+                    right_v,
+                    left_desc=left_k_desc,
+                    right_desc=right_k_desc,
+                    allclose_custom=allclose_custom,
+                    **allclose_defaults,
+                )
             else:
                 # TODO? also nest keys in `allclose_custom`?
                 # merge keyword arguments for the particular key if any customisation
-                allclose_kwds_for_key = {**allclose_defaults, **allclose_custom.get(k, {})}
+                allclose_kwds_for_key = {
+                    **allclose_defaults,
+                    **allclose_custom.get(k, {}),
+                }
 
-                possible_err_str = cls.is_equal_or_almost_equal(left_v, right_v, allclose_kws=allclose_kwds_for_key,
-                                                                left_desc=left_k_desc, right_desc=right_k_desc)
+                possible_err_str = cls.is_equal_or_almost_equal(
+                    left_v,
+                    right_v,
+                    allclose_kws=allclose_kwds_for_key,
+                    left_desc=left_k_desc,
+                    right_desc=right_k_desc,
+                )
 
                 if possible_err_str is not None:
                     # do not fail early as before but stack to the list of errors
@@ -409,14 +483,21 @@ class LeaspyTestCase(TestCase):
 
     #### CUSTOM ASSERT METHODS for TestCase ####
 
-    def assertAllClose(self, left: Any, right: Any, *, what = 'val', **kws):
+    def assertAllClose(self, left: Any, right: Any, *, what="val", **kws):
         """Encapsulate in a dict to benefit from `assertDictAlmostEqual`"""
         return self.assertDictAlmostEqual({what: left}, {what: right}, **kws)
 
-    def assertDictAlmostEqual(self, left: dict, right: dict, *,
-                              left_desc: str = 'new', right_desc: str = 'expected',
-                              msg: Any = None,
-                              allclose_custom: Dict[str, KwargsType] = {}, **allclose_defaults) -> None:
+    def assertDictAlmostEqual(
+        self,
+        left: dict,
+        right: dict,
+        *,
+        left_desc: str = "new",
+        right_desc: str = "expected",
+        msg: Any = None,
+        allclose_custom: Dict[str, KwargsType] = {},
+        **allclose_defaults,
+    ) -> None:
         """
         Assert that two dictionaries are equal (in-depth) with numerical values checked with customizable tolerances.
         It raises with all the issues / differences if any.
@@ -428,8 +509,14 @@ class LeaspyTestCase(TestCase):
         msg : optional str
             Prefix for error messages
         """
-        pbs = self.check_nested_dict_almost_equal(left, right, left_desc=left_desc, right_desc=right_desc,
-                                                  allclose_custom=allclose_custom, **allclose_defaults)
+        pbs = self.check_nested_dict_almost_equal(
+            left,
+            right,
+            left_desc=left_desc,
+            right_desc=right_desc,
+            allclose_custom=allclose_custom,
+            **allclose_defaults,
+        )
 
         if pbs:
             self.fail("\n".join([str(msg), *pbs] if msg else pbs))
@@ -438,30 +525,48 @@ class LeaspyTestCase(TestCase):
         """Ordered version of assertDictEqual."""
 
         # check order first
-        self.assertListEqual(list(a.keys()), list(b.keys()),
-                             msg=f'{msg+": " if msg is not None else ""}ordered keys are not equal')
+        self.assertListEqual(
+            list(a.keys()),
+            list(b.keys()),
+            msg=f'{msg+": " if msg is not None else ""}ordered keys are not equal',
+        )
 
         # check no order first
         self.assertDictEqual(a, b, msg=msg)
 
-    def assertShapeEqual(self, obj, expected_shape: Tuple[int, ...], *, msg: str = None):
+    def assertShapeEqual(
+        self, obj, expected_shape: Tuple[int, ...], *, msg: str = None
+    ):
         """Assert shape of numpy.ndarray or torch.Tensor is as expected, with a nice error message."""
-        if not hasattr(obj, 'shape'):
-            raise ValueError(f'`assertShapeEqual` should only be used with objects having a shape, not type=`{type(obj)}`.')
+        if not hasattr(obj, "shape"):
+            raise ValueError(
+                f"`assertShapeEqual` should only be used with objects having a shape, not type=`{type(obj)}`."
+            )
 
-        self.assertEqual(obj.shape, expected_shape,
-                         msg=msg if msg is not None else f"Shape of {type(obj)} ({obj.shape}) differs from what was expected ({expected_shape}).")
+        self.assertEqual(
+            obj.shape,
+            expected_shape,
+            msg=msg
+            if msg is not None
+            else f"Shape of {type(obj)} ({obj.shape}) differs from what was expected ({expected_shape}).",
+        )
 
     def assertLenEqual(self, obj: Sized, expected_len: int, *, msg: str = None):
         """Assert length of sized object is as expected."""
-        self.assertEqual(len(obj), expected_len,
-                         msg=msg if msg is not None
-                             else f"Length of {type(obj)} ({len(obj)}) differs from what was expected ({expected_len}).")
+        self.assertEqual(
+            len(obj),
+            expected_len,
+            msg=msg
+            if msg is not None
+            else f"Length of {type(obj)} ({len(obj)}) differs from what was expected ({expected_len}).",
+        )
 
     def assertEmpty(self, obj: Sized, *, msg: str = None):
         """Assert length of sized object is zero."""
         self.assertLenEqual(obj, 0, msg=msg)
 
     def assertHasTmpFile(self, rel_path: str):
-        self.assertTrue(os.path.isfile(self.get_test_tmp_path(rel_path)),
-                        msg=f'`{rel_path}` was not created.')
+        self.assertTrue(
+            os.path.isfile(self.get_test_tmp_path(rel_path)),
+            msg=f"`{rel_path}` was not created.",
+        )

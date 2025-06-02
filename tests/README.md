@@ -58,7 +58,7 @@ This class include many helpers and generic functions that will help you in:
 
 ## 3. When you need to re-use some snippets of code across different test files, use [_mixins_](https://en.wikipedia.org/wiki/Mixin)
 
-- Double check if the code you would like to get is not already part of a test mixin (`LeaspyFitTest_Mixin`, `LeaspyPersonalizeTest_Mixin`, `LeaspySimulateTest_Mixin`, ...)
+- Double check if the code you would like to get is not already part of a test mixin (`LeaspyFitTest_Mixin`, `LeaspyPersonalizeTestMixin`, `LeaspySimulateTest_Mixin`, ...)
 - If it is not you can, create a new mixin class (deriving from `LeaspyTestCase`) at the top of your test file, include the generic methods you want to re-use in different tests and make your actual test case inherit from this mixin (multiple inheritance is possible)
 - Beware that methods in your mixin should never start which `test_`, otherwise they are interpreted as tests to run, and will thus be duplicated everywhere
 - In other test files, only import the mixin class, NEVER the test case class with the actual tests (otherwise tests will be duplicated!)

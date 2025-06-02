@@ -1,0 +1,38 @@
+{
+  "leaspy_version": "2.0.0-dev",
+  "name": "logistic",
+  "features": [
+    "PUTAMEN"
+  ],
+  "dimension": 1,
+  "obs_models": {
+    "y": "gaussian-scalar"
+  },
+  "hyperparameters": {
+    "log_g_std": 0.009999999776482582,
+    "log_v0_std": 0.009999999776482582,
+    "xi_mean": 0.0
+  },
+  "parameters": {
+    "log_g_mean": [
+      -1.1861615180969238
+    ],
+    "log_v0_mean": [
+      -4.051712512969971
+    ],
+    "noise_std": [
+      0.021219799295067787
+    ],
+    "tau_mean": [
+      68.74932098388672
+    ],
+    "tau_std": [
+      10.029473304748535
+    ],
+    "xi_std": [
+      0.5542895793914795
+    ]
+  },
+  "fit_metrics": null,
+  "source_dimension": 0
+}

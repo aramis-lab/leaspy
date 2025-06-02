@@ -1,0 +1,22 @@
+{
+    "leaspy_version": "2.0.0",
+    "name": "linear",
+    "features": [
+        "Y0"
+    ],
+    "dimension": 1,
+    "source_dimension": 0,
+    "parameters": {
+        "tau_mean": 78.0,
+        "tau_std": 5.0,
+        "xi_std": 0.5,
+        "noise_std": 0.15,
+        "log_v0_mean": [
+            -4.0
+        ],
+        "g_mean": [
+            0.5
+        ]
+    },
+    "obs_models": "gaussian-scalar"
+}
