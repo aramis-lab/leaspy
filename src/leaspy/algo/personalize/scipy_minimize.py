@@ -226,7 +226,7 @@ class ScipyMinimizeAlgorithm(
         This can  be customized by setting the `logger` attribute in :class:`.AlgorithmSettings`.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE
+    name: AlgorithmName = AlgorithmName.SCIPY_MINIMIZE
     DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN = {
         "method": "BFGS",
         "options": {

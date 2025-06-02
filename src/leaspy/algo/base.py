@@ -14,12 +14,16 @@ import torch
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data import Dataset
 from leaspy.models import ModelType
+from leaspy.utils import CombinedStrEnum, StrEnum
 
 from .settings import AlgorithmSettings, OutputsSettings
 
 __all__ = [
     "BaseAlgorithm",
     "IterativeAlgorithm",
+    "FitAlgorithmName",
+    "PersonalizeAlgorithmName",
+    "SimulateAlgorithmName",
     "AlgorithmType",
     "AlgorithmName",
     "get_algorithm_type",
@@ -32,7 +36,7 @@ __all__ = [
 ReturnType = TypeVar("ReturnType")
 
 
-class AlgorithmType(str, Enum):
+class AlgorithmType(StrEnum):
     """The type of the algorithms."""
 
     FIT = "fit"
@@ -40,17 +44,32 @@ class AlgorithmType(str, Enum):
     SIMULATE = "simulate"
 
 
-class AlgorithmName(str, Enum):
-    """The available algorithms in Leaspy."""
+class FitAlgorithmName(StrEnum):
+    """The name of a fit algorithm."""
 
-    FIT_MCMC_SAEM = "mcmc_saem"
-    FIT_LME = "lme_fit"
-    PERSONALIZE_SCIPY_MINIMIZE = "scipy_minimize"
-    PERSONALIZE_MEAN_POSTERIOR = "mean_posterior"
-    PERSONALIZE_MODE_POSTERIOR = "mode_posterior"
-    PERSONALIZE_CONSTANT = "constant_prediction"
-    PERSONALIZE_LME = "lme_personalize"
+    MCMC_SAEM = "mcmc_saem"
+    LME_FIT = "lme_fit"
+
+
+class PersonalizeAlgorithmName(StrEnum):
+    """The available names of a personalize algorithm in Leaspy."""
+
+    SCIPY_MINIMIZE = "scipy_minimize"
+    MEAN_POSTERIOR = "mean_posterior"
+    MODE_POSTERIOR = "mode_posterior"
+    CONSTANT = "constant_prediction"
+    LME_PERSONALIZE = "lme_personalize"
+
+
+class SimulateAlgorithmName(StrEnum):
+    """The available names of a simulate algorithm in Leaspy."""
+
     SIMULATE = "simulation"
+
+
+AlgorithmName = CombinedStrEnum.create_union_enum(
+    FitAlgorithmName, PersonalizeAlgorithmName, SimulateAlgorithmName
+)
 
 
 class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
@@ -346,7 +365,15 @@ class IterativeAlgorithm(BaseAlgorithm[ModelType, ReturnType]):
         return out
 
 
-def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
+def get_algorithm_type(
+    name: Union[
+        str,
+        FitAlgorithmName,
+        PersonalizeAlgorithmName,
+        SimulateAlgorithmName,
+        AlgorithmName,
+    ],
+) -> AlgorithmType:
     """Return the algorithm type.
 
     Parameters
@@ -358,15 +385,26 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
     -------
     algorithm type: :class:`leaspy.algo.AlgorithmType`
     """
-    name = AlgorithmName(name)
-    if name in (AlgorithmName.FIT_LME, AlgorithmName.FIT_MCMC_SAEM):
+    try:
+        FitAlgorithmName(name)
         return AlgorithmType.FIT
-    if name == AlgorithmName.SIMULATE:
-        return AlgorithmType.SIMULATE
-    return AlgorithmType.PERSONALIZE
+    except ValueError:
+        try:
+            PersonalizeAlgorithmName(name)
+            return AlgorithmType.PERSONALIZE
+        except ValueError:
+            return AlgorithmType.SIMULATE
 
 
-def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
+def get_algorithm_class(
+    name: Union[
+        str,
+        FitAlgorithmName,
+        PersonalizeAlgorithmName,
+        SimulateAlgorithmName,
+        AlgorithmName,
+    ],
+) -> Type[BaseAlgorithm]:
     """Return the algorithm class.
 
     Parameters
@@ -379,31 +417,31 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
     algorithm class: :class:`~leaspy.algo.BaseAlgorithm`
     """
     name = AlgorithmName(name)
-    if name == AlgorithmName.FIT_MCMC_SAEM:
+    if name == AlgorithmName.MCMC_SAEM:
         from .fit import TensorMcmcSaemAlgorithm
 
         return TensorMcmcSaemAlgorithm
-    if name == AlgorithmName.FIT_LME:
+    if name == AlgorithmName.LME_FIT:
         from .fit import LMEFitAlgorithm
 
         return LMEFitAlgorithm
-    if name == AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE:
+    if name == AlgorithmName.SCIPY_MINIMIZE:
         from .personalize import ScipyMinimizeAlgorithm
 
         return ScipyMinimizeAlgorithm
-    if name == AlgorithmName.PERSONALIZE_MEAN_POSTERIOR:
+    if name == AlgorithmName.MEAN_POSTERIOR:
         from .personalize import MeanPosteriorAlgorithm
 
         return MeanPosteriorAlgorithm
-    if name == AlgorithmName.PERSONALIZE_MODE_POSTERIOR:
+    if name == AlgorithmName.MODE_POSTERIOR:
         from .personalize import ModePosteriorAlgorithm
 
         return ModePosteriorAlgorithm
-    if name == AlgorithmName.PERSONALIZE_CONSTANT:
+    if name == AlgorithmName.CONSTANT:
         from .personalize import ConstantPredictionAlgorithm
 
         return ConstantPredictionAlgorithm
-    if name == AlgorithmName.PERSONALIZE_LME:
+    if name == AlgorithmName.LME_PERSONALIZE:
         from .personalize import LMEPersonalizeAlgorithm
 
         return LMEPersonalizeAlgorithm

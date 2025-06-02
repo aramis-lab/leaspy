@@ -35,7 +35,7 @@ class AlgorithmSettingsTest(LeaspyTestCase):
 
     def test_unknown_algo(self):
         with self.assertRaisesRegex(
-            ValueError, "'unknown-algo' is not a valid AlgorithmName"
+            ValueError, "'unknown-algo' is not a valid CombinedStrEnum"
         ):
             AlgorithmSettings("unknown-algo")
 

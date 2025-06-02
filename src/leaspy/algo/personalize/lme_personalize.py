@@ -27,7 +27,7 @@ class LMEPersonalizeAlgorithm(PersonalizeAlgorithm[LMEModel, IndividualParameter
     name : ``'lme_personalize'``
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_LME
+    name: AlgorithmName = AlgorithmName.LME_PERSONALIZE
     deterministic: bool = True
 
     def _compute_individual_parameters(
