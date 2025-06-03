@@ -8,9 +8,6 @@ import numpy as np
 import pandas as pd
 
 from leaspy.algo import AlgorithmName, AlgorithmSettings
-
-# from leaspy.algo.fit import FitAlgorithm
-# from leaspy.algo import AlgorithmName
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Data, Dataset
 from leaspy.io.outputs import IndividualParameters
