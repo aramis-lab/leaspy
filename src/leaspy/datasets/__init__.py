@@ -5,14 +5,14 @@ from .loader import (
     get_model_path,
     load_dataset,
     load_individual_parameters,
-    load_leaspy_instance,
+    load_model,
 )
 
 __all__ = [
     "DatasetName",
     "load_dataset",
     "load_individual_parameters",
-    "load_leaspy_instance",
+    "load_model",
     "get_dataset_path",
     "get_model_path",
     "get_individual_parameter_path",

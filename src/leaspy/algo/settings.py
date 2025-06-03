@@ -10,7 +10,6 @@ from typing import Optional, Union
 import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.models import InitializationMethod
 from leaspy.utils.typing import KwargsType
 
 algo_default_data_dir = Path(__file__).parent.parent / "algo" / "data"
@@ -715,9 +714,9 @@ class AlgorithmSettings:
         return settings["algorithm_initialization_method"]
 
     @staticmethod
-    def _get_model_initialization_method(
-        settings: dict,
-    ) -> Optional[InitializationMethod]:
+    def _get_model_initialization_method(settings: dict):
+        from leaspy.models import InitializationMethod
+
         if settings["model_initialization_method"] is None:
             return None
         return InitializationMethod(settings["model_initialization_method"])

@@ -4,7 +4,7 @@ from leaspy.datasets import (
     DatasetName,
     load_dataset,
     load_individual_parameters,
-    load_leaspy_instance,
+    load_model,
 )
 from leaspy.models.obs_models import FullGaussianObservationModel
 from tests import LeaspyTestCase
@@ -32,25 +32,18 @@ class LoaderTest(LeaspyTestCase):
                 df.index.get_level_values("TIME").dtype, ("float64", "float32")
             )
 
-    def test_load_leaspy_instance(self):
-        """
-        Check that all models are loadable, and check parameter values for one model.
-        """
+    def test_load_model(self):
+        """Check that all models are loadable, and check parameter values for one model."""
+        from leaspy.models import LogisticModel
+
         for name in DatasetName:
             if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
-                leaspy_instance = load_leaspy_instance(name)
-                self.assertEqual(leaspy_instance.type, "logistic")
-        leaspy_instance = load_leaspy_instance(DatasetName.PARKINSON_PUTAMEN)
-        self.assertEqual(leaspy_instance.model.features, ["PUTAMEN"])
-        self.assertIsInstance(
-            leaspy_instance.model.obs_models[0], FullGaussianObservationModel
-        )
-
-        self.assertAlmostEqual(
-            leaspy_instance.model.parameters["noise_std"].item(),
-            0.02122,
-            places=6,
-        )
+                model = load_model(name)
+                self.assertTrue(isinstance(model, LogisticModel))
+        model = load_model(DatasetName.PARKINSON_PUTAMEN)
+        self.assertEqual(model.features, ["PUTAMEN"])
+        self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
+        self.assertAlmostEqual(model.parameters["noise_std"].item(), 0.02122, places=6)
         parameters = {
             "log_g_mean": torch.tensor([-1.1862]),
             "log_v0_mean": torch.tensor([-4.0517]),
@@ -64,18 +57,11 @@ class LoaderTest(LeaspyTestCase):
             "log_v0_std": torch.tensor(0.0100),
             "xi_mean": torch.tensor(0.0),
         }
-        self.assertDictAlmostEqual(
-            leaspy_instance.model.parameters, parameters, atol=1e-4
-        )
-        self.assertDictAlmostEqual(
-            leaspy_instance.model.hyperparameters, hyperparameters, atol=1e-4
-        )
+        self.assertDictAlmostEqual(model.parameters, parameters, atol=1e-4)
+        self.assertDictAlmostEqual(model.hyperparameters, hyperparameters, atol=1e-4)
 
     def test_load_individual_parameters(self):
-        """
-        Check that all ips are loadable, and check values for one individual_parameters
-        instance.
-        """
+        """Check that all ips are loadable, and check values for one individual_parameters instance."""
         for name in DatasetName:
             if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
                 individual_parameters = load_individual_parameters(name)
