@@ -25,11 +25,9 @@ class InitializationMethod(str, Enum):
 
 
 class BaseModel(ABC):
-    """
-    Base model class from which all ``Leaspy`` models should inherit.
+    """Base model class from which all ``Leaspy`` models should inherit.
 
-    It defines the interface that a model should implement to be
-    compatible with ``Leaspy``.
+    It defines the interface that a model should implement to be compatible with ``Leaspy``.
 
     Parameters
     ----------
@@ -59,6 +57,11 @@ class BaseModel(ABC):
         self.name = name
         self._features: Optional[list[FeatureType]] = None
         self._dimension: Optional[int] = None
+        self.initialization_method: InitializationMethod = InitializationMethod.DEFAULT
+        if "initialization_method" in kwargs:
+            self.initialization_method = InitializationMethod(
+                kwargs["initialization_method"]
+            )
 
     @property
     def features(self) -> Optional[list[FeatureType]]:
@@ -117,8 +120,7 @@ class BaseModel(ABC):
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
-        """
-        Raise if the given :class:`.Dataset` is not compatible with the current model.
+        """Raise if the given :class:`.Dataset` is not compatible with the current model.
 
         Parameters
         ----------
@@ -143,11 +145,7 @@ class BaseModel(ABC):
                 f"Unmatched features: {self.features} (model) ≠ {dataset.headers} (data)."
             )
 
-    def initialize(
-        self,
-        dataset: Optional[Dataset] = None,
-        method: Optional[InitializationMethod] = None,
-    ) -> None:
+    def initialize(self, dataset: Optional[Dataset] = None) -> None:
         """Initialize the model given a :class:`.Dataset` and an initialization method.
 
         After calling this method :attr:`is_initialized` should be ``True`` and model
@@ -155,12 +153,9 @@ class BaseModel(ABC):
 
         Parameters
         ----------
-        dataset : :class:`.Dataset`, optional
+        dataset : :class:`~leaspy.io.Dataset`, optional
             The dataset we want to initialize from.
-        method : InitializationMethod, optional
-            A custom method to initialize the model
         """
-        method = InitializationMethod(method or InitializationMethod.DEFAULT)
         if self.is_initialized and self.features is not None:
             # we also test that self.features is not None, since for `ConstantModel`:
             # `is_initialized`` is True but as a mock for being personalization-ready,
@@ -267,6 +262,37 @@ class BaseModel(ABC):
         tau_std : [10.0864]
         xi_std : [0.5232]
         """
+        if (dataset := BaseModel._get_dataset(data)) is None:
+            return
+        if not self.is_initialized:
+            self.initialize(dataset)
+        if (
+            algorithm := BaseModel._get_algorithm(
+                algorithm, algorithm_settings, algorithm_settings_path, **kwargs
+            )
+        ) is None:
+            return
+        algorithm.run(self, dataset)
+
+    @staticmethod
+    def _get_dataset(
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+    ) -> Optional[Dataset]:
+        """Process user provided data and return a Dataset object."""
+        if data is None:
+            return None
+        if isinstance(data, pd.DataFrame):
+            data = Data.from_dataframe(data)
+        return Dataset(data) if isinstance(data, Data) else data
+
+    @staticmethod
+    def _get_algorithm(
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ):
+        """Process user provided algorithm and return the corresponding algorithm instance."""
         from leaspy.algo import AlgorithmName, AlgorithmSettings, algorithm_factory
 
         if algorithm_settings is not None:
@@ -276,23 +302,16 @@ class BaseModel(ABC):
         else:
             algorithm = AlgorithmName(algorithm) if algorithm else None
             if algorithm is None:
-                return
+                return None
             settings = AlgorithmSettings(algorithm.value, **kwargs)
             settings.set_logs(**kwargs)
-        if data is None:
-            return
-        if isinstance(data, pd.DataFrame):
-            data = Data.from_dataframe(data)
-        dataset = Dataset(data) if isinstance(data, Data) else data
-        algorithm = algorithm_factory(settings)
-        if not self.is_initialized:
-            self.initialize(dataset, settings.model_initialization_method)
-        algorithm.run(self, dataset)
+        return algorithm_factory(settings)
 
     def personalize(
         self,
         data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
         algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ) -> IndividualParameters:
@@ -309,6 +328,12 @@ class BaseModel(ABC):
 
         algorithm : str, optional
             The name of the algorithm to use.
+
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+            Use this if you want to customize algorithm settings through the
+            :class:`~leaspy.algo.AlgorithmSettings` class.
+            If provided, the fit will rely on these settings.
 
         algorithm_settings_path : str or Path, optional
             The path to the algorithm settings file.
@@ -333,24 +358,18 @@ class BaseModel(ABC):
         >>> putamen_df = load_dataset("parkinson-putamen")
         >>> individual_parameters = model.personalize(putamen_df, "scipy_minimize", seed=0)
         """
-        from leaspy.algo import AlgorithmName, AlgorithmSettings, algorithm_factory
         from leaspy.exceptions import LeaspyInputError
 
-        if algorithm_settings_path is not None:
-            settings = AlgorithmSettings.load(algorithm_settings_path)
-        else:
-            algorithm = AlgorithmName(algorithm) if algorithm else None
-            if algorithm is None:
-                return IndividualParameters()
-            settings = AlgorithmSettings(algorithm.value, **kwargs)
-        if data is None:
-            return IndividualParameters()
-        if isinstance(data, pd.DataFrame):
-            data = Data.from_dataframe(data)
-        dataset = Dataset(data) if isinstance(data, Data) else data
         if not self.is_initialized:
             raise LeaspyInputError("Model has not been initialized")
-        algorithm = algorithm_factory(settings)
+        if (dataset := BaseModel._get_dataset(data)) is None:
+            return IndividualParameters()
+        if (
+            algorithm := BaseModel._get_algorithm(
+                algorithm, algorithm_settings, algorithm_settings_path, **kwargs
+            )
+        ) is None:
+            return IndividualParameters()
         return algorithm.run(self, dataset)
 
     def estimate(

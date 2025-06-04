@@ -1,4 +1,4 @@
-from .base import BaseModel, InitializationMethod
+from .base import BaseModel
 from .constant import ConstantModel
 from .factory import ModelName, model_factory
 from .generic import GenericModel
@@ -16,7 +16,6 @@ from .time_reparametrized import TimeReparametrizedModel
 
 __all__ = [
     "ModelName",
-    "InitializationMethod",
     "McmcSaemCompatibleModel",
     "TimeReparametrizedModel",
     "BaseModel",

@@ -120,7 +120,12 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
 
         ws = [str(w.message) for w in ws]
 
-        self.assertEqual(ws, [])
+        self.assertEqual(
+            ws,
+            [
+                "Outputs will be saved in '_outputs' relative to the current working directory"
+            ],
+        )
 
         self.check_consistency_of_personalization_outputs(
             ips,

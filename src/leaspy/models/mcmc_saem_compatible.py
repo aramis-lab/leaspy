@@ -720,11 +720,7 @@ class McmcSaemCompatibleModel(BaseModel):
         )
         self.state.track_variables(self.tracked_variables)
 
-    def initialize(
-        self,
-        dataset: Optional[Dataset] = None,
-        method: Optional[InitializationMethod] = None,
-    ) -> None:
+    def initialize(self, dataset: Optional[Dataset] = None) -> None:
         """
         Overloads base model initialization (in particular to handle internal model State).
 
@@ -738,15 +734,13 @@ class McmcSaemCompatibleModel(BaseModel):
             The initialization method to be used.
             Default='default'.
         """
-        super().initialize(dataset=dataset, method=method)
+        super().initialize(dataset=dataset)
         self._initialize_state()
         if not dataset:
             return
         # WIP: design of this may be better somehow?
         with self._state.auto_fork(None):
-            # Set model parameters
-            self._initialize_model_parameters(dataset, method=method)
-            # Initialize population latent variables to their mode
+            self._initialize_model_parameters(dataset)
             self._state.put_population_latent_variables(
                 LatentVariableInitType.PRIOR_MODE
             )
@@ -788,9 +782,7 @@ class McmcSaemCompatibleModel(BaseModel):
         for obs_model in self.obs_models:
             state[obs_model.name] = None
 
-    def _initialize_model_parameters(
-        self, dataset: Dataset, method: InitializationMethod
-    ) -> None:
+    def _initialize_model_parameters(self, dataset: Dataset) -> None:
         """Initialize model parameters (in-place, in `_state`).
 
         The method also checks that the model parameters whose initial values
@@ -805,12 +797,9 @@ class McmcSaemCompatibleModel(BaseModel):
         ----------
         dataset : Dataset
             The dataset to use to compute initial values for the model parameters.
-
-        method : InitializationMethod
-            The initialization method to use to compute these initial values.
         """
         model_parameters_initialization = (
-            self._compute_initial_values_for_model_parameters(dataset, method=method)
+            self._compute_initial_values_for_model_parameters(dataset)
         )
         model_parameters_spec = self.dag.sorted_variables_by_type[ModelParameter]
         if set(model_parameters_initialization.keys()) != set(model_parameters_spec):
@@ -848,11 +837,10 @@ class McmcSaemCompatibleModel(BaseModel):
 
     @abstractmethod
     def _compute_initial_values_for_model_parameters(
-        self,
-        dataset: Dataset,
-        method: InitializationMethod,
+        self, dataset: Dataset
     ) -> VariableNameToValueMapping:
         """Compute initial values for model parameters."""
+        raise NotImplementedError()
 
     def move_to_device(self, device: torch.device) -> None:
         """

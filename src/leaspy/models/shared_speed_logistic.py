@@ -17,7 +17,6 @@ from leaspy.variables.specs import (
     VariableNameToValueMapping,
 )
 
-from .base import InitializationMethod
 from .riemanian_manifold import LogisticInitializationMixin
 from .time_reparametrized import TimeReparametrizedModel
 
@@ -43,11 +42,8 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
-        method: InitializationMethod,
     ) -> VariableNameToValueMapping:
-        parameters = super()._compute_initial_values_for_model_parameters(
-            dataset, method=method
-        )
+        parameters = super()._compute_initial_values_for_model_parameters(dataset)
         parameters["log_g_mean"] = parameters["log_g_mean"].mean()
         parameters["xi_mean"] = parameters["log_v0_mean"].mean()
         del parameters["log_v0_mean"]

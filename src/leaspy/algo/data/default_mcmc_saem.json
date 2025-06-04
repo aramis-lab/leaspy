@@ -2,7 +2,6 @@
   "name": "mcmc_saem",
   "seed": null,
   "algorithm_initialization_method": null,
-  "model_initialization_method": "default",
   "device": "cpu",
   "parameters": {
     "progress_bar": true,
