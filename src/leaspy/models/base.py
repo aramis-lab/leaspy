@@ -558,6 +558,12 @@ class BaseModel(ModelInterface):
                 f"Model has {len(self.features)} features. Cannot set the dimension to {dimension}."
             )
 
+    @property
+    @abstractmethod
+    def parameters(self) -> DictParamsTorch:
+        """Dictionary of values for model parameters."""
+        raise NotImplementedError
+
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
