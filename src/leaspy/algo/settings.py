@@ -10,7 +10,6 @@ from typing import Optional, Union
 import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError
-from leaspy.models import InitializationMethod
 from leaspy.utils.typing import KwargsType
 
 algo_default_data_dir = Path(__file__).parent.parent / "algo" / "data"
@@ -221,9 +220,6 @@ class AlgorithmSettings:
         Depending on the algorithm, various parameters are possible:
             * seed : :obj:`int`, optional, default None
                 Used for stochastic algorithms.
-            * model_initialization_method :  :obj:`str`, optional
-                For **fit** algorithms only, give a model initialization method, according to those possible
-                in :func:`~.models.utils.initialization.model_initialization.initialize_parameters`.
             * algorithm_initialization_method : :obj:`str`, optional
                 Personalize the algorithm initialization method, according to those possible for the given algorithm
                 (refer to its documentation in :mod:`leaspy.algo`).
@@ -247,9 +243,6 @@ class AlgorithmSettings:
     ----------
     name : :obj:`str`
         The algorithm's name.
-    model_initialization_method : :obj:`str`, optional
-        For **fit** algorithms only. Specifies a method for initializing model parameters.
-        See: :func:`~.models.utils.initialization.model_initialization.initialize_parameters`.
     algorithm_initialization_method : :obj:`str`, optional
         Personalize the algorithm initialization method, according to those possible for the given algorithm
         (refer to its documentation in :mod:`leaspy.algo`).
@@ -296,7 +289,6 @@ class AlgorithmSettings:
         "name",
         "seed",
         "algorithm_initialization_method",
-        "model_initialization_method",
         "parameters",
         "device",
     ]  # 'logs' are not handled in exported files
@@ -308,7 +300,6 @@ class AlgorithmSettings:
         self.parameters: Optional[KwargsType] = None
         self.seed: Optional[int] = None
         self.algorithm_initialization_method: Optional[str] = None
-        self.model_initialization_method: Optional[str] = None
         self.logs: Optional[OutputsSettings] = None
         default_algo_settings_path = (
             algo_default_data_dir / f"default_{self.name.value}.json"
@@ -327,16 +318,8 @@ class AlgorithmSettings:
         Check internal consistency of algorithm settings and warn or raise a `LeaspyAlgoInputError` if not.
         """
         from .algo_with_device import AlgorithmWithDeviceMixin
-        from .base import AlgorithmType, get_algorithm_class, get_algorithm_type
+        from .base import get_algorithm_class
 
-        if (
-            self.model_initialization_method is not None
-            and get_algorithm_type(self.name) != AlgorithmType.FIT
-        ):
-            warnings.warn(
-                "You should not define `model_initialization_method` in your algorithm: "
-                f'"{self.name}" is not a `fit` algorithm so it has no effect.'
-            )
         algo_class = get_algorithm_class(self.name)
         if self.seed is not None and algo_class.deterministic:
             warnings.warn(
@@ -416,11 +399,6 @@ class AlgorithmSettings:
             algorithm_settings.algorithm_initialization_method = (
                 cls._get_algorithm_initialization_method(settings)
             )
-        if "model_initialization_method" in settings.keys():
-            print("You overwrote the model default initialization method")
-            algorithm_settings.model_initialization_method = (
-                cls._get_model_initialization_method(settings)
-            )
         if "device" in settings.keys():
             print("You overwrote the algorithm default device")
             algorithm_settings.device = cls._get_device(settings)
@@ -465,10 +443,6 @@ class AlgorithmSettings:
             "seed": self.seed,
             "algorithm_initialization_method": self.algorithm_initialization_method,
         }
-        if get_algorithm_type(self.name) == AlgorithmType.FIT:
-            json_settings["model_initialization_method"] = (
-                self.model_initialization_method
-            )
         if hasattr(self, "device"):
             json_settings["device"] = self.device
         # TODO: save config of logging as well (OutputSettings needs to be JSON serializable...)
@@ -553,18 +527,12 @@ class AlgorithmSettings:
                         f"You provide {v} of type {type(v)}."
                     )
                 settings[k] = v
-            else:
-                warnings.warn(
-                    f"The kwarg '{k}' you provided is not valid and was skipped."
-                )
-
         self.logs = OutputsSettings(settings)
 
     def _manage_kwargs(self, kwargs):
         _special_kwargs = {
             "seed": self._get_seed,
             "algorithm_initialization_method": self._get_algorithm_initialization_method,
-            "model_initialization_method": self._get_model_initialization_method,
             "device": self._get_device,
         }
 
@@ -653,10 +621,6 @@ class AlgorithmSettings:
         algo_class = get_algorithm_class(self.name)
         if not algo_class.deterministic:
             self.seed = self._get_seed(settings)
-        if get_algorithm_type(self.name) == AlgorithmType.FIT:
-            self.model_initialization_method = self._get_model_initialization_method(
-                settings
-            )
         if "device" in settings:
             self.device = self._get_device(settings)
 
@@ -680,11 +644,6 @@ class AlgorithmSettings:
             raise LeaspyAlgoInputError(
                 error_tpl.format("algorithm_initialization_method")
             )
-        if (
-            get_algorithm_type(settings["name"]) == AlgorithmType.FIT
-            and "model_initialization_method" not in settings.keys()
-        ):
-            raise LeaspyAlgoInputError(error_tpl.format("model_initialization_method"))
 
     @staticmethod
     def _get_name(settings: dict) -> str:
@@ -713,14 +672,6 @@ class AlgorithmSettings:
         # TODO : There should be a list of possible initialization method.
         #  It can also be discussed depending on the algorithms name
         return settings["algorithm_initialization_method"]
-
-    @staticmethod
-    def _get_model_initialization_method(
-        settings: dict,
-    ) -> Optional[InitializationMethod]:
-        if settings["model_initialization_method"] is None:
-            return None
-        return InitializationMethod(settings["model_initialization_method"])
 
     @staticmethod
     def _get_device(settings: dict):

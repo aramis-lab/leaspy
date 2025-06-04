@@ -20,7 +20,7 @@ class SamplerTest(LeaspyTestCase):
         # for tmp handling
         super().setUpClass()
 
-        cls.leaspy = cls.get_hardcoded_model("logistic_scalar_noise")
+        cls.model = cls.get_hardcoded_model("logistic_scalar_noise")
         cls.data = cls.get_suited_test_data_for_model("logistic_scalar_noise")
         cls.dataset = Dataset(cls.data)
 
@@ -31,7 +31,7 @@ class SamplerTest(LeaspyTestCase):
     @skip("Broken: Model has no get_population_random_variable_information method")
     def test_realization(self):
         realizations = CollectionRealization()
-        realizations.initialize(self.leaspy.model, n_individuals=2)
+        realizations.initialize(self.model, n_individuals=2)
         self.assertEqual(set(realizations.individual.names), {"tau", "xi", "sources"})
         tau_real = realizations["tau"].tensor
         self.assertIsInstance(tau_real, torch.Tensor)
@@ -63,12 +63,10 @@ class SamplerTest(LeaspyTestCase):
         var_name: str = "tau"
 
         realizations = CollectionRealization()
-        realizations.initialize(self.leaspy.model, n_individuals=n_patients)
+        realizations.initialize(self.model, n_individuals=n_patients)
 
         for sampler_name in ("Gibbs",):
-            rv_info = self.leaspy.model.get_individual_random_variable_information()[
-                var_name
-            ]
+            rv_info = self.model.get_individual_random_variable_information()[var_name]
             sampler = sampler_factory(
                 sampler_name,
                 IndividualLatentVariable,
@@ -81,7 +79,7 @@ class SamplerTest(LeaspyTestCase):
             for i in range(n_draw):
                 sampler.sample(
                     self.dataset,
-                    self.leaspy.model,
+                    self.model,
                     realizations,
                     temperature_inv,
                     attribute_type=None,
@@ -102,11 +100,9 @@ class SamplerTest(LeaspyTestCase):
         # Test with g (1D population parameter) and betas (2 dimensional population parameter)
         for var_name in ("g", "betas"):
             for sampler_name in ("Gibbs", "FastGibbs", "Metropolis-Hastings"):
-                rv_info = (
-                    self.leaspy.model.get_population_random_variable_information()[
-                        var_name
-                    ]
-                )
+                rv_info = self.model.get_population_random_variable_information()[
+                    var_name
+                ]
                 sampler = sampler_factory(
                     sampler_name,
                     PopulationLatentVariable,
@@ -115,13 +111,13 @@ class SamplerTest(LeaspyTestCase):
                     shape=rv_info["shape"],
                 )
                 # a valid model MCMC toolbox is needed for sampling a population variable (update in-place)
-                self.leaspy.model.initialize_MCMC_toolbox()
+                self.model.initialize_MCMC_toolbox()
                 random_draws = []
                 for i in range(n_draw):
                     # attribute_type=None would not be used here
                     sampler.sample(
                         self.dataset,
-                        self.leaspy.model,
+                        self.model,
                         realizations,
                         temperature_inv,
                     )
@@ -157,11 +153,9 @@ class SamplerTest(LeaspyTestCase):
                 # BROKEN : model has no method get_individual_random_variable_information
                 # FIX : Use self.leaspy.model.get_variables_specs()["tau"] ??
                 # PROBLEM : How to get the shape to be passed to sampler_factory ?
-                rv_info = (
-                    self.leaspy.model.get_individual_random_variable_information()[
-                        var_name
-                    ]
-                )
+                rv_info = self.model.get_individual_random_variable_information()[
+                    var_name
+                ]
                 sampler = sampler_factory(
                     sampler_name,
                     IndividualLatentVariable,
@@ -194,7 +188,7 @@ class SamplerTest(LeaspyTestCase):
                     PopulationLatentVariable,
                     scale=self.scale_pop,
                     name=var_name,
-                    shape=self.leaspy.model.state[var_name].shape,
+                    shape=self.model.state[var_name].shape,
                 )
                 for i in range(n_draw):
                     sampler._update_acceptation_rate(next(acceptation_it))
@@ -260,9 +254,7 @@ class SamplerTest(LeaspyTestCase):
 
         # realizations = self.leaspy.model.initialize_realizations_for_model(n_patients)
 
-        rv_info = self.leaspy.model.get_individual_random_variable_information()[
-            var_name
-        ]
+        rv_info = self.model.get_individual_random_variable_information()[var_name]
         sampler = sampler_factory(
             "Gibbs",
             IndividualLatentVariable,

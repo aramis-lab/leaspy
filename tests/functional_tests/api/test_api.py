@@ -74,7 +74,7 @@ class LeaspyAPITest(
         filename_expected_model = f"{model_codename}_for_test_api"
 
         # no loss returned for fit for now
-        leaspy, data = self.generic_fit(
+        model, data = self.generic_fit(
             model_name,
             filename_expected_model,
             **model_hyperparams,
@@ -84,17 +84,13 @@ class LeaspyAPITest(
             check_kws=fit_check_kws,
         )
         # unlink 1st functional fit test from next steps...
-        leaspy = self.get_from_fit_model(filename_expected_model)
-        self.assertTrue(leaspy.model.is_initialized)
+        model = self.get_from_fit_model(filename_expected_model)
+        self.assertTrue(model.is_initialized)
 
-        # Personalize
-        algo_personalize_settings = self.get_algo_settings(
-            name=personalization_algo,
-            **personalization_algo_params,
-        )
-        individual_parameters = leaspy.personalize(
+        individual_parameters = model.personalize(
             data,
-            settings=algo_personalize_settings,
+            personalization_algo,
+            **personalization_algo_params,
         )
         self.check_consistency_of_personalization_outputs(
             individual_parameters,
@@ -104,7 +100,7 @@ class LeaspyAPITest(
             simulation_settings = self.get_algo_settings(
                 name=simulate_algo, **simulate_algo_params
             )
-            simulation_results = leaspy.simulate(
+            simulation_results = model.simulate(
                 individual_parameters, data, simulation_settings
             )
             if platform.system() == "Linux" and model_codename in (
@@ -116,7 +112,7 @@ class LeaspyAPITest(
                 simulation_results,
                 data,
                 expected_results_file=f"simulation_results_{model_codename}{'_arm' if os.uname()[4][:3] == 'arm' else ''}.csv",
-                model=leaspy.model,
+                model=model,
                 tol=simulate_tol,
             )
 

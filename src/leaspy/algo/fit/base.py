@@ -2,10 +2,9 @@
 
 from typing import Optional
 
-from leaspy.models import ModelType
 from leaspy.utils.typing import DictParamsTorch
 
-from ..base import AlgorithmType, IterativeAlgorithm, ReturnType
+from ..base import AlgorithmType, IterativeAlgorithm, ModelType, ReturnType
 from ..settings import AlgorithmSettings, OutputsSettings
 
 __all__ = ["FitAlgorithm"]

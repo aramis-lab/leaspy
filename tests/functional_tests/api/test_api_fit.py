@@ -6,7 +6,7 @@ from unittest import skipIf
 
 import torch
 
-from leaspy.api import Leaspy
+from leaspy.models import BaseModel, model_factory
 from leaspy.models.obs_models import observation_model_factory
 from tests.unit_tests.plots.test_plotter import MatplotlibTestCase
 
@@ -69,21 +69,13 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
         }
 
         data = self.get_suited_test_data_for_model(model_codename)
-        leaspy = Leaspy(model_name, **model_hyperparams)
-        algo_settings = self.get_algo_settings(name=algo_name, **algo_params)
-
-        # set logs by default
+        model = model_factory(model_name, **model_hyperparams)
         if logs_kws is not None:
             auto_path_logs = self.get_test_tmp_path(f"{model_codename}-logs")
-            with self.assertWarnsRegex(
-                UserWarning, r" does not exist\. Needed paths will be created"
-            ):
-                algo_settings.set_logs(path=auto_path_logs, **logs_kws)
-
-        leaspy.fit(data, settings=algo_settings)
-
+            logs_kws["path"] = auto_path_logs
+        model.fit(data, algo_name, **algo_params, **logs_kws)
         if print_model:
-            print(leaspy.model.parameters)
+            print(model.parameters)
 
         # path to expected
         expected_model_path = self.from_fit_model_path(model_codename)
@@ -96,28 +88,26 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
                     f"<!> Consistency of model could not be checked since '{model_codename}' did not exist..."
                 )
             else:
-                self.check_model_consistency(leaspy, expected_model_path, **check_kws)
+                self.check_model_consistency(model, expected_model_path, **check_kws)
 
         # set `save_model=True` to re-generate example model
         # <!> use carefully (only when needed following breaking changes in model / calibration)
         if save_model or inexistant_model:
-            leaspy.save(expected_model_path)
+            model.save(expected_model_path)
             if save_model:
                 warnings.warn(f"<!> You overwrote previous '{model_codename}' model...")
 
-        return leaspy, data
+        return model, data
 
     def check_model_consistency(
-        self, leaspy: Leaspy, path_to_backup_model: str, **allclose_kwds
+        self, model: BaseModel, path_to_backup_model: str, **allclose_kwds
     ):
         # Temporary save parameters and check consistency with previously saved model
-
         allclose_kwds = {"atol": 1e-5, "rtol": 1e-4, **allclose_kwds}
-
         path_to_tmp_saved_model = self.get_test_tmp_path(
             os.path.basename(path_to_backup_model)
         )
-        leaspy.save(path_to_tmp_saved_model)
+        model.save(path_to_tmp_saved_model)
 
         with open(path_to_backup_model, "r") as f1:
             expected_model_parameters = json.load(f1)
@@ -144,14 +134,13 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
         #  until expected file are regenerated
         # expected_model = Leaspy.load(path_to_backup_model).model
         expected_model_parameters["obs_models"] = model_parameters_new["obs_models"] = {
-            obs_model.name: obs_model.to_string()
-            for obs_model in leaspy.model.obs_models
+            obs_model.name: obs_model.to_string() for obs_model in model.obs_models
         }  # WIP: not properly serialized for now
         expected_model_parameters["leaspy_version"] = model_parameters_new[
             "leaspy_version"
         ] = new_model_version
-        Leaspy.load(expected_model_parameters)
-        Leaspy.load(model_parameters_new)
+        BaseModel.load(expected_model_parameters)
+        BaseModel.load(model_parameters_new)
 
 
 # some noticeable reproducibility errors btw MacOS and Linux here...

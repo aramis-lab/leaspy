@@ -3,7 +3,6 @@ from unittest import skip
 
 import torch
 
-from leaspy.api import Leaspy
 from leaspy.models import model_factory
 from leaspy.models.obs_models import (
     OBSERVATION_MODELS,
@@ -27,28 +26,22 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         """
         Test attribute's initialization of leaspy univariate model
         """
+        from leaspy.models import model_factory
+
         for name in self.model_names:
-            leaspy = Leaspy(name)
-            self.assertEqual(leaspy.type, name)
-            self.assertIsInstance(
-                leaspy.model.obs_models[0], FullGaussianObservationModel
-            )
-            self.assertEqual(type(leaspy.model), type(model_factory(name)))
-            self.check_model_factory_constructor(leaspy.model)
-            with self.assertRaisesRegex(ValueError, "not been initialized"):
-                leaspy.check_if_initialized()
+            model = model_factory(name)
+            self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
+            self.assertEqual(type(model), type(model_factory(name)))
+            self.check_model_factory_constructor(model)
+            self.assertFalse(model.is_initialized)
 
         for observation_model_name, observation_model in OBSERVATION_MODELS.items():
             if observation_model_name != ObservationModelNames.WEIBULL_RIGHT_CENSORED:
                 print(observation_model_name)
-                leaspy = Leaspy(
+                model = model_factory(
                     "logistic", obs_models=observation_model_name, dimension=1
                 )
-                self.assertEqual(leaspy.type, "logistic")
-                self.assertIsInstance(
-                    leaspy.model.obs_models[0],
-                    observation_model,
-                )
+                self.assertIsInstance(model.obs_models[0], observation_model)
             else:
                 to_test = [
                     [None, {"w": 1, "s": 0}],
@@ -59,13 +52,12 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
                 ]
                 for input, output in to_test:
                     # If no observational model given
-                    leaspy = Leaspy("joint", dimension=1, obs_models=input)
-                    self.assertEqual(leaspy.type, "joint")
+                    model = model_factory("joint", dimension=1, obs_models=input)
                     self.assertIsInstance(
-                        leaspy.model.obs_models[output["w"]], observation_model
+                        model.obs_models[output["w"]], observation_model
                     )
                     self.assertIsInstance(
-                        leaspy.model.obs_models[output["s"]],
+                        model.obs_models[output["s"]],
                         OBSERVATION_MODELS[ObservationModelNames.GAUSSIAN_SCALAR],
                     )
         for name in (
@@ -73,33 +65,30 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             "logistic",
             "shared_speed_logistic",
         ):
-            leaspy = Leaspy(name, source_dimension=2)
-            self.assertEqual(leaspy.model.source_dimension, 2)
+            model = model_factory(name, source_dimension=2)
+            self.assertEqual(model.source_dimension, 2)
 
         for name in ("linear", "logistic"):
-            leaspy = Leaspy(name, dimension=1)
-            self.assertEqual(leaspy.model.source_dimension, 0)
-            self.assertEqual(leaspy.model.dimension, 1)
+            model = model_factory(name, dimension=1)
+            self.assertEqual(model.source_dimension, 0)
+            self.assertEqual(model.dimension, 1)
 
     def test_load_hyperparameters(self):
-        leaspy = self.get_hardcoded_model("logistic_diag_noise")
-        leaspy.model._load_hyperparameters({"source_dimension": 3})
+        model = self.get_hardcoded_model("logistic_diag_noise")
+        model._load_hyperparameters({"source_dimension": 3})
 
-        self.assertEqual(leaspy.model.source_dimension, 3)
-        self.assertIsInstance(leaspy.model.obs_models[0], FullGaussianObservationModel)
+        self.assertEqual(model.source_dimension, 3)
+        self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
 
     def test_load_logistic_scalar_noise(self):
-        """
-        Test the initialization of a logistic model from a json file
-        """
-        leaspy = self.get_hardcoded_model("logistic_scalar_noise")
+        """Test the initialization of a logistic model from a json file."""
+        model = self.get_hardcoded_model("logistic_scalar_noise")
 
-        self.assertEqual(leaspy.type, "logistic")
-        self.assertEqual(type(leaspy.model), type(model_factory("logistic")))
-        self.assertEqual(leaspy.model.dimension, 4)
-        self.assertEqual(leaspy.model.features, ["Y0", "Y1", "Y2", "Y3"])
-        self.assertEqual(leaspy.model.source_dimension, 2)
-        self.assertIsInstance(leaspy.model.obs_models[0], FullGaussianObservationModel)
+        self.assertEqual(type(model), type(model_factory("logistic")))
+        self.assertEqual(model.dimension, 4)
+        self.assertEqual(model.features, ["Y0", "Y1", "Y2", "Y3"])
+        self.assertEqual(model.source_dimension, 2)
+        self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
         parameters = {
             # "g": [0.5, 1.5, 1.0, 2.0],  broken...
             # "v0": [-2.0, -3.5, -3.0, -2.5],  broken...
@@ -114,27 +103,24 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         for param_name, param_value in parameters.items():
             self.assertTrue(
                 torch.equal(
-                    leaspy.model.state[param_name],
+                    model.state[param_name],
                     torch.tensor(param_value),
                 )
             )
-        self.assertEqual(leaspy.model.is_initialized, True)
+        self.assertEqual(model.is_initialized, True)
 
     @skip("logistic parallel is broken")
     def test_load_logistic_parallel_scalar_noise(self):
-        """
-        Test the initialization of a logistic parallel model from a json file
-        """
-        leaspy = self.get_hardcoded_model("logistic_parallel_scalar_noise")
+        """Test the initialization of a logistic parallel model from a json file."""
+        model = self.get_hardcoded_model("logistic_parallel_scalar_noise")
 
         # Test the name
-        self.assertEqual(leaspy.type, "logistic_parallel")
-        self.assertEqual(type(leaspy.model), type(model_factory("logistic_parallel")))
+        self.assertEqual(type(model), type(model_factory("logistic_parallel")))
 
         # Test the hyperparameters
-        self.assertEqual(leaspy.model.dimension, 4)
-        self.assertEqual(leaspy.model.features, ["Y0", "Y1", "Y2", "Y3"])
-        self.assertEqual(leaspy.model.source_dimension, 2)
+        self.assertEqual(model.dimension, 4)
+        self.assertEqual(model.features, ["Y0", "Y1", "Y2", "Y3"])
+        self.assertEqual(model.source_dimension, 2)
         # self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
@@ -150,14 +136,14 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             "betas": [[0.1, -0.1], [0.5, -0.3], [0.3, 0.4]],
         }
 
-        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
-        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.1})
+        self.assertDictAlmostEqual(model.parameters, parameters)
+        self.assertDictAlmostEqual(model.noise_model.parameters, {"scale": 0.1})
 
         # Test the initialization
-        self.assertEqual(leaspy.model.is_initialized, True)
+        self.assertEqual(model.is_initialized, True)
 
         # Test that the model attributes were initialized
-        attrs = leaspy.model._get_attributes(None)
+        attrs = model._get_attributes(None)
         self.assertIsNotNone(attrs)
         self.assertIsInstance(attrs, tuple)
         self.assertEqual(len(attrs), 3)
@@ -165,20 +151,16 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
 
     @skip("linear is broken")
     def test_load_linear_scalar_noise(self):
-        """
-        Test the initialization of a linear model from a json file
-        """
-        leaspy = self.get_hardcoded_model("linear_scalar_noise")
+        """Test the initialization of a linear model from a json file."""
+        model = self.get_hardcoded_model("linear_scalar_noise")
 
-        # Test the name
-        self.assertEqual(leaspy.type, "linear")
-        self.assertEqual(type(leaspy.model), type(model_factory("linear")))
+        self.assertEqual(type(model), type(model_factory("linear")))
 
         # Test the hyperparameters
-        self.assertEqual(leaspy.model.dimension, 4)
-        self.assertEqual(leaspy.model.features, ["Y0", "Y1", "Y2", "Y3"])
-        self.assertEqual(leaspy.model.source_dimension, 2)
-        self.assertIsInstance(leaspy.model.obs_models[0], FullGaussianObservationModel)
+        self.assertEqual(model.dimension, 4)
+        self.assertEqual(model.features, ["Y0", "Y1", "Y2", "Y3"])
+        self.assertEqual(model.source_dimension, 2)
+        self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
 
         # Test the parameters
         parameters = {
@@ -193,28 +175,24 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             "sources_std": 1.0,
         }
 
-        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
-        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.1})
+        self.assertDictAlmostEqual(model.parameters, parameters)
+        self.assertDictAlmostEqual(model.noise_model.parameters, {"scale": 0.1})
 
         # Test the initialization
-        self.assertEqual(leaspy.model.is_initialized, True)
+        self.assertEqual(model.is_initialized, True)
 
         # Test that the model attributes were initialized
-        attrs = leaspy.model._get_attributes(None)
+        attrs = model._get_attributes(None)
         self.assertIsNotNone(attrs)
         self.assertIsInstance(attrs, tuple)
         self.assertEqual(len(attrs), 3)
         self.assertTrue(all(attr is not None for attr in attrs))
 
     def test_load_univariate_logistic(self):
-        """
-        Test the initialization of a linear model from a json file
-        """
-        leaspy = self.get_hardcoded_model("logistic")
-
-        # Test the hyperparameters
-        self.assertEqual(leaspy.model.features, ["Y0"])
-        self.assertIsInstance(leaspy.model.obs_models[0], FullGaussianObservationModel)
+        """Test the initialization of a linear model from a json file."""
+        model = self.get_hardcoded_model("logistic")
+        self.assertEqual(model.features, ["Y0"])
+        self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
 
         # Test the parameters
         parameters = {
@@ -234,19 +212,19 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             try:
                 self.assertTrue(
                     torch.equal(
-                        leaspy.model.state[param_name],
+                        model.state[param_name],
                         torch.tensor(param_value),
                     )
                 )
             except:
-                print(leaspy.model.state[param_name])
+                print(model.state[param_name])
                 print(torch.tensor(param_value))
 
         # self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
         # self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.2})
 
         # Test the initialization
-        self.assertEqual(leaspy.model.is_initialized, True)
+        self.assertEqual(model.is_initialized, True)
 
         # Test that the model attributes were initialized
         # for attribute in leaspy.model._get_attributes(None):
@@ -254,12 +232,9 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
 
     @skip("linear is broken")
     def test_load_univariate_linear(self):
-        """
-        Test the initialization of a linear model from a json file
-        """
-        leaspy = self.get_hardcoded_model("linear")
-        # Test the hyperparameters
-        self.assertEqual(leaspy.model.features, ["Y0"])
+        """Test the initialization of a linear model from a json file."""
+        model = self.get_hardcoded_model("linear")
+        self.assertEqual(model.features, ["Y0"])
         # self.assertIsInstance(leaspy.model.noise_model, GaussianScalarNoiseModel)
 
         # Test the parameters
@@ -276,31 +251,29 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
             "sources_std": 1,
         }
 
-        self.assertDictAlmostEqual(leaspy.model.parameters, parameters)
-        self.assertDictAlmostEqual(leaspy.model.noise_model.parameters, {"scale": 0.15})
+        self.assertDictAlmostEqual(model.parameters, parameters)
+        self.assertDictAlmostEqual(model.noise_model.parameters, {"scale": 0.15})
 
         # Test the initialization
-        self.assertEqual(leaspy.model.is_initialized, True)
+        self.assertEqual(model.is_initialized, True)
 
         # Test that the model attributes were initialized
-        for attribute in leaspy.model._get_attributes(None):
+        for attribute in model._get_attributes(None):
             self.assertIsInstance(attribute, torch.FloatTensor)
 
     def test_load_save_load(self, *, atol=1e-4):
-        """
-        Test loading, saving and loading again all models (hardcoded and functional)
-        """
+        """Test loading, saving and loading again all models (hardcoded and functional)."""
+        from leaspy.models import BaseModel
 
-        # hardcoded models
         for model_path in glob(self.hardcoded_model_path("*.json")):
             with self.subTest(model_path=model_path):
                 self.check_model_consistency(
-                    Leaspy.load(model_path), model_path, atol=atol
+                    BaseModel.load(model_path), model_path, atol=atol
                 )
 
         # functional models (OK because no direct test on values)
         for model_path in glob(self.from_fit_model_path("*.json")):
             with self.subTest(model_path=model_path):
                 self.check_model_consistency(
-                    Leaspy.load(model_path), model_path, atol=atol
+                    BaseModel.load(model_path), model_path, atol=atol
                 )

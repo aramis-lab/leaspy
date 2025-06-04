@@ -56,19 +56,15 @@ class GenericModel(BaseModel):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         # self.reset_hyperparameters()
-        self.parameters: KwargsType = {}
+        self._parameters: KwargsType = {}
         # self.noise_model = None
 
         # Load hyperparameters at init (and set at default values when missing)
         self.load_hyperparameters(kwargs, with_defaults=True)
 
-    """
-    # TODO?
-    def reset_hyperparameters(self) -> None:
-        for hp_name, hp_type_hint in self._hyperparameters.items():
-            setattr(self, hp_name, None)
-            self.__annotations__[hp_name] = hp_type_hint #Optional[hp_type_hint]
-    """
+    @property
+    def parameters(self):
+        return self._parameters
 
     def get_hyperparameters(
         self, *, with_features=True, with_properties=True, default=None
@@ -123,20 +119,6 @@ class GenericModel(BaseModel):
         }
         return all(d_ok.values())
 
-    # 'features' (and 'dimension') are really core hyperparameters
-
-    """
-    # if we want hyperparameters direct access without storing them in top-level
-    def __getattr__(self, key: str):# -> Any:
-        # overload so to mock hyperparameters on top-class level
-
-    def __hasattr__(self, key: str) -> bool:
-        # overload so to mock hyperparameters on top-class level
-
-    def __setattr__(self, key: str, val) -> None:
-        # overload so to mock hyperparameters on top-class level
-    """
-
     def load_parameters(self, parameters, *, list_converter=np.array) -> None:
         """
         Instantiate or update the model's parameters.
@@ -158,12 +140,12 @@ class GenericModel(BaseModel):
         """
 
         # <!> shallow copy only
-        self.parameters = parameters.copy()
+        self._parameters = parameters.copy()
 
         # convert lists
-        for k, v in self.parameters.items():
+        for k, v in self._parameters.items():
             if isinstance(v, list):
-                self.parameters[k] = list_converter(v)
+                self._parameters[k] = list_converter(v)
 
     def load_hyperparameters(
         self, hyperparameters: KwargsType, *, with_defaults: bool = False

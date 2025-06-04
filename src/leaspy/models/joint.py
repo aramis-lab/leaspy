@@ -21,7 +21,6 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-from .base import InitializationMethod
 from .obs_models import observation_model_factory
 from .riemanian_manifold import LogisticModel
 
@@ -278,28 +277,22 @@ class JointModel(LogisticModel):
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
-        method: InitializationMethod,
     ) -> VariableNameToValueMapping:
-        """
-        Compute initial values for model parameters.
+        """Compute initial values for model parameters.
 
         Parameters
         ----------
         dataset : :class:`Dataset`
             Where the individual data are stored
 
-        method : :class:`InitializationMethod`
-            Initialization method for the longitudinal multivariate sub-model
-
         Returns
         -------
         VariableNameToValueMapping :
             model parameters
-
         """
         from leaspy.models.utilities import torch_round
 
-        params = super()._compute_initial_values_for_model_parameters(dataset, method)
+        params = super()._compute_initial_values_for_model_parameters(dataset)
         new_parameters = self._estimate_initial_event_parameters(dataset)
         new_rounded_parameters = {
             str(p): torch_round(v.to(torch.float32)) for p, v in new_parameters.items()
