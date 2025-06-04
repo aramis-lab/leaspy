@@ -46,7 +46,7 @@ class PlotterTest(MatplotlibTestCase):
 
         cls.plotter = Plotter(cls.get_test_tmp_path())
         cls.plotter._show = False  # do not show plots useless for tests!
-        cls.leaspy = cls.get_hardcoded_model("logistic_diag_noise")
+        cls.model = cls.get_hardcoded_model("logistic_diag_noise")
         cls.ips = cls.get_from_personalize_individual_params(
             "data_tiny-individual_parameters.csv"
         )
@@ -62,7 +62,7 @@ class PlotterTest(MatplotlibTestCase):
 
     def test_plot_mean_trajectory(self):
         self.plotter.plot_mean_trajectory(
-            self.leaspy.model,
+            self.model,
             save_as="mean_trajectory.pdf",
         )
         self.assertHasTmpFile("mean_trajectory.pdf")
@@ -70,7 +70,7 @@ class PlotterTest(MatplotlibTestCase):
     def test_plot_mean_validity(self):
         rel_path = "mean_validity.pdf"
         self.plotter.plot_mean_validity(
-            self.leaspy.model,
+            self.model,
             self.result,
             save_as=rel_path,
         )
@@ -82,7 +82,7 @@ class PlotterTest(MatplotlibTestCase):
     def test_plot_patient_trajectory(self):
         rel_path = "patient_trajectory.pdf"
         self.plotter.plot_patient_trajectory(
-            self.leaspy.model,
+            self.model,
             self.result,
             indices=self.inds,
             save_as=rel_path,
@@ -92,7 +92,7 @@ class PlotterTest(MatplotlibTestCase):
     def test_plot_from_individual_parameters(self):
         rel_path = "from_individual_parameters.pdf"
         self.plotter.plot_from_individual_parameters(
-            self.leaspy.model,
+            self.model,
             self.ips[self.ind],
             timepoints=self.data.individuals[self.ind].timepoints,
             save_as=rel_path,
@@ -101,7 +101,7 @@ class PlotterTest(MatplotlibTestCase):
 
     def test_plot_distribution(self):
         to_plot = ["tau", "xi"] + [
-            f"sources_{i}" for i in range(self.leaspy.model.source_dimension)
+            f"sources_{i}" for i in range(self.model.source_dimension)
         ]
         for p in to_plot:
             rel_path = f"distribution_{p}.pdf"
@@ -124,9 +124,7 @@ class PlotterTest(MatplotlibTestCase):
         "Broken: 'MultivariateModel' object has no attribute 'compute_individual_tensorized'"
     )
     def test_plot_patients_mapped_on_mean_trajectory(self):
-        self.plotter.plot_patients_mapped_on_mean_trajectory(
-            self.leaspy.model, self.result
-        )
+        self.plotter.plot_patients_mapped_on_mean_trajectory(self.model, self.result)
         # no save
 
     ## plots used during convergence (staticmethods)
@@ -138,7 +136,7 @@ class PlotterTest(MatplotlibTestCase):
         Plotter.plot_error(
             self.get_test_tmp_path(rel_path),
             dataset=self.dataset,
-            model=self.leaspy.model,
+            model=self.model,
             param_ind=self.ips_torch,
         )
         self.assertHasTmpFile(rel_path)
@@ -151,7 +149,7 @@ class PlotterTest(MatplotlibTestCase):
         self.plotter.plot_patient_reconstructions(
             self.get_test_tmp_path(rel_path),
             dataset=self.dataset,
-            model=self.leaspy.model,
+            model=self.model,
             param_ind=self.ips_torch,
         )
         self.assertHasTmpFile(rel_path)

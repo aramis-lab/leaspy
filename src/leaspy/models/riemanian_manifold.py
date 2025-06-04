@@ -46,8 +46,7 @@ __all__ = [
 
 
 class RiemanianManifoldModel(TimeReparametrizedModel):
-    """
-    Manifold model for multiple variables of interest (logistic or linear formulation).
+    """Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters
     ----------
@@ -223,7 +222,6 @@ class LinearInitializationMixin:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
-        method: InitializationMethod,
     ) -> VariableNameToValueMapping:
         from leaspy.models.utilities import (
             compute_linear_regression_subjects,
@@ -316,7 +314,6 @@ class LogisticInitializationMixin:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
-        method: InitializationMethod,
     ) -> VariableNameToValueMapping:
         """Compute initial values for model parameters."""
         from leaspy.models.utilities import (
@@ -332,13 +329,13 @@ class LogisticInitializationMixin:
         values_mu, values_sigma = compute_patient_values_distribution(df)
         time_mu, time_sigma = compute_patient_time_distribution(df)
 
-        if method == InitializationMethod.DEFAULT:
+        if self.initialization_method == InitializationMethod.DEFAULT:
             slopes = slopes_mu
             values = values_mu
             t0 = time_mu
             betas = torch.zeros((self.dimension - 1, self.source_dimension))
 
-        if method == InitializationMethod.RANDOM:
+        if self.initialization_method == InitializationMethod.RANDOM:
             slopes = torch.normal(slopes_mu, slopes_sigma)
             values = torch.normal(values_mu, values_sigma)
             t0 = torch.normal(time_mu, time_sigma)

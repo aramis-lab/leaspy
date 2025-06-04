@@ -4,14 +4,14 @@ from typing import Union
 
 import pandas as pd
 
-from leaspy.api import Leaspy
 from leaspy.io.outputs import IndividualParameters
+from leaspy.models import BaseModel
 
 __all__ = [
     "DatasetName",
     "load_dataset",
     "load_individual_parameters",
-    "load_leaspy_instance",
+    "load_model",
     "get_dataset_path",
     "get_individual_parameter_path",
     "get_model_path",
@@ -104,10 +104,8 @@ def load_individual_parameters(name: Union[str, DatasetName]) -> IndividualParam
     return IndividualParameters.load(str(get_individual_parameter_path(name)))
 
 
-def load_leaspy_instance(name: Union[str, DatasetName]) -> Leaspy:
-    """
-    Load a Leaspy instance with a model already calibrated on the synthetic dataset corresponding to the name
-    of the instance.
+def load_model(name: Union[str, DatasetName]) -> BaseModel:
+    """Load a model already calibrated on the synthetic dataset corresponding to the name of the instance.
 
     Parameters
     ----------
@@ -116,7 +114,7 @@ def load_leaspy_instance(name: Union[str, DatasetName]) -> Leaspy:
 
     Returns
     -------
-    :class:`.Leaspy`
-        Leaspy instance with a model already calibrated.
+    :class:`~leaspy.models.BaseModel`
+        Model instance already calibrated.
     """
-    return Leaspy.load(str(get_model_path(name)))
+    return BaseModel.load(str(get_model_path(name)))

@@ -13,7 +13,6 @@ import torch
 
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data import Dataset
-from leaspy.models import ModelType
 
 from .settings import AlgorithmSettings, OutputsSettings
 
@@ -26,9 +25,10 @@ __all__ = [
     "get_algorithm_class",
     "algorithm_factory",
     "ReturnType",
+    "ModelType",
 ]
 
-
+ModelType = TypeVar("ModelType", bound="BaseModel")
 ReturnType = TypeVar("ReturnType")
 
 

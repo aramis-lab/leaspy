@@ -1,11 +1,17 @@
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
+import numpy as np
+import pandas as pd
+
+from leaspy.algo import AlgorithmName, AlgorithmSettings
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.io.data.dataset import Dataset
-from leaspy.utils.typing import FeatureType
+from leaspy.io.data.dataset import Data, Dataset
+from leaspy.io.outputs import IndividualParameters
+from leaspy.utils.typing import DictParamsTorch, FeatureType, IDType
 
 __all__ = [
     "InitializationMethod",
@@ -19,11 +25,9 @@ class InitializationMethod(str, Enum):
 
 
 class BaseModel(ABC):
-    """
-    Base model class from which all ``Leaspy`` models should inherit.
+    """Base model class from which all ``Leaspy`` models should inherit.
 
-    It defines the interface that a model should implement to be
-    compatible with ``Leaspy``.
+    It defines the interface that a model should implement to be compatible with ``Leaspy``.
 
     Parameters
     ----------
@@ -53,6 +57,11 @@ class BaseModel(ABC):
         self.name = name
         self._features: Optional[list[FeatureType]] = None
         self._dimension: Optional[int] = None
+        self.initialization_method: InitializationMethod = InitializationMethod.DEFAULT
+        if "initialization_method" in kwargs:
+            self.initialization_method = InitializationMethod(
+                kwargs["initialization_method"]
+            )
 
     @property
     def features(self) -> Optional[list[FeatureType]]:
@@ -60,8 +69,8 @@ class BaseModel(ABC):
 
     @features.setter
     def features(self, features: Optional[list[FeatureType]]):
-        """
-        Features setter.
+        """Features setter.
+
         Ensure coherence between dimension and features attributes.
         """
         if features is None:
@@ -78,8 +87,8 @@ class BaseModel(ABC):
 
     @property
     def dimension(self) -> Optional[int]:
-        """
-        The dimension of the model.
+        """The dimension of the model.
+
         If the private attribute is defined, then it takes precedence over the feature length.
         The associated setters are responsible for their coherence.
         """
@@ -91,8 +100,8 @@ class BaseModel(ABC):
 
     @dimension.setter
     def dimension(self, dimension: int):
-        """
-        Dimension setter.
+        """Dimension setter.
+
         Ensures coherence between dimension and feature attributes.
         """
         if self.features is None:
@@ -102,11 +111,16 @@ class BaseModel(ABC):
                 f"Model has {len(self.features)} features. Cannot set the dimension to {dimension}."
             )
 
+    @property
+    @abstractmethod
+    def parameters(self) -> DictParamsTorch:
+        """Dictionary of values for model parameters."""
+        raise NotImplementedError
+
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
-        """
-        Raise if the given :class:`.Dataset` is not compatible with the current model.
+        """Raise if the given :class:`.Dataset` is not compatible with the current model.
 
         Parameters
         ----------
@@ -131,25 +145,17 @@ class BaseModel(ABC):
                 f"Unmatched features: {self.features} (model) ≠ {dataset.headers} (data)."
             )
 
-    def initialize(
-        self,
-        dataset: Optional[Dataset] = None,
-        method: Optional[InitializationMethod] = None,
-    ) -> None:
-        """
-        Initialize the model given a :class:`.Dataset` and an initialization method.
+    def initialize(self, dataset: Optional[Dataset] = None) -> None:
+        """Initialize the model given a :class:`.Dataset` and an initialization method.
 
         After calling this method :attr:`is_initialized` should be ``True`` and model
         should be ready for use.
 
         Parameters
         ----------
-        dataset : :class:`.Dataset`, optional
+        dataset : :class:`~leaspy.io.Dataset`, optional
             The dataset we want to initialize from.
-        method : InitializationMethod, optional
-            A custom method to initialize the model
         """
-        method = InitializationMethod(method or InitializationMethod.DEFAULT)
         if self.is_initialized and self.features is not None:
             # we also test that self.features is not None, since for `ConstantModel`:
             # `is_initialized`` is True but as a mock for being personalization-ready,
@@ -169,16 +175,292 @@ class BaseModel(ABC):
         self.is_initialized = True
 
     @abstractmethod
-    def save(self, path: str, **kwargs) -> None:
-        """
-        Save ``Leaspy`` object as json model parameter file.
+    def save(self, path: Union[str, Path], **kwargs) -> None:
+        """Save the model at the given path.
 
         Parameters
         ----------
-        path : :obj:`str`
-            Path to store the model's parameters.
+        path : :obj:`str` or Path
+            The path to store the model's parameters.
 
         **kwargs
             Additional parameters for writing.
         """
         raise NotImplementedError
+
+    @classmethod
+    def load(cls, path_to_model_settings: Union[str, Path]):
+        from .factory import model_factory
+        from .settings import ModelSettings
+
+        reader = ModelSettings(path_to_model_settings)
+        instance = model_factory(reader.name, **reader.hyperparameters)
+        instance.load_parameters(reader.parameters)
+        instance.is_initialized = True
+        return instance
+
+    def fit(
+        self,
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ):
+        r"""Estimate the model's parameters :math:`\theta` for a given dataset and a given algorithm.
+
+        These model's parameters correspond to the fixed-effects of the mixed-effects model.
+
+        There are three ways to provide parameters to the fitting algorithm:
+
+        1. By providing an instance of :class:`~leaspy.algo.AlgorithmSettings`
+        2. By providing a path to a serialized :class:`~leaspy.algo.AlgorithmSettings`
+        3. By providing the algorithm name and parameters directly
+
+        If settings are provided in multiple ways, the order above will prevail.
+
+        Parameters
+        ----------
+        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
+            Contains the information of the individuals, in particular the time-points
+            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
+
+        algorithm : str, optional
+            The name of the algorithm to use.
+            Use this if you want to provide algorithm settings through kwargs.
+
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+            Use this if you want to customize algorithm settings through the
+            :class:`~leaspy.algo.AlgorithmSettings` class.
+            If provided, the fit will rely on these settings.
+
+        algorithm_settings_path : str or Path, optional
+            The path to the algorithm settings file.
+            If provided, the settings from the file will be used instead of the
+            settings provided through kwarsg.
+
+        **kwargs : dict
+            Contains the algorithm's settings.
+
+        Examples
+        --------
+        Fit a logistic model on a longitudinal dataset, display the group parameters
+
+        >>> from leaspy.models import LogisticModel
+        >>> from leaspy.datasets import load_dataset
+        >>> putamen_df = load_dataset("parkinson-putamen")
+        >>> model = LogisticModel(name="test-model-logistic")
+        >>> model.fit(putamen_df, "mcmc_saem", seed=0, print_periodicity=50)
+        >>> print(model)
+        === MODEL ===
+        betas_mean : []
+        log_g_mean : [-0.8394]
+        log_v0_mean : [-3.7930]
+        noise_std : 0.021183
+        tau_mean : [64.6920]
+        tau_std : [10.0864]
+        xi_std : [0.5232]
+        """
+        if (dataset := BaseModel._get_dataset(data)) is None:
+            return
+        if not self.is_initialized:
+            self.initialize(dataset)
+        if (
+            algorithm := BaseModel._get_algorithm(
+                algorithm, algorithm_settings, algorithm_settings_path, **kwargs
+            )
+        ) is None:
+            return
+        algorithm.run(self, dataset)
+
+    @staticmethod
+    def _get_dataset(
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+    ) -> Optional[Dataset]:
+        """Process user provided data and return a Dataset object."""
+        if data is None:
+            return None
+        if isinstance(data, pd.DataFrame):
+            data = Data.from_dataframe(data)
+        return Dataset(data) if isinstance(data, Data) else data
+
+    @staticmethod
+    def _get_algorithm(
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ):
+        """Process user provided algorithm and return the corresponding algorithm instance."""
+        from leaspy.algo import AlgorithmName, AlgorithmSettings, algorithm_factory
+
+        if algorithm_settings is not None:
+            settings = algorithm_settings
+        elif algorithm_settings_path is not None:
+            settings = AlgorithmSettings.load(algorithm_settings_path)
+        else:
+            algorithm = AlgorithmName(algorithm) if algorithm else None
+            if algorithm is None:
+                return None
+            settings = AlgorithmSettings(algorithm.value, **kwargs)
+            settings.set_logs(**kwargs)
+        return algorithm_factory(settings)
+
+    def personalize(
+        self,
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ) -> IndividualParameters:
+        r"""Estimate individual parameters for each `ID` of a given dataset.
+
+        These individual parameters correspond to the random-effects :math:`(z_{i,j})`
+        of the mixed-effects model.
+
+        Parameters
+        ----------
+        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
+            Contains the information of the individuals, in particular the time-points
+            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
+
+        algorithm : str, optional
+            The name of the algorithm to use.
+
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+            Use this if you want to customize algorithm settings through the
+            :class:`~leaspy.algo.AlgorithmSettings` class.
+            If provided, the fit will rely on these settings.
+
+        algorithm_settings_path : str or Path, optional
+            The path to the algorithm settings file.
+            If provided, the settings from the file will be used instead of the
+            settings provided.
+
+        **kwargs : dict
+            Contains the algorithm's settings.
+
+        Returns
+        -------
+        ips : :class:`~leaspy.io.IndividualParameters`
+            Individual parameters computed.
+
+        Examples
+        --------
+        Compute the individual parameters for a given longitudinal dataset and calibrated model, then
+        display the histogram of the log-acceleration:
+
+        >>> from leaspy.datasets import load_model, load_dataset
+        >>> model = load_model("parkinson-putamen")
+        >>> putamen_df = load_dataset("parkinson-putamen")
+        >>> individual_parameters = model.personalize(putamen_df, "scipy_minimize", seed=0)
+        """
+        from leaspy.exceptions import LeaspyInputError
+
+        if not self.is_initialized:
+            raise LeaspyInputError("Model has not been initialized")
+        if (dataset := BaseModel._get_dataset(data)) is None:
+            return IndividualParameters()
+        if (
+            algorithm := BaseModel._get_algorithm(
+                algorithm, algorithm_settings, algorithm_settings_path, **kwargs
+            )
+        ) is None:
+            return IndividualParameters()
+        return algorithm.run(self, dataset)
+
+    def estimate(
+        self,
+        timepoints: Union[pd.MultiIndex, dict[IDType, list[float]]],
+        individual_parameters: IndividualParameters,
+        *,
+        to_dataframe: Optional[bool] = None,
+    ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
+        r"""Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
+
+        Parameters
+        ----------
+        timepoints : dictionary {str/int: array_like[numeric]} or :class:`pandas.MultiIndex`
+            Contains, for each individual, the time-points to estimate.
+            It can be a unique time-point or a list of time-points.
+
+        individual_parameters : :class:`.IndividualParameters`
+            Corresponds to the individual parameters of individuals.
+
+        to_dataframe : bool or None (default)
+            Whether to output a dataframe of estimations?
+            If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
+
+        Returns
+        -------
+        individual_trajectory : :class:`pandas.DataFrame` or dict (depending on `to_dataframe` flag)
+            Key: patient indices.
+            Value: :class:`numpy.ndarray` of the estimated value, in the shape
+            (number of timepoints, number of features)
+
+        Examples
+        --------
+        Given the individual parameters of two subjects, estimate the features of the first
+        at 70, 74 and 80 years old and at 71 and 72 years old for the second.
+
+        >>> from leaspy.datasets import load_model, load_individual_parameters, load_dataset
+        >>> model = load_model("parkinson-putamen")
+        >>> individual_parameters = load_individual_parameters("parkinson-putamen")
+        >>> df_train = load_dataset("parkinson-putamen-train_and_test").xs("train", level="SPLIT")
+        >>> timepoints = {'GS-001': (70, 74, 80), 'GS-002': (71, 72)}
+        >>> estimations = model.estimate(timepoints, individual_parameters)
+        """
+        estimations = {}
+        ix = None
+        # get timepoints to estimate from index
+        if isinstance(timepoints, pd.MultiIndex):
+            # default output is pd.DataFrame when input as pd.MultiIndex
+            if to_dataframe is None:
+                to_dataframe = True
+            ix = timepoints
+            timepoints = {
+                subj_id: tpts.values
+                for subj_id, tpts in timepoints.to_frame()["TIME"].groupby("ID")
+            }
+        for subj_id, tpts in timepoints.items():
+            ip = individual_parameters[subj_id]
+            est = self.compute_individual_trajectory(tpts, ip).cpu().numpy()
+            # 1 individual at a time --> squeeze the first dimension of the array
+            estimations[subj_id] = est[0]
+
+        # convert to proper dataframe
+        if to_dataframe:
+            estimations = pd.concat(
+                {
+                    subj_id: pd.DataFrame(  # columns names may be directly embedded in the dictionary after a `postprocess_model_estimation`
+                        ests,
+                        columns=None if isinstance(ests, dict) else self.features,
+                        index=timepoints[subj_id],
+                    )
+                    for subj_id, ests in estimations.items()
+                },
+                names=["ID", "TIME"],
+            )
+            # reindex back to given index being careful to index order (join so to handle multi-levels cases)
+            if ix is not None:
+                # we need to explicitly pass `on` to preserve order of index levels
+                # and to explicitly pass columns to preserve 2D columns when they are
+                empty_df_like_ests = pd.DataFrame(
+                    [], index=ix, columns=estimations.columns
+                )
+                estimations = empty_df_like_ests[[]].join(
+                    estimations, on=["ID", "TIME"]
+                )
+
+        return estimations
+
+    def simulate(
+        self,
+        individual_parameters: IndividualParameters,
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        **kwargs,
+    ):
+        raise NotImplementedError("Simulation not implemented.")
