@@ -372,6 +372,12 @@ class BaseModel(ModelInterface):
         """Dictionary of values for model parameters."""
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        raise NotImplementedError
+
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
