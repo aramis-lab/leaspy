@@ -36,13 +36,6 @@ class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
     def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)
         params = settings.parameters.copy()
-        # Get model hyperparameters from fit algorithm parameters
-        # deprecated only for backward-compat (to be removed soon...),
-        self._model_hyperparams_to_set = {
-            hp_name: params.pop(hp_name)
-            for hp_name in LMEModel._hyperparameters.keys()
-            if hp_name in params
-        }
         # Algorithm true parameters
         self.force_independent_random_effects = params.pop(
             "force_independent_random_effects"
@@ -67,20 +60,6 @@ class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
             * None
             * noise scale (std-dev), scalar
         """
-        # DEPRECATED - TO BE REMOVED: Store some algo "hyperparameters" for the model
-        model_hps_in_algo_settings = {
-            hp: v
-            for hp, v in self._model_hyperparams_to_set.items()
-            if hp in model._hyperparameters.keys() and v is not None
-        }
-        if len(model_hps_in_algo_settings) != 0:
-            warnings.warn(
-                f"You should define {model_hps_in_algo_settings} directly as hyperparameters of LME model. "
-                "The current behaviour will soon be dropped.",
-                FutureWarning,
-            )
-            model.load_hyperparameters(model_hps_in_algo_settings)
-        # END DEPRECATED
         if model.dimension != len(dataset.headers):
             raise ValueError("LME is only univariate")
 
