@@ -1,6 +1,8 @@
+import re
 import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 import torch
 
@@ -8,6 +10,7 @@ from leaspy.exceptions import LeaspyConvergenceError
 from leaspy.utils.weighted_tensor import WeightedTensor
 
 __all__ = [
+    "serialize_tensor",
     "is_array_like",
     "tensor_to_list",
     "compute_std_from_variance",
@@ -18,6 +21,46 @@ __all__ = [
     "get_log_velocities",
     "torch_round",
 ]
+
+
+def serialize_tensor(v, *, indent: str = "", sub_indent: str = "") -> str:
+    """Nice serialization of floats, torch tensors (or numpy arrays)."""
+    from torch._tensor_str import PRINT_OPTS as torch_print_opts
+
+    if isinstance(v, (str, bool, int)):
+        return str(v)
+    if isinstance(v, np.ndarray):
+        return str(v.tolist())
+    if isinstance(v, float) or getattr(v, "ndim", -1) == 0:
+        # for 0D tensors / arrays the default behavior is to print all digits...
+        # change this!
+        return f"{v:.{1 + torch_print_opts.precision}g}"
+    if isinstance(v, (list, frozenset, set, tuple)):
+        try:
+            return serialize_tensor(
+                torch.tensor(list(v)), indent=indent, sub_indent=sub_indent
+            )
+        except Exception:
+            return str(v)
+    if isinstance(v, dict):
+        if not len(v):
+            return ""
+        subs = [
+            f"{p} : "
+            + serialize_tensor(vp, indent="  ", sub_indent=" " * len(f"{p} : ["))
+            for p, vp in v.items()
+        ]
+        lines = [indent + _ for _ in "\n".join(subs).split("\n")]
+        return "\n" + "\n".join(lines)
+    # torch.tensor, np.array, ...
+    # in particular you may use `torch.set_printoptions` and `np.set_printoptions` globally
+    # to tune the number of decimals when printing tensors / arrays
+    v_repr = str(v)
+    # remove tensor prefix & possible device/size/dtype suffixes
+    v_repr = re.sub(r"^[^\(]+\(", "", v_repr)
+    v_repr = re.sub(r"(?:, device=.+)?(?:, size=.+)?(?:, dtype=.+)?\)$", "", v_repr)
+    # adjust justification
+    return re.sub(r"\n[ ]+([^ ])", rf"\n{sub_indent}\1", v_repr)
 
 
 def is_array_like(v: Any) -> bool:
@@ -47,7 +90,7 @@ def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
     :exc:`NotImplementedError`
         If the input is a `WeightedTensor`, as this functionality is not yet implemented.
     """
-    if isinstance(x, torch.Tensor):
+    if isinstance(x, (np.ndarray, torch.Tensor)):
         return x.tolist()
     if isinstance(x, WeightedTensor):
         raise NotImplementedError("TODO")

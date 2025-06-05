@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-import json
-import re
 import warnings
 from abc import abstractmethod
-from inspect import signature
 from typing import Iterable, Optional, Union
 
 import torch
-from torch._tensor_str import PRINT_OPTS as torch_print_opts
 
-from leaspy import __version__
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import DictParams, DictParamsTorch, KwargsType
@@ -32,9 +27,8 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State, StateForkType
 
-from .base import BaseModel, InitializationMethod
+from .base import BaseModel
 from .obs_models import ObservationModel
-from .utilities import tensor_to_list
 
 __all__ = ["McmcSaemCompatibleModel"]
 
@@ -165,62 +159,28 @@ class McmcSaemCompatibleModel(BaseModel):
     def has_observation_model_with_name(self, name: str) -> bool:
         return name in self.observation_model_names
 
-    @abstractmethod
-    def to_dict(self) -> KwargsType:
-        """
-        Export model as a dictionary ready for export.
+    def to_dict(self, **kwargs) -> KwargsType:
+        """Export model as a dictionary ready for export.
 
         Returns
         -------
         KwargsType :
             The model instance serialized as a dictionary.
         """
-        return {
-            "leaspy_version": __version__,
-            "name": self.name,
-            "features": self.features,
-            "dimension": self.dimension,
-            "obs_models": {
-                obs_model.name: obs_model.to_string() for obs_model in self.obs_models
-            },
-            # 'obs_models': export_obs_models(self.obs_models),
-            "hyperparameters": {
-                k: tensor_to_list(v) for k, v in (self.hyperparameters or {}).items()
-            },
-            "parameters": {
-                k: tensor_to_list(v) for k, v in (self.parameters or {}).items()
-            },
-            "fit_metrics": self.fit_metrics,  # TODO improve
-        }
-
-    def save(self, path: str, **kwargs) -> None:
-        """
-        Save ``Leaspy`` object as json model parameter file.
-
-        TODO move logic upstream?
-
-        Parameters
-        ----------
-        path : :obj:`str`
-            Path to store the model's parameters.
-        **kwargs
-            Keyword arguments for :meth:`.AbstractModel.to_dict` child method
-            and ``json.dump`` function (default to indent=2).
-        """
-        export_kws = {
-            k: kwargs.pop(k) for k in signature(self.to_dict).parameters if k in kwargs
-        }
-        model_settings = self.to_dict(**export_kws)
-
-        # Default json.dump kwargs:
-        kwargs = {"indent": 2, **kwargs}
-
-        with open(path, "w") as fp:
-            json.dump(model_settings, fp, **kwargs)
+        d = super().to_dict()
+        d.update(
+            {
+                "obs_models": {
+                    obs_model.name: obs_model.to_string()
+                    for obs_model in self.obs_models
+                },
+                "fit_metrics": self.fit_metrics,  # TODO improve
+            }
+        )
+        return d
 
     def load_parameters(self, parameters: KwargsType) -> None:
-        """
-        Instantiate or update the model's parameters.
+        """Instantiate or update the model's parameters.
 
         It assumes that all model hyperparameters are defined.
 
@@ -440,7 +400,7 @@ class McmcSaemCompatibleModel(BaseModel):
     # TODO: unit tests? (functional tests covered by api.estimate)
     def compute_individual_trajectory(
         self,
-        timepoints,
+        timepoints: list[float],
         individual_parameters: DictParams,
         *,
         skip_ips_checks: bool = False,
@@ -632,56 +592,6 @@ class McmcSaemCompatibleModel(BaseModel):
         # mass update at end
         for mp, mp_updated_val in params_updates.items():
             state[mp] = mp_updated_val
-
-    @classmethod
-    def _serialize_tensor(cls, v, *, indent: str = "", sub_indent: str = "") -> str:
-        """Nice serialization of floats, torch tensors (or numpy arrays)."""
-        if isinstance(v, (str, bool, int)):
-            return str(v)
-        if isinstance(v, float) or getattr(v, "ndim", -1) == 0:
-            # for 0D tensors / arrays the default behavior is to print all digits...
-            # change this!
-            return f"{v:.{1+torch_print_opts.precision}g}"
-        if isinstance(v, (list, frozenset, set, tuple)):
-            try:
-                return cls._serialize_tensor(
-                    torch.tensor(list(v)), indent=indent, sub_indent=sub_indent
-                )
-            except Exception:
-                return str(v)
-        if isinstance(v, dict):
-            if not len(v):
-                return ""
-            subs = [
-                f"{p} : "
-                + cls._serialize_tensor(
-                    vp, indent="  ", sub_indent=" " * len(f"{p} : [")
-                )
-                for p, vp in v.items()
-            ]
-            lines = [indent + _ for _ in "\n".join(subs).split("\n")]
-            return "\n" + "\n".join(lines)
-        # torch.tensor, np.array, ...
-        # in particular you may use `torch.set_printoptions` and `np.set_printoptions` globally
-        # to tune the number of decimals when printing tensors / arrays
-        v_repr = str(v)
-        # remove tensor prefix & possible device/size/dtype suffixes
-        v_repr = re.sub(r"^[^\(]+\(", "", v_repr)
-        v_repr = re.sub(r"(?:, device=.+)?(?:, size=.+)?(?:, dtype=.+)?\)$", "", v_repr)
-        # adjust justification
-        return re.sub(r"\n[ ]+([^ ])", rf"\n{sub_indent}\1", v_repr)
-
-    def __str__(self):
-        output = "=== MODEL ==="
-        output += self._serialize_tensor(self.parameters)
-
-        # TODO/WIP obs models...
-        # nm_props = export_noise_model(self.noise_model)
-        # nm_name = nm_props.pop('name')
-        # output += f"\nnoise-model : {nm_name}"
-        # output += self._serialize_tensor(nm_props, indent="  ")
-
-        return output
 
     def get_variables_specs(self) -> NamedVariables:
         """

@@ -25,22 +25,10 @@ class LMEModelTest(LeaspyTestCase):
         model = LMEModel("lme")
         self.assertIsInstance(str(model), str)
 
-    def test_bad_hyperparams(self):
-        with self.assertRaisesRegex(ValueError, "hyperparameter"):
-            LMEModel("lme", unknown_hyperparameter=False)
-
-    def test_bad_properties_consistency(self):
-        with self.assertRaisesRegex(ValueError, "hyperparameter"):
-            LMEModel("lme", features=["a", "b"], dimension=1)
-
     def test_init_reinit(self):
         model = LMEModel("lme")
-
         mock_dataset = MockDataset(["ft_1"])
         model.initialize(mock_dataset)
-
-        self.assertTrue(model.hyperparameters_ok())
-
         mock_dataset_new = MockDataset(["ft_other"])
         with self.assertWarnsRegex(UserWarning, "features"):
             model.initialize(mock_dataset_new)

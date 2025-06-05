@@ -6,9 +6,8 @@ import statsmodels.formula.api as smf
 from statsmodels.regression.mixed_linear_model import MixedLMParams
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.algo.fit import LMEFitAlgorithm
 from leaspy.io.data import Data
-from leaspy.models import BaseModel, model_factory
+from leaspy.models import BaseModel, LMEModel, model_factory
 from tests import LeaspyTestCase
 
 
@@ -59,11 +58,11 @@ class LMEModelAPITest(LeaspyTestCase):
             model.fit(bivariate_data, "lme_fit")
 
     def test_run(self):
-        model = model_factory("lme")
+        model: LMEModel = model_factory("lme")
         self.assertIsNone(model.features)
-        self.assertEqual(model.with_random_slope_age, True)  # new default
-        model.load_hyperparameters(dict(with_random_slope_age=False))
-        self.assertEqual(model.with_random_slope_age, False)
+        self.assertTrue(model.with_random_slope_age)
+        model.with_random_slope_age = False
+        self.assertFalse(model.with_random_slope_age)
 
         settings = AlgorithmSettings("lme_fit")
         self.assertDictEqual(settings.parameters, self.default_lme_fit_params)
@@ -224,39 +223,3 @@ class LMEModelAPITest(LeaspyTestCase):
         self.check_consistency_sm(
             model.parameters, ip, re_formula="~1+TIME_norm", free=free
         )
-
-    def test_deprecated_hyperparameter_in_algo(self):
-        # Test deprecation behavior (test to be removed with this old behavior will be removed)
-
-        ## 1: Overwrite LME hyperparameter from LME fit algo
-        settings = AlgorithmSettings("lme_fit", with_random_slope_age=False)
-        algo = LMEFitAlgorithm(settings)
-        self.assertEqual(
-            algo._model_hyperparams_to_set, {"with_random_slope_age": False}
-        )
-
-        model = model_factory("lme")
-        self.assertTrue(model.with_random_slope_age)
-        with self.assertWarns(FutureWarning):
-            model.fit(self.data, "lme_fit", with_random_slope_age=False)
-
-        self.assertFalse(model.with_random_slope_age)
-
-        ## 2: No warning if hyperparameter set to None (--> default)
-        settings = AlgorithmSettings("lme_fit", with_random_slope_age=None)
-        algo = LMEFitAlgorithm(settings)
-        self.assertEqual(
-            algo._model_hyperparams_to_set, {"with_random_slope_age": None}
-        )
-
-        settings = AlgorithmSettings("lme_fit")
-        algo = LMEFitAlgorithm(settings)
-        self.assertEqual(
-            algo._model_hyperparams_to_set, {"with_random_slope_age": None}
-        )
-
-        # no effect on model hyperparameter
-        model = model_factory("lme", with_random_slope_age=False)
-        self.assertFalse(model.with_random_slope_age)
-        model.fit(self.data, "lme_fit")
-        self.assertFalse(model.with_random_slope_age)
