@@ -53,6 +53,11 @@ class ConstantModel(StatelessModel):
         """
         return {}
 
+    @property
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        return {}
+
     def compute_individual_trajectory(
         self,
         timepoints: torch.Tensor,

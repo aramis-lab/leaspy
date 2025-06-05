@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+from __future__ import annotations
+
+import warnings
+>>>>>>> 9b25f1cf (Merge `BaseModel` and `GenericModel` (#410))
 from abc import abstractmethod
 from typing import Iterable, Optional, Union
 
