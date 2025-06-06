@@ -17,6 +17,7 @@ from leaspy.utils.typing import DictParamsTorch, FeatureType, IDType, KwargsType
 __all__ = [
     "InitializationMethod",
     "BaseModel",
+    "ModelInterface",
 ]
 
 
@@ -25,7 +26,107 @@ class InitializationMethod(str, Enum):
     RANDOM = "random"
 
 
-class BaseModel(ABC):
+class ModelInterface(ABC):
+    """This is the public interface for Leaspy models."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """The name of the model."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def is_initialized(self) -> bool:
+        """``True``if the model is initialized, ``False`` otherwise."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def dimension(self) -> int:
+        """Number of features."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def features(self) -> list[FeatureType]:
+        """List of model features (``None`` if not initialization)."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def parameters(self) -> DictParamsTorch:
+        """Dictionary of values for model parameters."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def save(self, path: Union[str, Path], **kwargs) -> None:
+        """Save model as json model parameter file.
+
+        Parameters
+        ----------
+        path : :obj:`str` or Path
+            The path to store the model's parameters.
+
+        **kwargs : dict
+            Additional parameters for writing.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def load(cls, path_to_model_settings: Union[str, Path]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def fit(
+        self,
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def personalize(
+        self,
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
+        **kwargs,
+    ) -> IndividualParameters:
+        raise NotImplementedError
+
+    @abstractmethod
+    def estimate(
+        self,
+        timepoints: Union[pd.MultiIndex, dict[IDType, list[float]]],
+        individual_parameters: IndividualParameters,
+        *,
+        to_dataframe: Optional[bool] = None,
+    ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def simulate(
+        self,
+        individual_parameters: IndividualParameters,
+        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        **kwargs,
+    ):
+        raise NotImplementedError
+
+
+class BaseModel(ModelInterface):
     """Base model class from which all ``Leaspy`` models should inherit.
 
     It defines the interface that a model should implement to be compatible with ``Leaspy``.
@@ -54,15 +155,61 @@ class BaseModel(ABC):
     """
 
     def __init__(self, name: str, **kwargs):
-        self.is_initialized: bool = False
-        self.name = name
-        self._features: Optional[list[FeatureType]] = kwargs.pop("features", None)
-        self._dimension: Optional[int] = kwargs.pop("dimension", None)
+        self._is_initialized: bool = False
+        self._name = name
+        user_provided_dimension, user_provided_features = (
+            self._validate_user_provided_dimension_and_features_at_init(**kwargs)
+        )
+        self._features: Optional[list[FeatureType]] = user_provided_features
+        self._dimension: Optional[int] = user_provided_dimension
         self.initialization_method: InitializationMethod = InitializationMethod.DEFAULT
         if "initialization_method" in kwargs:
             self.initialization_method = InitializationMethod(
                 kwargs["initialization_method"]
             )
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def is_initialized(self) -> bool:
+        return self._is_initialized
+
+    def _validate_user_provided_dimension_and_features_at_init(
+        self,
+        **kwargs,
+    ) -> tuple[Optional[int], Optional[list[FeatureType]]]:
+        from collections.abc import Sized
+
+        user_provided_features = kwargs.pop("features", None)
+        user_provided_dimension = kwargs.pop("dimension", None)
+        if user_provided_dimension is not None and not isinstance(
+            user_provided_dimension, int
+        ):
+            raise LeaspyModelInputError(
+                f"{self.__class__.__name__} model '{self.name}' cannot be instantiated with "
+                f"dimension = {user_provided_dimension}, of type {type(user_provided_dimension)}. "
+                "The number of dimension must be an integer."
+            )
+        if user_provided_features is not None and not isinstance(
+            user_provided_features, Sized
+        ):
+            raise LeaspyModelInputError(
+                f"{self.__class__.__name__} model '{self.name}' cannot be instantiated with "
+                f"features = {user_provided_features}. The model's features must be a sizeable object."
+            )
+        if (
+            user_provided_features is not None
+            and user_provided_dimension is not None
+            and user_provided_dimension != len(user_provided_features)
+        ):
+            raise LeaspyModelInputError(
+                f"{self.__class__.__name__} model '{self.name}' cannot be instantiated with "
+                f"dimension = {user_provided_dimension} and features = {user_provided_features}. "
+                "The model dimension must match the number of features."
+            )
+        return user_provided_dimension, user_provided_features
 
     @property
     def features(self) -> Optional[list[FeatureType]]:
@@ -111,18 +258,6 @@ class BaseModel(ABC):
             raise LeaspyModelInputError(
                 f"Model has {len(self.features)} features. Cannot set the dimension to {dimension}."
             )
-
-    @property
-    @abstractmethod
-    def parameters(self) -> DictParamsTorch:
-        """Dictionary of values for model parameters."""
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def hyperparameters(self) -> DictParamsTorch:
-        """Dictionary of values for model hyperparameters."""
-        raise NotImplementedError
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
@@ -173,25 +308,14 @@ class BaseModel(ABC):
                     f" Overwriting previous model features ({self.features}) "
                     f"with new ones ({dataset.headers})."
                 )
-                self.features = (
-                    None  # wait validation of compatibility to store new features
-                )
+                # wait validation of compatibility to store new features
+                self.features = None
             warnings.warn(warn_msg)
         self._validate_compatibility_of_dataset(dataset)
         self.features = dataset.headers if dataset else None
-        self.is_initialized = True
+        self._is_initialized = True
 
     def save(self, path: Union[str, Path], **kwargs) -> None:
-        """Save model as json model parameter file.
-
-        Parameters
-        ----------
-        path : :obj:`str` or Path
-            The path to store the model's parameters.
-
-        **kwargs
-            Additional parameters for writing.
-        """
         import json
         from inspect import signature
 
@@ -236,7 +360,7 @@ class BaseModel(ABC):
         reader = ModelSettings(path_to_model_settings)
         instance = model_factory(reader.name, **reader.hyperparameters)
         instance.load_parameters(reader.parameters)
-        instance.is_initialized = True
+        instance._is_initialized = True
         return instance
 
     @abstractmethod

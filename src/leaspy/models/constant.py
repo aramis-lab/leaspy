@@ -40,7 +40,7 @@ class ConstantModel(StatelessModel):
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self.is_initialized = True
+        self._is_initialized = True
 
     @property
     def hyperparameters(self) -> DictParamsTorch:
