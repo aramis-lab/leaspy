@@ -1,4 +1,4 @@
-from .base import BaseModel
+from .base import BaseModel, ModelInterface
 from .constant import ConstantModel
 from .factory import ModelName, model_factory
 from .joint import JointModel
@@ -15,6 +15,7 @@ from .stateless import StatelessModel
 from .time_reparametrized import TimeReparametrizedModel
 
 __all__ = [
+    "ModelInterface",
     "ModelName",
     "McmcSaemCompatibleModel",
     "TimeReparametrizedModel",
