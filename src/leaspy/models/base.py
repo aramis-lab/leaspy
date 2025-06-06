@@ -38,7 +38,7 @@ class ModelInterface(ABC):
     @property
     @abstractmethod
     def is_initialized(self) -> bool:
-        """``True``if the model is initialized, ``False`` otherwise."""
+        """True if the model is initialized, False otherwise."""
         raise NotImplementedError
 
     @property
@@ -50,7 +50,7 @@ class ModelInterface(ABC):
     @property
     @abstractmethod
     def features(self) -> list[FeatureType]:
-        """List of model features (``None`` if not initialization)."""
+        """List of model features (`None` if not initialization)."""
         raise NotImplementedError
 
     @property
@@ -93,6 +93,67 @@ class ModelInterface(ABC):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
+        r"""Estimate the model's parameters :math:`\theta` for a given dataset and a given algorithm.
+
+        These model's parameters correspond to the fixed-effects of the mixed-effects model.
+
+        There are three ways to provide parameters to the fitting algorithm:
+
+        1. By providing an instance of :class:`~leaspy.algo.AlgorithmSettings`
+        2. By providing a path to a serialized :class:`~leaspy.algo.AlgorithmSettings`
+        3. By providing the algorithm name and parameters directly
+
+        If settings are provided in multiple ways, the order above will prevail.
+
+        Parameters
+        ----------
+        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
+            Contains the information of the individuals, in particular the time-points
+            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
+
+        algorithm : str, optional
+            The name of the algorithm to use.
+
+            .. note::
+                Use this if you want to provide algorithm settings through kwargs.
+
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+
+            .. note::
+                Use this if you want to customize algorithm settings through the
+                :class:`~leaspy.algo.AlgorithmSettings` class.
+                If provided, the fit will rely on these settings.
+
+        algorithm_settings_path : str or Path, optional
+            The path to the algorithm settings file.
+
+            .. note::
+                If provided, the settings from the file will be used instead of the
+                settings provided through kwarsg.
+
+        **kwargs : dict
+            Contains the algorithm's settings.
+
+        Examples
+        --------
+        Fit a logistic model on a longitudinal dataset, display the group parameters
+
+        >>> from leaspy.models import LogisticModel
+        >>> from leaspy.datasets import load_dataset
+        >>> putamen_df = load_dataset("parkinson-putamen")
+        >>> model = LogisticModel(name="test-model-logistic")
+        >>> model.fit(putamen_df, "mcmc_saem", seed=0, print_periodicity=50)
+        >>> print(model)
+        === MODEL ===
+        betas_mean : []
+        log_g_mean : [-0.8394]
+        log_v0_mean : [-3.7930]
+        noise_std : 0.021183
+        tau_mean : [64.6920]
+        tau_std : [10.0864]
+        xi_std : [0.5232]
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -104,6 +165,51 @@ class ModelInterface(ABC):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ) -> IndividualParameters:
+        r"""Estimate individual parameters for each `ID` of a given dataset.
+
+        These individual parameters correspond to the random-effects :math:`(z_{i,j})` of the mixed-effects model.
+
+        Parameters
+        ----------
+        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
+            Contains the information of the individuals, in particular the time-points
+            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
+
+        algorithm : str, optional
+            The name of the algorithm to use.
+
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+
+            .. note::
+                Use this if you want to customize algorithm settings through the
+                :class:`~leaspy.algo.AlgorithmSettings` class.
+                If provided, the fit will rely on these settings.
+
+        algorithm_settings_path : str or Path, optional
+            The path to the algorithm settings file.
+
+            .. note::
+                If provided, the settings from the file will be used instead of the settings provided.
+
+        **kwargs : dict
+            Contains the algorithm's settings.
+
+        Returns
+        -------
+        ips : :class:`~leaspy.io.IndividualParameters`
+            Individual parameters computed.
+
+        Examples
+        --------
+        Compute the individual parameters for a given longitudinal dataset and calibrated model, then
+        display the histogram of the log-acceleration:
+
+        >>> from leaspy.datasets import load_model, load_dataset
+        >>> model = load_model("parkinson-putamen")
+        >>> putamen_df = load_dataset("parkinson-putamen")
+        >>> individual_parameters = model.personalize(putamen_df, "scipy_minimize", seed=0)
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -375,61 +481,6 @@ class BaseModel(ModelInterface):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
-        r"""Estimate the model's parameters :math:`\theta` for a given dataset and a given algorithm.
-
-        These model's parameters correspond to the fixed-effects of the mixed-effects model.
-
-        There are three ways to provide parameters to the fitting algorithm:
-
-        1. By providing an instance of :class:`~leaspy.algo.AlgorithmSettings`
-        2. By providing a path to a serialized :class:`~leaspy.algo.AlgorithmSettings`
-        3. By providing the algorithm name and parameters directly
-
-        If settings are provided in multiple ways, the order above will prevail.
-
-        Parameters
-        ----------
-        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
-            Contains the information of the individuals, in particular the time-points
-            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
-
-        algorithm : str, optional
-            The name of the algorithm to use.
-            Use this if you want to provide algorithm settings through kwargs.
-
-        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
-            The algorithm settings to use.
-            Use this if you want to customize algorithm settings through the
-            :class:`~leaspy.algo.AlgorithmSettings` class.
-            If provided, the fit will rely on these settings.
-
-        algorithm_settings_path : str or Path, optional
-            The path to the algorithm settings file.
-            If provided, the settings from the file will be used instead of the
-            settings provided through kwarsg.
-
-        **kwargs : dict
-            Contains the algorithm's settings.
-
-        Examples
-        --------
-        Fit a logistic model on a longitudinal dataset, display the group parameters
-
-        >>> from leaspy.models import LogisticModel
-        >>> from leaspy.datasets import load_dataset
-        >>> putamen_df = load_dataset("parkinson-putamen")
-        >>> model = LogisticModel(name="test-model-logistic")
-        >>> model.fit(putamen_df, "mcmc_saem", seed=0, print_periodicity=50)
-        >>> print(model)
-        === MODEL ===
-        betas_mean : []
-        log_g_mean : [-0.8394]
-        log_v0_mean : [-3.7930]
-        noise_std : 0.021183
-        tau_mean : [64.6920]
-        tau_std : [10.0864]
-        xi_std : [0.5232]
-        """
         if (dataset := BaseModel._get_dataset(data)) is None:
             return
         if not self.is_initialized:
@@ -483,49 +534,6 @@ class BaseModel(ModelInterface):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ) -> IndividualParameters:
-        r"""Estimate individual parameters for each `ID` of a given dataset.
-
-        These individual parameters correspond to the random-effects :math:`(z_{i,j})`
-        of the mixed-effects model.
-
-        Parameters
-        ----------
-        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
-            Contains the information of the individuals, in particular the time-points
-            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
-
-        algorithm : str, optional
-            The name of the algorithm to use.
-
-        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
-            The algorithm settings to use.
-            Use this if you want to customize algorithm settings through the
-            :class:`~leaspy.algo.AlgorithmSettings` class.
-            If provided, the fit will rely on these settings.
-
-        algorithm_settings_path : str or Path, optional
-            The path to the algorithm settings file.
-            If provided, the settings from the file will be used instead of the
-            settings provided.
-
-        **kwargs : dict
-            Contains the algorithm's settings.
-
-        Returns
-        -------
-        ips : :class:`~leaspy.io.IndividualParameters`
-            Individual parameters computed.
-
-        Examples
-        --------
-        Compute the individual parameters for a given longitudinal dataset and calibrated model, then
-        display the histogram of the log-acceleration:
-
-        >>> from leaspy.datasets import load_model, load_dataset
-        >>> model = load_model("parkinson-putamen")
-        >>> putamen_df = load_dataset("parkinson-putamen")
-        >>> individual_parameters = model.personalize(putamen_df, "scipy_minimize", seed=0)
-        """
         from leaspy.exceptions import LeaspyInputError
 
         if not self.is_initialized:
