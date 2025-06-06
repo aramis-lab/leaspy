@@ -22,6 +22,8 @@ __all__ = [
 
 
 class InitializationMethod(str, Enum):
+    """Possible initialization methods for Leaspy models."""
+
     DEFAULT = "default"
     RANDOM = "random"
 
@@ -220,6 +222,39 @@ class ModelInterface(ABC):
         *,
         to_dataframe: Optional[bool] = None,
     ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
+        r"""Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
+
+        Parameters
+        ----------
+        timepoints : dictionary {str/int: array_like[numeric]} or :class:`pandas.MultiIndex`
+            Contains, for each individual, the time-points to estimate.
+            It can be a unique time-point or a list of time-points.
+
+        individual_parameters : :class:`~leaspy.io.IndividualParameters`
+            Corresponds to the individual parameters of individuals.
+
+        to_dataframe : : obj:`bool`, optional
+            Whether to output a dataframe of estimations?
+            If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
+
+        Returns
+        -------
+        individual_trajectory : :class:`pandas.DataFrame` or dict (depending on `to_dataframe` flag)
+            Key: patient indices.
+            Value: :class:`numpy.ndarray` of the estimated value, in the shape (number of timepoints, number of features)
+
+        Examples
+        --------
+        Given the individual parameters of two subjects, estimate the features of the first
+        at 70, 74 and 80 years old and at 71 and 72 years old for the second.
+
+        >>> from leaspy.datasets import load_model, load_individual_parameters, load_dataset
+        >>> model = load_model("parkinson-putamen")
+        >>> individual_parameters = load_individual_parameters("parkinson-putamen")
+        >>> df_train = load_dataset("parkinson-putamen-train_and_test").xs("train", level="SPLIT")
+        >>> timepoints = {'GS-001': (70, 74, 80), 'GS-002': (71, 72)}
+        >>> estimations = model.estimate(timepoints, individual_parameters)
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -235,29 +270,7 @@ class ModelInterface(ABC):
 class BaseModel(ModelInterface):
     """Base model class from which all ``Leaspy`` models should inherit.
 
-    It defines the interface that a model should implement to be compatible with ``Leaspy``.
-
-    Parameters
-    ----------
-    name : :obj:`str`
-        The name of the model.
-
-    **kwargs
-        Hyperparameters of the model
-
-    Attributes
-    ----------
-    name : :obj:`str`
-        The name of the model.
-
-    is_initialized : :obj:`bool`
-        ``True``if the model is initialized, ``False`` otherwise.
-
-    features : :obj:`list` of :obj:`str`
-        List of model features (``None`` if not initialization).
-
-    dimension : :obj:`int`
-        Number of features.
+    It implements the :class:`~leaspy.models.ModelInterface`.
     """
 
     def __init__(self, name: str, **kwargs):
@@ -323,10 +336,6 @@ class BaseModel(ModelInterface):
 
     @features.setter
     def features(self, features: Optional[list[FeatureType]]):
-        """Features setter.
-
-        Ensure coherence between dimension and features attributes.
-        """
         if features is None:
             # used to reset features
             self._features = None
@@ -341,11 +350,6 @@ class BaseModel(ModelInterface):
 
     @property
     def dimension(self) -> Optional[int]:
-        """The dimension of the model.
-
-        If the private attribute is defined, then it takes precedence over the feature length.
-        The associated setters are responsible for their coherence.
-        """
         if self._dimension is not None:
             return self._dimension
         if self.features is not None:
@@ -354,10 +358,6 @@ class BaseModel(ModelInterface):
 
     @dimension.setter
     def dimension(self, dimension: int):
-        """Dimension setter.
-
-        Ensures coherence between dimension and feature attributes.
-        """
         if self.features is None:
             self._dimension = dimension
         elif len(self.features) != dimension:
@@ -555,40 +555,6 @@ class BaseModel(ModelInterface):
         *,
         to_dataframe: Optional[bool] = None,
     ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
-        r"""Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
-
-        Parameters
-        ----------
-        timepoints : dictionary {str/int: array_like[numeric]} or :class:`pandas.MultiIndex`
-            Contains, for each individual, the time-points to estimate.
-            It can be a unique time-point or a list of time-points.
-
-        individual_parameters : :class:`.IndividualParameters`
-            Corresponds to the individual parameters of individuals.
-
-        to_dataframe : bool or None (default)
-            Whether to output a dataframe of estimations?
-            If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
-
-        Returns
-        -------
-        individual_trajectory : :class:`pandas.DataFrame` or dict (depending on `to_dataframe` flag)
-            Key: patient indices.
-            Value: :class:`numpy.ndarray` of the estimated value, in the shape
-            (number of timepoints, number of features)
-
-        Examples
-        --------
-        Given the individual parameters of two subjects, estimate the features of the first
-        at 70, 74 and 80 years old and at 71 and 72 years old for the second.
-
-        >>> from leaspy.datasets import load_model, load_individual_parameters, load_dataset
-        >>> model = load_model("parkinson-putamen")
-        >>> individual_parameters = load_individual_parameters("parkinson-putamen")
-        >>> df_train = load_dataset("parkinson-putamen-train_and_test").xs("train", level="SPLIT")
-        >>> timepoints = {'GS-001': (70, 74, 80), 'GS-002': (71, 72)}
-        >>> estimations = model.estimate(timepoints, individual_parameters)
-        """
         estimations = {}
         ix = None
         # get timepoints to estimate from index
