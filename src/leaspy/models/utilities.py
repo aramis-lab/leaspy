@@ -10,6 +10,8 @@ from leaspy.exceptions import LeaspyConvergenceError
 from leaspy.utils.weighted_tensor import WeightedTensor
 
 __all__ = [
+    "tensorize_2D",
+    "val_to_tensor",
     "serialize_tensor",
     "is_array_like",
     "tensor_to_list",
@@ -21,6 +23,49 @@ __all__ = [
     "get_log_velocities",
     "torch_round",
 ]
+
+
+def tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
+    """Convert a scalar or array_like into an, at least 2D, dtype tensor.
+
+    Parameters
+    ----------
+    x : scalar or array_like
+        Element to be tensorized.
+
+    unsqueeze_dim : :obj:`int`
+        Dimension to be unsqueezed (0 or -1).
+        Meaningful for 1D array-like only (for scalar or vector
+        of length 1 it has no matter).
+
+    Returns
+    -------
+    :class:`torch.Tensor`, at least 2D
+
+    Examples
+    --------
+    >>> tensorize_2D([1, 2], 0) == tensor([[1, 2]])
+    >>> tensorize_2D([1, 2], -1) == tensor([[1], [2])
+    """
+    # convert to torch.Tensor if not the case
+    if not isinstance(x, torch.Tensor):
+        x = torch.tensor(x, dtype=dtype)
+    # convert dtype if needed
+    if x.dtype != dtype:
+        x = x.to(dtype)
+    # if tensor is less than 2-dimensional add dimensions
+    while x.dim() < 2:
+        x = x.unsqueeze(dim=unsqueeze_dim)
+    # postcondition: x.dim() >= 2
+    return x
+
+
+def val_to_tensor(val, shape: Optional[tuple] = None):
+    if not isinstance(val, (torch.Tensor, WeightedTensor)):
+        val = torch.tensor(val)
+    if shape is not None:
+        val = val.view(shape)  # no expansion here
+    return val
 
 
 def serialize_tensor(v, *, indent: str = "", sub_indent: str = "") -> str:

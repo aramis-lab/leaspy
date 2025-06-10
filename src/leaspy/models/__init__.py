@@ -11,6 +11,7 @@ from .riemanian_manifold import (
 )
 from .settings import ModelSettings
 from .shared_speed_logistic import SharedSpeedLogisticModel
+from .stateful import StatefulModel
 from .stateless import StatelessModel
 from .time_reparametrized import TimeReparametrizedModel
 
@@ -22,6 +23,7 @@ __all__ = [
     "BaseModel",
     "ConstantModel",
     "StatelessModel",
+    "StatefulModel",
     "LMEModel",
     "model_factory",
     "ModelSettings",

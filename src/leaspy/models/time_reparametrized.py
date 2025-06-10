@@ -250,7 +250,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
     def _audit_individual_parameters(
         self, individual_parameters: DictParams
     ) -> KwargsType:
-        from .utilities import is_array_like
+        from .utilities import is_array_like, tensorize_2D
 
         expected_parameters = set(["xi", "tau"] + int(self.has_sources) * ["sources"])
         given_parameters = set(individual_parameters.keys())
@@ -293,7 +293,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
         unsqueeze_dim = 0 if n_individual_parameters == 1 else -1
         # tensorized (2D) version of ips
         tensorized_individual_parameters = {
-            name: self._tensorize_2D(value, unsqueeze_dim=unsqueeze_dim)
+            name: tensorize_2D(value, unsqueeze_dim=unsqueeze_dim)
             for name, value in individual_parameters.items()
         }
 
