@@ -93,6 +93,8 @@ class AbstractModelTest(LeaspyTestCase):
                         model.personalize(data, method, seed=0, **extra_kws)
 
     def test_tensorize_2D(self):
+        from leaspy.models.utilities import tensorize_2D
+
         t5 = torch.tensor([[5]], dtype=torch.float32)
         for x, unsqueeze_dim, expected_out in zip(
             [[1, 2], [1, 2], 5, 5, [5], [5]],
@@ -107,12 +109,7 @@ class AbstractModelTest(LeaspyTestCase):
             ],
         ):
             self.assertTrue(
-                torch.equal(
-                    McmcSaemCompatibleModel._tensorize_2D(
-                        x, unsqueeze_dim=unsqueeze_dim
-                    ),
-                    expected_out,
-                )
+                torch.equal(tensorize_2D(x, unsqueeze_dim=unsqueeze_dim), expected_out)
             )
 
     def test_audit_individual_parameters(self):

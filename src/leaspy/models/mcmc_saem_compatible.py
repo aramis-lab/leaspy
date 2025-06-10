@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-import warnings
 from abc import abstractmethod
 from typing import Iterable, Optional, Union
 
@@ -10,42 +7,38 @@ from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInput
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import DictParams, DictParamsTorch, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
-from leaspy.variables.dag import VariablesDAG
 from leaspy.variables.specs import (
     LVL_FT,
     DataVariable,
-    Hyperparameter,
-    IndividualLatentVariable,
     LatentVariableInitType,
     ModelParameter,
     NamedVariables,
-    PopulationLatentVariable,
     SuffStatsRO,
     SuffStatsRW,
-    VariableName,
-    VariableNameToValueMapping,
 )
-from leaspy.variables.state import State, StateForkType
+from leaspy.variables.state import State
 
-from .base import BaseModel
 from .obs_models import ObservationModel
+from .stateful import StatefulModel
 
 __all__ = ["McmcSaemCompatibleModel"]
 
 
-class McmcSaemCompatibleModel(BaseModel):
-    """
-    Defines probabilistic models compatible with an MCMC SAEM estimation.
+class McmcSaemCompatibleModel(StatefulModel):
+    """Defines probabilistic models compatible with an MCMC SAEM estimation.
 
     Parameters
     ----------
     name : :obj:`str`
         The name of the model.
+
     obs_models : ObservationModel or Iterable[ObservationModel]
         The noise model for observations (keyword-only parameter).
+
     fit_metrics : :obj:`dict`
         Metrics that should be measured during the fit of the model
         and reported back to the user.
+
     **kwargs
         Hyperparameters for the model
 
@@ -83,78 +76,16 @@ class McmcSaemCompatibleModel(BaseModel):
         if isinstance(obs_models, ObservationModel):
             obs_models = (obs_models,)
         self.obs_models = tuple(obs_models)
-        self._state: Optional[State] = None  # = state
         # load hyperparameters
         # <!> some may still be missing at this point (e.g. `dimension`, `source_dimension`, ...)
         # (thus we sh/could NOT instantiate the DAG right now!)
         self._load_hyperparameters(kwargs)
         # TODO: dirty hack for now, cf. AbstractFitAlgo
         self.fit_metrics = fit_metrics
-        self.tracked_variables: set[str] = set()
-
-    def track_variable(self, variable: VariableName) -> None:
-        self.tracked_variables.add(variable)
-
-    def track_variables(self, variables: Iterable[VariableName]) -> None:
-        for variable in variables:
-            self.track_variable(variable)
-
-    def untrack_variable(self, variable: VariableName) -> None:
-        self.tracked_variables.remove(variable)
-
-    def untrack_variables(self, variables: Iterable[VariableName]) -> None:
-        for variable in variables:
-            self.untrack_variable(variable)
 
     @property
     def observation_model_names(self) -> list[str]:
         return [model.to_string() for model in self.obs_models]
-
-    @property
-    def state(self) -> State:
-        if self._state is None:
-            raise LeaspyModelInputError("Model state is not initialized yet")
-        return self._state
-
-    @state.setter
-    def state(self, s: State) -> None:
-        assert isinstance(s, State), "Provided state should be a valid State instance"
-        if self._state is not None and s.dag is not self._state.dag:
-            raise LeaspyModelInputError(
-                "DAG of new state does not match with previous one"
-            )
-        # TODO? perform some clean-up steps for provided state (cf. `_terminate_algo` of MCMC algo)
-        self._state = s
-
-    @property
-    def dag(self) -> VariablesDAG:
-        return self.state.dag
-
-    @property
-    def hyperparameters_names(self) -> tuple[VariableName, ...]:
-        return tuple(self.dag.sorted_variables_by_type[Hyperparameter])
-
-    @property
-    def parameters_names(self) -> tuple[VariableName, ...]:
-        return tuple(self.dag.sorted_variables_by_type[ModelParameter])
-
-    @property
-    def population_variables_names(self) -> tuple[VariableName, ...]:
-        return tuple(self.dag.sorted_variables_by_type[PopulationLatentVariable])
-
-    @property
-    def individual_variables_names(self) -> tuple[VariableName, ...]:
-        return tuple(self.dag.sorted_variables_by_type[IndividualLatentVariable])
-
-    @property
-    def parameters(self) -> DictParamsTorch:
-        """Dictionary of values for model parameters."""
-        return {p: self._state[p] for p in self.parameters_names}
-
-    @property
-    def hyperparameters(self) -> DictParamsTorch:
-        """Dictionary of values for model hyperparameters."""
-        return {p: self._state[p] for p in self.hyperparameters_names}
 
     def has_observation_model_with_name(self, name: str) -> bool:
         return name in self.observation_model_names
@@ -179,84 +110,9 @@ class McmcSaemCompatibleModel(BaseModel):
         )
         return d
 
-    def load_parameters(self, parameters: KwargsType) -> None:
-        """Instantiate or update the model's parameters.
-
-        It assumes that all model hyperparameters are defined.
-
-        Parameters
-        ----------
-        parameters : :obj:`dict` [ :obj:`str`, Any ]
-            Contains the model's parameters.
-        """
-        if self._state is None:
-            self._initialize_state()
-
-        # TODO: a bit dirty due to hyperparams / params mix (cf. `.parameters` property note)
-
-        params_names = self.parameters_names
-        missing_params = set(params_names).difference(parameters)
-        if len(missing_params):
-            warnings.warn(f"Missing some model parameters: {missing_params}")
-        extra_vars = set(parameters).difference(self.dag)
-        if len(extra_vars):
-            raise LeaspyModelInputError(f"Unknown model variables: {extra_vars}")
-        # TODO: check no DataVariable provided???
-        # extra_params = set(parameters).difference(cur_params)
-        # if len(extra_params):
-        #    # e.g. mixing matrix, which is a derived variable - checking their values only
-        #    warnings.warn(f"Ignoring some provided values that are not model parameters: {extra_params}")
-
-        def val_to_tensor(val, shape: Optional[tuple] = None):
-            if not isinstance(val, (torch.Tensor, WeightedTensor)):
-                val = torch.tensor(val)
-            if shape is not None:
-                val = val.view(shape)  # no expansion here
-            return val
-
-        # update parameters first (to be able to check values of derived variables afterwards)
-        provided_params = {
-            p: val_to_tensor(parameters[p], self.dag[p].shape)
-            for p in params_names
-            if p in parameters
-        }
-        for p, val in provided_params.items():
-            # TODO: WeightedTensor? (e.g. batched `deltas`)
-            self._state[p] = val
-
-        # derive the population latent variables from model parameters
-        # e.g. to check value of `mixing_matrix` we need `v0` and `betas` (not just `log_v0` and `betas_mean`)
-        self._state.put_population_latent_variables(LatentVariableInitType.PRIOR_MODE)
-
-        # check equality of other values (hyperparameters or linked variables)
-        for parameter_name, parameter_value in parameters.items():
-            if parameter_name in provided_params:
-                continue
-            # TODO: a bit dirty due to hyperparams / params mix (cf. `.parameters` property note)
-            try:
-                current_value = self._state[parameter_name]
-            except Exception as e:
-                raise LeaspyModelInputError(
-                    f"Impossible to compare value of provided value for {parameter_name} "
-                    "- not computable given current state"
-                ) from e
-            parameter_value = val_to_tensor(
-                parameter_value, getattr(self.dag[parameter_name], "shape", None)
-            )
-            assert (
-                parameter_value.shape == current_value.shape,
-                (parameter_name, parameter_value.shape, current_value.shape),
-            )
-            # TODO: WeightedTensor? (e.g. batched `deltas``)
-            assert (
-                torch.allclose(parameter_value, current_value, atol=1e-4),
-                (parameter_name, parameter_value, current_value),
-            )
-
     @abstractmethod
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
-        """
-        Load model's hyperparameters.
+        """Load model's hyperparameters.
 
         Parameters
         ----------
@@ -273,9 +129,7 @@ class McmcSaemCompatibleModel(BaseModel):
     def _raise_if_unknown_hyperparameters(
         cls, known_hps: Iterable[str], given_hps: KwargsType
     ) -> None:
-        """
-        Raises a :exc:`.LeaspyModelInputError` if any unknown hyperparameter is provided to the model.
-        """
+        """Raises a :exc:`.LeaspyModelInputError` if any unknown hyperparameter is provided to the model."""
         # TODO: replace with better logic from GenericModel in the future
         unexpected_hyperparameters = set(given_hps.keys()).difference(known_hps)
         if len(unexpected_hyperparameters) > 0:
@@ -322,44 +176,7 @@ class McmcSaemCompatibleModel(BaseModel):
         :exc:`.LeaspyIndividualParamsInputError`
             If any of the consistency/compatibility checks fail.
         """
-
-    @staticmethod
-    def _tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
-        """
-        Helper to convert a scalar or array_like into an, at least 2D, dtype tensor.
-
-        Parameters
-        ----------
-        x : scalar or array_like
-            Element to be tensorized.
-        unsqueeze_dim : :obj:`int`
-            Dimension to be unsqueezed (0 or -1).
-            Meaningful for 1D array-like only (for scalar or vector
-            of length 1 it has no matter).
-
-        Returns
-        -------
-        :class:`torch.Tensor`, at least 2D
-
-        Examples
-        --------
-        >>> _tensorize_2D([1, 2], 0) == tensor([[1, 2]])
-        >>> _tensorize_2D([1, 2], -1) == tensor([[1], [2])
-        """
-        # convert to torch.Tensor if not the case
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=dtype)
-
-        # convert dtype if needed
-        if x.dtype != dtype:
-            x = x.to(dtype)
-
-        # if tensor is less than 2-dimensional add dimensions
-        while x.dim() < 2:
-            x = x.unsqueeze(dim=unsqueeze_dim)
-
-        # postcondition: x.dim() >= 2
-        return x
+        raise NotImplementedError
 
     def _get_tensorized_inputs(
         self,
@@ -368,6 +185,8 @@ class McmcSaemCompatibleModel(BaseModel):
         *,
         skip_ips_checks: bool = False,
     ) -> tuple[torch.Tensor, DictParamsTorch]:
+        from .utilities import tensorize_2D
+
         if not skip_ips_checks:
             individual_parameters_info = self._audit_individual_parameters(
                 individual_parameters
@@ -379,7 +198,7 @@ class McmcSaemCompatibleModel(BaseModel):
                     f"{n_individual_parameters} was provided."
                 )
         # Convert the timepoints (list of numbers, or single number) to a 2D torch tensor
-        timepoints = self._tensorize_2D(timepoints, unsqueeze_dim=0)  # 1 individual
+        timepoints = tensorize_2D(timepoints, unsqueeze_dim=0)  # 1 individual
         return timepoints, individual_parameters
 
     def _check_individual_parameters_provided(
@@ -397,7 +216,6 @@ class McmcSaemCompatibleModel(BaseModel):
         if len(errs):
             raise LeaspyIndividualParamsInputError(". ".join(errs))
 
-    # TODO: unit tests? (functional tests covered by api.estimate)
     def compute_individual_trajectory(
         self,
         timepoints: list[float],
@@ -405,8 +223,7 @@ class McmcSaemCompatibleModel(BaseModel):
         *,
         skip_ips_checks: bool = False,
     ) -> torch.Tensor:
-        """
-        Compute scores values at the given time-point(s) given a subject's individual parameters.
+        """Compute scores values at the given time-point(s) given a subject's individual parameters.
 
         .. note::
             The model uses its current internal state.
@@ -594,15 +411,6 @@ class McmcSaemCompatibleModel(BaseModel):
             state[mp] = mp_updated_val
 
     def get_variables_specs(self) -> NamedVariables:
-        """
-        Return the specifications of the variables (latent variables,
-        derived variables, model 'parameters') that are part of the model.
-
-        Returns
-        -------
-        NamedVariables :
-            The specifications of the model's variables.
-        """
         specifications = NamedVariables({"t": DataVariable()})
         single_obs_model = len(self.obs_models) == 1
         for obs_model in self.obs_models:
@@ -610,50 +418,6 @@ class McmcSaemCompatibleModel(BaseModel):
                 obs_model.get_variables_specs(named_attach_vars=not single_obs_model)
             )
         return specifications
-
-    def _initialize_state(self) -> None:
-        """
-        Initialize the internal state of model, as well as the underlying DAG.
-
-        Note that all model hyperparameters (dimension, source_dimension, ...) should be defined
-        in order to be able to do so.
-
-        Returns
-        -------
-        None
-        """
-        if self._state is not None:
-            raise LeaspyModelInputError("Trying to initialize the model's state again")
-        self.state = State(
-            VariablesDAG.from_dict(self.get_variables_specs()),
-            auto_fork_type=StateForkType.REF,
-        )
-        self.state.track_variables(self.tracked_variables)
-
-    def initialize(self, dataset: Optional[Dataset] = None) -> None:
-        """
-        Overloads base model initialization (in particular to handle internal model State).
-
-        <!> We do not put data variables in internal model state at this stage (done in algorithm)
-
-        Parameters
-        ----------
-        dataset : :class:`.Dataset`, optional
-            Input dataset from which to initialize the model.
-        method : InitializationMethod, optional
-            The initialization method to be used.
-            Default='default'.
-        """
-        super().initialize(dataset=dataset)
-        self._initialize_state()
-        if not dataset:
-            return
-        # WIP: design of this may be better somehow?
-        with self._state.auto_fork(None):
-            self._initialize_model_parameters(dataset)
-            self._state.put_population_latent_variables(
-                LatentVariableInitType.PRIOR_MODE
-            )
 
     @abstractmethod
     def put_individual_parameters(self, state: State, dataset: Dataset):
@@ -691,78 +455,3 @@ class McmcSaemCompatibleModel(BaseModel):
         state["t"] = None
         for obs_model in self.obs_models:
             state[obs_model.name] = None
-
-    def _initialize_model_parameters(self, dataset: Dataset) -> None:
-        """Initialize model parameters (in-place, in `_state`).
-
-        The method also checks that the model parameters whose initial values
-        were computed from the dataset match the expected model parameters from
-        the specifications (i.e. the nodes of the DAG of type 'ModelParameter').
-
-        If there is a mismatch, the method raises a ValueError because there is
-        an inconsistency between the definition of the model and the way it computes
-        the initial values of its parameters from a dataset.
-
-        Parameters
-        ----------
-        dataset : Dataset
-            The dataset to use to compute initial values for the model parameters.
-        """
-        model_parameters_initialization = (
-            self._compute_initial_values_for_model_parameters(dataset)
-        )
-        model_parameters_spec = self.dag.sorted_variables_by_type[ModelParameter]
-        if set(model_parameters_initialization.keys()) != set(model_parameters_spec):
-            raise ValueError(
-                "Model parameters created at initialization are different "
-                "from the expected model parameters from the specs:\n"
-                f"- From initialization: {sorted(list(model_parameters_initialization.keys()))}\n"
-                f"- From Specs: {sorted(list(model_parameters_spec))}\n"
-            )
-        for (
-            model_parameter_name,
-            model_parameter_variable,
-        ) in model_parameters_spec.items():
-            model_parameter_initial_value = model_parameters_initialization[
-                model_parameter_name
-            ]
-            if not isinstance(
-                model_parameter_initial_value, (torch.Tensor, WeightedTensor)
-            ):
-                try:
-                    model_parameter_initial_value = torch.tensor(
-                        model_parameter_initial_value, dtype=torch.float
-                    )
-                except ValueError:
-                    raise ValueError(
-                        f"The initial value for model parameter '{model_parameter_name}' "
-                        "should be a tensor, or a weighted tensor.\nInstead, "
-                        f"{model_parameter_initial_value} of type {type(model_parameter_initial_value)} "
-                        "was received and cannot be casted to a tensor.\nPlease verify this parameter "
-                        "initialization code."
-                    )
-            self._state[model_parameter_name] = model_parameter_initial_value.expand(
-                model_parameter_variable.shape
-            )
-
-    @abstractmethod
-    def _compute_initial_values_for_model_parameters(
-        self, dataset: Dataset
-    ) -> VariableNameToValueMapping:
-        """Compute initial values for model parameters."""
-        raise NotImplementedError()
-
-    def move_to_device(self, device: torch.device) -> None:
-        """
-        Move a model and its relevant attributes to the specified :class:`torch.device`.
-
-        Parameters
-        ----------
-        device : :class:`torch.device`
-        """
-        if self._state is None:
-            return
-
-        self._state.to_device(device)
-        for hp in self.hyperparameters_names:
-            self._state.dag[hp].to_device(device)
