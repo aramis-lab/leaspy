@@ -44,9 +44,6 @@ def _affine_from_vector(
     y = slope * x + intercept
     Supports broadcasting.
     """
-    print("coeffs: ", coeffs)
-    print("coeffs.shape =", coeffs.shape)
-    print("covariates.shape =", x.shape)
 
     if coeffs.dim() == 3 and coeffs.shape[1] == 1:
         coeffs = coeffs.squeeze(1)  # enlève la dimension de taille 1 au milieu

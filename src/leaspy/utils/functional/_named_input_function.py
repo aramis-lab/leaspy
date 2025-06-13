@@ -65,6 +65,8 @@ class NamedInputFunction(Generic[RT]):
         """Return a new NamedInputFunction applying (g o f) function."""
 
         def g_o_f(*f_args, **f_kws):
+            print("f_args", *f_args)
+            print("f_kws", **f_kws)
             return g(self.f(*f_args, **f_kws), **g_kws)
 
         # nicer for representation (too heavy otherwise)
