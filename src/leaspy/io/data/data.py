@@ -392,8 +392,8 @@ class Data(Iterable):
         return df
 
     def _validate_cofactors_input(
-        self, cofactors: Optional[Union[list[FeatureType], str]] = None
-    ) -> list[FeatureType]:
+        self, cofactors: Optional[Union[List[FeatureType], str]] = None
+    ) -> List[FeatureType]:
         """
         Validate the cofactors input for the to_dataframe method.
 
@@ -563,8 +563,6 @@ class Data(Iterable):
         return Data.from_individuals(
             individuals, headers, event_time_name, event_bool_name
         )
-
-        # Covariate input checks
 
     @staticmethod
     def from_individuals(
