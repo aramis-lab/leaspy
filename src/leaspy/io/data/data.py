@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from collections.abc import Iterable, Iterator
 from typing import Optional, Union
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -392,8 +393,8 @@ class Data(Iterable):
         return df
 
     def _validate_cofactors_input(
-        self, cofactors: Optional[Union[List[FeatureType], str]] = None
-    ) -> List[FeatureType]:
+        self, cofactors: Optional[Union[list[FeatureType], str]] = None
+    ) -> list[FeatureType]:
         """
         Validate the cofactors input for the to_dataframe method.
 
