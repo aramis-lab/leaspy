@@ -53,6 +53,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         self.visit_reader = VisitDataframeDataReader()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     @property
     def long_outcome_names(self) -> list[FeatureType]:
         """Name of the longitudinal outcomes in dataset"""
@@ -73,6 +74,8 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
     #               COVARIATE METHODS
     ######################################################
 
+=======
+>>>>>>> ac238f00 (Clean covariate_dataframe_data_reader.py)
     @property
     def long_outcome_names(self) -> List[FeatureType]:
         """Name of the longitudinal outcomes in dataset"""
@@ -84,7 +87,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         return self.visit_reader.n_visits
 
     ######################################################
-    #               ABSTRACT METHODS IMPLEMENTED
+    #               COVARIATE METHODS
     ######################################################
 
     def _check_headers(self, columns: List[str]) -> None:
@@ -133,10 +136,14 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         drop_full_nan: bool
 <<<<<<< HEAD
+<<<<<<< HEAD
             If set to True, raw full of nan are dropped
 =======
             If set to True, raw full of nan are droped
 >>>>>>> fabf8180 (Update covariate_dataframe_data_reader and add add_covariates in IndividualData)
+=======
+            If set to True, raw full of nan are dropped
+>>>>>>> ac238f00 (Clean covariate_dataframe_data_reader.py)
 
         warn_empty_column: bool
             If set to True, a warning is raise for columns full of nan
@@ -237,10 +244,14 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         drop_full_nan: bool
 <<<<<<< HEAD
+<<<<<<< HEAD
             If set to True, raw full of nan are dropped
 =======
             If set to True, raw full of nan are droped
 >>>>>>> fae8657e (Update JointModel: use df[dataset.event_time_name] instead of df['EVENT_TIME'])
+=======
+            If set to True, raw full of nan are dropped
+>>>>>>> ac238f00 (Clean covariate_dataframe_data_reader.py)
 
         warn_empty_column: bool
             If set to True, a warning is raise for columns full of nan
