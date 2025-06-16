@@ -6,6 +6,7 @@ from typing import Dict, Type, Union
 from leaspy.exceptions import LeaspyDataInputError
 
 from .abstract_dataframe_data_reader import AbstractDataframeDataReader
+from .covariate_dataframe_data_reader import CovariateDataframeDataReader
 from .event_dataframe_data_reader import EventDataframeDataReader
 from .joint_dataframe_data_reader import JointDataframeDataReader
 from .visit_dataframe_data_reader import VisitDataframeDataReader
@@ -23,6 +24,7 @@ class DataframeDataReaderNames(Enum):
     EVENT = "event"
     VISIT = "visit"
     JOINT = "joint"
+    COVARIATE = "covariate"
 
     @classmethod
     def from_string(cls, reader_name: str):
@@ -43,6 +45,7 @@ READERS: Dict[DataframeDataReaderNames, Type[AbstractDataframeDataReader]] = {
     DataframeDataReaderNames.EVENT: EventDataframeDataReader,
     DataframeDataReaderNames.VISIT: VisitDataframeDataReader,
     DataframeDataReaderNames.JOINT: JointDataframeDataReader,
+    DataframeDataReaderNames.COVARIATE: CovariateDataframeDataReader,
 }
 
 

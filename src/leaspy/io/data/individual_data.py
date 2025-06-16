@@ -43,6 +43,7 @@ class IndividualData:
         self.event_time: Optional[np.ndarray] = None
         self.event_bool: Optional[np.ndarray] = None
         self.cofactors: dict[FeatureType, Any] = {}
+        self.covariates: Optional[np.ndarray] = None
 
     def add_observations(
         self, timepoints: list[float], observations: list[list[float]]
@@ -93,6 +94,17 @@ class IndividualData:
         self.event_time = np.array(event_time)
         self.event_bool = np.array(event_bool)
 
+    def add_covariates(self, covariates: list[list[int]]) -> None:
+        """
+        Include covariates
+
+        Parameters
+        ----------
+        covariates : array-like[float, 2D]
+            Covariates to include
+        """
+        self.covariates = np.array(covariates)
+
     def add_cofactors(self, cofactors: dict[FeatureType, Any]) -> None:
         """
         Include new cofactors
@@ -128,7 +140,11 @@ class IndividualData:
             self.cofactors[cofactor_name] = cofactor_value
 
     def to_frame(
-        self, headers: list, event_time_name: str, event_bool_name: str
+        self,
+        headers: list,
+        event_time_name: str,
+        event_bool_name: str,
+        covariate_names: list[str],
     ) -> pd.DataFrame:
         type_to_concat = []
         if self.observations is not None:
@@ -142,7 +158,9 @@ class IndividualData:
             df_event = self._event_to_frame(event_time_name, event_bool_name)
             type_to_concat.append(df_event)
 
-        # TODO: add cofactors
+        if self.covariates is not None:
+            df_covariate = self._covariate_to_frame(covariate_names)
+            type_to_concat.append(df_covariate)
 
         if len(type_to_concat) == 1:
             return type_to_concat[0]
@@ -159,7 +177,7 @@ class IndividualData:
             )
 
         if self.event_bool.sum() == 1:
-            event_coded = np.where(self.event_bool == True)[0][0]
+            event_coded = np.where(self.event_bool)[0][0]
             event_bool = event_coded + 1
         elif self.event_bool.sum() == 0:
             event_bool = 0
@@ -176,3 +194,12 @@ class IndividualData:
         df_event[event_time_name] = df_event[event_time_name].astype(float)
         df_event[event_bool_name] = df_event[event_bool_name].astype(int)
         return df_event
+
+    def _covariate_to_frame(self, covariate_names: list[str]) -> pd.DataFrame:
+        ix_tpts = pd.Index([self.idx], name="ID")
+        df_covariates = pd.DataFrame(
+            data=[self.covariates],
+            index=ix_tpts,
+            columns=[covariate_names],
+        )
+        return df_covariates

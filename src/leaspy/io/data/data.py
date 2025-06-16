@@ -59,7 +59,8 @@ class Data(Iterable):
         self.event_time_name: Optional[str] = None
         self.event_bool_name: Optional[str] = None
 
-        # Cofactor information (?)
+        # Covariate information
+        self.covariate_names: Optional[list[str]] = None
 
     @property
     def dimension(self) -> Optional[int]:
@@ -164,7 +165,11 @@ class Data(Iterable):
 
             individuals = [self.individuals[i] for i in individual_indices]
             return Data.from_individuals(
-                individuals, self.headers, self.event_time_name, self.event_bool_name
+                individuals,
+                self.headers,
+                self.event_time_name,
+                self.event_bool_name,
+                self.covariate_names,
             )
 
         raise LeaspyTypeError("Cannot access a Data object this way")
@@ -369,7 +374,10 @@ class Data(Iterable):
         df = pd.concat(
             [
                 individual_data.to_frame(
-                    self.headers, self.event_time_name, self.event_bool_name
+                    self.headers,
+                    self.event_time_name,
+                    self.event_bool_name,
+                    self.covariate_names,
                 )
                 for individual_data in self.individuals.values()
             ]
@@ -475,6 +483,8 @@ class Data(Iterable):
         if hasattr(reader, "event_time_name"):
             data.event_time_name = reader.event_time_name
             data.event_bool_name = reader.event_bool_name
+        if hasattr(reader, "covariate_names"):
+            data.covariate_names = reader.covariate_names
         return data
 
     @staticmethod
@@ -487,6 +497,8 @@ class Data(Iterable):
         event_bool_name: Optional[str] = None,
         event_time: Optional[list[list[float]]] = None,
         event_bool: Optional[list[list[int]]] = None,
+        covariate_names: Optional[list[str]] = None,
+        covariates: Optional[list[list[int]]] = None,
     ) -> Data:
         """
         Construct `Data` from a collection of individual data points
@@ -529,6 +541,14 @@ class Data(Iterable):
             if not event_bool_name or not event_time or not event_bool:
                 raise ("Not coherent inputs for longitudinal data")
 
+        # Covariates input checks
+        if not covariate_names:
+            if covariates:
+                raise ("Not coherent inputs for covariate data")
+        else:
+            if not covariates:
+                raise ("Not coherent inputs for covariate data")
+
         individuals = []
         for i, idx in enumerate(indices):
             indiv = IndividualData(idx)
@@ -536,11 +556,15 @@ class Data(Iterable):
                 indiv.add_observations(timepoints[i], values[i])
             if event_time_name:
                 indiv.add_event(event_time[i], event_bool[i])
+            if covariate_names:
+                indiv.add_covariates(covariates[i])
             individuals.append(indiv)
 
         return Data.from_individuals(
             individuals, headers, event_time_name, event_bool_name
         )
+
+        # Covariate input checks
 
     @staticmethod
     def from_individuals(
@@ -548,6 +572,7 @@ class Data(Iterable):
         headers: Optional[list[FeatureType]] = None,
         event_time_name: Optional[str] = None,
         event_bool_name: Optional[str] = None,
+        covariate_names: Optional[list[str]] = None,
     ) -> Data:
         """
         Construct `Data` from a list of individuals
@@ -574,6 +599,9 @@ class Data(Iterable):
         if event_time_name and event_bool_name:
             data.event_time_name = event_time_name
             data.event_bool_name = event_bool_name
+
+        if covariate_names:
+            data.covariate_names = covariate_names
 
         for indiv in individuals:
             idx = indiv.idx
