@@ -1,10 +1,11 @@
 import warnings
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 
 from leaspy.exceptions import LeaspyDataInputError
-from leaspy.utils.typing import Dict, FeatureType, IDType, List, Optional
+from leaspy.utils.typing import FeatureType
 
 from .abstract_dataframe_data_reader import AbstractDataframeDataReader
 from .individual_data import IndividualData
@@ -30,7 +31,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
     def __init__(
         self,
         *,
-        covariate_names: List[str],
+        covariate_names: list[str],
     ):
         super().__init__()
         if not covariate_names:
@@ -39,7 +40,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         self.visit_reader = VisitDataframeDataReader()
 
     @property
-    def long_outcome_names(self) -> List[FeatureType]:
+    def long_outcome_names(self) -> list[FeatureType]:
         """Name of the longitudinal outcomes in dataset"""
         return self.visit_reader.long_outcome_names
 
@@ -52,7 +53,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
     #               COVARIATE METHODS
     ######################################################
 
-    def _check_headers(self, columns: List[str]) -> None:
+    def _check_headers(self, columns: list[str]) -> None:
         """
         Check mendatory dataframe headers
 
