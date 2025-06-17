@@ -3,7 +3,6 @@ from __future__ import annotations
 import warnings
 from collections.abc import Iterable, Iterator
 from typing import Optional, Union
-from typing import Optional, Union
 
 import pandas as pd
 

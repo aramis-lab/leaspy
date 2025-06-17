@@ -77,7 +77,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 =======
 >>>>>>> ac238f00 (Clean covariate_dataframe_data_reader.py)
     @property
-    def long_outcome_names(self) -> List[FeatureType]:
+    def long_outcome_names(self) -> list[FeatureType]:
         """Name of the longitudinal outcomes in dataset"""
         return self.visit_reader.long_outcome_names
 
