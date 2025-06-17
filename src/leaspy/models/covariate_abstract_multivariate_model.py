@@ -22,14 +22,14 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-from .abstract_model import AbstractModel
+from .mcmc_saem_compatible import McmcSaemCompatibleModel
 from .obs_models import observation_model_factory
 
 __all__ = ["CovariateAbstractMultivariateModel"]
 
 
 @doc_with_super()
-class CovariateAbstractMultivariateModel(AbstractModel):
+class CovariateAbstractMultivariateModel(McmcSaemCompatibleModel):
     """
     Contains the common attributes & methods of the multivariate models.
 
