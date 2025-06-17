@@ -59,7 +59,6 @@ class Data(Iterable):
         self.event_time_name: Optional[str] = None
         self.event_bool_name: Optional[str] = None
 
-        # Covariate information
         self.covariate_names: Optional[list[str]] = None
 
     @property
@@ -564,7 +563,6 @@ class Data(Iterable):
             individuals, headers, event_time_name, event_bool_name
         )
 
-        # Covariate input checks
 
     @staticmethod
     def from_individuals(
