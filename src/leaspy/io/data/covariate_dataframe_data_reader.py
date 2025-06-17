@@ -107,7 +107,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         df_covariate = df.copy(deep=True)
 
-        assert (df_covariate.columns == self.covariate_names).all()
+        if not (df_covariate.columns == self.covariate_names).all():
+            raise LeaspyDataInputError(
+                f"The covariate column names {df_covariate.columns} are "
+                f"different from the provided covariate names {self.covariate_names}."
+            )
 
         for covariate in self.covariate_names:
             if df_covariate[covariate].isna().any():
