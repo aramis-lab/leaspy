@@ -105,13 +105,10 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with clean information
         """
 
-        # [SPECIFIC] check_available_data
         df_covariate = df.copy(deep=True)
 
-        # Assert covariates columns are the only one available
         assert (df_covariate.columns == self.covariate_names).all()
 
-        # Check if there are missing values (NaN) in the covariate
         for covariate in self.covariate_names:
             if df_covariate[covariate].isna().any():
                 raise LeaspyDataInputError(
@@ -119,7 +116,6 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     "Please ensure that values are provided for each visit."
                 )
 
-        # Check covariate good format
         for covariate in self.covariate_names:
             if not np.array_equal(
                 df_covariate[covariate], df_covariate[covariate].astype(int)
@@ -140,7 +136,6 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             )
         df_covariate = df_covariate.groupby("ID").first()
 
-        # Covariate must be empty to raise an error
         if len(df_covariate) == 0:
             raise LeaspyDataInputError("Dataframe should have at least 1 covariate")
 
@@ -179,14 +174,12 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             Dataframe with clean information
         """
 
-        # Check visits
         df_visit = self.visit_reader._clean_dataframe(
             df.drop(columns=self.covariate_names),
             drop_full_nan=drop_full_nan,
             warn_empty_column=warn_empty_column,
         )
 
-        # Check covariates
         df_covariate = self._clean_dataframe_covariates(
             df.reset_index()
             .drop(self.long_outcome_names + ["TIME"], axis=1)
@@ -195,7 +188,6 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
             warn_empty_column=warn_empty_column,
         )
 
-        # [SPECIFIC] prepare_clean_output
         if (
             not df_covariate.groupby("ID")
             .first()
