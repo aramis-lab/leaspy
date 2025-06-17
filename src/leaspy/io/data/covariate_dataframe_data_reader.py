@@ -145,8 +145,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
 
         # Assert at least 2 different values per covariate
         for covariate in self.covariate_names:
-            n_value = df_covariate[covariate].nunique(dropna=False)
-            if n_value < 2:
+            if (n_value := df_covariate[covariate].nunique(dropna=False)) < 2:
                 raise LeaspyDataInputError(
                     f"The covariate '{covariate}' has only {n_value} unique value."
                     "Each covariate must have at least two distinct values across patients"

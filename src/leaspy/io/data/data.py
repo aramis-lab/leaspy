@@ -59,6 +59,7 @@ class Data(Iterable):
         self.event_time_name: Optional[str] = None
         self.event_bool_name: Optional[str] = None
 
+        # Covariate information
         self.covariate_names: Optional[list[str]] = None
 
     @property
@@ -541,12 +542,12 @@ class Data(Iterable):
                 raise ("Not coherent inputs for longitudinal data")
 
         # Covariates input checks
-        if not covariate_names:
-            if covariates:
-                raise ("Not coherent inputs for covariate data")
-        else:
-            if not covariates:
-                raise ("Not coherent inputs for covariate data")
+        if (covariate_names is None) != (covariates is None):
+            raise ValueError(
+                "Not coherent inputs for covariate data: \n "
+                f"covariate_names = {covariate_names} and \n "
+                f"covariates = {covariates}."
+            )
 
         individuals = []
         for i, idx in enumerate(indices):
@@ -562,7 +563,6 @@ class Data(Iterable):
         return Data.from_individuals(
             individuals, headers, event_time_name, event_bool_name
         )
-
 
     @staticmethod
     def from_individuals(
