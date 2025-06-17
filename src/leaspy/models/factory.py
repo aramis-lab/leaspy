@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from .base import BaseModel
 from .constant import ConstantModel
-from .covariate import CovariateLogisticMultivariateModel
+from .covariate_riemanian_manifold import CovariateLogisticModel
 from .joint import JointModel
 from .lme import LMEModel
 from .riemanian_manifold import LinearModel, LogisticModel
@@ -66,4 +66,4 @@ def model_factory(
     if name == ModelName.CONSTANT:
         return ConstantModel(instance_name, **kwargs)
     if name == ModelName.COVARIATE:
-        return CovariateLogisticMultivariateModel(instance_name, **kwargs)
+        return CovariateLogisticModel(instance_name, **kwargs)
