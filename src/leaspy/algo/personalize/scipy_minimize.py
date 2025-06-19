@@ -53,10 +53,15 @@ class _AffineScaling:
     @classmethod
     def from_latent_variable(cls, var: LatentVariable, state: State) -> _AffineScaling:
         """Natural scaling for latent variable: (mode, stddev)."""
-        return cls(
-            var.prior.mode.call(state),
-            var.prior.stddev.call(state),
-        )
+
+        mode = var.prior.mode.call(state)
+        stddev = var.prior.stddev.call(state)
+
+        # Ensure they're 1D tensors
+        mode = mode.reshape(1) if mode.ndim == 0 else mode
+        stddev = stddev.reshape(1) if stddev.ndim == 0 else stddev
+
+        return cls(mode, stddev)
 
 
 @dataclass
