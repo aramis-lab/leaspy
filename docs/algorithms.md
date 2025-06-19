@@ -19,21 +19,23 @@
 
 This section describes the procedure for simulating new patient data under the Spatiotemporal model structure. The simulation method, relying on a fitted Leaspy model and user-defined parameters, involves the following steps:
 
-**Step 1: Generation of Individual Parameters**
-For each simulated patient, individual parameters ($\tau_i$, $\xi_i$, and the sources) are sampled from normal distributions defined by the model’s mean and standard deviation:
-$$
-   \xi_i \sim \mathcal{N}\left(0, \sigma^2_{\xi}\right), \quad \tau_i \sim \mathcal{N}\left(t_0, \sigma^2_{\tau}\right), \quad N_s \text{ sources } s_{j,m} \sim \mathcal{N}\left(\bar{s}, \sigma_s\right)
-$$
+**Step 1: Generation of Individual Parameters** <br>
+For each simulated patient, individual parameters ($\tau_i$, $\xi_i$, and the sources) are sampled from normal distributions defined by the model’s mean and standard deviation:<br>
+- $\xi_i \sim \mathcal{N}\left(0, \sigma^2_{\xi}\right)$,
+- $\tau_i \sim \mathcal{N}\left(t_0, \sigma^2_{\tau}\right)$,
+- $N_s \text{ sources } s_{i,m} \sim \mathcal{N}\left(\bar{s}, \sigma_s\right)$
+
 These model parameters come from a previously fitted Leaspy model, provided by the user. 
 
-**Step 2: Generation of Visit Times**
+**Step 2: Generation of Visit Times** <br>
 Visit times are generated based on user-specified visit parameters, such as the number of visits, spacing between visits, and follow-up duration. These parameters are provided through a dictionary.
 
-**Step 3: Estimation of Observations**
-The estimate function from Leaspy is used to compute the patients observation at the generated visit time $t_{i,j,k}$, based on the individual parameters:
+**Step 3: Estimation of Observations** <br>
+The estimate function from Leaspy is used to compute the patients observation at the generated visit time $t_{i,j,k}$, based on the individual parameters:<br>
 $$
-   y_{i,j,k} = \gamma_{i,k}(t_{i,j,k}) + \epsilon_{i,j,k}, \quad \epsilon_{i,j,k} \sim \mathcal{N}(0, \sigma^2_k)
+y_{i,j,k} = \gamma_{i,k}(t_{i,j,k}) + \epsilon_{i,j,k}, \quad \epsilon_{i,j,k} \sim \mathcal{N}(0, \sigma^2_k)
 $$
+
 To reflect variability in the observations, beta-distributed noise is added, appropriate for modeling outcomes in a logistic framework.
 
 ### Prerequisites
