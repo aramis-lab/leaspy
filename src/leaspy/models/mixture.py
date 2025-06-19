@@ -284,10 +284,15 @@ class AbstractMultivariateMixtureModel(AbstractModel):
             df_ind = df["TIME"].to_frame(name="tau")
             df_ind["xi"] = 0.0
         else:
+            #df_ind = pd.DataFrame(
+            #    torch.concat([state["xi"], state["tau"]], axis=1),
+            #    columns=["xi", "tau"],
+            #    index=df.index,
+            #)
             df_ind = pd.DataFrame(
-                torch.concat([state["xi"], state["tau"]], axis=1),
+                torch.concat([state["xi"], state["tau"]], axis=1).detach().numpy(),
                 columns=["xi", "tau"],
-                index=df.index,
+                index=np.arange(state["xi"].shape[0]),  # use correct number of rows
             )
 
         # Set the right initialisation point fpr barrier methods -JOINTMODEL
@@ -437,8 +442,6 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
         """
         Center the ``xi`` realizations in place
         """
-
-        # is it ok for all the clusters?  do we need sth with probabilities?
         mean_xi = torch.mean(state["xi"])
         state["xi"] = state["xi"] - mean_xi
         state["log_v0"] = state["log_v0"] + mean_xi
@@ -448,9 +451,10 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
         """
         Center the ``sources`` realizations in place.
         """
-        # is it ok for all the clusters? do we need sth with probabilities?
         mean_sources = torch.mean(state["sources"])
+        #std_sources = torch.std(state['sources'])
         state["sources"] = state["sources"] - mean_sources
+        #state["sources"] = (state["sources"] - mean_sources) / std_sources
 
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:

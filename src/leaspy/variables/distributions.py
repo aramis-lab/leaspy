@@ -575,9 +575,16 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         return prob, loc, scale
 
     @classmethod
-    def mode(cls, x: WeightedTensor, probs: torch.Tensor,) -> torch.Tensor:
+    def mode(cls, *params: Any) -> torch.Tensor:
+        return cls.dist_factory(*params).mean
 
-        return (probs * x.value).mode(dim=0)
+    @classmethod
+    def mean(cls, *params: Any) ->  torch.Tensor:
+        return cls.dist_factory(*params).mean
+
+    @classmethod
+    def stddev(cls, *params: Any) ->  torch.Tensor:
+        return cls.dist_factory(*params).stddev
 
     @classmethod
     def _nll(
