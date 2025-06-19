@@ -10,6 +10,7 @@ from scipy.stats import beta
 
 from leaspy.algo import AlgorithmSettings
 from leaspy.algo.base import AlgorithmType, BaseAlgorithm
+from leaspy.algo.simulate.base import BaseSimulationAlgorithm
 from leaspy.api import Leaspy
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.data import Data
@@ -23,7 +24,7 @@ class VisitType(str, Enum):
     RANDOM = "random"  # Random spaced visits
 
 
-class SimulationAlgorithm(BaseAlgorithm):
+class SimulationAlgorithm(BaseSimulationAlgorithm):
     name: str = "simulation"
     family: AlgorithmType = AlgorithmType.SIMULATE
 

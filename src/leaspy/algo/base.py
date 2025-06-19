@@ -363,7 +363,14 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
         return AlgorithmType.FIT
     if name == AlgorithmName.SIMULATE:
         return AlgorithmType.SIMULATE
-    return AlgorithmType.PERSONALIZE
+    if name in (
+        AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE,
+        AlgorithmName.PERSONALIZE_MEAN_POSTERIOR,
+        AlgorithmName.PERSONALIZE_MODE_POSTERIOR,
+        AlgorithmName.PERSONALIZE_CONSTANT,
+        AlgorithmName.PERSONALIZE_LME,
+    ):
+        return AlgorithmType.PERSONALIZE
 
 
 def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
