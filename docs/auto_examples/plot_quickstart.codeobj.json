@@ -1,0 +1,903 @@
+{
+ "AlgorithmSettings": [
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.algo.settings",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  }
+ ],
+ "Data.from_dataframe": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.data.Data",
+   "module_short": "leaspy.io.data.Data",
+   "name": "from_dataframe"
+  }
+ ],
+ "Dataset": [
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.io.data.dataset",
+   "module_short": "leaspy.io.data",
+   "name": "Dataset"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.io.data",
+   "module_short": "leaspy.io.data",
+   "name": "Dataset"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.io",
+   "module_short": "leaspy.io",
+   "name": "Dataset"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "Dataset"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.data",
+   "module_short": "leaspy.io.data",
+   "name": "Dataset"
+  }
+ ],
+ "LogisticMultivariateModel": [
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "LogisticMultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models.multivariate",
+   "name": "LogisticMultivariateInitializationMixin"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateInitializationMixin"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "LogisticMultivariateInitializationMixin"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models",
+   "name": "MultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "MultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "MultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models.abstract_multivariate_model",
+   "module_short": "leaspy.models",
+   "name": "AbstractMultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "AbstractMultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AbstractMultivariateModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models.abstract_model",
+   "module_short": "leaspy.models",
+   "name": "AbstractModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "AbstractModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AbstractModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models.base",
+   "module_short": "leaspy.models",
+   "name": "BaseModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "BaseModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "BaseModel"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "abc",
+   "module_short": "abc",
+   "name": "ABC"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel"
+  }
+ ],
+ "algorithm": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.personalize.scipy_minimize",
+   "module_short": "leaspy.algo.personalize",
+   "name": "ScipyMinimize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.personalize",
+   "module_short": "leaspy.algo.personalize",
+   "name": "ScipyMinimize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "ScipyMinimize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "ScipyMinimize"
+  }
+ ],
+ "algorithm.run": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.personalize.scipy_minimize",
+   "module_short": "leaspy.algo.personalize",
+   "name": "ScipyMinimize.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.personalize",
+   "module_short": "leaspy.algo.personalize",
+   "name": "ScipyMinimize.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "ScipyMinimize.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "ScipyMinimize.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.personalize.abstract_personalize_algo",
+   "module_short": "leaspy.algo.personalize",
+   "name": "AbstractPersonalizeAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.personalize",
+   "module_short": "leaspy.algo.personalize",
+   "name": "AbstractPersonalizeAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "AbstractPersonalizeAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AbstractPersonalizeAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.base",
+   "module_short": "leaspy.algo",
+   "name": "AbstractAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "AbstractAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AbstractAlgo.run"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "abc",
+   "module_short": "abc",
+   "name": "ABC.run"
+  }
+ ],
+ "algorithm_factory": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "algorithm_factory"
+  }
+ ],
+ "alzheimer_df": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.frame",
+   "module_short": "pandas.core.frame",
+   "name": "DataFrame"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "DataFrame"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "DataFrame"
+  }
+ ],
+ "alzheimer_df.columns": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.indexes.base",
+   "module_short": "pandas.core.indexes.base",
+   "name": "Index"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.indexes",
+   "module_short": "pandas.core.indexes",
+   "name": "Index"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "Index"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "Index"
+  }
+ ],
+ "alzheimer_df.head": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.frame",
+   "module_short": "pandas.core.frame",
+   "name": "DataFrame.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "DataFrame.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "DataFrame.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.generic",
+   "module_short": "pandas.core.generic",
+   "name": "NDFrame.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "NDFrame.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "NDFrame.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.arraylike",
+   "module_short": "pandas.core.arraylike",
+   "name": "OpsMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "OpsMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "OpsMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.base",
+   "module_short": "pandas.core.base",
+   "name": "PandasObject.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "PandasObject.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "PandasObject.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.indexing",
+   "module_short": "pandas.core.indexing",
+   "name": "IndexingMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "IndexingMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "IndexingMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core.accessor",
+   "module_short": "pandas.core.accessor",
+   "name": "DirNamesMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas.core",
+   "module_short": "pandas.core",
+   "name": "DirNamesMixin.head"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "pandas",
+   "module_short": "pandas",
+   "name": "DirNamesMixin.head"
+  }
+ ],
+ "data": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.data.data",
+   "module_short": "leaspy.io.data",
+   "name": "Data"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.data",
+   "module_short": "leaspy.io.data",
+   "name": "Data"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io",
+   "module_short": "leaspy.io",
+   "name": "Data"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "Data"
+  }
+ ],
+ "dataset": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.data.dataset",
+   "module_short": "leaspy.io.data",
+   "name": "Dataset"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.data",
+   "module_short": "leaspy.io.data",
+   "name": "Dataset"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io",
+   "module_short": "leaspy.io",
+   "name": "Dataset"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "Dataset"
+  }
+ ],
+ "fit_settings": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.settings",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AlgorithmSettings"
+  }
+ ],
+ "fit_settings.model_initialization_method": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.base",
+   "module_short": "leaspy.models",
+   "name": "InitializationMethod"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "InitializationMethod"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "InitializationMethod"
+  }
+ ],
+ "individual_parameters": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.outputs.individual_parameters",
+   "module_short": "leaspy.io.outputs",
+   "name": "IndividualParameters"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.outputs",
+   "module_short": "leaspy.io.outputs",
+   "name": "IndividualParameters"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io",
+   "module_short": "leaspy.io",
+   "name": "IndividualParameters"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "IndividualParameters"
+  }
+ ],
+ "individual_parameters.to_dataframe": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.outputs.individual_parameters",
+   "module_short": "leaspy.io.outputs",
+   "name": "IndividualParameters.to_dataframe"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io.outputs",
+   "module_short": "leaspy.io.outputs",
+   "name": "IndividualParameters.to_dataframe"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.io",
+   "module_short": "leaspy.io",
+   "name": "IndividualParameters.to_dataframe"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "IndividualParameters.to_dataframe"
+  }
+ ],
+ "load_dataset": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.datasets",
+   "module_short": "leaspy.datasets",
+   "name": "load_dataset"
+  }
+ ],
+ "model": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "LogisticMultivariateModel"
+  }
+ ],
+ "model.initialize": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "LogisticMultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models.multivariate",
+   "name": "LogisticMultivariateInitializationMixin.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "LogisticMultivariateInitializationMixin.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "LogisticMultivariateInitializationMixin.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.multivariate",
+   "module_short": "leaspy.models",
+   "name": "MultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "MultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "MultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.abstract_multivariate_model",
+   "module_short": "leaspy.models",
+   "name": "AbstractMultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "AbstractMultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AbstractMultivariateModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.abstract_model",
+   "module_short": "leaspy.models",
+   "name": "AbstractModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "AbstractModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AbstractModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models.base",
+   "module_short": "leaspy.models",
+   "name": "BaseModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.models",
+   "module_short": "leaspy.models",
+   "name": "BaseModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "BaseModel.initialize"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "abc",
+   "module_short": "abc",
+   "name": "ABC.initialize"
+  }
+ ],
+ "personalize_settings": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo.settings",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy.algo",
+   "module_short": "leaspy.algo",
+   "name": "AlgorithmSettings"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "leaspy",
+   "module_short": "leaspy",
+   "name": "AlgorithmSettings"
+  }
+ ]
+}

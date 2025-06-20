@@ -3,24 +3,25 @@
 ## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
-Individual variability for patient $i$ is modeled with the latent disease age $\psi_i(t)$:  
+Individual variability for patient $i$ is modeled with the latent disease age $\psi_i(t)$ (./notations.md#latent-disease-age):  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
 $$
 
 where:
-- $ e^{\xi_i} $ : Individual speed factor
-- $ \tau_i $ : Estimated reference time
-- $ t_0 $ : Population reference time
+- $ \xi_i $ is the [individual log speed factor](./notations.md#individual-log-speed-factor)
+- $ \tau_i $ is the [estimated reference time](./notations.md#estimated-reference-time)
+- $ t_0 $ is the [population reference time](./notations.md#population-reference-time)
+
 
 The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from $ \psi_i(t) $.  
 
 *Key Hypothesis*: Longitudinal and survival processes are linked by a shared latent disease age.
 
 ### Spatial Random Effects
-Disease presentation variability is captured by space-shifts : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
-- $\mathbf{A}$: Mixing matrix (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of space shifts)
+Disease presentation variability is captured by [space-shifts](./notations.md#space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
+- $\mathbf{A}$: [mixing matrix](./notations.md#mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of [space shifts](./notations.md#space-shift)).
 - $ \mathbf{s}_i$: Independent sources  
 
 For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ {cite}`schirattiBayesianMixedEffectsModel`, so that:
@@ -31,7 +32,7 @@ $$
 
 with $\beta$ the matrix of coefficients.
 
-Each event ( $l$ ) has a survival shift:
+Each event ( $l$ ) has a [survival shift](./notations.md#survival-shift):
 
 $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}
@@ -63,7 +64,7 @@ where:
 
 ### Definition
 
-Joint models are a class of statistical models that simultaneously analyze longitudinal data (repeated measurements over time) and survival data (time-to-event outcomes) {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error {cite `tsiatisJOINTMODELINGLONGITUDINAL`.
+Joint models are a class of statistical models that simultaneously analyze [longitudinal data](./glossary.md#longitudinal-data) and [survival data](./glossary.md#survival-data) {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error {cite}`tsiatisJOINTMODELINGLONGITUDINAL`.
 
 In Leaspy, the joint model {cite}`ortholand:tel-04770912` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description](##Introduction to spatio-temporal models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
@@ -111,9 +112,9 @@ The longitudinal submodel that can be used here is the logistic model, please ha
 #### Survival Submodel
 **Cause-Specific Weibull Hazards** (for competing risks):
 
-This submodel captures how variations in the progression of longitudinal disease outcomes influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To achieve this, leaspy joint model uses a cause-specific hazard structure.  
+This submodel captures how variations in the progression of longitudinal disease outcomes influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To achieve this, the leaspy joint model uses a cause-specific hazard structure.  
 
-For each event $l$ and patient $i$, we model a cause-specific hazard $h_{i,l}(t)$ {cite}`prentice_regression_1978, cheng_prediction_1998`. This framework allows us to estimate the risk of each event separately and account for the presence of competing risks (where one event precludes others)
+For each event $l$ and patient $i$, we model a cause-specific hazard $h_{i,l}(t)$ {cite}`prentice_regression_1978, cheng_prediction_1998`. This framework allows us to estimate the risk of each event separately and account for the presence of competing risks (where one event precludes others).
 
 A Weibull distribution is used to model time-to-event data due to its flexibility in representing:  
 - Increasing, decreasing, or constant hazard shapes,  
@@ -147,7 +148,7 @@ $$
 S_{i,l}(t) = \exp\left( -\left( \frac{e^{\xi_i (t - \tau_i)}}{\nu_l} \right)^{\rho_l} \exp(u_{i,l}) \right)
 $$
 
-Finally, Cumulative Incident Function (CIF) for event $l$ and subject $i$ is defined as:
+Finally, [CIF](./glossary.md#cif) for event $l$ and subject $i$ is defined as:
 
 $$
 \text{CIF}_{i,l}(t) = \int_0^t h_{i,l}(x) \prod_{q=1}^L S_{i,q}(x) \, dx \
@@ -167,13 +168,13 @@ S_{i,l}(t) = \exp\left( -\left( \frac{e^{\xi_i (t - \tau_i)}}{\nu_l} \right)^{\r
 \end{cases}
 $$
 
-In practice in leaspy, to use joint model, you need to precise "joint" in Leaspy object creation, then you can use it to fit, personnalize, estimate and simulate.
+In practice in leaspy, to use the joint model, you need to precise "joint" in Leaspy object creation, then you can use it to fit, personnalize, estimate and simulate.
 
 ```python
 leaspy_joint = Leaspy("joint", nb_events=2, dimension=9, source_dimension=7)
 leaspy_joint.fit(data_joint, settings=algo_settings_joint_fit)
 ```
-For estimation, it is the CIF that is outputted by the model. Note that for prediction purposes, the cumulative incidence function (CIF) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
+For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the model. Note that for prediction purposes, the [CIF](./glossary.md#cif) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
 ### References
 
