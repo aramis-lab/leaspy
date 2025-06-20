@@ -388,12 +388,12 @@ class CovariateLogisticModel(
         pop_s = (None, None, ...)  # for broadcasting
 
         # Get relevant covariate column per individual
-        metric_n = metric[:, index_cov]    # shape: (K, N)
-        v0_n = v0[:, index_cov]            # shape: (K, N)
-        g_n = g[:, index_cov]              # shape: (K, N)
+        metric_n = metric[:, index_cov]  # shape: (K, N)
+        v0_n = v0[:, index_cov]  # shape: (K, N)
+        g_n = g[:, index_cov]  # shape: (K, N)
 
         # Transpose to (N, K)
-        metric_n = metric_n.T              # shape: (N, K)
+        metric_n = metric_n.T  # shape: (N, K)
         v0_n = v0_n.T
         g_n = g_n.T
 
@@ -406,4 +406,3 @@ class CovariateLogisticModel(
             w_model_logit, fill_value=0.0
         )
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
-

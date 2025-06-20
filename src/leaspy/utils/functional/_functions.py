@@ -10,12 +10,12 @@ from ._named_input_function import NamedInputFunction
 from ._utils import (
     _affine_from_vector,
     _arguments_checker,
+    _batch_matmul_by_index,
     _identity,
+    _index_of,
     _prod_args,
     _sum_args,
     _unique_wrapper,
-    _index_of,
-    _batch_matmul_by_index,
 )
 
 __all__ = [

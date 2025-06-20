@@ -130,7 +130,7 @@ def compute_orthonormal_basis_batch(
     bases = []
     for i in range(dgamma_t0.shape[1]):
         basis_i = compute_orthonormal_basis(
-            dgamma_t0[:,i], G_metric[:,i], strip_col=strip_col
+            dgamma_t0[:, i], G_metric[:, i], strip_col=strip_col
         )
         bases.append(basis_i)
     return torch.stack(bases)  # -> shape (N, D, D-1)

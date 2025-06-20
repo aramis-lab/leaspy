@@ -5,7 +5,13 @@ import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import AffineFromVector, BatchMatMulByIndex, Exp, MatMul, IndexOf
+from leaspy.utils.functional import (
+    AffineFromVector,
+    BatchMatMulByIndex,
+    Exp,
+    IndexOf,
+    MatMul,
+)
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.distributions import BivariateNormal, Normal
@@ -226,12 +232,14 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
                 ),
                 sources=IndividualLatentVariable(Normal("sources_mean", "sources_std")),
                 # DERIVED VARS
-                index_cov=LinkedVariable(IndexOf("covariates","unique_covariates")),
+                index_cov=LinkedVariable(IndexOf("covariates", "unique_covariates")),
                 mixing_matrix=LinkedVariable(
-                    MatMul("orthonormal_basis", "betas").then(lambda x: x.permute(0, 2, 1))
+                    MatMul("orthonormal_basis", "betas").then(
+                        lambda x: x.permute(0, 2, 1)
+                    )
                 ),  # shape: (Ns, Nfts)
                 space_shifts=LinkedVariable(
-                    BatchMatMulByIndex("sources", "mixing_matrix","index_cov")
+                    BatchMatMulByIndex("sources", "mixing_matrix", "index_cov")
                 ),  # shape: (Ni, Nfts)
             )
 

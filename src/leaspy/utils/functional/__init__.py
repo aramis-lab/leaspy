@@ -22,7 +22,7 @@ __all__ = [
     "Exp",
     "get_named_parameters",
     "Identity",
-    "IndexOf"
+    "IndexOf",
     "MatMul",
     "Mean",
     "NamedInputFunction",
