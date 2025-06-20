@@ -1,7 +1,9 @@
 from ._functions import (
     AffineFromVector,
+    BatchMatMulByIndex,
     Exp,
     Identity,
+    IndexOf,
     MatMul,
     Mean,
     OrthoBasis,
@@ -20,6 +22,7 @@ __all__ = [
     "Exp",
     "get_named_parameters",
     "Identity",
+    "IndexOf"
     "MatMul",
     "Mean",
     "NamedInputFunction",
@@ -32,4 +35,5 @@ __all__ = [
     "SumDim",
     "AffineFromVector",
     "Unique",
+    "BatchMatMulByIndex",
 ]

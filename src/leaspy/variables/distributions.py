@@ -521,6 +521,7 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
     ) -> WeightedTensor:
+        print(">>> [NLL] Entered _nll BivariateNormalFamily")
         x, y = values.value.unbind(-1)
         x_mu, y_mu = loc.unbind(-1)
         x_std, y_std = scale.unbind(-1)

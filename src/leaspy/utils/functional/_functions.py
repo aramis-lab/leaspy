@@ -14,6 +14,8 @@ from ._utils import (
     _prod_args,
     _sum_args,
     _unique_wrapper,
+    _index_of,
+    _batch_matmul_by_index,
 )
 
 __all__ = [
@@ -29,6 +31,8 @@ __all__ = [
     "Sum",
     "AffineFromVector",
     "Unique",
+    "IndexOf",
+    "batch_matmul_by_index",
 ]
 
 
@@ -54,6 +58,14 @@ MatMul = NamedInputFunction.bound_to(
     _arguments_checker(
         nb_arguments=2,
         possible_kws=set(),
+    ),
+)
+
+BatchMatMulByIndex = NamedInputFunction.bound_to(
+    _batch_matmul_by_index,
+    _arguments_checker(
+        nb_arguments=3,
+        possible_kws=set()
     ),
 )
 
@@ -142,6 +154,14 @@ Unique = NamedInputFunction.bound_to(
         nb_arguments=1,
         possible_kws=set(),
     ),
+)
+
+IndexOf = NamedInputFunction.bound_to(
+    _index_of,
+    _arguments_checker(
+        nb_arguments=2,
+        possible_kws=set()
+    )
 )
 
 

@@ -75,8 +75,10 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             "xi_mean",
             "xi_std",
             "nll_attach",
-            "nll_regul_log_g",
-            "nll_regul_log_v0",
+            "nll_regul_phi_g",
+            "nll_regul_phi_v0",
+            # "nll_regul_log_g",
+            # "nll_regul_log_v0",
             "xi",
             "tau",
             "nll_regul_pop_sum",
@@ -173,12 +175,15 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
         )
         if self.source_dimension >= 1:
             d.update(
-                model=LinkedVariable(self.model_with_sources),
+                model=LinkedVariable(self.model_with_sources_covariate),
                 metric_sqr=LinkedVariable(Sqr("metric")),
                 orthonormal_basis=LinkedVariable(OrthoBasisBatch("v0", "metric_sqr")),
             )
         else:
-            d["model"] = LinkedVariable(self.model_no_sources)
+            raise NotImplementedError(
+                "Covariate models without sources (source_dimension == 0) are not implemented yet. "
+                "Please ensure source_dimension >= 1 for CovariateRiemanianManifoldModel."
+            )
 
         # TODO: WIP
         # variables_info.update(self.get_additional_ordinal_population_random_variable_information())
@@ -191,20 +196,20 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
     def metric(*, g: torch.Tensor) -> torch.Tensor:
         pass
 
-    @classmethod
-    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
-        """Returns a model without source. A bit dirty?"""
-        return cls.model_with_sources(
-            rt=rt,
-            metric=metric,
-            v0=v0,
-            g=g,
-            space_shifts=torch.zeros((1, 1)),
-        )
+    # @classmethod
+    # def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
+    #     """Returns a model without source. A bit dirty?"""
+    #     return cls.model_with_sources(
+    #         rt=rt,
+    #         metric=metric,
+    #         v0=v0,
+    #         g=g,
+    #         space_shifts=torch.zeros((1, 1)),
+    #     )
 
     @classmethod
     @abstractmethod
-    def model_with_sources(
+    def model_with_sources_covariate(
         cls,
         *,
         rt: torch.Tensor,
@@ -212,6 +217,7 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
         metric,
         v0,
         g,
+        index_cov,
     ) -> torch.Tensor:
         pass
 
@@ -332,8 +338,30 @@ class CovariateLogisticModel(
         """Used to define the corresponding variable."""
         return (g + 1) ** 2 / g
 
+    # @classmethod
+    # def model_with_sources(
+    #     cls,
+    #     *,
+    #     rt: TensorOrWeightedTensor[float],
+    #     space_shifts: TensorOrWeightedTensor[float],
+    #     metric: TensorOrWeightedTensor[float],
+    #     v0: TensorOrWeightedTensor[float],
+    #     g: TensorOrWeightedTensor[float],
+    # ) -> torch.Tensor:
+    #     """Returns a model with sources."""
+    #     # Shape: (Ni, Nt, Nfts)
+    #     pop_s = (None, None, ...)
+    #     rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
+    #     w_model_logit = metric[pop_s] * (
+    #         v0[pop_s] * rt + space_shifts[:, None, ...]
+    #     ) - torch.log(g[pop_s])
+    #     model_logit, weights = WeightedTensor.get_filled_value_and_weight(
+    #         w_model_logit, fill_value=0.0
+    #     )
+    #     return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
+
     @classmethod
-    def model_with_sources(
+    def model_with_sources_covariate(
         cls,
         *,
         rt: TensorOrWeightedTensor[float],
@@ -341,15 +369,41 @@ class CovariateLogisticModel(
         metric: TensorOrWeightedTensor[float],
         v0: TensorOrWeightedTensor[float],
         g: TensorOrWeightedTensor[float],
+        index_cov: TensorOrWeightedTensor[int],
     ) -> torch.Tensor:
-        """Returns a model with sources."""
-        # Shape: (Ni, Nt, Nfts)
-        pop_s = (None, None, ...)
+        """
+        Returns a model with sources, accounting for covariates.
+
+        Parameters
+        ----------
+        rt : (Ni, Nt)
+        space_shifts : (Ni, K)
+        metric, v0, g : (K, Nc)
+        index_cov : (Ni,) — index of covariate group per individual
+
+        Returns
+        -------
+        Tensor : (Ni, Nt, K)
+        """
+        pop_s = (None, None, ...)  # for broadcasting
+
+        # Get relevant covariate column per individual
+        metric_n = metric[:, index_cov]    # shape: (K, N)
+        v0_n = v0[:, index_cov]            # shape: (K, N)
+        g_n = g[:, index_cov]              # shape: (K, N)
+
+        # Transpose to (N, K)
+        metric_n = metric_n.T              # shape: (N, K)
+        v0_n = v0_n.T
+        g_n = g_n.T
+
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
-        w_model_logit = metric[pop_s] * (
-            v0[pop_s] * rt + space_shifts[:, None, ...]
-        ) - torch.log(g[pop_s])
+        w_model_logit = metric_n[:, None, :] * (
+            v0_n[:, None, :] * rt + space_shifts[:, None, ...]
+        ) - torch.log(g_n[:, None, :])
+
         model_logit, weights = WeightedTensor.get_filled_value_and_weight(
             w_model_logit, fill_value=0.0
         )
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
+

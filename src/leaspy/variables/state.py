@@ -225,6 +225,7 @@ class State(MutableMapping):
         if not force_computation:
             if (value := self._values[name]) is not None:
                 return value
+        print(f"\n [DAG] Computing variable: {name}")
         value = self.dag[name].compute(self._values)
         if value is None:
             raise LeaspyInputError(

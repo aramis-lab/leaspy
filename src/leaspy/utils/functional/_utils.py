@@ -75,6 +75,39 @@ def _unique_wrapper(x) -> torch.Tensor:
         x = x.weighted_value
     return torch.unique(x)
 
+def _index_of(
+    covariates: torch.Tensor,
+    unique_covariates: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Returns the indices in `unique_covariates` corresponding to each entry in `covariates`.
+
+    Parameters
+    ----------
+    covariates : Tensor of shape (N,)
+    unique_covariates : Tensor of shape (M,)
+
+    Returns
+    -------
+    Tensor of shape (N,), where each element is the index in `unique_covariates`
+    """
+    cov_value = covariates.value if isinstance(covariates, WeightedTensor) else covariates
+    unique_cov_value = unique_covariates.value if isinstance(unique_covariates, WeightedTensor) else unique_covariates
+    return (cov_value[:, None] == unique_cov_value[None, :]).nonzero(as_tuple=False)[:, 1]
+
+def _batch_matmul_by_index(sources: torch.Tensor, mixing_matrices: torch.Tensor, group_indices: torch.Tensor):
+    """
+    Args:
+        sources: (Ni, Ns)
+        mixing_matrices: (Nc, Ns, K)
+        group_indices: (Ni,)
+    Returns:
+        space_shifts: (Ni, K)
+    """
+    return torch.stack([
+        torch.matmul(sources[i], mixing_matrices[group_indices[i]])
+        for i in range(sources.shape[0])
+    ], dim=0)
 
 def get_named_parameters(f: Callable) -> Tuple[str, ...]:
     """
