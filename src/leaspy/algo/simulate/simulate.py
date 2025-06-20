@@ -11,12 +11,11 @@ from scipy.stats import beta
 from leaspy.algo import AlgorithmSettings
 from leaspy.algo.base import AlgorithmType, BaseAlgorithm
 from leaspy.algo.simulate.base import BaseSimulationAlgorithm
-from leaspy.api import Leaspy
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data.data import Data
 from leaspy.io.outputs import IndividualParameters
 from leaspy.io.outputs.result import Result
-from leaspy.models import McmcSaemCompatibleModel
+from leaspy.models import BaseModel, McmcSaemCompatibleModel
 
 
 class VisitType(str, Enum):
@@ -25,7 +24,7 @@ class VisitType(str, Enum):
 
 
 class SimulationAlgorithm(BaseSimulationAlgorithm):
-    name: str = "simulation"
+    name: str = "simulate"
     family: AlgorithmType = AlgorithmType.SIMULATE
 
     _PARAM_REQUIREMENTS = {
@@ -155,9 +154,9 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
         LeaspyAlgoInputError
             If the model type is not 'logistic'.
         """
-        if model.to_dict()["name"] != "logistic":
+        if model.__class__.__name__ != "LogisticModel":
             raise LeaspyAlgoInputError(
-                "The model type should be 'logistic' for simulation."
+                "The model type should be 'logistic' (LogisticModel) for simulation."
             )
 
     def _validate_algo_parameters(self):
@@ -442,8 +441,7 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
         """
 
         self._check_logistic_model(model)
-        self.leaspy = Leaspy("logistic", source_dimension=model.source_dimension)
-        self.leaspy.model = model
+        self.model = model
 
     def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
         """
@@ -562,7 +560,7 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
             and features as columns. The dataset includes both the generated values,
             with visits that are too close to each other removed.
         """
-        values = self.leaspy.estimate(
+        values = self.model.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
                 individual_parameters_from_model_parameters[

@@ -6,9 +6,9 @@ from leaspy.io.data import Dataset
 from leaspy.io.data.data import Data
 from leaspy.io.outputs import IndividualParameters
 from leaspy.io.outputs.result import Result
-from leaspy.models import McmcSaemCompatibleModel, ModelType
+from leaspy.models import McmcSaemCompatibleModel
 
-from ..base import AlgorithmType, IterativeAlgorithm, ReturnType
+from ..base import AlgorithmType, IterativeAlgorithm, ModelType, ReturnType
 from ..settings import OutputsSettings
 
 __all__ = ["SimulateAlgorithm"]

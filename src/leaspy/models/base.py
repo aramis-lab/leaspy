@@ -12,6 +12,7 @@ from leaspy.algo import AlgorithmName, AlgorithmSettings
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Data, Dataset
 from leaspy.io.outputs import IndividualParameters
+from leaspy.io.outputs.result import Result
 from leaspy.utils.typing import DictParamsTorch, FeatureType, IDType, KwargsType
 
 __all__ = [
@@ -609,11 +610,74 @@ class BaseModel(ModelInterface):
 
     def simulate(
         self,
-        individual_parameters: IndividualParameters,
-        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
-        raise NotImplementedError("Simulation not implemented.")
+        r"""
+        Generate longitudinal synthetic patients data from a given model, a given collection of individual parameters
+        and some given settings.
+
+        This procedure learn the joined distribution of the individual parameters and baseline age of the subjects
+        present in ``individual_parameters`` and ``data`` respectively to sample new patients from this joined distribution.
+        The model is used to compute for each patient their scores from the individual parameters.
+        The number of visits per patients is set in ``settings['parameters']['mean_number_of_visits']`` and
+        ``settings['parameters']['std_number_of_visits']`` which are set by default to 6 and 3 respectively.
+
+        Parameters
+        ----------
+        individual_parameters : Optional[:class:`.IndividualParameters`]
+            Contains the individual parameters. If None, returns empty Result.
+        data : Optional[Union[pd.DataFrame, :class:`.Data`, :class:`.Dataset`]]
+            Data object. If None, returns empty Result.
+        algorithm : Optional[Union[str, :class:`.AlgorithmName`]]
+            Algorithm name. If None, returns empty Result.
+        algorithm_settings : Optional[:class:`.AlgorithmSettings`]
+            Contains the algorithm's settings. If None, returns empty Result.
+        algorithm_settings_path : Optional[Union[str, Path]]
+            Path to algorithm settings file. If None, returns empty Result.
+        **kwargs
+            Additional arguments for algorithm settings.
+
+        Returns
+        -------
+        simulated_data : :class:`~.io.outputs.result.Result`
+            Contains the generated individual parameters & the corresponding generated scores.
+            Returns empty Result if any required input is None.
+
+        See Also
+        --------
+        :class:`~leaspy.algo.simulate.simulate.SimulationAlgorithm`
+
+        Notes
+        -----
+        To generate a new subject, first we estimate the joined distribution of the individual parameters and the
+        reparametrized baseline ages. Then, we randomly pick a new point from this distribution, which define the
+        individual parameters & baseline age of our new subjects. Then, we generate the timepoints
+        following the baseline age. Then, from the model and the generated timepoints and individual parameters, we
+        compute the corresponding values estimations. Then, we add some noise to these estimations, which is the
+        same noise-model as the one from your model by default. But, you may customize it by setting the `noise` keyword.
+
+        Examples
+        --------
+        [Keep all existing examples, they remain valid with the new signature]
+        """
+        from leaspy.exceptions import LeaspyInputError
+
+        if not self.is_initialized:
+            raise LeaspyInputError("Model has not been initialized")
+
+        if (
+            algorithm := BaseModel._get_algorithm(
+                algorithm, algorithm_settings, algorithm_settings_path, **kwargs
+            )
+        ) is None:
+            # if no algorithm is provided, we cannot simulate anything
+            return Result()
+
+        # The `AbstractAlgo.run` signature is not respected for simulation algorithm...
+        return algorithm.run(self)
 
     def __str__(self) -> str:
         from .utilities import serialize_tensor

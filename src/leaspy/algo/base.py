@@ -51,7 +51,7 @@ class AlgorithmName(str, Enum):
     PERSONALIZE_MODE_POSTERIOR = "mode_posterior"
     PERSONALIZE_CONSTANT = "constant_prediction"
     PERSONALIZE_LME = "lme_personalize"
-    SIMULATE = "simulation"
+    SIMULATE = "simulate"
 
 
 class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
