@@ -9,10 +9,10 @@ import torch
 
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.abstract_model import AbstractModel, InitializationMethod
-from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
+#from leaspy.models.abstract_model import AbstractModel, InitializationMethod
+#from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.base import InitializationMethod
-from leaspy.models.multivariate import LogisticMultivariateModel
+#from leaspy.models.multivariate import LogisticMultivariateModel
 from pandas import Categorical
 
 from leaspy.models.obs_models import (
@@ -22,7 +22,7 @@ from leaspy.models.obs_models import (
 )
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul, OrthoBasis, Prod, Sqr, Sum
-from leaspy.utils.typing import KwargsType, Optional
+from leaspy.utils.typing import KwargsType#, Optional
 
 # from sympy import Product
 # from sympy.codegen.cnodes import union
@@ -53,10 +53,11 @@ from leaspy.variables.specs import (
     VariableName,
 )
 from leaspy.variables.state import State
+from .mcmc_saem_compatible import McmcSaemCompatibleModel
 
 
 @doc_with_super()
-class AbstractMultivariateMixtureModel(AbstractModel):
+class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     """
     Contains the common attributes & methods of the mixture models.
     Developed according to AbstractMultivariateModel.
@@ -169,6 +170,7 @@ class AbstractMultivariateMixtureModel(AbstractModel):
         d = super().get_variables_specs()
 
         d.update(
+            rt=LinkedVariable(self.time_reparametrization),
             # PRIORS
             tau_mean=ModelParameter.for_ind_mean_mixture("tau", shape=(self.n_clusters,)),
             tau_std=ModelParameter.for_ind_std_mixture("tau", shape=(self.n_clusters,)),
@@ -220,23 +222,51 @@ class AbstractMultivariateMixtureModel(AbstractModel):
             )
 
         return d
-
-    def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
+    
+    @staticmethod
+    def time_reparametrization(
+        *,
+        t: TensorOrWeightedTensor[float],
+        alpha: torch.Tensor,
+        tau: torch.Tensor,
+    ) -> TensorOrWeightedTensor[float]:
         """
-        Returns a pands dataframe from the given dataset.
-        """
-        # exact same function as in the AbstractMultivariateModel
+        Tensorized time reparametrization formula.
 
-        df = dataset.to_pandas().dropna(how="all").sort_index()[dataset.headers]
-        if not df.index.is_unique:
-            raise LeaspyInputError("Index of DataFrame is not unique.")
-        if not df.index.to_frame().notnull().all(axis=None):
-            raise LeaspyInputError("Index of DataFrame contains unvalid values.")
-        if self.features != df.columns.tolist():
-            raise LeaspyInputError(
-                f"Features mismatch between model and dataset: {self.features} != {df.columns}"
-            )
-        return df
+        .. warning::
+            Shapes of tensors must be compatible between them.
+
+        Parameters
+        ----------
+        t : :class:`torch.Tensor`
+            Timepoints to reparametrize
+        alpha : :class:`torch.Tensor`
+            Acceleration factors of individual(s)
+        tau : :class:`torch.Tensor`
+            Time-shift(s).
+
+        Returns
+        -------
+        :class:`torch.Tensor` of same shape as `timepoints`
+        """
+        return alpha * (t - tau)
+
+   # def _get_dataframe_from_dataset(self, dataset: Dataset) -> pd.DataFrame:
+   #     """
+   #     Returns a pands dataframe from the given dataset.
+   #     """
+   #     # exact same function as in the AbstractMultivariateModel
+
+   #     df = dataset.to_pandas().dropna(how="all").sort_index()[dataset.headers]
+   #     if not df.index.is_unique:
+   #         raise LeaspyInputError("Index of DataFrame is not unique.")
+   #     if not df.index.to_frame().notnull().all(axis=None):
+   #         raise LeaspyInputError("Index of DataFrame contains unvalid values.")
+   #     if self.features != df.columns.tolist():
+   #         raise LeaspyInputError(
+   #             f"Features mismatch between model and dataset: {self.features} != {df.columns}"
+   #         )
+   #     return df
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
@@ -385,7 +415,7 @@ class AbstractMultivariateMixtureModel(AbstractModel):
 
 
 @doc_with_super()
-class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
+class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
     """
     Manifold mixture model for multiple variables of interest (logistic or linear formulation).
     """
@@ -530,12 +560,11 @@ class MultivariateMixtureModel(AbstractMultivariateMixtureModel):
         pass
 
 
-class LogisticMultivariateMixtureInitializationMixin:
+class LogisticMixtureInitializationMixin:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
-        method: InitializationMethod,
-    ) -> VariablesLazyValuesRO:
+        ) -> VariablesLazyValuesRO:
         """Compute initial values for model parameters."""
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
@@ -546,22 +575,23 @@ class LogisticMultivariateMixtureInitializationMixin:
         )
 
         # initialize a df with the probabilities of each individual belonging to each cluster
-        n_inds = dataset.to_pandas().reset_index("TIME").groupby("ID").min().shape[0]
+        df = dataset.to_pandas(apply_headers=True)
+        n_inds = df.reset_index("TIME").groupby("ID").min().shape[0]
         n_clusters = self.n_clusters
         #probs_ind = torch.ones(n_inds, n_clusters) / n_clusters
         #probs = probs_ind.sum(axis=0) / n_inds
         probs = torch.ones(n_clusters) / n_clusters
 
-        df = self._get_dataframe_from_dataset(dataset)
+        #df = self._get_dataframe_from_dataset(dataset)
         slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
         values_mu, values_sigma = compute_patient_values_distribution(df)
 
-        if method == InitializationMethod.DEFAULT:
+        if self.initialization_method == InitializationMethod.DEFAULT:
             slopes = slopes_mu
             values = values_mu
             betas = torch.zeros((self.dimension - 1, self.source_dimension))
 
-        if method == InitializationMethod.RANDOM:
+        if self.initialization_method == InitializationMethod.RANDOM:
             slopes = torch.normal(slopes_mu, slopes_sigma)
             values = torch.normal(values_mu, values_sigma)
             betas = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample(
@@ -598,10 +628,10 @@ class LogisticMultivariateMixtureInitializationMixin:
             ]  # get all the dataframe for the cluster
             time_mu, time_sigma = compute_patient_time_distribution(df_cluster)
 
-            if method == InitializationMethod.DEFAULT:
+            if self.initialization_method == InitializationMethod.DEFAULT:
                 t0_c = time_mu
 
-            if method == InitializationMethod.RANDOM:
+            if self.initialization_method == InitializationMethod.RANDOM:
                 t0_c = torch.normal(time_mu, time_sigma)
 
             start = step * (c + 1) + 1
@@ -644,7 +674,7 @@ class LogisticMultivariateMixtureInitializationMixin:
 
 
 class LogisticMultivariateMixtureModel(
-    LogisticMultivariateMixtureInitializationMixin, MultivariateMixtureModel
+    LogisticMixtureInitializationMixin, RiemanianManifoldMixtureModel
 ):
     """Mixture Manifold model for multiple variables of interest (logistic formulation)."""
 
