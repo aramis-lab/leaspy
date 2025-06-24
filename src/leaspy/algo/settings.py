@@ -306,7 +306,6 @@ class AlgorithmSettings:
         )
         if default_algo_settings_path.is_file():
             self._load_default_values(default_algo_settings_path)
-            # Dans le fichier où se trouve AlgorithmName, ajoutez :
         else:
             raise LeaspyAlgoInputError(
                 f"The algorithm name '{self.name.value}' you provided does not exist"

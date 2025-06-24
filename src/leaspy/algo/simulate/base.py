@@ -53,7 +53,7 @@ class BaseSimulationAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
             - `noise_std`: Noise standard deviation used in the simulation.
         """
 
-        # Simulate RE for RM
+        # Simulate Individual Parameters Repeated Measures
         individual_parameters_from_model_parameters = (
             self._sample_individual_parameters_from_model_parameters(model)
         )

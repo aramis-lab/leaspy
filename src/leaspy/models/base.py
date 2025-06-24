@@ -615,20 +615,21 @@ class BaseModel(ModelInterface):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
-        r"""
-        Generate longitudinal synthetic patients data from a given model, a given collection of individual parameters
-        and some given settings.
+        """
+        Run the simulation pipeline using a leaspy model.
 
-        This procedure learn the joined distribution of the individual parameters and baseline age of the subjects
-        present in ``individual_parameters`` and ``data`` respectively to sample new patients from this joined distribution.
-        The model is used to compute for each patient their scores from the individual parameters.
-        The number of visits per patients is set in ``settings['parameters']['mean_number_of_visits']`` and
-        ``settings['parameters']['std_number_of_visits']`` which are set by default to 6 and 3 respectively.
+        This method simulates longitudinal data using the given leaspy model.
+        It performs the following steps:
+        - Retrieves individual parameters (IP) from fixed effects of the model.
+        - Loads the specified Leaspy model.
+        - Generates visit ages (timepoints) for each individual (based on specifications
+        in visits_type)
+        - Simulates observations at those visit ages.
+        - Packages the result into a `Result` object, including simulated data,
+        individual parameters, and the model's noise standard deviation.
 
         Parameters
         ----------
-        individual_parameters : Optional[:class:`.IndividualParameters`]
-            Contains the individual parameters. If None, returns empty Result.
         data : Optional[Union[pd.DataFrame, :class:`.Data`, :class:`.Dataset`]]
             Data object. If None, returns empty Result.
         algorithm : Optional[Union[str, :class:`.AlgorithmName`]]
@@ -671,17 +672,15 @@ class BaseModel(ModelInterface):
         >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
         >>> visits_params = {'patient_number':200,
                  'visit_type': "random",
-                # 'visit_type': "dataframe",
-                # "df_visits": df_test
-                 'first_visit_mean' : 0., #OK1
-                 'first_visit_std' : 0.4, #OK2
-                 'time_follow_up_mean' : 11, #OK
-                 'time_follow_up_std' : 0.5, #OK
-                 'distance_visit_mean' : 2/12, #OK # 1.
-                 'distance_visit_std' : 0.75/12, #OK # 6
-                 'min_spacing_between_visits': 1
+                 'first_visit_mean' : 0.,
+                 'first_visit_std' : 0.4,
+                 'time_follow_up_mean' : 11,
+                 'time_follow_up_std' : 0.5,
+                 'distance_visit_mean' : 2/12,
+                 'distance_visit_std' : 0.75/12,
+                 'min_spacing_between_visits': 1/365
                 }
-        >>> simulated_data = simulated_data = model.simulate( algorithm="simulate", features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L'],visit_parameters= visits_params  )
+        >>> simulated_data = model.simulate( algorithm="simulate", features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L'],visit_parameters= visits_params  )
         """
         from leaspy.exceptions import LeaspyInputError
 
@@ -696,7 +695,6 @@ class BaseModel(ModelInterface):
             # if no algorithm is provided, we cannot simulate anything
             return Result()
 
-        # The `AbstractAlgo.run` signature is not respected for simulation algorithm...
         return algorithm.run(self)
 
     def __str__(self) -> str:
