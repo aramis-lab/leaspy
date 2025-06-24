@@ -661,7 +661,27 @@ class BaseModel(ModelInterface):
 
         Examples
         --------
-        [Keep all existing examples, they remain valid with the new signature]
+        Use a calibrated model & individual parameters to simulate new subjects similar to the ones you have:
+
+        >>> from leaspy.models import LogisticModel
+        >>> from leaspy.io.data import Data
+        >>> from leaspy.datasets import load_dataset, load_leaspy_instance, load_individual_parameters
+        >>> putamen_df = load_dataset("parkinson-putamen-train_and_test")
+        >>> data = Data.from_dataframe(putamen_df.xs('train', level='SPLIT'))
+        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
+        >>> visits_params = {'patient_number':200,
+                 'visit_type': "random",
+                # 'visit_type': "dataframe",
+                # "df_visits": df_test
+                 'first_visit_mean' : 0., #OK1
+                 'first_visit_std' : 0.4, #OK2
+                 'time_follow_up_mean' : 11, #OK
+                 'time_follow_up_std' : 0.5, #OK
+                 'distance_visit_mean' : 2/12, #OK # 1.
+                 'distance_visit_std' : 0.75/12, #OK # 6
+                 'min_spacing_between_visits': 1
+                }
+        >>> simulated_data = simulated_data = model.simulate( algorithm="simulate", features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L'],visit_parameters= visits_params  )
         """
         from leaspy.exceptions import LeaspyInputError
 
