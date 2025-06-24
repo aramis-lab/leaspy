@@ -1,7 +1,7 @@
 import os
 import re
 import shutil
-from typing import Any, Dict, List, Optional, Sized, Tuple
+from typing import Any, Optional, Sized
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -10,13 +10,13 @@ import pandas as pd
 import torch
 
 from leaspy.algo import AlgorithmSettings
-from leaspy.api import Leaspy
 from leaspy.io.data import Data
 from leaspy.io.outputs.individual_parameters import IndividualParameters
+from leaspy.models import BaseModel
 
 from .class_property import classproperty, classproperty_support
 
-KwargsType = Dict[str, Any]
+KwargsType = dict[str, Any]
 
 # update print config (especially to have nicer float display in case of errors)
 # sadly there are no such option for builtin floats and builtin containers of floats...
@@ -65,7 +65,7 @@ class LeaspyTestCase(TestCase):
     TMP_REMOVE_AT_END: bool = True
 
     @classproperty
-    def TMP_SUBFOLDER(cls) -> Tuple[str, ...]:
+    def TMP_SUBFOLDER(cls) -> tuple[str, ...]:
         """All tmp files for a given LeaspyTestCase will go to his dedicated tmp subfolder (default to class name)."""
         return (cls.__name__,)
 
@@ -115,8 +115,8 @@ class LeaspyTestCase(TestCase):
     @classmethod
     def get_hardcoded_model(cls, model_name: str):
         """Load the Leaspy test model with provided name (models hardcoded)."""
-        lsp = Leaspy.load(cls.hardcoded_model_path(model_name))
-        return lsp
+        model = BaseModel.load(cls.hardcoded_model_path(model_name))
+        return model
 
     # models generated from fit functional tests, bad for most tests as it may change due to slights changes in fit
     from_fit_models_folder = os.path.join(
@@ -138,8 +138,8 @@ class LeaspyTestCase(TestCase):
     @classmethod
     def get_from_fit_model(cls, model_name: str):
         """Load the Leaspy test model with provided name (models from test fit)."""
-        lsp = Leaspy.load(cls.from_fit_model_path(model_name))
-        return lsp
+        model = BaseModel.load(cls.from_fit_model_path(model_name))
+        return model
 
     # hardcoded individual parameters: good for unit tests & functional tests independent from personalize behavior
     hardcoded_ips_folder = os.path.join(
@@ -176,10 +176,6 @@ class LeaspyTestCase(TestCase):
         <!> `ip_file` should have its extension (since it can be json or csv)
         """
         return IndividualParameters.load(cls.from_personalize_ip_path(ip_file))
-
-    ### PUBLIC HELPER METHODS ###
-
-    #### LEASPY RELATED HELPERS ####
 
     @classmethod
     def get_suited_test_data_for_model(cls, model_name: str) -> Data:
@@ -224,8 +220,6 @@ class LeaspyTestCase(TestCase):
         else:
             return AlgorithmSettings(name, **params)
 
-    #### GENERAL HELPERS ####
-
     @staticmethod
     def allow_abstract_class_init(abc_klass):
         """
@@ -261,7 +255,7 @@ class LeaspyTestCase(TestCase):
 
     @staticmethod
     def try_cast_as_numpy_array(
-        obj: Any, *, no_cast_when_subclass_of: Tuple = (np.ndarray, torch.Tensor)
+        obj: Any, *, no_cast_when_subclass_of: tuple = (np.ndarray, torch.Tensor)
     ):
         """Try to cast object as numpy.ndarray if not a subclass of any class in `no_cast_when_subclass_of`."""
         if not isinstance(obj, no_cast_when_subclass_of):
@@ -389,9 +383,9 @@ class LeaspyTestCase(TestCase):
         *,
         left_desc: str = "left",
         right_desc: str = "right",
-        allclose_custom: Dict[str, KwargsType] = {},
+        allclose_custom: dict[str, KwargsType] = {},
         **allclose_defaults,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Check for equality of two dictionaries (in-depth) with numerical values checked with customizable tolerances.
         It returns a list of issues / differences as strings if any.
@@ -495,7 +489,7 @@ class LeaspyTestCase(TestCase):
         left_desc: str = "new",
         right_desc: str = "expected",
         msg: Any = None,
-        allclose_custom: Dict[str, KwargsType] = {},
+        allclose_custom: dict[str, KwargsType] = {},
         **allclose_defaults,
     ) -> None:
         """
@@ -535,7 +529,7 @@ class LeaspyTestCase(TestCase):
         self.assertDictEqual(a, b, msg=msg)
 
     def assertShapeEqual(
-        self, obj, expected_shape: Tuple[int, ...], *, msg: str = None
+        self, obj, expected_shape: tuple[int, ...], *, msg: str = None
     ):
         """Assert shape of numpy.ndarray or torch.Tensor is as expected, with a nice error message."""
         if not hasattr(obj, "shape"):

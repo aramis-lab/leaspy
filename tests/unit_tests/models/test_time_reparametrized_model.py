@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.models import RiemanianManifoldModel
+from leaspy.models import TimeReparametrizedModel
 
 # <!> NEVER import real tests classes at top-level (otherwise their tests will be duplicated...), only MIXINS!!
 from tests.unit_tests.models.test_univariate_model import ManifoldModelTestMixin
@@ -15,8 +15,8 @@ class MockDataset:
         self.dimension = len(self.headers)
 
 
-@ManifoldModelTestMixin.allow_abstract_class_init(RiemanianManifoldModel)
-class RiemanianManifoldModelTest(ManifoldModelTestMixin):
+@ManifoldModelTestMixin.allow_abstract_class_init(TimeReparametrizedModel)
+class TimeReparametrizedModelTest(ManifoldModelTestMixin):
     def test_constructor_abstract_multivariate(self):
         """
         Test attribute's initialization of leaspy abstract multivariate model
@@ -27,9 +27,8 @@ class RiemanianManifoldModelTest(ManifoldModelTestMixin):
             An instance of a subclass of leaspy AbstractModel.
         """
 
-        # Abstract Multivariate Model
-        model = RiemanianManifoldModel("dummy")
-        self.assertEqual(type(model), RiemanianManifoldModel)
+        model = TimeReparametrizedModel("dummy")
+        self.assertEqual(type(model), TimeReparametrizedModel)
         self.assertEqual(model.name, "dummy")
 
         # Test specific multivariate initialization
@@ -37,17 +36,17 @@ class RiemanianManifoldModelTest(ManifoldModelTestMixin):
         self.assertEqual(model.source_dimension, None)
 
     def test_bad_initialize_features_dimension_inconsistent(self):
-        with self.assertRaisesRegex(ValueError, "does not match"):
-            RiemanianManifoldModel("dummy", features=["x", "y"], dimension=3)
+        with self.assertRaises(LeaspyModelInputError):
+            TimeReparametrizedModel("dummy", features=["x", "y"], dimension=3)
 
     def test_bad_initialize_source_dim(self):
         with self.assertRaises(LeaspyModelInputError):
-            RiemanianManifoldModel("dummy", source_dimension=-1)
+            TimeReparametrizedModel("dummy", source_dimension=-1)
 
         with self.assertRaises(LeaspyModelInputError):
-            RiemanianManifoldModel("dummy", source_dimension=0.5)
+            TimeReparametrizedModel("dummy", source_dimension=0.5)
 
-        m = RiemanianManifoldModel("dummy", source_dimension=3)
+        m = TimeReparametrizedModel("dummy", source_dimension=3)
 
         mock_dataset = MockDataset(["ft_1", "ft_2", "ft_3"])
 
@@ -55,6 +54,6 @@ class RiemanianManifoldModelTest(ManifoldModelTestMixin):
             # source_dimension should be < dimension
             m.initialize(mock_dataset)
 
-        m = RiemanianManifoldModel("logistic")
+        m = TimeReparametrizedModel("logistic")
         m._validate_compatibility_of_dataset(mock_dataset)
         self.assertEqual(m.source_dimension, 1)  # int(sqrt(3))

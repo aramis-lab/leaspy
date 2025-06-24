@@ -1,17 +1,19 @@
-from __future__ import annotations
+from typing import Optional
 
 import numpy as np
 import statsmodels.api as sm
 import torch
 
-from .generic import GenericModel
+from leaspy.io.outputs import IndividualParameters
+from leaspy.utils.typing import DictParamsTorch
+
+from .stateless import StatelessModel
 
 __all__ = ["LMEModel"]
 
 
-class LMEModel(GenericModel):
-    r"""
-    LMEModel is a benchmark model that fits and personalize a linear mixed-effects model.
+class LMEModel(StatelessModel):
+    r"""LMEModel is a benchmark model that fits and personalize a linear mixed-effects model.
 
     The model specification is the following:
 
@@ -25,7 +27,6 @@ class LMEModel(GenericModel):
     .. warning::
         This model must be fitted on one feature only (univariate model).
 
-    TODO? should inherit from AbstractModel.
     TODO? add some covariates in this very simple model.
 
     Parameters
@@ -77,15 +78,24 @@ class LMEModel(GenericModel):
     :class:`~leaspy.algo.others.lme_personalize.LMEPersonalizeAlgorithm`
     """
 
-    _hyperparameters = {"with_random_slope_age": True}
-
-    def __init__(self, name: str, **kwargs):
+    def __init__(
+        self, name: str, with_random_slope_age: Optional[bool] = True, **kwargs
+    ):
         super().__init__(name, **kwargs)
+        self.with_random_slope_age = with_random_slope_age
         self.dimension = 1
 
-    def compute_individual_trajectory(self, timepoints, individual_parameters: dict):
-        """
-        Compute scores values at the given time-point(s) given a subject's individual parameters.
+    @property
+    def hyperparameters(self) -> DictParamsTorch:
+        """Dictionary of values for model hyperparameters."""
+        return {}
+
+    def compute_individual_trajectory(
+        self,
+        timepoints: list[float],
+        individual_parameters: IndividualParameters,
+    ) -> torch.Tensor:
+        """Compute scores values at the given time-point(s) given a subject's individual parameters.
 
         Parameters
         ----------
@@ -103,7 +113,6 @@ class LMEModel(GenericModel):
             The individual trajectories. The shape of the tensor is
             ``(n_individuals == 1, n_tpts == len(timepoints), n_features == 1)``.
         """
-
         # normalize ages (np.ndarray of float, 1D)
         ages_norm = (
             np.array(timepoints).reshape(-1) - self.parameters["ages_mean"]
@@ -124,7 +133,6 @@ class LMEModel(GenericModel):
                     individual_parameters["random_slope_age"].item(),
                 ]
             )
-
         y = X @ (self.parameters["fe_params"] + re_params)
 
         return torch.tensor(y, dtype=torch.float32).reshape((1, -1, 1))

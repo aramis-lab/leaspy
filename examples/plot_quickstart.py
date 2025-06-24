@@ -42,18 +42,13 @@ dataset = Dataset(data)
 from leaspy.models import LogisticModel
 
 model = LogisticModel(name="test-model", source_dimension=2)
-
-# %%
-# As well as the algorithm needed to estimate the group-average trajectory:
-
-from leaspy.algo import AlgorithmSettings, algorithm_factory
-
-fit_settings = AlgorithmSettings(
-    "mcmc_saem", seed=42, n_iter=100, progress_bar=False, save_periodicity=None
+model.fit(
+    dataset,
+    "mcmc_saem",
+    seed=42,
+    n_iter=100,
+    progress_bar=False,
 )
-algorithm = algorithm_factory(fit_settings)
-model.initialize(dataset, fit_settings.model_initialization_method)
-algorithm.run(model, dataset)
 
 # %%
 # If we were to plot the measured average progression of the variables, see started example notebook for details, it would look like the following:
@@ -66,9 +61,9 @@ algorithm.run(model, dataset)
 # We can also derive the individual trajectory of each subject.
 # To do this, we use a personalization algorithm called `scipy_minimize`:
 
-personalize_settings = AlgorithmSettings("scipy_minimize", seed=0, progress_bar=False)
-algorithm = algorithm_factory(personalize_settings)
-individual_parameters = algorithm.run(model, dataset)
+individual_parameters = model.personalize(
+    dataset, "scipy_minimize", seed=0, progress_bar=False
+)
 print(individual_parameters.to_dataframe())
 
 # %%

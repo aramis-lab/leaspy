@@ -19,7 +19,7 @@ class PlottingTest(MatplotlibTestCase):
     def setUpClass(cls) -> None:
         # for tmp handling & matplotlib proper backend
         super().setUpClass()
-        cls.leaspy = cls.get_hardcoded_model("logistic_diag_noise")
+        cls.model = cls.get_hardcoded_model("logistic_diag_noise")
         cls.ips = cls.get_from_personalize_individual_params(
             "data_tiny-individual_parameters.csv"
         )
@@ -32,7 +32,7 @@ class PlottingTest(MatplotlibTestCase):
 
     def setUp(self) -> None:
         with self.assertWarns(FutureWarning):
-            self.p = Plotting(self.leaspy.model, self.get_test_tmp_path())
+            self.p = Plotting(self.model, self.get_test_tmp_path())
 
     def test_average_trajectory(self):
         self.p.average_trajectory(save_as="average_trajectory.pdf")

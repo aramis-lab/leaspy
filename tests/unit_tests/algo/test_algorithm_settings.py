@@ -50,13 +50,6 @@ class AlgorithmSettingsTest(LeaspyTestCase):
             a = AlgorithmSettings("mode_posterior", seed="not-castable-to-int")
         self.assertIsNone(a.seed)
 
-        with self.assertWarnsRegex(UserWarning, "model_initialization_method"):
-            # `model_initialization_method` is only for fit algo!
-            a = AlgorithmSettings(
-                "constant_prediction", model_initialization_method="default"
-            )
-        # self.assertIsNone(a.model_initialization_method)  # set anyway
-
     def test_set_logs(self):
         a = AlgorithmSettings("constant_prediction")
         with self.assertRaisesRegex(ValueError, "save_periodicity"):
@@ -64,14 +57,6 @@ class AlgorithmSettingsTest(LeaspyTestCase):
 
         with self.assertRaisesRegex(ValueError, "overwrite_logs_folder"):
             a.set_logs(overwrite_logs_folder="not-a-bool")
-
-        with self.assertWarnsRegex(UserWarning, "ignored_log_param"):
-            a.set_logs(
-                ignored_log_param=True,
-                # to avoid creating directories
-                save_periodicity=None,
-                plot_periodicity=None,
-            )
 
     def test_jacobian_personalization(self):
         settings = AlgorithmSettings("scipy_minimize", use_jacobian=False)
@@ -237,7 +222,6 @@ class AlgorithmSettingsTest(LeaspyTestCase):
                 "name",
                 "seed",
                 "algorithm_initialization_method",
-                "model_initialization_method",
                 "parameters",
                 "device",
                 # 'logs'

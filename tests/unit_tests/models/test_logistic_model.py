@@ -1,6 +1,6 @@
 import torch
 
-from leaspy.models.multivariate import LogisticModel
+from leaspy.models import LogisticModel
 from tests import LeaspyTestCase
 
 
@@ -9,11 +9,11 @@ class TestMultivariateModel(LeaspyTestCase):
         """
         Test the method load_parameters.
         """
-        leaspy_object = self.get_hardcoded_model("logistic_scalar_noise")
+        model_ref = self.get_hardcoded_model("logistic_scalar_noise")
         model = LogisticModel("test_model", obs_models="gaussian-scalar")
         model.source_dimension = 2
         model.dimension = 4
-        model.load_parameters(leaspy_object.model.parameters)
+        model.load_parameters(model_ref.parameters)
 
         expected_parameters = {
             # "g": [0.5, 1.5, 1.0, 2.0],

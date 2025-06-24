@@ -4,9 +4,8 @@ from abc import abstractmethod
 
 from leaspy.io.data import Dataset
 from leaspy.io.outputs import IndividualParameters
-from leaspy.models import ModelType
 
-from ..base import AlgorithmType, IterativeAlgorithm, ReturnType
+from ..base import AlgorithmType, IterativeAlgorithm, ModelType, ReturnType
 from ..settings import OutputsSettings
 
 __all__ = ["PersonalizeAlgorithm"]

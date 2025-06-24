@@ -1,467 +1,420 @@
-import warnings
-from typing import Optional, Union
+from abc import abstractmethod
+from typing import Iterable, Optional
 
+import pandas as pd
 import torch
 
-from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import Exp, MatMul
-from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
-from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
+from leaspy.utils.functional import Exp, OrthoBasis, Sqr
+from leaspy.utils.weighted_tensor import (
+    TensorOrWeightedTensor,
+    WeightedTensor,
+    unsqueeze_right,
+)
 from leaspy.variables.distributions import Normal
 from leaspy.variables.specs import (
     Hyperparameter,
-    IndividualLatentVariable,
-    LatentVariableInitType,
     LinkedVariable,
     ModelParameter,
     NamedVariables,
     PopulationLatentVariable,
+    SuffStatsRW,
+    VariableName,
+    VariableNameToValueMapping,
 )
 from leaspy.variables.state import State
 
-from .mcmc_saem_compatible import McmcSaemCompatibleModel
-from .obs_models import observation_model_factory
+from .base import InitializationMethod
+from .obs_models import FullGaussianObservationModel
+from .time_reparametrized import TimeReparametrizedModel
 
-__all__ = ["RiemanianManifoldModel"]
+# TODO refact? implement a single function
+# compute_individual_tensorized(..., with_jacobian: bool) -> returning either
+# model values or model values + jacobians wrt individual parameters
+
+# TODO refact? subclass or other proper code technique to extract model's concrete
+#  formulation depending on if linear, logistic, mixed log-lin, ...
 
 
-class RiemanianManifoldModel(McmcSaemCompatibleModel):
-    """
-    Contains the common attributes & methods of the multivariate models.
+__all__ = [
+    "RiemanianManifoldModel",
+    "LinearInitializationMixin",
+    "LinearModel",
+    "LogisticInitializationMixin",
+    "LogisticModel",
+]
+
+
+class RiemanianManifoldModel(TimeReparametrizedModel):
+    """Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters
     ----------
     name : :obj:`str`
-        Name of the model.
+        The name of the model.
     **kwargs
-        Hyperparameters for the model (including `obs_models`).
+        Hyperparameters of the model (including `noise_model`)
 
     Raises
     ------
     :exc:`.LeaspyModelInputError`
-        If inconsistent hyperparameters.
+        * If hyperparameters are inconsistent
     """
-
-    _xi_std = 0.5
-    _tau_std = 5.0
-    _noise_std = 0.1
-    _sources_std = 1.0
 
     def __init__(
         self,
         name: str,
-        source_dimension: Optional[int] = None,
+        variables_to_track: Optional[Iterable[VariableName]] = None,
         **kwargs,
     ):
-        # TODO / WIP / TMP: dirty for now...
-        # Should we:
-        # - use factory of observation models instead? dataset -> ObservationModel
-        # - or refact a bit `ObservationModel` structure? (lazy init of its variables...)
-        # (cf. note in AbstractModel as well)
-        dimension = kwargs.get("dimension", None)
-        if "features" in kwargs:
-            dimension = len(kwargs["features"])
-        # source_dimension = kwargs.get("source_dimension", None)
-        # if dimension == 1 and source_dimension not in {0, None}:
-        #    raise LeaspyModelInputError(
-        #        "You should not provide `source_dimension` != 0 for univariate model."
-        #    )
-        # self.source_dimension: Optional[int] = source_dimension
-        observation_models = kwargs.get("obs_models", None)
-        if observation_models is None:
-            observation_models = (
-                "gaussian-scalar" if dimension is None else "gaussian-diagonal"
-            )
-        if isinstance(observation_models, (list, tuple)):
-            kwargs["obs_models"] = tuple(
-                [
-                    observation_model_factory(obs_model, **kwargs)
-                    for obs_model in observation_models
-                ]
-            )
-        elif isinstance(observation_models, dict):
-            # Not really satisfied... Used for api load
-            kwargs["obs_models"] = tuple(
-                [
-                    observation_model_factory(
-                        observation_models["y"], dimension=dimension
-                    )
-                ]
-            )
-        else:
-            kwargs["obs_models"] = (
-                observation_model_factory(observation_models, dimension=dimension),
-            )
         super().__init__(name, **kwargs)
-        self._source_dimension = self._validate_source_dimension(source_dimension)
+        default_variables_to_track = [
+            "g",
+            "v0",
+            "noise_std",
+            "tau_mean",
+            "tau_std",
+            "xi_mean",
+            "xi_std",
+            "nll_attach",
+            "nll_regul_log_g",
+            "nll_regul_log_v0",
+            "xi",
+            "tau",
+            "nll_regul_pop_sum",
+            "nll_regul_all_sum",
+            "nll_tot",
+        ]
+        if self.source_dimension:
+            default_variables_to_track += [
+                "sources",
+                "betas",
+                "mixing_matrix",
+                "space_shifts",
+            ]
+        self.track_variables(variables_to_track or default_variables_to_track)
 
-    @property
-    def xi_std(self) -> torch.Tensor:
-        return torch.tensor([self._xi_std])
-
-    @property
-    def tau_std(self) -> torch.Tensor:
-        return torch.tensor([self._tau_std])
-
-    @property
-    def noise_std(self) -> torch.Tensor:
-        return torch.tensor(self._noise_std)
-
-    @property
-    def sources_std(self) -> float:
-        return self._sources_std
-
-    @property
-    def source_dimension(self) -> Optional[int]:
-        return self._source_dimension
-
-    @source_dimension.setter
-    def source_dimension(self, source_dimension: Optional[int] = None):
-        self._source_dimension = self._validate_source_dimension(source_dimension)
-
-    def _validate_source_dimension(self, source_dimension: Optional[int] = None) -> int:
-        if self.dimension == 1:
-            return 0
-        if source_dimension is not None:
-            if not isinstance(source_dimension, int):
-                raise LeaspyModelInputError(
-                    f"`source_dimension` must be an integer, not {type(source_dimension)}"
-                )
-            if source_dimension < 0:
-                raise LeaspyModelInputError(
-                    f"`source_dimension` must be >= 0, you provided {source_dimension}"
-                )
-            if self.dimension is not None and source_dimension > self.dimension - 1:
-                raise LeaspyModelInputError(
-                    f"Source dimension should be within [0, {self.dimension - 1}], "
-                    f"you provided {source_dimension}"
-                )
-        return source_dimension
-
-    @property
-    def has_sources(self) -> bool:
-        return (
-            hasattr(self, "source_dimension")
-            and isinstance(self.source_dimension, int)
-            and self.source_dimension > 0
-        )
-
-    @staticmethod
-    def time_reparametrization(
-        *,
-        t: TensorOrWeightedTensor[float],
-        alpha: torch.Tensor,
-        tau: torch.Tensor,
-    ) -> TensorOrWeightedTensor[float]:
+    @classmethod
+    def _center_xi_realizations(cls, state: State) -> None:
         """
-        Tensorized time reparametrization formula.
+        Center the ``xi`` realizations in place.
 
-        .. warning::
-            Shapes of tensors must be compatible between them.
+        .. note::
+            This operation does not change the orthonormal basis
+            (since the resulting ``v0`` is collinear to the previous one)
+            Nor all model computations (only ``v0 * exp(xi_i)`` matters),
+            it is only intended for model identifiability / ``xi_i`` regularization
+            <!> all operations are performed in "log" space (``v0`` is log'ed)
 
         Parameters
         ----------
-        t : :class:`torch.Tensor`
-            Timepoints to reparametrize
-        alpha : :class:`torch.Tensor`
-            Acceleration factors of individual(s)
-        tau : :class:`torch.Tensor`
-            Time-shift(s).
+        realizations : :class:`.CollectionRealization`
+            The realizations to use for updating the :term:`MCMC` toolbox.
+        """
+        mean_xi = torch.mean(state["xi"])
+        state["xi"] = state["xi"] - mean_xi
+        state["log_v0"] = state["log_v0"] + mean_xi
+
+        # TODO: find a way to prevent re-computation of orthonormal basis since it should
+        #  not have changed (v0_collinear update)
+        # self.update_MCMC_toolbox({'v0_collinear'}, realizations)
+
+    @classmethod
+    def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
+        """
+        Compute the model's :term:`sufficient statistics`.
+
+        Parameters
+        ----------
+        state : :class:`.State`
+            The state to pick values from.
 
         Returns
         -------
-        :class:`torch.Tensor` of same shape as `timepoints`
+        SuffStatsRW :
+            The computed sufficient statistics.
         """
-        return alpha * (t - tau)
+        # <!> modify 'xi' and 'log_v0' realizations in-place
+        # TODO: what theoretical guarantees for this custom operation?
+        cls._center_xi_realizations(state)
+
+        return super().compute_sufficient_statistics(state)
 
     def get_variables_specs(self) -> NamedVariables:
         """
-        Return the specifications of the variables (latent variables,
-        derived variables, model 'parameters') that are part of the model.
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
 
         Returns
         -------
         NamedVariables :
             The specifications of the model's variables.
         """
-        specifications = super().get_variables_specs()
-        specifications.update(
-            rt=LinkedVariable(self.time_reparametrization),
+        d = super().get_variables_specs()
+        d.update(
             # PRIORS
-            tau_mean=ModelParameter.for_ind_mean("tau", shape=(1,)),
-            tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
-            xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
+            log_v0_mean=ModelParameter.for_pop_mean(
+                "log_v0",
+                shape=(self.dimension,),
+            ),
+            log_v0_std=Hyperparameter(0.01),
+            xi_mean=Hyperparameter(0.0),
             # LATENT VARS
-            xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
-            tau=IndividualLatentVariable(Normal("tau_mean", "tau_std")),
+            log_v0=PopulationLatentVariable(
+                Normal("log_v0_mean", "log_v0_std"),
+            ),
             # DERIVED VARS
-            alpha=LinkedVariable(Exp("xi")),
+            v0=LinkedVariable(
+                Exp("log_v0"),
+            ),
+            metric=LinkedVariable(
+                self.metric
+            ),  # for linear model: metric & metric_sqr are fixed = 1.
         )
         if self.source_dimension >= 1:
-            specifications.update(
-                # PRIORS
-                betas_mean=ModelParameter.for_pop_mean(
-                    "betas",
-                    shape=(self.dimension - 1, self.source_dimension),
-                ),
-                betas_std=Hyperparameter(0.01),
-                sources_mean=Hyperparameter(torch.zeros((self.source_dimension,))),
-                sources_std=Hyperparameter(1.0),
-                # LATENT VARS
-                betas=PopulationLatentVariable(
-                    Normal("betas_mean", "betas_std"),
-                    sampling_kws={"scale": 0.5},  # cf. GibbsSampler (for retro-compat)
-                ),
-                sources=IndividualLatentVariable(Normal("sources_mean", "sources_std")),
-                # DERIVED VARS
-                mixing_matrix=LinkedVariable(
-                    MatMul("orthonormal_basis", "betas").then(torch.t)
-                ),  # shape: (Ns, Nfts)
-                space_shifts=LinkedVariable(
-                    MatMul("sources", "mixing_matrix")
-                ),  # shape: (Ni, Nfts)
+            d.update(
+                model=LinkedVariable(self.model_with_sources),
+                metric_sqr=LinkedVariable(Sqr("metric")),
+                orthonormal_basis=LinkedVariable(OrthoBasis("v0", "metric_sqr")),
             )
+        else:
+            d["model"] = LinkedVariable(self.model_no_sources)
 
-        return specifications
+        # TODO: WIP
+        # variables_info.update(self.get_additional_ordinal_population_random_variable_information())
+        # self.update_ordinal_population_random_variable_information(variables_info)
 
-    def _validate_compatibility_of_dataset(
-        self, dataset: Optional[Dataset] = None
-    ) -> None:
-        super()._validate_compatibility_of_dataset(dataset)
-        if not dataset:
-            return
-        if self.source_dimension is None:
-            self.source_dimension = int(dataset.dimension**0.5)
-            warnings.warn(
-                "You did not provide `source_dimension` hyperparameter for multivariate model, "
-                f"setting it to ⌊√dimension⌋ = {self.source_dimension}."
-            )
-        elif not (
-            isinstance(self.source_dimension, int)
-            and 0 <= self.source_dimension < dataset.dimension
-        ):
-            raise LeaspyModelInputError(
-                f"Sources dimension should be an integer in [0, dimension - 1[ "
-                f"but you provided `source_dimension` = {self.source_dimension} "
-                f"whereas `dimension` = {dataset.dimension}."
-            )
+        return d
 
-    def _audit_individual_parameters(
-        self, individual_parameters: DictParams
-    ) -> KwargsType:
-        from .utilities import is_array_like
+    @staticmethod
+    @abstractmethod
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
+        pass
 
-        expected_parameters = set(["xi", "tau"] + int(self.has_sources) * ["sources"])
-        given_parameters = set(individual_parameters.keys())
-        symmetric_diff = expected_parameters.symmetric_difference(given_parameters)
-        if len(symmetric_diff) > 0:
-            raise LeaspyIndividualParamsInputError(
-                f"Individual parameters dict provided {given_parameters} "
-                f"is not compatible for {self.name} model. "
-                f"The expected individual parameters are {expected_parameters}."
-            )
-        ips_is_array_like = {
-            k: is_array_like(v) for k, v in individual_parameters.items()
-        }
-        ips_size = {
-            k: len(v) if ips_is_array_like[k] else 1
-            for k, v in individual_parameters.items()
-        }
-        if self.has_sources:
-            if not ips_is_array_like["sources"]:
-                raise LeaspyIndividualParamsInputError(
-                    f"Sources must be an array_like but {individual_parameters['sources']} was provided."
-                )
-            tau_xi_scalars = all(ips_size[k] == 1 for k in ["tau", "xi"])
-            if tau_xi_scalars and (ips_size["sources"] > 1):
-                # is 'sources' not a nested array? (allowed iff tau & xi are scalars)
-                if not is_array_like(individual_parameters["sources"][0]):
-                    # then update sources size (1D vector representing only 1 individual)
-                    ips_size["sources"] = 1
-            # TODO? check source dimension compatibility?
-        uniq_sizes = set(ips_size.values())
-        if len(uniq_sizes) != 1:
-            raise LeaspyIndividualParamsInputError(
-                f"Individual parameters sizes are not compatible together. Sizes are {ips_size}."
-            )
-        # number of individuals present
-        n_individual_parameters = uniq_sizes.pop()
-        # properly choose unsqueezing dimension when tensorizing array_like (useful for sources)
-        # [1,2] => [[1],[2]] (expected for 2 individuals / 1D sources)
-        # [1,2] => [[1,2]] (expected for 1 individual / 2D sources)
-        unsqueeze_dim = 0 if n_individual_parameters == 1 else -1
-        # tensorized (2D) version of ips
-        tensorized_individual_parameters = {
-            name: self._tensorize_2D(value, unsqueeze_dim=unsqueeze_dim)
-            for name, value in individual_parameters.items()
-        }
+    @classmethod
+    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
+        """Returns a model without source. A bit dirty?"""
+        return cls.model_with_sources(
+            rt=rt,
+            metric=metric,
+            v0=v0,
+            g=g,
+            space_shifts=torch.zeros((1, 1)),
+        )
 
-        return {
-            "nb_inds": n_individual_parameters,
-            "tensorized_ips": tensorized_individual_parameters,
-            "tensorized_ips_gen": (
-                {
-                    name: value[individual, :].unsqueeze(0)
-                    for name, value in tensorized_individual_parameters.items()
-                }
-                for individual in range(n_individual_parameters)
-            ),
-        }
-
-    def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
-        """
-        Updates all model hyperparameters from the provided hyperparameters.
-
-        Parameters
-        ----------
-        hyperparameters : KwargsType
-            The hyperparameters to be loaded.
-        """
-        if "features" in hyperparameters:
-            self.features = hyperparameters["features"]
-
-        if "dimension" in hyperparameters:
-            if self.features and hyperparameters["dimension"] != len(self.features):
-                raise LeaspyModelInputError(
-                    f"Dimension provided ({hyperparameters['dimension']}) does not match "
-                    f"features ({len(self.features)})"
-                )
-            self.dimension = hyperparameters["dimension"]
-
-        if "source_dimension" in hyperparameters:
-            if not (
-                isinstance(hyperparameters["source_dimension"], int)
-                and (hyperparameters["source_dimension"] >= 0)
-                and (
-                    self.dimension is None
-                    or hyperparameters["source_dimension"] <= self.dimension - 1
-                )
-            ):
-                raise LeaspyModelInputError(
-                    f"Source dimension should be an integer in [0, dimension - 1], "
-                    f"not {hyperparameters['source_dimension']}"
-                )
-            self.source_dimension = hyperparameters["source_dimension"]
-
-    def put_individual_parameters(self, state: State, dataset: Dataset):
-        if not state.are_variables_set(("xi", "tau")):
-            with state.auto_fork(None):
-                state.put_individual_latent_variables(
-                    LatentVariableInitType.PRIOR_SAMPLES,
-                    n_individuals=dataset.n_individuals,
-                )
-
-    def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
-        """
-        Export ``Leaspy`` object as dictionary ready for :term:`JSON` saving.
-
-        Parameters
-        ----------
-        with_mixing_matrix : :obj:`bool` (default ``True``)
-            Save the :term:`mixing matrix` in the exported file in its 'parameters' section.
-
-            .. warning::
-                It is not a real parameter and its value will be overwritten at model loading
-                (orthonormal basis is recomputed from other "true" parameters and mixing matrix
-                is then deduced from this orthonormal basis and the betas)!
-                It was integrated historically because it is used for convenience in
-                browser webtool and only there...
-
-        Returns
-        -------
-        KwargsType :
-            The object as a dictionary.
-        """
-        model_settings = super().to_dict()
-        model_settings["source_dimension"] = self.source_dimension
-
-        if with_mixing_matrix and self.source_dimension >= 1:
-            # transposed compared to previous version
-            model_settings["parameters"]["mixing_matrix"] = self.state[
-                "mixing_matrix"
-            ].tolist()
-
-        return model_settings
-
-    # TODO: unit tests? (functional tests covered by api.estimate)
-    def compute_individual_ages_from_biomarker_values(
-        self,
-        value: Union[float, list[float]],
-        individual_parameters: DictParams,
-        feature: Optional[FeatureType] = None,
+    @classmethod
+    @abstractmethod
+    def model_with_sources(
+        cls,
+        *,
+        rt: torch.Tensor,
+        space_shifts: torch.Tensor,
+        metric,
+        v0,
+        g,
     ) -> torch.Tensor:
-        """
-        For one individual, compute age(s) at which the given features values
-        are reached (given the subject's individual parameters).
+        pass
 
-        Consistency checks are done in the main :term:`API` layer.
 
-        Parameters
-        ----------
-        value : scalar or array_like[scalar] (:obj:`list`, :obj:`tuple`, :class:`numpy.ndarray`)
-            Contains the :term:`biomarker` value(s) of the subject.
+class LinearInitializationMixin:
+    """Compute initial values for model parameters."""
 
-        individual_parameters : :obj:`dict`
-            Contains the individual parameters.
-            Each individual parameter should be a scalar or array_like.
-
-        feature : :obj:`str` (or None)
-            Name of the considered :term:`biomarker`.
-
-            .. note::
-                Optional for :class:`.UnivariateModel`, compulsory
-                for :class:`.MultivariateModel`.
-
-        Returns
-        -------
-        :class:`torch.Tensor`
-            Contains the subject's ages computed at the given values(s).
-            Shape of tensor is ``(1, n_values)``.
-
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            If computation is tried on more than 1 individual.
-        """
-        # value, individual_parameters = self._get_tensorized_inputs(
-        #     value, individual_parameters, skip_ips_checks=False
-        # )
-        # return self.compute_individual_ages_from_biomarker_values_tensorized(
-        #     value, individual_parameters, feature
-        # )
-        raise NotImplementedError("This method is currently not implemented.")
-
-    def compute_individual_ages_from_biomarker_values_tensorized(
+    def _compute_initial_values_for_model_parameters(
         self,
-        value: torch.Tensor,
-        individual_parameters: DictParamsTorch,
-        feature: Optional[FeatureType],
-    ) -> torch.Tensor:
+        dataset: Dataset,
+    ) -> VariableNameToValueMapping:
+        from leaspy.models.utilities import (
+            compute_linear_regression_subjects,
+            get_log_velocities,
+            torch_round,
+        )
+
+        df = dataset.to_pandas(apply_headers=True)
+        times = df.index.get_level_values("TIME").values
+        t0 = times.mean()
+
+        d_regress_params = compute_linear_regression_subjects(df, max_inds=None)
+        df_all_regress_params = pd.concat(d_regress_params, names=["feature"])
+        df_all_regress_params["position"] = (
+            df_all_regress_params["intercept"] + t0 * df_all_regress_params["slope"]
+        )
+        df_grp = df_all_regress_params.groupby("feature", sort=False)
+        positions = torch.tensor(df_grp["position"].mean().values)
+        velocities = torch.tensor(df_grp["slope"].mean().values)
+
+        parameters = {
+            "g_mean": positions,
+            "log_v0_mean": get_log_velocities(velocities, self.features),
+            "tau_mean": torch.tensor(t0),
+            "tau_std": self.tau_std,
+            "xi_std": self.xi_std,
+        }
+        if self.source_dimension >= 1:
+            parameters["betas_mean"] = torch.zeros(
+                (self.dimension - 1, self.source_dimension)
+            )
+        rounded_parameters = {
+            str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
+        }
+        obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
+        if isinstance(obs_model, FullGaussianObservationModel):
+            rounded_parameters["noise_std"] = self.noise_std.expand(
+                obs_model.extra_vars["noise_std"].shape
+            )
+        return rounded_parameters
+
+
+class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
+    """Manifold model for multiple variables of interest (linear formulation)."""
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+    def get_variables_specs(self) -> NamedVariables:
         """
-        For one individual, compute age(s) at which the given features values are
-        reached (given the subject's individual parameters), with tensorized inputs.
-
-        Parameters
-        ----------
-        value : :class:`torch.Tensor` of shape ``(1, n_values)``
-            Contains the :term:`biomarker` value(s) of the subject.
-
-        individual_parameters : DictParamsTorch
-            Contains the individual parameters.
-            Each individual parameter should be a :class:`torch.Tensor`.
-
-        feature : :obj:`str` (or None)
-            Name of the considered :term:`biomarker`.
-
-            .. note::
-                Optional for :class:`.UnivariateModel`, compulsory
-                for :class:`.MultivariateModel`.
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
 
         Returns
         -------
-        :class:`torch.Tensor`
-            Contains the subject's ages computed at the given values(s).
-            Shape of tensor is ``(n_values, 1)``.
+        NamedVariables :
+            The specifications of the model's variables.
         """
-        raise NotImplementedError("This method is currently not implemented.")
+        d = super().get_variables_specs()
+        d.update(
+            g_mean=ModelParameter.for_pop_mean("g", shape=(self.dimension,)),
+            g_std=Hyperparameter(0.01),
+            g=PopulationLatentVariable(Normal("g_mean", "g_std")),
+        )
+
+        return d
+
+    @staticmethod
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
+        """Used to define the corresponding variable."""
+        return torch.ones_like(g)
+
+    @classmethod
+    def model_with_sources(
+        cls,
+        *,
+        rt: torch.Tensor,
+        space_shifts: torch.Tensor,
+        metric,
+        v0,
+        g,
+    ) -> torch.Tensor:
+        """Returns a model with sources."""
+        pop_s = (None, None, ...)
+        rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
+        return (g[pop_s] + v0[pop_s] * rt + space_shifts[:, None, ...]).weighted_value
+
+
+class LogisticInitializationMixin:
+    def _compute_initial_values_for_model_parameters(
+        self,
+        dataset: Dataset,
+    ) -> VariableNameToValueMapping:
+        """Compute initial values for model parameters."""
+        from leaspy.models.utilities import (
+            compute_patient_slopes_distribution,
+            compute_patient_time_distribution,
+            compute_patient_values_distribution,
+            get_log_velocities,
+            torch_round,
+        )
+
+        df = dataset.to_pandas(apply_headers=True)
+        slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
+        values_mu, values_sigma = compute_patient_values_distribution(df)
+        time_mu, time_sigma = compute_patient_time_distribution(df)
+
+        if self.initialization_method == InitializationMethod.DEFAULT:
+            slopes = slopes_mu
+            values = values_mu
+            t0 = time_mu
+            betas = torch.zeros((self.dimension - 1, self.source_dimension))
+
+        if self.initialization_method == InitializationMethod.RANDOM:
+            slopes = torch.normal(slopes_mu, slopes_sigma)
+            values = torch.normal(values_mu, values_sigma)
+            t0 = torch.normal(time_mu, time_sigma)
+            betas = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample(
+                sample_shape=(self.dimension - 1, self.source_dimension)
+            )
+
+        # Enforce values are between 0 and 1
+        values = values.clamp(min=1e-2, max=1 - 1e-2)
+
+        parameters = {
+            "log_g_mean": torch.log(1.0 / values - 1.0),
+            "log_v0_mean": get_log_velocities(slopes, self.features),
+            "tau_mean": t0,
+            "tau_std": self.tau_std,
+            "xi_std": self.xi_std,
+        }
+        if self.source_dimension >= 1:
+            parameters["betas_mean"] = betas
+        rounded_parameters = {
+            str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
+        }
+        obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
+        if isinstance(obs_model, FullGaussianObservationModel):
+            rounded_parameters["noise_std"] = self.noise_std.expand(
+                obs_model.extra_vars["noise_std"].shape
+            )
+        return rounded_parameters
+
+
+class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
+    """Manifold model for multiple variables of interest (logistic formulation)."""
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+    def get_variables_specs(self) -> NamedVariables:
+        """
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
+
+        Returns
+        -------
+        NamedVariables :
+            The specifications of the model's variables.
+        """
+        d = super().get_variables_specs()
+        d.update(
+            log_g_mean=ModelParameter.for_pop_mean("log_g", shape=(self.dimension,)),
+            log_g_std=Hyperparameter(0.01),
+            log_g=PopulationLatentVariable(Normal("log_g_mean", "log_g_std")),
+            g=LinkedVariable(Exp("log_g")),
+        )
+
+        return d
+
+    @staticmethod
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
+        """Used to define the corresponding variable."""
+        return (g + 1) ** 2 / g
+
+    @classmethod
+    def model_with_sources(
+        cls,
+        *,
+        rt: TensorOrWeightedTensor[float],
+        space_shifts: TensorOrWeightedTensor[float],
+        metric: TensorOrWeightedTensor[float],
+        v0: TensorOrWeightedTensor[float],
+        g: TensorOrWeightedTensor[float],
+    ) -> torch.Tensor:
+        """Returns a model with sources."""
+        # Shape: (Ni, Nt, Nfts)
+        pop_s = (None, None, ...)
+        rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
+        w_model_logit = metric[pop_s] * (
+            v0[pop_s] * rt + space_shifts[:, None, ...]
+        ) - torch.log(g[pop_s])
+        model_logit, weights = WeightedTensor.get_filled_value_and_weight(
+            w_model_logit, fill_value=0.0
+        )
+        return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value

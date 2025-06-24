@@ -1,36 +1,33 @@
-from typing import TypeVar
-
-from .base import BaseModel, InitializationMethod
+from .base import BaseModel, ModelInterface
 from .constant import ConstantModel
 from .factory import ModelName, model_factory
-from .generic import GenericModel
 from .joint import JointModel
 from .lme import LMEModel
 from .mcmc_saem_compatible import McmcSaemCompatibleModel
-from .multivariate import (
+from .riemanian_manifold import (
     LinearModel,
     LogisticModel,
-    MultivariateModel,
+    RiemanianManifoldModel,
 )
-from .riemanian_manifold import RiemanianManifoldModel
 from .settings import ModelSettings
 from .shared_speed_logistic import SharedSpeedLogisticModel
-
-ModelType = TypeVar("ModelType", bound="BaseModel")
+from .stateful import StatefulModel
+from .stateless import StatelessModel
+from .time_reparametrized import TimeReparametrizedModel
 
 __all__ = [
+    "ModelInterface",
     "ModelName",
-    "ModelType",
-    "InitializationMethod",
     "McmcSaemCompatibleModel",
-    "RiemanianManifoldModel",
+    "TimeReparametrizedModel",
     "BaseModel",
     "ConstantModel",
-    "GenericModel",
+    "StatelessModel",
+    "StatefulModel",
     "LMEModel",
     "model_factory",
     "ModelSettings",
-    "MultivariateModel",
+    "RiemanianManifoldModel",
     "LogisticModel",
     "LinearModel",
     "SharedSpeedLogisticModel",

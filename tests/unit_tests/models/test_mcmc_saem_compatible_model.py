@@ -2,9 +2,7 @@ import unittest
 
 import torch
 
-from leaspy.algo import AlgorithmSettings
-from leaspy.api import Leaspy
-from leaspy.models import McmcSaemCompatibleModel, ModelName, model_factory
+from leaspy.models import BaseModel, McmcSaemCompatibleModel, ModelName, model_factory
 from tests import LeaspyTestCase
 
 
@@ -61,43 +59,42 @@ class AbstractModelTest(LeaspyTestCase):
         """
         Check if the following models run with the following algorithms.
         """
+        from leaspy.models import model_factory
+
         for model_name in (ModelName.LINEAR, ModelName.LOGISTIC):
             with self.subTest(model_name=model_name):
-                leaspy = Leaspy(model_name, source_dimension=2)
-                settings = AlgorithmSettings("mcmc_saem", n_iter=200, seed=0)
+                model = model_factory(model_name, source_dimension=2)
                 data = self.get_suited_test_data_for_model(model_name)
-                leaspy.fit(data, settings)
-                # if model_name not in ['logistic', 'logistic_parallel']:
-                #    # problem with nans with 'gradient_descent_personalize' in multivariate logistic models
-                #    methods.append('gradient_descent_personalize')
+                model.fit(data, "mcmc_saem", n_iter=200, seed=0)
                 for method in ("mode_posterior", "mean_posterior", "scipy_minimize"):
                     extra_kws = dict()  # not for all algos
                     if "_posterior" in method:
                         extra_kws = dict(n_iter=100)
-                    settings = AlgorithmSettings(method, seed=0, **extra_kws)
-                    result = leaspy.personalize(data, settings)
+                    model.personalize(data, method, seed=0, **extra_kws)
 
     def test_all_model_run_crossentropy(self):
         """
         Check if the following models run with the following algorithms.
         """
+        from leaspy.models import model_factory
+
         for model_name in ModelName:
             if model_name.value in self.crossentropy_compatible:
                 with self.subTest(model_name=model_name):
-                    leaspy = Leaspy(
+                    model = model_factory(
                         model_name, obs_models="bernoulli", source_dimension=2
                     )
-                    settings = AlgorithmSettings("mcmc_saem", n_iter=200, seed=0)
                     data = self.get_suited_test_data_for_model(model_name + "_binary")
-                    leaspy.fit(data, settings)
+                    model.fit(data, "mcmc_saem", n_iter=200, seed=0)
                     for method in ("scipy_minimize",):
                         extra_kws = dict()  # not for all algos
                         if "_posterior" in method:
                             extra_kws = dict(n_iter=100)
-                        settings = AlgorithmSettings(method, seed=0, **extra_kws)
-                        leaspy.personalize(data, settings)
+                        model.personalize(data, method, seed=0, **extra_kws)
 
     def test_tensorize_2D(self):
+        from leaspy.models.utilities import tensorize_2D
+
         t5 = torch.tensor([[5]], dtype=torch.float32)
         for x, unsqueeze_dim, expected_out in zip(
             [[1, 2], [1, 2], 5, 5, [5], [5]],
@@ -112,12 +109,7 @@ class AbstractModelTest(LeaspyTestCase):
             ],
         ):
             self.assertTrue(
-                torch.equal(
-                    McmcSaemCompatibleModel._tensorize_2D(
-                        x, unsqueeze_dim=unsqueeze_dim
-                    ),
-                    expected_out,
-                )
+                torch.equal(tensorize_2D(x, unsqueeze_dim=unsqueeze_dim), expected_out)
             )
 
     def test_audit_individual_parameters(self):
@@ -229,17 +221,15 @@ class AbstractModelTest(LeaspyTestCase):
                             )
 
     def test_model_device_management_cpu_only(self):
-        model_name = "logistic"
-        leaspy = Leaspy(model_name, source_dimension=1)
-        settings = AlgorithmSettings("mcmc_saem", n_iter=100, seed=0)
-        data = self.get_suited_test_data_for_model(model_name)
-        leaspy.fit(data, settings)
+        model = model_factory("logistic", source_dimension=1)
+        data = self.get_suited_test_data_for_model("logistic")
+        model.fit(data, "mcmc_saem", n_iter=100, seed=0)
 
         # model should be moved to the cpu at the end of the calibration
-        self._check_model_device(leaspy.model, torch.device("cpu"))
+        self._check_model_device(model, torch.device("cpu"))
 
-        leaspy.model.move_to_device(torch.device("cpu"))
-        self._check_model_device(leaspy.model, torch.device("cpu"))
+        model.move_to_device(torch.device("cpu"))
+        self._check_model_device(model, torch.device("cpu"))
 
     @unittest.skipIf(
         not torch.cuda.is_available(),
@@ -247,22 +237,20 @@ class AbstractModelTest(LeaspyTestCase):
         "is not available without an available CUDA environment.",
     )
     def test_model_device_management_with_gpu(self):
-        model_name = "logistic"
-        leaspy = Leaspy(model_name, source_dimension=1)
-        settings = AlgorithmSettings("mcmc_saem", n_iter=100, seed=0, device="cuda")
-        data = self.get_suited_test_data_for_model(model_name)
-        leaspy.fit(data, settings)
+        model = model_factory("logistic", source_dimension=1)
+        data = self.get_suited_test_data_for_model("logistic")
+        model.fit(data, "mcmc_saem", n_iter=100, seed=0, device="cuda")
 
         # model should be moved to the cpu at the end of the calibration
-        self._check_model_device(leaspy.model, torch.device("cpu"))
+        self._check_model_device(model, torch.device("cpu"))
 
-        leaspy.model.move_to_device(torch.device("cuda"))
-        self._check_model_device(leaspy.model, torch.device("cuda"))
+        model.move_to_device(torch.device("cuda"))
+        self._check_model_device(model, torch.device("cuda"))
 
-        leaspy.model.move_to_device(torch.device("cpu"))
-        self._check_model_device(leaspy.model, torch.device("cpu"))
+        model.move_to_device(torch.device("cpu"))
+        self._check_model_device(model, torch.device("cpu"))
 
-    def _check_model_device(self, model, expected_device):
+    def _check_model_device(self, model: BaseModel, expected_device):
         if hasattr(model, "parameters"):
             for param, tensor in model.parameters.items():
                 self.assertEqual(tensor.device.type, expected_device.type)
@@ -278,34 +266,3 @@ class AbstractModelTest(LeaspyTestCase):
                 tensor = getattr(model.MCMC_toolbox["attributes"], attribute_name)
                 if isinstance(tensor, torch.Tensor):
                     self.assertEqual(tensor.device.type, expected_device.type)
-
-    # @LeaspyTestCase.allow_abstract_class_init(AbstractModel)
-    # def test_compute_individual_trajectory(self):
-    #     # TODO not sure it is the right place to test that
-    #     # multivariate
-    #     leaspy_object = self.get_hardcoded_model('logistic_scalar_noise')
-    #     abstract_model = AbstractModel('logistic')
-    #     abstract_model.load_parameters(leaspy_object.model.parameters)
-    #
-    #     ip = {
-    #       "xi": 0.1,
-    #       "tau": 70,
-    #       "sources": [
-    #         0.1,
-    #         -0.3
-    #       ]
-    #     }
-    #
-    #     timepoints = [78, 81]
-    #
-    #     expected_estimation = torch.tensor([
-    #         [[0.99641526, 0.34549406, 0.67467, 0.98959327],
-    #          [0.9994672, 0.5080943, 0.8276345, 0.99921334]]
-    #     ])
-    #
-    #     indiv_trajectory = abstract_model.compute_individual_trajectory(timepoints, ip)
-    #     self.assertEqual(indiv_trajectory.shape, (1, len(timepoints), 2))
-    #     self.assertTrue(torch.eq(indiv_trajectory, expected_estimation))
-    #
-    #     # TODO univariate ?
-    #

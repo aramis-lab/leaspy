@@ -5,7 +5,7 @@ from .base import BaseModel
 from .constant import ConstantModel
 from .joint import JointModel
 from .lme import LMEModel
-from .multivariate import LinearModel, LogisticModel
+from .riemanian_manifold import LinearModel, LogisticModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
