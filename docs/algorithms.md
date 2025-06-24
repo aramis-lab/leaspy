@@ -61,23 +61,20 @@ To run a simulation, the following variables are required:
         'distance_visit_mean': 2 / 12,
         'distance_visit_std': 0.75 / 12,
     }
->>> simulation_settings = AlgorithmSettings(
-        "simulation",
-        seed=0,
-        features=["MDS1_total", "MDS2_total", "MDS3_off_total"],
-        visit_parameters=visits_params
+>>> simulated_data = model.simulate( 
+         algorithm="simulate", 
+         features=["MDS1_total", "MDS2_total", "MDS3_off_total"],
+         visit_parameters= visits_params
     )
->>> simulated_data = leaspy_logistic.simulate(simulation_settings)
 Simulate with `simulation` took: 3s
 >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
-            MDS1_total   MDS2_total   MDS3_total
-ID  TIME
-0   48.092     0.113991     0.344018     0.228870
-    49.092     0.177138     0.291440     0.332267
-    50.092     0.256084     0.253093     0.314241
-    51.092     0.174059     0.344921     0.313776
-    52.092     0.245289     0.400363     0.310065
-
+              MDS1_total   MDS2_total   MDS3_total
+ID     TIME
+ 0   48.092     0.113991     0.344018     0.228870
+     49.092     0.177138     0.291440     0.332267
+     50.092     0.256084     0.253093     0.314241
+     51.092     0.174059     0.344921     0.313776
+     52.092     0.245289     0.400363     0.310065
 
 ```
 
