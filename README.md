@@ -1,4 +1,4 @@
-[![Tests](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml/badge/)](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml)
+[![Tests](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml/badge.svg)](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml)
 [![documentation status](https://readthedocs.org/projects/leaspy/badge/)](https://leaspy.readthedocs.io)
 [![PyPI - license](https://img.shields.io/pypi/l/leaspy)](https://opensource.org/licenses/BSD-3-Clause)
 [![PyPI - version](https://img.shields.io/pypi/v/leaspy)](https://pypi.org/project/leaspy/)
