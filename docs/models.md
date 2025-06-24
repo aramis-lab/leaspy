@@ -3,7 +3,7 @@
 ## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
-Individual variability for patient $i$ is modeled with the latent disease age $\psi_i(t)$ (./notations.md#latent-disease-age):  
+Individual variability for patient $i$ is modeled with the [latent disease age](./notations.md#latent-disease-age) $\psi_i(t)$ :  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
@@ -66,7 +66,7 @@ where:
 
 Joint models are a class of statistical models that simultaneously analyze [longitudinal data](./glossary.md#longitudinal-data) and [survival data](./glossary.md#survival-data) {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error {cite}`tsiatisJOINTMODELINGLONGITUDINAL`.
 
-In Leaspy, the joint model {cite}`ortholand:tel-04770912` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description](##Introduction to spatio-temporal models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
+In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](./models.md#Introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
 
 ### Data
