@@ -43,14 +43,14 @@ from leaspy.variables.specs import (#
     NamedVariables,
     PopulationLatentVariable,
     SuffStatsRW,
-    VariablesValuesRO,
+    VariablesLazyValuesRO,
 )
 
 from leaspy.variables.specs import (
     LVL_FT,
     Collect,
     VariableInterface,
-    VarName,
+    VariableName,
 )
 from leaspy.variables.state import State
 
@@ -535,7 +535,7 @@ class LogisticMultivariateMixtureInitializationMixin:
         self,
         dataset: Dataset,
         method: InitializationMethod,
-    ) -> VariablesValuesRO:
+    ) -> VariablesLazyValuesRO:
         """Compute initial values for model parameters."""
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
