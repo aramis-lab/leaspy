@@ -26,7 +26,7 @@ from leaspy.variables.specs import (
     NamedVariables,
     ModelParameter,
     VariableInterface,
-    VarName,
+    VariableName,
 )
 from leaspy.variables.state import State
 
