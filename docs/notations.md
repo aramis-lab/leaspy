@@ -52,19 +52,30 @@ where :
 
 ### Mixing matrix
 
-The *mixing matrix* is denoted as $ \mathbf{A} $ and is defined as **TODO**.
+The *mixing matrix* is denoted as $ \mathbf{A} $ and is defined as a matrix that describes the mixing of different sources in the model.
 
 ### Population reference time
 
-The *population reference time* is denoted as $ t_0 $ and is defined as **TODO**.
+The *population reference time* is denoted as $ t_0 $ and is defined as *the reference time for the entire population*.
 
 ### Sources
 
-The *sources*, for a given individual $ i $, are denoted as $ \mathbf{s}_i$ and defined as **TODO**.
+The *sources*, for a given individual $ i $, are denoted as $ \mathbf{s}_i$ and defined as the different origins of information or data that contribute to the individual's disease progression model.
 
 ### Space shift
 
-The *space shift*, for a given individual $ i $ and a given XX $ k $, is denoted as $ w_{i,k} $ and defined as **TODO**.
+The *space shift*, are more interpretable than sources $\mathbf{s}_i$, as they encapsulate total spatial variability effects.
+for a given individual $ i $ and a given longitudinal outcome $ k $, is denoted as $ w_{i,k} $ and defined as:
+
+$$
+w_{i,k} = \sum_{j=1}^{N_w} \eta_{k,j} s_{i,j}
+$$
+
+where:
+
+- $ N_w $ is the number of spatial sources.
+- $ \eta_{k,j} $ is the weight for spatial source $ j $ in outcome $ k $.
+- $ s_{i,j} $ is the contribution of spatial source $ j $ for individual $ i $.
 
 ### Survival shift
 
