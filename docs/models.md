@@ -32,7 +32,7 @@ $$
 
 with $\beta$ the matrix of coefficients.
 
-Each event ( $l$ ) has a [survival shift](./notations.md#survival-shift):
+Each event ( $l$ ) has a [space shift](./notations.md#space-shift):
 
 $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}
@@ -89,7 +89,7 @@ For the importation of dataframe:
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
-FEATURE_1  FEATURE_2  EVENT_TIME  EVENT_BOOL
+                                FEATURE_1  FEATURE_2  EVENT_TIME  EVENT_BOOL
   ID       TIME                                                           
   132-S2-0 81.661               0.44444    0.04000        84.0           1
           82.13600000000001    0.60000    0.00000        84.0           1
@@ -171,8 +171,8 @@ $$
 In practice in leaspy, to use the joint model, you need to precise "joint" in Leaspy object creation, then you can use it to fit, personnalize, estimate and simulate.
 
 ```python
-leaspy_joint = Leaspy("joint", nb_events=2, dimension=9, source_dimension=7)
-leaspy_joint.fit(data_joint, settings=algo_settings_joint_fit)
+leaspy_joint = Joint(nb_events=2, source_dimension=3)
+leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 ```
 For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the model. Note that for prediction purposes, the [CIF](./glossary.md#cif) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
