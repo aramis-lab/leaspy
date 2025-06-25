@@ -45,8 +45,22 @@ class IndividualParameters:
 
     @property
     def _parameters_size(self) -> dict[ParamType, int]:
-        # convert parameter shape to parameter size
-        # e.g. () -> 1, (1,) -> 1, (2,3) -> 6
+        """
+        Get the size (number of scalar elements) of each parameter from its shape.
+        It converts each parameter's shape into its flat size.
+
+        Returns
+        -------
+        dict of ParamType to int
+            A dictionary mapping each parameter type to its total number of scalar values.
+
+        Examples
+        --------
+            * shape ``()`` becomes size ``1```
+            * shape ``(1,)``becomes size ``1```
+            * shape ``(2,3)``becomes size ``6```
+
+        """
         shape_to_size = lambda shape: functools.reduce(operator.mul, shape, 1)
 
         return {p: shape_to_size(s) for p, s in self._parameters_shape.items()}
@@ -146,12 +160,22 @@ class IndividualParameters:
 
     def __getitem__(self, item: IDType) -> DictParams:
         """
-        Get the individual parameters for individual `item`.
+        Get the individual parameters for a given individual.
+
+        Parameters
+        ----------
+        item : IDType (string)
+
+        Returns
+        -------
+        DictParams
+            A dictionary containing the individual parameters for the specific individual.
 
         Raises
         ------
         :exc:`.LeaspyIndividualParamsInputError`
-            if bad item asked
+            * If the provided 'item' is not IDType (string)
+            * If no individual with this ID has been found
         """
         if not isinstance(item, IDType):
             raise LeaspyIndividualParamsInputError(
@@ -163,7 +187,19 @@ class IndividualParameters:
 
     def items(self):
         """
-        Get items of dict :attr:`_individual_parameters`.
+        Get the items of the individual parameters dictionary.
+
+        Returns
+        -------
+        ItemsView
+            A view object displaying a list of tuples (individual ID, parameters dict)
+        
+        Examples
+        --------
+        >>> ip = IndividualParameters()
+        >>> ip.add_individual_parameters('index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]})
+        >>> list(ip.items())
+        ['index-1', {"xi": 0.1, "tau": 70, "sources": [0.1, -0.3]}]
         """
         return self._individual_parameters.items()
 
@@ -365,7 +401,20 @@ class IndividualParameters:
 
         Returns
         -------
-        `IndividualParameters`
+        :class:`.IndividualParameters`
+            An instance of IndividualParameters initialized from the DataFrame.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> data = {
+        >>>     'tau': [70, 73],
+        >>>     'xi': [0.1, 0.2],
+        >>>     'sources_0': [0.1, -0.4],
+        >>>     'sources_1': [-0.3, -0.1]
+        >>> }
+        >>> df = pd.DataFrame(data, index=['id1', 'id2'])
+        >>> ip = IndividualParameters.from_dataframe(df)
         """
         # Check the names to keep
         df_names: list[ParamType] = list(df.columns.values)
@@ -409,6 +458,7 @@ class IndividualParameters:
         Returns
         -------
         :class:`.IndividualParameters`
+            An instance of IndividualParameters initialized from the pytorch dictionary.
 
         Raises
         ------
@@ -494,6 +544,15 @@ class IndividualParameters:
         :exc:`.LeaspyIndividualParamsInputError`
             * If extension not supported for saving
             * If individual parameters are empty
+        
+        Warnings
+        --------
+        Emits a warning if no file extension is provided and the default extension is used.
+
+        Examples
+        --------
+        >>> ip.save("params.csv", index=False)
+        >>> ip.save("params.json", indent=4)
         """
         if self._parameters_shape is None:
             raise LeaspyIndividualParamsInputError(
@@ -560,6 +619,20 @@ class IndividualParameters:
 
     @staticmethod
     def _check_and_get_extension(path: str):
+        """
+        Extract the file extension from a file path.
+
+        Parameters
+        ----------
+        path : str
+            The file path from which to extract the extension
+
+        Returns
+        -------
+        str or None
+            The file extension (e.g. ``'txt'`, ``'csv'``) if present,
+            otherwise ``None``.
+        """
         _, ext = os.path.splitext(path)
         if len(ext) == 0:
             return None
@@ -567,10 +640,30 @@ class IndividualParameters:
             return ext[1:]
 
     def _save_csv(self, path: str, **kwargs):
+        """
+        Save the individual parameters to a csv file
+
+        Parameters
+        ----------
+        path : str
+            path where the CSV file will be saved
+        **kwargs
+            Additional keyword arguments passed to ``pandas.DataFrale.to_csv``
+        """
         df = self.to_dataframe()
         df.to_csv(path, **kwargs)
 
     def _save_json(self, path: str, **kwargs):
+        """
+        Save individual parameters and related metadata to a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            File path where the JSON data will be saved
+        **kwargs 
+            Additional keyword arguments passed to ``json.dump``
+        """
         json_data = {
             "indices": self._indices,
             "individual_parameters": self._individual_parameters,
@@ -585,6 +678,19 @@ class IndividualParameters:
 
     @classmethod
     def _load_csv(cls, path: str):
+        """
+        Load individual parameters from a CSV file
+
+        Parameters
+        ----------
+        path : str
+            Path to the CSV file to load.
+        
+        Returns
+        -------
+        :class:`.IndividualParameters`
+            Individual parameters object load from the file
+        """
         df = pd.read_csv(path, dtype={"ID": IDType}).set_index("ID")
         ip = cls.from_dataframe(df)
 
@@ -592,6 +698,19 @@ class IndividualParameters:
 
     @classmethod
     def _load_json(cls, path: str):
+        """
+        Loads individual parameters and related metadata from a JSON file
+
+        Parameters
+        ----------
+        path : str
+            Path to the JSON file to load.
+        
+        Returns
+        -------
+        :class:`.IndividualParameters`
+            Individual parameters object load from the file
+        """
         with open(path, "r") as f:
             json_data = json.load(f)
 
