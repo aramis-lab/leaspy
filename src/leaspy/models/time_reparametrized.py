@@ -28,12 +28,14 @@ __all__ = ["TimeReparametrizedModel"]
 
 class TimeReparametrizedModel(McmcSaemCompatibleModel):
     """
-    Contains the common attributes & methods of the multivariate models.
+    Contains the common attributes & methods of the multivariate time-reparametrized models.
 
     Parameters
     ----------
     name : :obj:`str`
         Name of the model.
+    source_dimension : Optional[int], optional
+        Number of sources. Dimension of spatial components (default is None).
     **kwargs
         Hyperparameters for the model (including `obs_models`).
 
@@ -98,29 +100,55 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
     @property
     def xi_std(self) -> torch.Tensor:
+        """Return the standard deviation of xi as a tensor."""
         return torch.tensor([self._xi_std])
 
     @property
     def tau_std(self) -> torch.Tensor:
+        """Return the standard deviation of tau as a tensor."""
         return torch.tensor([self._tau_std])
 
     @property
     def noise_std(self) -> torch.Tensor:
+        """Return the standard deviation of the model as a tensor."""
         return torch.tensor(self._noise_std)
 
     @property
     def sources_std(self) -> float:
+        """Return the standard deviation of sources as a float."""
         return self._sources_std
 
     @property
     def source_dimension(self) -> Optional[int]:
+        """Return the number of the sources"""
         return self._source_dimension
 
     @source_dimension.setter
     def source_dimension(self, source_dimension: Optional[int] = None):
+        """Set the dimensionality of the source space for the model."""
         self._source_dimension = self._validate_source_dimension(source_dimension)
 
     def _validate_source_dimension(self, source_dimension: Optional[int] = None) -> int:
+        """
+        Validate and sanitize the `source_dimension` parameter.
+
+        Parameters
+        ----------
+        source_dimension : Optional[int], default=None
+            The candidate source dimension to validate.
+
+        Returns
+        -------
+        Optional[int]
+            The validated source dimension value. Returns 0 if the model dimension is 1,
+            otherwise returns the validated `source_dimension` or None if not provided.
+
+        Raises
+        ------
+        LeaspyModelInputError
+            If `source_dimension` is not an integer, is negative, or exceeds the allowable range
+            based on the model's dimension.
+        """
         if self.dimension == 1:
             return 0
         if source_dimension is not None:
@@ -141,6 +169,15 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
     @property
     def has_sources(self) -> bool:
+        """
+        Indicates whether the model includes sources.
+
+        Returns
+        -------
+        bool
+            True if `source_dimension` is a positive integer.
+            False otherwise.
+        """
         return (
             hasattr(self, "source_dimension")
             and isinstance(self.source_dimension, int)
@@ -162,16 +199,17 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Parameters
         ----------
-        t : :class:`torch.Tensor`
+        t : torch.Tensor
             Timepoints to reparametrize
-        alpha : :class:`torch.Tensor`
+        alpha : torch.Tensor
             Acceleration factors of individual(s)
-        tau : :class:`torch.Tensor`
-            Time-shift(s).
+        tau : torch.Tensor
+            Time-shift(s) of individual(s)
 
         Returns
         -------
-        :class:`torch.Tensor` of same shape as `timepoints`
+        torch.Tensor 
+            Reparametrized time of same shape as `timepoints`
         """
         return alpha * (t - tau)
 
@@ -183,7 +221,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
         Returns
         -------
         NamedVariables :
-            The specifications of the model's variables.
+            A dictionary-like object containing specifications for the variables
         """
         specifications = super().get_variables_specs()
         specifications.update(
@@ -228,6 +266,20 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
+        """
+        Validate the compatibility of the provided dataset with the model's configuration.
+
+        Parameters
+        ----------
+        dataset : Optional[Dataset], optional
+            The dataset to validate against, by default None.
+
+        Raises
+        ------
+        LeaspyModelInputError
+            If `source_dimension` is provided but not an integer in the valid range
+            [0, dataset.dimension - 1).
+        """
         super()._validate_compatibility_of_dataset(dataset)
         if not dataset:
             return
@@ -250,6 +302,31 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
     def _audit_individual_parameters(
         self, individual_parameters: DictParams
     ) -> KwargsType:
+        """
+        Validate and process individual parameter inputs for model compatibility.
+
+        Parameters
+        ----------
+        individual_parameters : DictParams
+            A dictionary mapping parameter names (strings) to their values,
+            which can be scalars or array-like structures.
+
+        Returns
+        -------
+        KwargsType
+            A dictionary with the following keys:
+            - "nb_inds": Number of individuals
+            - "tensorized_ips": Dictionary of parameters converted to 2D tensors.
+            - "tensorized_ips_gen": Generator yielding tensors for each individual,
+            each with an added batch dimension.
+
+        Raises
+        ------
+        LeaspyIndividualParamsInputError
+            If the provided dictionary keys do not match the expected parameter names,
+            or if the sizes of individual parameters are inconsistent,
+            or if `sources` parameter does not meet array-like requirements.
+        """
         from .utilities import is_array_like, tensorize_2D
 
         expected_parameters = set(["xi", "tau"] + int(self.has_sources) * ["sources"])
@@ -311,12 +388,23 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """
-        Updates all model hyperparameters from the provided hyperparameters.
+        Updates all model hyperparameters from the provided dictionary.
 
         Parameters
         ----------
         hyperparameters : KwargsType
-            The hyperparameters to be loaded.
+            Dictionary containing the hyperparameters to be loaded.
+            Expected keys include:
+            - "features": List or sequence of feature names
+            - "dimension": Integer specifying the number of features
+            - "source_dimension": Integer specifying the number of sources; must be in
+            [0, dimension - 1].
+
+        Raises
+        ------
+        LeaspyModelInputError
+            If `dimension` does not match the length of `features`, or if `source_dimension`
+            is not an integer within the valid range [0, dimension - 1].
         """
         if "features" in hyperparameters:
             self.features = hyperparameters["features"]
@@ -345,6 +433,16 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
             self.source_dimension = hyperparameters["source_dimension"]
 
     def put_individual_parameters(self, state: State, dataset: Dataset):
+        """
+        Initialize individual latent parameters in the given state if not already set.
+        
+        Parameters
+        ----------
+        state : State
+            The current state object that holds all the variables
+        dataset : Dataset
+            Dataset used to initialize latent variables accordingly.
+        """
         if not state.are_variables_set(("xi", "tau")):
             with state.auto_fork(None):
                 state.put_individual_latent_variables(
@@ -354,7 +452,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """
-        Export ``Leaspy`` object as dictionary ready for :term:`JSON` saving.
+        Export model object as dictionary ready for :term:`JSON` saving.
 
         Parameters
         ----------
