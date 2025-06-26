@@ -11,6 +11,23 @@ __all__ = ["BernoulliObservationModel"]
 
 
 class BernoulliObservationModel(ObservationModel):
+    """
+    Observation model for binary outcomes using a Bernoulli distribution.
+
+    This model expects binary-valued observations and uses a Bernoulli distribution
+    to define the likelihood. It assumes the response variable is named `"y"`.
+
+    Parameters
+    ----------
+    **extra_vars : VariableInterface
+        Optional extra variables required by the model. These are passed to the
+        parent `ObservationModel` class and can be used for conditioning the likelihood.
+
+    Attributes
+    ----------
+    string_for_json : str
+        A static string identifier used for serialization.
+    """
     string_for_json = "bernoulli"
 
     def __init__(
@@ -26,6 +43,26 @@ class BernoulliObservationModel(ObservationModel):
 
     @staticmethod
     def y_getter(dataset: Dataset) -> WeightedTensor:
+        """
+        Extracts and validates the observation values and associated mask from a dataset.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            A dataset object containing `values` and `mask` attributes.
+
+        Returns
+        -------
+        WeightedTensor
+            A tensor containing the observed binary values along with a boolean mask
+            indicating which entries are valid.
+
+        Raises
+        ------
+        ValueError
+            If either `dataset.values` or `dataset.mask` is `None`, indicating that
+            the dataset is improperly initialized.
+        """
         if dataset.values is None or dataset.mask is None:
             raise ValueError(
                 "Provided dataset is not valid. "

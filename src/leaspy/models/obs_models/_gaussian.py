@@ -34,8 +34,28 @@ __all__ = [
 
 
 class GaussianObservationModel(ObservationModel):
-    """Specialized `ObservationModel` for noisy observations with Gaussian residuals assumption."""
+    """
+    Specialized `ObservationModel` for noisy observations with Gaussian residuals assumption.
+    
+    Parameters
+    ----------
+    name : :obj:`str`
+        The name of observed variable (to name the data variable & attachment term related to this observation).
+    getter : function :class:`.Dataset` -> :class:`.WeightedTensor`
+        The way to retrieve the observed values from the :class:`.Dataset` (as a :class:`.WeightedTensor`):
+        e.g. all values, subset of values - only x, y, z features, one-hot encoded features, ...
+    loc : :obj:`str`
+        The name of the variable representing the mean (location) of the Gaussian
+    scale : :obj:`str`
+        The name of the variable representing the standard deviation (scale) of the Gaussian
+    **extra_vars : VariableInterface
+        Additional variables required by the model
 
+    Notes
+    -----
+    - The model uses `leaspy.variables.distributions.Normal` internally for computing
+      the log-likelihood and related operations.
+    """
     def __init__(
         self,
         name: VariableName,
@@ -76,13 +96,42 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
     @staticmethod
     def y_getter(dataset: Dataset) -> WeightedTensor:
+        """
+        Extracts the observation values and mask from a dataset.
+
+        Parameters
+        ----------
+        dataset : :class:`.Dataset`
+            A dataset object containing 'values' and 'mask' attributes
+
+        Returns
+        -------
+        WeightedTensor
+            A tensor containing the observed values and a boolean mask used as weights
+            for likekelihood and loss computations
+
+        Raises
+        ------
+        AssertionError
+            If either `dataset.values`or `dataset.mask`is `None`.
+        """
         assert dataset.values is not None
         assert dataset.mask is not None
         return WeightedTensor(dataset.values, weight=dataset.mask.to(torch.bool))
 
     @classmethod
     def noise_std_suff_stats(cls) -> dict[VariableName, LinkedVariable]:
-        """Dictionary of sufficient statistics needed for `noise_std` (when directly a model parameter)."""
+        """
+        Dictionary of sufficient statistics needed for `noise_std` (when directly a model parameter).
+        
+        Returns
+        -------
+        dict of VariableName to LinkedVariable
+            A dictionary containing the sufficient statistics:
+        
+            - `"y_x_model"`: Product of the observed values (`"y"`) and the model predictions (`"model"`).
+            - `"model_x_model"`: Squared values of the model predictions (`"model"`).
+        """
         return dict(
             y_x_model=LinkedVariable(Prod("y", "model")),
             model_x_model=LinkedVariable(Sqr("model")),
@@ -96,7 +145,26 @@ class FullGaussianObservationModel(GaussianObservationModel):
         y_x_model: WeightedTensor[float],
         model_x_model: WeightedTensor[float],
     ) -> torch.Tensor:
-        """Update rule for scalar `noise_std` (when directly a model parameter), from state & sufficient statistics."""
+        """
+        Update rule for scalar `noise_std` (when directly a model parameter), 
+        from state & sufficient statistics.
+        
+        Computes a standard deviation for all the features
+
+        Parameters
+        ----------
+        state: :class:`State`
+            A state dictionary containing precomputed values
+         y_x_model : WeightedTensor[float]
+            The weighted inner product between the observations and the model predictions.
+        model_x_model : WeightedTensor[float]
+            The weighted inner product of the model predictions with themselves.
+
+        Returns
+        -------
+        torch.Tensor
+            The updated scalar value of the noise standard deviation (`noise_std`).
+        """
         y_l2 = state["y_L2"]
         n_obs = state["n_obs"]
         # TODO? by linearity couldn't we only require `-2*y_x_model + model_x_model` as summary stat?
@@ -121,6 +189,22 @@ class FullGaussianObservationModel(GaussianObservationModel):
         """
         Update rule for feature-wise `noise_std` (when directly a model parameter),
         from state & sufficient statistics.
+
+        Computes one standard deviation per feature.
+
+        Parameters
+        ----------
+        state: :class:`State`
+            A state dictionary containing precomputed values
+        y_x_model : WeightedTensor[float]
+            The weighted inner product between the observations and the model predictions.
+        model_x_model : WeightedTensor[float]
+            The weighted inner product of the model predictions with themselves.
+
+        Returns
+        -------
+        torch.Tensor
+            The updated value of the noise standard deviation for each feature.
         """
         y_l2_per_ft = state["y_L2_per_ft"]
         n_obs_per_ft = state["n_obs_per_ft"]
@@ -140,6 +224,22 @@ class FullGaussianObservationModel(GaussianObservationModel):
         """
         Default specifications of `noise_std` variable when directly
         modelled as a parameter (no latent population variable).
+
+        Parameters
+        ----------
+        dimension : int
+            The dimension of the noise standard deviation parameter.
+            - If `dimension == 1`, a scalar noise standard deviation is assumed.
+            - If `dimension > 1`, feature-wise independent noise standard deviations
+            are assumed (diagonal noise).
+
+        Returns
+        -------
+        ModelParameter
+            The specification of the `noise_std` parameter, including:
+            - `shape`: tuple defining the parameter shape.
+            - `suff_stats`: collected sufficient statistics needed for updates.
+            - `update_rule`: method to update the parameter based on statistics.
         """
         update_rule = (
             cls.scalar_noise_std_update
@@ -157,6 +257,25 @@ class FullGaussianObservationModel(GaussianObservationModel):
         """
         Default instance of `FullGaussianObservationModel` with `noise_std`
         (scalar or diagonal depending on `dimension`) being a `ModelParameter`.
+
+        Parameters
+        ----------
+        dimension : int
+            The dimension of the noise standard deviation parameter.
+            - If `dimension == 1`, a scalar noise standard deviation is assumed.
+            - If `dimension > 1`, feature-wise independent noise standard deviations
+            are assumed (diagonal noise).
+
+        Returns
+        -------
+        FullGaussianObservationModel
+            A configured instance with `noise_std` as a `ModelParameter`, along with the
+            necessary sufficient statistics for inference.
+
+        Raises
+        ------
+        ValueError
+            If `dimension` is not a positive integer.
         """
         if not isinstance(dimension, int) or dimension < 1:
             raise ValueError(
@@ -191,7 +310,22 @@ class FullGaussianObservationModel(GaussianObservationModel):
         y: WeightedTensor[float],
         model: WeightedTensor[float],
     ) -> torch.Tensor:
-        """Compute root mean square error."""
+        """
+        Computes the Root Mean Square Error (RMSE) between predictions and observations.
+
+        Parameters
+        ----------
+        y : WeightedTensor[float]
+            The observed target values with associated weights.
+        model : WeightedTensor[float]
+            The model predictions with the same shape and weighting scheme as `y`.
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar tensor representing the RMSE between `model` and `y`.
+
+        """
         l2: WeightedTensor[float] = (model - y) ** 2
         l2_sum, n_obs = wsum_dim(l2)
         return (l2_sum / n_obs.float()) ** 0.5
@@ -203,7 +337,22 @@ class FullGaussianObservationModel(GaussianObservationModel):
         y: WeightedTensor[float],
         model: WeightedTensor[float],
     ) -> torch.Tensor:
-        """Compute root mean square error, per feature."""
+        """
+        Computes the Root Mean Square Error (RMSE) between predictions and observations
+        separately for each feature.
+
+        Parameters
+        ----------
+        y : WeightedTensor[float]
+            The observed target values with associated weights.
+        model : WeightedTensor[float]
+            The model predictions with the same shape and weighting scheme as `y`.
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar tensor representing the RMSE between `model` and `y`.
+        """
         l2: WeightedTensor[float] = (model - y) ** 2
         l2_sum_per_ft, n_obs_per_ft = wsum_dim(l2, but_dim=LVL_FT)
         return (l2_sum_per_ft / n_obs_per_ft.float()) ** 0.5
