@@ -357,6 +357,19 @@ class Result:
 
     @staticmethod
     def _check_folder_existence(path: str):
+        """
+        Checks whether the folder in the given file path exists.
+
+        Parameters
+        ----------
+        path : str
+            The file path to check. May include a directory component.
+
+        Raises
+        ------
+        NotADirectoryError
+            If the directory part of the path is non-empty and does not exist.
+        """
         # Test path's folder existence (if path contain a folder)
         dir_path = os.path.dirname(path)
         if not (dir_path == "" or os.path.isdir(dir_path)):
@@ -770,7 +783,25 @@ class Result:
 
     @staticmethod
     def _get_parameter_name_and_dim(param: str):
-        """Split parameter `abc_def_34` in parameter name `abc_def`and parameter dimension `34`, while leaving unchanged `tau`, `xi`, `abc_def`, ..."""
+        """
+        Splits a parameter string into its base name and optional dimension.
+
+        Parameters
+        ----------
+        param : str
+            The parameter name, possibly including a numeric suffix indicating a dimension.
+
+        Returns
+        -------
+        tuple
+            A tuple `(name, dim)`, where `name` is the base parameter name as a string,
+            and `dim` is the parsed integer dimension, or `None` if no valid dimension is found.
+
+        Examples
+        --------
+        >>> _get_parameter_name_and_dim(`abc_def_34`)
+        ('abc_def', 34)
+        """
         param_short, *param_dim = param.rsplit("_", maxsplit=1)  # from right
 
         if param_dim:
