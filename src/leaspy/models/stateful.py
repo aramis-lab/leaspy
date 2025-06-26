@@ -49,16 +49,49 @@ class StatefulModel(BaseModel):
         self.tracked_variables: set[str] = set()
 
     def track_variable(self, variable: VariableName) -> None:
+        """Track a variable by its name.
+
+        Parameters
+        -------
+        variable : :class:`~leaspy.variables.specs.VariableName`
+            The name of the variable to track. This variable will be monitored for changes or updates.
+        """
+
         self.tracked_variables.add(variable)
 
     def track_variables(self, variables: Iterable[VariableName]) -> None:
+        """
+        Track multiple variables by their names.
+
+        Parameters
+        ----------
+        variables : :obj:`Iterable` [:class:`~leaspy.variables.specs.VariableName`]
+            An iterable containing the names of the variables to track. Each variable will be monitored
+            for changes or updates.
+
+        """
         for variable in variables:
             self.track_variable(variable)
 
     def untrack_variable(self, variable: VariableName) -> None:
+        """Untrack a variable by its name.
+
+        Parameters
+        -------
+        variable : :class:`~leaspy.variables.specs.VariableName`
+            The name of the variable to untrack. This variable will no longer be monitored for changes or updates.
+        """
         self.tracked_variables.remove(variable)
 
     def untrack_variables(self, variables: Iterable[VariableName]) -> None:
+        """Untrack multiple variables by their names.
+
+        Parameters
+        ----------
+        variables : :obj:`Iterable` [:class:`~leaspy.variables.specs.VariableName`]
+            An iterable containing the names of the variables to untrack. Each variable will no longer be monitored
+            for changes or updates.
+        """
         for variable in variables:
             self.untrack_variable(variable)
 
@@ -121,7 +154,7 @@ class StatefulModel(BaseModel):
 
         Returns
         -------
-        : :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]
+        : :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, others...]
             A tuple containing the names of the model's hyperparameters.
         """
         return tuple(self.dag.sorted_variables_by_type[Hyperparameter])
@@ -132,7 +165,7 @@ class StatefulModel(BaseModel):
 
         Returns
         -------
-        : :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]
+        : :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, others...]
             A tuple containing the names of the model's parameters.
         """
         return tuple(self.dag.sorted_variables_by_type[ModelParameter])
