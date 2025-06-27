@@ -386,7 +386,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        torch.Tensor
+         :class:`torch.Tensor`
             The model output with contribution from sources.
         """
         pop_s = (None, None, ...)
