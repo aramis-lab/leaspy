@@ -508,7 +508,7 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        g : torch.Tensor
+        g : t :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
