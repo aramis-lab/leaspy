@@ -53,7 +53,7 @@ class BernoulliObservationModel(ObservationModel):
 
         Returns
         -------
-        WeightedTensor
+        :class:`.WeightedTensor`
             A tensor containing the observed binary values along with a boolean mask
             indicating which entries are valid.
 
