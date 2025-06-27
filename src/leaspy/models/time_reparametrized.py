@@ -34,7 +34,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
     ----------
     name : :obj:`str`
         Name of the model.
-    source_dimension : Optional[int], optional
+    source_dimension : Optional[:obj:`int`]
         Number of sources. Dimension of spatial components (default is None).
     **kwargs
         Hyperparameters for the model (including `obs_models`).
