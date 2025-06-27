@@ -259,7 +259,7 @@ class LinearInitializationMixin:
 
         Returns
         -------
-        VariableNameToValueMapping
+        :class:`~leaspy.variables.specs.VariableNameToValueMapping`
             A dictionary mapping parameter names (as strings) to their initialized
             torch.Tensor values.
 
