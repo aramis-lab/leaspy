@@ -373,7 +373,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        rt : torch.Tensor
+        rt :  :class:`torch.Tensor`
             The reparametrized time.
         space_shifts :  :class:`torch.Tensor`
             The values of the space-shifts
