@@ -81,7 +81,7 @@ class ObservationModel:
             - nll attachment variables :
                 - nll_attach_var_ind: a `LinkedVariable` representing the individual-level
                 negative log-likelihood contributions
-                - nll_attach_var: a `LinkedVariable` that sums the individual contributions
+                - nll_attach_var: a :class:`~leaspy.variables.specs.LinkedVariable` that sums the individual contributions
 
         Notes
         -----
