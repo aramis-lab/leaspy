@@ -130,7 +130,7 @@ class ObservationModel:
 
         Returns
         -------
-        str
+        :obj:`str`
             A string representation of the parameter, as stored in `self.string_for_json`.
         """
         return self.string_for_json
