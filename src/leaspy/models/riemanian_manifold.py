@@ -375,7 +375,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
         ----------
         rt : torch.Tensor
             The reparametrized time.
-        space_shifts : torch.Tensor
+        space_shifts :  :class:`torch.Tensor`
             The values of the space-shifts
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
