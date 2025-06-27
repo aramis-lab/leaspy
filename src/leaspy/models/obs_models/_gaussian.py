@@ -126,7 +126,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         
         Returns
         -------
-        dict of VariableName to LinkedVariable
+        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`]
             A dictionary containing the sufficient statistics:
         
             - `"y_x_model"`: Product of the observed values (`"y"`) and the model predictions (`"model"`).
