@@ -25,13 +25,13 @@ class IndividualParameters:
 
     Attributes
     ----------
-    _indices : list
+    _indices : :obj:`list`
         List of the patient indices
-    _individual_parameters : dict
+    _individual_parameters : :obj:`dict`
         Individual indices (key) with their corresponding individual parameters {parameter name: parameter value}
-    _parameters_shape : dict
+    _parameters_shape : :obj:`dict`
         Shape of each individual parameter
-    _default_saving_type : str
+    _default_saving_type : :obj:`str`
         Default extension for saving when none is provided
     """
 
@@ -73,9 +73,9 @@ class IndividualParameters:
 
         Parameters
         ----------
-        index : str
+        index : :class::class:`~leaspy..utils.typing.IDType`
             Index of the individual
-        individual_parameters : dict
+        individual_parameters : :class:`~leaspy..utils.typing.DictParams`
             Individual parameters of the individual {name: value:}
 
         Raises
@@ -164,11 +164,11 @@ class IndividualParameters:
 
         Parameters
         ----------
-        item : IDType (string)
+        item : :class::class:`~leaspy..utils.typing.IDType`
 
         Returns
         -------
-        DictParams
+        :class:`~leaspy..utils.typing.DictParams
             A dictionary containing the individual parameters for the specific individual.
 
         Raises
@@ -209,14 +209,14 @@ class IndividualParameters:
 
         Parameters
         ----------
-        indices : list[ID]
+        indices : :obj:`Iterable`[:class:`~leaspy..utils.typing.IDType`]
             List of strings that corresponds to the indices of the individuals to return
-        copy : bool, optional (default True)
+        copy : :obj:`bool`, optional (default True)
             Should we copy underlying parameters or not?
 
         Returns
         -------
-        `IndividualParameters`
+        :class:`.IndividualParameters`
             An instance of the IndividualParameters object with the selected list of individuals
 
         Raises
@@ -254,15 +254,15 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : str
+        parameter : :class:`~leaspy..utils.typing.ParamType`
             Name of the parameter
-        function : callable
+        function : :obj:`Callable`
             A function operating on iterables and supporting axis keyword,
             and outputing an iterable supporting the `tolist` method.
 
         Returns
         -------
-        list or float (depending on parameter shape)
+        :obj:`list`
             Resulting value of the parameter
 
         Raises
@@ -296,12 +296,12 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : str
+        parameter : :class:`~leaspy..utils.typing.ParamType`
             Name of the parameter
 
         Returns
         -------
-        list or float (depending on parameter shape)
+        :obj:`list`
             Mean value of the parameter
 
         Raises
@@ -323,12 +323,12 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : str
+        parameter : :class:`~leaspy..utils.typing.ParamType`
             Name of the parameter
 
         Returns
         -------
-        list or float (depending on parameter shape)
+        :obj:`list`
             Standard-deviation value of the parameter
 
         Raises
@@ -450,9 +450,9 @@ class IndividualParameters:
 
         Parameters
         ----------
-        indices : list[ID]
+        indices : :obj:`list`[:class:`~leaspy..utils.typing.IDType`]
             List of the patients indices
-        dict_pytorch : dict[parameter:str, `torch.Tensor`]
+        dict_pytorch : :class:`~leaspy..utils.typing.DictParmasTorch`
             Dictionary of the individual parameters
 
         Returns
@@ -499,9 +499,9 @@ class IndividualParameters:
 
         Returns
         -------
-        indices: list[ID]
+        indices: :obj:`list`[:class:`~leaspy..utils.typing.IDType`]
             List of patient indices
-        pytorch_dict: dict[parameter:str, `torch.Tensor`]
+        pytorch_dict: :class:`~leaspy..utils.typing.DictParamsTorch`
             Dictionary of the individual parameters {parameter name: pytorch tensor of values across individuals}
 
         Examples
@@ -530,7 +530,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             Path and file name of the individual parameters. The extension can be json or csv.
             If no extension, default extension (csv) is used
         **kwargs
@@ -585,7 +585,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             Path and file name of the individual parameters.
 
         Returns
@@ -624,12 +624,12 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The file path from which to extract the extension
 
         Returns
         -------
-        str or None
+        :obj:`str` or None
             The file extension (e.g. ``'txt'`, ``'csv'``) if present,
             otherwise ``None``.
         """
@@ -645,7 +645,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             path where the CSV file will be saved
         **kwargs
             Additional keyword arguments passed to ``pandas.DataFrale.to_csv``
@@ -659,7 +659,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             File path where the JSON data will be saved
         **kwargs 
             Additional keyword arguments passed to ``json.dump``
@@ -683,7 +683,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             Path to the CSV file to load.
         
         Returns
@@ -703,7 +703,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             Path to the JSON file to load.
         
         Returns
