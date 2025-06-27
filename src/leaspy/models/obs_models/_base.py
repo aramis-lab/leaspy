@@ -70,7 +70,7 @@ class ObservationModel:
 
         Parameters
         ----------
-        named_attached_vars : bool, optional
+        named_attached_vars ::obj:`bool`, optional
 
         Returns
         -------
