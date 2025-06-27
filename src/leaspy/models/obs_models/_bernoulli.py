@@ -48,7 +48,7 @@ class BernoulliObservationModel(ObservationModel):
 
         Parameters
         ----------
-        dataset : Dataset
+        dataset : :class:`.Dataset`
             A dataset object containing `values` and `mask` attributes.
 
         Returns
