@@ -145,7 +145,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Raises
         ------
-        LeaspyModelInputError
+         :exc:`.LeaspyModelInputError`
             If `source_dimension` is not an integer, is negative, or exceeds the allowable range
             based on the model's dimension.
         """
