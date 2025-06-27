@@ -203,7 +203,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
         Returns
         -------
-        torch.Tensor
+        :class:`torch.Tensor`
             The updated value of the noise standard deviation for each feature.
         """
         y_l2_per_ft = state["y_L2_per_ft"]
