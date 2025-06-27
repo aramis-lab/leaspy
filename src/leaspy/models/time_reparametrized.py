@@ -139,7 +139,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Returns
         -------
-        Optional[int]
+        Optional[:obj:`int`]
             The validated source dimension value. Returns 0 if the model dimension is 1,
             otherwise returns the validated `source_dimension` or None if not provided.
 
