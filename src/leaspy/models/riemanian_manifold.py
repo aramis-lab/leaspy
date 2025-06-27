@@ -212,7 +212,7 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
 
         Returns
         -------
-        torch.Tensor
+         :class:`torch.Tensor`
             The model output without contribution from source shifts.
 
         Notes
