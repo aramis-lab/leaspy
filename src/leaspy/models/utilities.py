@@ -327,7 +327,7 @@ def compute_ind_param_mean_from_suff_stats_mixture(
 
     ind_var = state[f"{ip_name}"]
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    nll_cluster = nll_regul_ind_sum_ind
+    nll_cluster = -nll_regul_ind_sum_ind
 
     probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
@@ -359,7 +359,7 @@ def compute_ind_param_std_from_suff_stats_mixture(
     std = ip_var.sqrt()
 
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    nll_cluster = nll_regul_ind_sum_ind
+    nll_cluster = -nll_regul_ind_sum_ind
 
     probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
@@ -375,7 +375,7 @@ def compute_ind_param_std_from_suff_stats_mixture_burn_in(
 
     ind_var = state[f"{ip_name}"].std(dim=0)
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    nll_cluster = nll_regul_ind_sum_ind
+    nll_cluster = -nll_regul_ind_sum_ind
 
     probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
@@ -396,7 +396,7 @@ def compute_probs_from_state(
 
     #probs = probs.view(1, n_clusters)
     #nll_attach_ind = nll_attach_ind.view(n_inds, 1)
-    nll_cluster = nll_regul_ind_sum_ind
+    nll_cluster = -nll_regul_ind_sum_ind
 
     #nominator = nll_cluster
     #denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
