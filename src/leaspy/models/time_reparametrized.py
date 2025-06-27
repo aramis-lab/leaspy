@@ -208,7 +208,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Returns
         -------
-        torch.Tensor 
+        :class:`torch.Tensor`
             Reparametrized time of same shape as `timepoints`
         """
         return alpha * (t - tau)
