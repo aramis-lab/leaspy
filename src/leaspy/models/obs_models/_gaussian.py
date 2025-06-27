@@ -227,7 +227,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
         Parameters
         ----------
-        dimension : int
+        dimension : :obj:`int`
             The dimension of the noise standard deviation parameter.
             - If `dimension == 1`, a scalar noise standard deviation is assumed.
             - If `dimension > 1`, feature-wise independent noise standard deviations
