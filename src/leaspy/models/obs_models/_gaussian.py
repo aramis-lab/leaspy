@@ -345,7 +345,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         ----------
         y : WeightedTensor[float]
             The observed target values with associated weights.
-        model : WeightedTensor[float]
+        model : :class:`.WeightedTensor`[:obj:`float`]
             The model predictions with the same shape and weighting scheme as `y`.
 
         Returns
