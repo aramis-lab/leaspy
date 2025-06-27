@@ -348,7 +348,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
     
         Parameters
         ----------
-        g : torch.Tensor
+        g :  :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
