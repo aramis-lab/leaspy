@@ -134,7 +134,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Parameters
         ----------
-        source_dimension : Optional[int], default=None
+        source_dimension : Optional[:obj:`int`], default=None
             The candidate source dimension to validate.
 
         Returns
