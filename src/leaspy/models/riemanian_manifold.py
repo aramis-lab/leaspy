@@ -197,7 +197,7 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
     @classmethod
     def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
         """
-        Return the model output when no sources(spatial components) are present.
+        Return the model output when sources(spatial components) are not present.
 
         Parameters
         ----------
