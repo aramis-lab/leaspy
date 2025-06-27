@@ -201,7 +201,7 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
 
         Parameters
         ----------
-        rt : torch.Tensor
+        rt :  :class:`torch.Tensor`
             The reparametrized time.
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
