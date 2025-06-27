@@ -353,7 +353,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        torch.Tensor
+         :class:`torch.Tensor`
             A tensor of ones with the same shape as `g`.
         """
         return torch.ones_like(g)
