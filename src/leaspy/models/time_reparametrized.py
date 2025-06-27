@@ -201,7 +201,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
         ----------
         t : :class:`torch.Tensor`
             Timepoints to reparametrize
-        alpha : torch.Tensor
+        alpha : :class:`torch.Tensor`
             Acceleration factors of individual(s)
         tau : torch.Tensor
             Time-shift(s) of individual(s)
