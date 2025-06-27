@@ -198,7 +198,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
             A state dictionary containing precomputed values
         y_x_model : WeightedTensor[float]
             The weighted inner product between the observations and the model predictions.
-        model_x_model : WeightedTensor[float]
+        model_x_model : :class:`.WeightedTensor`[:obj:`float`]
             The weighted inner product of the model predictions with themselves.
 
         Returns
