@@ -29,23 +29,23 @@ class Result:
     ----------
     data : :class:`.Data`
         Object containing the idx, time-points and observations of the patients
-    individual_parameters : dict [str, :class:`torch.Tensor`]
+    individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
         Contains log-acceleration 'xi', time-shifts 'tau' & 'sources'
-    noise_std : float or :class:`torch.FloatTensor`, optional (default None)
+    noise_std : :obj:`float` or :class:`torch.FloatTensor`, optional (default None)
         Desired noise standard deviation level
 
     Attributes
     ----------
     data : :class:`.Data`
         Object containing the idx, time-points and observations of the patients.
-    individual_parameters : dict [str, :class:`torch.Tensor`]
+    individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
         Contains log-acceleration 'xi', time-shifts 'tau' & 'sources' (dictionary of `torch.Tensor`).
-    ID_to_idx : dict
+    ID_to_idx : :obj:`dict`
         The keys are the individual ID & the items are their respective ordered position in the data file given
         by the user. This order remains the same during the computation.
         Example - in Result.individual_parameters['xi'], the first element corresponds to the
         first patient in ID_to_idx.
-    noise_std : float or :class:`torch.FloatTensor`
+    noise_std : :obj:`float` or :class:`torch.FloatTensor`
         Desired noise standard deviation level.
     """
 
@@ -69,12 +69,12 @@ class Result:
 
         Parameters
         ----------
-        ID : str or list[str], optional (default None)
+        ID : :obj:`str` or :obj:`list`[:obj:`str`], optional (default None)
             Contains the identifiers of the wanted subject.
 
         Returns
         -------
-        dict [str, :class:`torch.Tensor`]
+        :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
             Contains the individual parameters.
         """
         if ID is not None:
@@ -110,7 +110,7 @@ class Result:
 
         Parameters
         ----------
-        cofactors : str or list[str], optional (default None)
+        cofactors : :obj:`str` or :obj:`list`[:obj:`str`], optional (default None)
             Contains the cofactor(s) to join to the logs dataframe.
 
         Returns
@@ -206,11 +206,11 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The logs' path.
-        idx : list [str], optional (default None)
+        idx : :obj:`list` [:obj:`str`], optional (default None)
             Contain the IDs of the selected subjects. If ``None``, all the subjects are selected.
-        cofactors : str or list [str], optional (default None)
+        cofactors : :obj:`str` or :obj:`list` [:obj:`str`], optional (default None)
             Contains the cofactor(s) to join to the logs dataframe.
         **args
             Parameters to pass to :meth:`pandas.DataFrame.to_csv`.
@@ -261,9 +261,9 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The logs' path.
-        idx : list [str], optional (default None)
+        idx : :obj:`list` [:obj:`str`], optional (default None)
             Contain the IDs of the selected subjects. If ``None``, all the subjects are selected.
         human_readable : Any, optional (default None) -->  TODO change to bool
 
@@ -322,16 +322,16 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The logs' path.
-        idx : list [str], optional (default None)
+        idx : :obj:`list` [:obj:`str`], optional (default None)
             Contain the IDs of the selected subjects. If ``None``, all the subjects are selected.
         **args
             Arguments to pass to torch.save.
 
         Raises
         ------
-        :class:`NotADirectoryError`
+        :exc:`NotADirectoryError`
             if parent directory of path does not exist.
 
         Examples
@@ -362,12 +362,12 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The file path to check. May include a directory component.
 
         Raises
         ------
-        NotADirectoryError
+        :exc:`NotADirectoryError`
             If the directory part of the path is non-empty and does not exist.
         """
         # Test path's folder existence (if path contain a folder)
@@ -385,12 +385,14 @@ class Result:
 
         Parameters
         ----------
-        idx : list, optional (default None)
+        idx : :obj:`list`, optional (default None)
             Contains the ID of the selected subjects.
 
         Returns
         -------
-        dict [str, list]
+        :obj:`dict`
+            A dictionary where keys are parameter names and values are lists of parameter values,
+            either as flat lists (for univariate parameters) or lists of lists (for multivariate ones).
         """
         dump: dict = copy.deepcopy(self.individual_parameters)
         # Ex: individual_parameters = {'param1': torch.tensor([[1], [2], [3]]), ...}
@@ -424,17 +426,17 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The file's path. The csv file musts contain two columns named 'tau' and 'xi'. If the individual parameters
             come from a multivariate model, it must also contain the columns 'sources_i' for i in [0, ..., n_sources].
-        verbose : bool (default True)
+        verbose : :obj:`bool` (default True)
             Whether to have verbose output or not
         **kwargs
             Parameters to pass to :func:`pandas.read_csv`.
 
         Returns
         -------
-        dict [str, :class:`torch.Tensor`]
+        :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
             A dictionary of torch.tensor which contains the individual parameters.
 
         Examples
@@ -463,7 +465,7 @@ class Result:
 
         Returns
         -------
-        dict [str, :class:`torch.Tensor`]
+        :obj:`dict`[:obj:`str`, :class:`torch.Tensor`]
             A dictionary of torch.tensor which contains the individual parameters.
         """
         df.columns = [header.lower() for header in df.columns]
@@ -487,16 +489,16 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The file's path.
-        verbose : bool (default True)
+        verbose : :obj:`bool` (default True)
             Whether to have verbose output or not
         **kwargs
             Parameters to pass to :func:`json.load`.
 
         Returns
         -------
-        dict [str, :class:`torch.Tensor`]
+        :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
             A dictionary of `torch.Tensor` which contains the individual parameters.
 
         Examples
@@ -543,16 +545,16 @@ class Result:
 
         Parameters
         ----------
-        path : str
+        path : :obj:`str`
             The file's path.
-        verbose : bool (default True)
+        verbose : :obj:`bool` (default True)
             Whether to have verbose output or not
         **kwargs
             Parameters to pass to :func:`torch.load`.
 
         Returns
         -------
-        dict [str, :class:`torch.Tensor`]
+        :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
             A dictionary of `torch.Tensor` which contains the individual parameters.
 
         Examples
@@ -587,12 +589,12 @@ class Result:
 
         Returns
         -------
-        dict [str, :class:`torch.Tensor`]
+        :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
             A dictionary of torch.tensor which contains the individual parameters.
 
         Raises
         ------
-        :class:`FileNotFoundError`
+        :exc:`FileNotFoundError`
             if path is invalid
         """
         if isinstance(path_or_df, pd.DataFrame):
@@ -625,11 +627,11 @@ class Result:
 
         Parameters
         ----------
-        data : str or :class:`pandas.DataFrame` or :class:`.Data`
+        data : :obj:`str` or :class:`pandas.DataFrame` or :class:`.Data`
             The file's path or a DataFrame containing the features' scores.
-        individual_parameters : str or :class:`pandas.DataFrame`
+        individual_parameters : :obj:`str` or :class:`pandas.DataFrame`
             The file's path or a DataFrame containing the individual parameters.
-        cofactors : str or :class:`pandas.DataFrame`, optional (default None)
+        cofactors : :obj:`str` or :class:`pandas.DataFrame`, optional (default None)
             The file's path or a DataFrame containing the individual cofactors.
             The ID must be in index! Thus, the shape is (n_subjects, n_cofactors).
         **kwargs
@@ -637,7 +639,7 @@ class Result:
 
         Returns
         -------
-        `Result`
+        :class:`Result`
             A Result class object which contains the individual parameters and the individual data.
 
         Examples
