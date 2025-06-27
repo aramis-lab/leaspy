@@ -513,7 +513,7 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        torch.Tensor
+         :class:`torch.Tensor`
             The computed metric tensor, same shape as g(number of features)
         """
         return (g + 1) ** 2 / g
