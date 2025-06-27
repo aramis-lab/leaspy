@@ -721,7 +721,7 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         previous_attachment, previous_regularity = compute_attachment_regularity()
         if state["nll_regul_ind_sum_ind"].ndim > 1 :
             nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-            nll_cluster = nll_regul_ind_sum_ind
+            nll_cluster = -nll_regul_ind_sum_ind
             probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
         if previous_regularity.ndim == 2 : #it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
@@ -740,7 +740,7 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
 
         if state["nll_regul_ind_sum_ind"].ndim > 1:
             nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-            nll_cluster = nll_regul_ind_sum_ind
+            nll_cluster = -nll_regul_ind_sum_ind
             probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
 
         if new_regularity.ndim == 2:  # it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
