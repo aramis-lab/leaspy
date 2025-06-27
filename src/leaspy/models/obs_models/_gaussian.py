@@ -47,7 +47,7 @@ class GaussianObservationModel(ObservationModel):
     loc : :obj:`str`
         The name of the variable representing the mean (location) of the Gaussian
     scale : :obj:`str`
-        The name of the variable representing the standard deviation (scale) of the Gaussian
+        The name of the variable representing the standard deviation (scale) of the Gaussian (`noise_std`)
     **extra_vars : VariableInterface
         Additional variables required by the model
 
@@ -149,7 +149,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         Update rule for scalar `noise_std` (when directly a model parameter), 
         from state & sufficient statistics.
         
-        Computes a standard deviation for all the features
+        Computes a common `noise_std` for all the features
 
         Parameters
         ----------
@@ -163,7 +163,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         Returns
         -------
        :class:`torch.Tensor`
-            The updated scalar value of the noise standard deviation (`noise_std`).
+            The updated scalar value of the `noise_std`.
         """
         y_l2 = state["y_L2"]
         n_obs = state["n_obs"]
@@ -190,7 +190,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         Update rule for feature-wise `noise_std` (when directly a model parameter),
         from state & sufficient statistics.
 
-        Computes one standard deviation per feature.
+        Computes one `noise_std` per feature.
 
         Parameters
         ----------
@@ -204,7 +204,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
         Returns
         -------
         :class:`torch.Tensor`
-            The updated value of the noise standard deviation for each feature.
+            The updated value of the `noise_std` for each feature.
         """
         y_l2_per_ft = state["y_L2_per_ft"]
         n_obs_per_ft = state["n_obs_per_ft"]
@@ -228,15 +228,15 @@ class FullGaussianObservationModel(GaussianObservationModel):
         Parameters
         ----------
         dimension : :obj:`int`
-            The dimension of the noise standard deviation parameter.
-            - If `dimension == 1`, a scalar noise standard deviation is assumed.
-            - If `dimension > 1`, feature-wise independent noise standard deviations
+            The dimension of the `noise_std`.
+            - If `dimension == 1`, a scalar `noise_std` deviation is assumed.
+            - If `dimension > 1`, feature-wise independent `noise_std` deviations
             are assumed (diagonal noise).
 
         Returns
         -------
         ModelParameter
-            The specification of the `noise_std` parameter, including:
+            The specification of the `noise_std`, including:
             - `shape`: tuple defining the parameter shape.
             - `suff_stats`: collected sufficient statistics needed for updates.
             - `update_rule`: method to update the parameter based on statistics.
@@ -260,10 +260,10 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
         Parameters
         ----------
-        dimension : int
-            The dimension of the noise standard deviation parameter.
-            - If `dimension == 1`, a scalar noise standard deviation is assumed.
-            - If `dimension > 1`, feature-wise independent noise standard deviations
+        dimension : :obj:`int`
+            The dimension of the `noise_std`.
+            - If `dimension == 1`, a scalar `noise_std` is assumed.
+            - If `dimension > 1`, feature-wise independent `noise_std` deviations
             are assumed (diagonal noise).
 
         Returns
