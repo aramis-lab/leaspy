@@ -174,7 +174,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Returns
         -------
-        bool
+        :obj:`bool`
             True if `source_dimension` is a positive integer.
             False otherwise.
         """
