@@ -322,7 +322,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
         Returns
         -------
-        torch.Tensor
+        :class:`torch.Tensor`
             A scalar tensor representing the RMSE between `model` and `y`.
 
         """
