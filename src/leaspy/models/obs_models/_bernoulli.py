@@ -25,7 +25,7 @@ class BernoulliObservationModel(ObservationModel):
 
     Attributes
     ----------
-    string_for_json : str
+    string_for_json : :obj:`str`
         A static string identifier used for serialization.
     """
     string_for_json = "bernoulli"
