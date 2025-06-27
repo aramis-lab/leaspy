@@ -106,7 +106,7 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
         Returns
         -------
-        WeightedTensor
+        :class:`.WeightedTensor`
             A tensor containing the observed values and a boolean mask used as weights
             for likekelihood and loss computations
 
