@@ -74,7 +74,7 @@ class ObservationModel:
 
         Returns
         -------
-        dict of VariableName to Variable Interface
+        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`] 
             A dictionary mapping variable name to their correspondind specifications with
             - the primary DaraVariable
             - any `extra_vars` defined by the model
