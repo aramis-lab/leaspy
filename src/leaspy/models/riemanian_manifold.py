@@ -546,7 +546,7 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        torch.Tensor
+         :class:`torch.Tensor`
             Weighted value tensor after applying sigmoid transformation,
             representing the model output with sources.
         """
