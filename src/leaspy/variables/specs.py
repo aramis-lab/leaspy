@@ -440,33 +440,25 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_ind_mean_mixture(cls,
-                             ind_var_name: VariableName ,shape: Tuple[int, ...],):
+    def for_ind_std(
+        cls, individual_variable_name: VariableName, shape: tuple[int, ...], **tol_kw
+    ):
         """
-        Smart automatic definition of `ModelParameter` when it is the mean of a mixture of Gaussians
-        prior of an individual latent variable.
-        Extra handling to keep one mean per cluster
-        """
-        update_rule_mixture = NamedInputFunction(
-            compute_ind_param_mean_from_suff_stats_mixture,
-            parameters = ("state",),
-            kws=dict(ip_name = ind_var_name)
-        )
+        Smart automatic definition of `ModelParameter` when it is the std-dev 
+        of Gaussian prior of an individual latent variable.
+        Parameters
+        ----------
+        individual_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the individual latent variable for which this is the prior std-dev.
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
 
-        return cls(
-            shape,
-            suff_stats=Collect(ind_var_name),
-            update_rule=update_rule_mixture,
-        )
-
-   
-    @classmethod
-    def for_ind_std(cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw):
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a prior std-dev.
         """
-        Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
-        prior of an individual latent variable.
-        """
-        ind_var_sqr_name = f"{ind_var_name}_sqr"
+        individual_variance_sqr_name = f"{individual_variable_name}_sqr"
         update_rule_normal = NamedInputFunction(
             compute_individual_parameter_std_from_sufficient_statistics,
             parameters=(
