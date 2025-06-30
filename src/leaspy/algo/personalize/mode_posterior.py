@@ -21,7 +21,7 @@ class ModePosteriorAlgorithm(McmcPersonalizeAlgorithm):
         Settings of the algorithm.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_MODE_POSTERIOR
+    name: AlgorithmName = AlgorithmName.MODE_POSTERIOR
     regularity_factor: float = 1.0
     """Weighting of regularity term in the final loss to be minimized."""
 

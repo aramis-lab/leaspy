@@ -19,7 +19,7 @@ class MeanPosteriorAlgorithm(McmcPersonalizeAlgorithm):
         Settings of the algorithm.
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_MEAN_POSTERIOR
+    name: AlgorithmName = AlgorithmName.MEAN_POSTERIOR
 
     def _compute_individual_parameters_from_samples_torch(
         self,

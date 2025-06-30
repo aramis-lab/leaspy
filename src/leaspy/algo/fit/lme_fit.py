@@ -31,7 +31,7 @@ class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
     :class:`statsmodels.regression.mixed_linear_model.MixedLM`
     """
 
-    name: AlgorithmName = AlgorithmName.FIT_LME
+    name: AlgorithmName = AlgorithmName.LME_FIT
 
     def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)

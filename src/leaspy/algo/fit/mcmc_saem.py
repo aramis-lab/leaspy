@@ -55,7 +55,7 @@ class TensorMcmcSaemAlgorithm(
     :mod:`leaspy.samplers`
     """
 
-    name: AlgorithmName = AlgorithmName.FIT_MCMC_SAEM
+    name: AlgorithmName = AlgorithmName.MCMC_SAEM
 
     def __init__(self, settings: AlgorithmSettings):
         super().__init__(settings)

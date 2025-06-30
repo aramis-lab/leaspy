@@ -46,7 +46,7 @@ class ConstantPredictionAlgorithm(
         If any invalid setting for the algorithm
     """
 
-    name: AlgorithmName = AlgorithmName.PERSONALIZE_CONSTANT
+    name: AlgorithmName = AlgorithmName.CONSTANT
     deterministic: bool = True
 
     def __init__(self, settings: AlgorithmSettings):
