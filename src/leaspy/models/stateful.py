@@ -32,6 +32,9 @@ class StatefulModel(BaseModel):
     Parameters
     ----------
 
+    name : :obj:`str`
+        The name of the model.
+
     Attributes
     ----------
     state : :class:`~leaspy.variables.State`
@@ -106,7 +109,7 @@ class StatefulModel(BaseModel):
 
         Raises
         ------
-        LeaspyModelInputError
+        :exc:`.LeaspyModelInputError`
             If the model's state is not initialized yet.
         """
         if self._state is None:

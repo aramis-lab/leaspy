@@ -28,7 +28,7 @@ class IndividualData:
     observations : :obj:`np.ndarray` [:obj:`float`]
         Observed data points,
         Shape is ``(n_timepoints, n_features)``
-    cofactors : :obj:`dict` [:class: `~leaspy.utils.typing.FeatureType`,:class: `~leaspy.utils.typing.Any`]
+    cofactors : :obj:`dict` [:class:`~leaspy.utils.typing.FeatureType`, :class:`~leaspy.utils.typing.Any`]
         Cofactors in the form {cofactor_name: cofactor_value}
     event_time : :obj:`float`
         Time of an event, if the event is censored, the time correspond to the last patient observation
@@ -164,12 +164,12 @@ class IndividualData:
         -------
         :obj:`pd.DataFrame`
             DataFrame containing the individual's data with the following columns:
-            - ID: Unique identifier for the individual
-            - TIME: Timepoints associated with the observations
-            - Observations: Observed data points for each feature
-            - Event Time: Time of the event (if any)
-            - Event Boolean: Boolean indicating if the event was observed (1) or censored (0)
-            - Covariates: Values of the covariates for the individual
+                * ID: Unique identifier for the individual
+                * TIME: Timepoints associated with the observations
+                * Observations: Observed data points for each feature
+                * Event Time: Time of the event (if any)
+                * Event Boolean: Boolean indicating if the event was observed (1) or censored (0)
+                * Covariates: Values of the covariates for the individual
 
         """
         type_to_concat = []
