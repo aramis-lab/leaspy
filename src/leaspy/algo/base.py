@@ -1,5 +1,6 @@
 """This module defines the `AlgorithmType`, `AlgorithmName` and `AbstractAlgo` classes"""
 
+import inspect
 import random
 import sys
 import time
@@ -50,7 +51,7 @@ class AlgorithmName(str, Enum):
     PERSONALIZE_MODE_POSTERIOR = "mode_posterior"
     PERSONALIZE_CONSTANT = "constant_prediction"
     PERSONALIZE_LME = "lme_personalize"
-    SIMULATE = "simulation"
+    SIMULATE = "simulate"
 
 
 class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
@@ -116,7 +117,9 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
             # TODO: use logger instead (level=INFO)
             print(f" ==> Setting seed to {seed}")
 
-    def run(self, model: ModelType, dataset: Dataset, **kwargs) -> ReturnType:
+    def run(
+        self, model: ModelType, dataset: Optional[Dataset] = None, **kwargs
+    ) -> ReturnType:
         """Main method, run the algorithm.
 
         Parameters
@@ -143,7 +146,18 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
             )
         self._initialize_seed(self.seed)
         time_beginning = time.time()
-        output = self._run(model, dataset, **kwargs)
+
+        run_params = inspect.signature(self._run).parameters
+        run_kwargs = {}
+        if "dataset" in run_params:
+            run_kwargs["dataset"] = dataset
+        if "kwargs" in run_params or any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in run_params.values()
+        ):
+            run_kwargs.update(kwargs)
+
+        # Appeler _run avec uniquement les arguments attendus
+        output = self._run(model, **run_kwargs)
         duration_in_seconds = time.time() - time_beginning
         if self.algo_parameters.get("progress_bar"):
             print()
@@ -156,7 +170,7 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
     def _run(
         self,
         model: ModelType,
-        dataset: Dataset,
+        dataset: Optional[Dataset] = None,
         **kwargs,
     ) -> ReturnType:
         """Run the algorithm (actual implementation), to be implemented in children classes.
@@ -363,7 +377,14 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
         return AlgorithmType.FIT
     if name == AlgorithmName.SIMULATE:
         return AlgorithmType.SIMULATE
-    return AlgorithmType.PERSONALIZE
+    if name in (
+        AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE,
+        AlgorithmName.PERSONALIZE_MEAN_POSTERIOR,
+        AlgorithmName.PERSONALIZE_MODE_POSTERIOR,
+        AlgorithmName.PERSONALIZE_CONSTANT,
+        AlgorithmName.PERSONALIZE_LME,
+    ):
+        return AlgorithmType.PERSONALIZE
 
 
 def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
@@ -408,7 +429,9 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
 
         return LMEPersonalizeAlgorithm
     if name == AlgorithmName.SIMULATE:
-        raise ValueError("The simulation algorithm is currently broken.")
+        from .simulate import SimulationAlgorithm
+
+        return SimulationAlgorithm
 
 
 def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgorithm:

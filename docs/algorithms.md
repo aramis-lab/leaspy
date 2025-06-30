@@ -113,29 +113,34 @@ To run a simulation, the following variables are required:
 >>> from leaspy.algo import AlgorithmSettings
 >>> visits_params = {
         'patient_nb': 200,
-        'visit_type': "regular",
-        'regular_visit': 1,
+        'visit_type': "random",
         'first_visit_mean': 0.,
         'first_visit_std': 0.4,
         'time_follow_up_mean': 11,
         'time_follow_up_std': 0.5,
         'distance_visit_mean': 2 / 12,
         'distance_visit_std': 0.75 / 12,
+        'distance_visit_min': 1/365
     }
 >>> simulated_data = model.simulate( 
          algorithm="simulate", 
          features=["MDS1_total", "MDS2_total", "MDS3_off_total"],
          visit_parameters= visits_params
     )
-Simulate with `simulation` took: 3s
 >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
-              MDS1_total   MDS2_total   MDS3_total
-ID     TIME
- 0   48.092     0.113991     0.344018     0.228870
-     49.092     0.177138     0.291440     0.332267
-     50.092     0.256084     0.253093     0.314241
-     51.092     0.174059     0.344921     0.313776
-     52.092     0.245289     0.400363     0.310065
+ ID  TIME  MDS1_total  MDS2_total  MDS3_off_total  SCOPA_total  MOCA_total  \
+  0  63.0    0.130888    0.220548        0.186086     0.083651    0.088756   
+     64.0    0.138080    0.039211        0.289588     0.034846    0.047147   
+     65.0    0.228149    0.068744        0.151979     0.141604    0.131976   
+     66.0    0.208679    0.112899        0.202224     0.192716    0.067183   
+     67.0    0.290484    0.252141        0.255622     0.240425    0.115898   
+
+   REM_total  PUTAMEN_R  PUTAMEN_L  CAUDATE_R  CAUDATE_L  
+   0.555283   0.808789   0.685063   0.546174   0.467885  
+   0.660931   0.758014   0.640209   0.541839   0.474202  
+   0.766028   0.941519   0.738120   0.643509   0.549832  
+   0.671021   0.796510   0.930209   0.657473   0.622322  
+   0.791594   0.955246   0.844813   0.677306   0.638281  
 ```
 
 ### Output

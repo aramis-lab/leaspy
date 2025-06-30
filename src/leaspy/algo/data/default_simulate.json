@@ -1,0 +1,12 @@
+{
+  "name": "simulate",
+  "seed": null,
+  "algorithm_initialization_method": null,
+  "parameters": {
+    "prefix":"Generated_subject_",
+    "cofactor": null,
+    "cofactor_state": null,
+    "features": null,
+    "visit_parameters": null
+  }
+}

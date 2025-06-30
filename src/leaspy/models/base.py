@@ -12,6 +12,7 @@ from leaspy.algo import AlgorithmName, AlgorithmSettings
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Data, Dataset
 from leaspy.io.outputs import IndividualParameters
+from leaspy.io.outputs.result import Result
 from leaspy.utils.typing import DictParamsTorch, FeatureType, IDType, KwargsType
 
 __all__ = [
@@ -609,11 +610,92 @@ class BaseModel(ModelInterface):
 
     def simulate(
         self,
-        individual_parameters: IndividualParameters,
-        data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
+        algorithm: Optional[Union[str, AlgorithmName]] = None,
+        algorithm_settings: Optional[AlgorithmSettings] = None,
+        algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
-        raise NotImplementedError("Simulation not implemented.")
+        """
+        Run the simulation pipeline using a leaspy model.
+
+        This method simulates longitudinal data using the given leaspy model.
+        It performs the following steps:
+        - Retrieves individual parameters (IP) from fixed effects of the model.
+        - Loads the specified Leaspy model.
+        - Generates visit ages (timepoints) for each individual (based on specifications
+        in visits_type)
+        - Simulates observations at those visit ages.
+        - Packages the result into a `Result` object, including simulated data,
+        individual parameters, and the model's noise standard deviation.
+
+        Parameters
+        ----------
+        data : Optional[Union[pd.DataFrame, :class:`.Data`, :class:`.Dataset`]]
+            Data object. If None, returns empty Result.
+        algorithm : Optional[Union[str, :class:`.AlgorithmName`]]
+            Algorithm name. If None, returns empty Result.
+        algorithm_settings : Optional[:class:`.AlgorithmSettings`]
+            Contains the algorithm's settings. If None, returns empty Result.
+        algorithm_settings_path : Optional[Union[str, Path]]
+            Path to algorithm settings file. If None, returns empty Result.
+        **kwargs
+            Additional arguments for algorithm settings.
+
+        Returns
+        -------
+        simulated_data : :class:`~.io.outputs.result.Result`
+            Contains the generated individual parameters & the corresponding generated scores.
+            Returns empty Result if any required input is None.
+
+        See Also
+        --------
+        :class:`~leaspy.algo.simulate.simulate.SimulationAlgorithm`
+
+        Notes
+        -----
+        To generate a new subject, first we estimate the joined distribution of the individual parameters and the
+        reparametrized baseline ages. Then, we randomly pick a new point from this distribution, which define the
+        individual parameters & baseline age of our new subjects. Then, we generate the timepoints
+        following the baseline age. Then, from the model and the generated timepoints and individual parameters, we
+        compute the corresponding values estimations. Then, we add some noise to these estimations, which is the
+        same noise-model as the one from your model by default. But, you may customize it by setting the `noise` keyword.
+
+        Examples
+        --------
+        Use a calibrated model & individual parameters to simulate new subjects similar to the ones you have:
+
+        >>> from leaspy.models import LogisticModel
+        >>> from leaspy.io.data import Data
+        >>> from leaspy.datasets import load_dataset, load_leaspy_instance, load_individual_parameters
+        >>> putamen_df = load_dataset("parkinson-putamen-train_and_test")
+        >>> data = Data.from_dataframe(putamen_df.xs('train', level='SPLIT'))
+        >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
+        >>> visits_params = {'patient_number':200,
+                 'visit_type': "random",
+                 'first_visit_mean' : 0.,
+                 'first_visit_std' : 0.4,
+                 'time_follow_up_mean' : 11,
+                 'time_follow_up_std' : 0.5,
+                 'distance_visit_mean' : 2/12,
+                 'distance_visit_std' : 0.75/12,
+                 'min_spacing_between_visits': 1/365
+                }
+        >>> simulated_data = model.simulate( algorithm="simulate", features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L'],visit_parameters= visits_params  )
+        """
+        from leaspy.exceptions import LeaspyInputError
+
+        if not self.is_initialized:
+            raise LeaspyInputError("Model has not been initialized")
+
+        if (
+            algorithm := BaseModel._get_algorithm(
+                algorithm, algorithm_settings, algorithm_settings_path, **kwargs
+            )
+        ) is None:
+            # if no algorithm is provided, we cannot simulate anything
+            return Result()
+
+        return algorithm.run(self)
 
     def __str__(self) -> str:
         from .utilities import serialize_tensor
