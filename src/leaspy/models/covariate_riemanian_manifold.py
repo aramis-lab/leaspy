@@ -70,8 +70,8 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             "g",
             "v0",
             "noise_std",
-            "tau_mean",
-            "tau_std",
+            # "tau_mean",
+            # "tau_std",
             "xi_mean",
             "xi_std",
             "nll_attach",
@@ -113,7 +113,7 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
         """
         mean_xi = torch.mean(state["xi"])
         state["xi"] = state["xi"] - mean_xi
-        state["log_v0"] = state["log_v0"] + mean_xi
+        state["log_v0"].add_(mean_xi.view(1, 1))
 
         # TODO: find a way to prevent re-computation of orthonormal basis since it should
         #  not have changed (v0_collinear update)

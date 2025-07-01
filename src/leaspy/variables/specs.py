@@ -615,7 +615,7 @@ class LinkedVariable(VariableInterface):
         :class:`~leaspy.variables.specs.VariableValue` :
             The value of the variable.
         """
-        print({k: state[k].shape for k in self.parameters})
+        # print({k: state[k].shape for k in self.parameters})
         return self.f(**{k: state[k] for k in self.parameters})
 
 

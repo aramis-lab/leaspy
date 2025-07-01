@@ -44,29 +44,18 @@ def _affine_from_vector(
     y = slope * x + intercept
     Supports broadcasting.
     """
-
-    if coeffs.dim() == 3 and coeffs.shape[1] == 1:
-        coeffs = coeffs.squeeze(1)  # enlève la dimension de taille 1 au milieu
-
-    slope, intercept = coeffs.unbind(-1)
-
     if hasattr(x, "value"):
         x_tensor = x.value
     else:
         x_tensor = x
 
-    if coeffs.dim() == 1:
-        return slope * x_tensor + intercept
+    slope = coeffs[:, 0].unsqueeze(1)
+    intercept = coeffs[:, 1].unsqueeze(1)
 
-    elif coeffs.dim() == 2:
-        slope = slope.unsqueeze(-1)
-        intercept = intercept.unsqueeze(-1)
-        if x_tensor.dim() == 1:
-            x_tensor = x_tensor.unsqueeze(0)
-        return slope * x_tensor + intercept
+    if x_tensor.dim() == 1:
+        x_tensor = x_tensor.unsqueeze(0)
 
-    else:
-        raise ValueError("coeffs doit être de dimension (2,) ou (n,2)")
+    return slope * x_tensor + intercept
 
 
 def _unique_wrapper(x) -> torch.Tensor:

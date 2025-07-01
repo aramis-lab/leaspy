@@ -427,8 +427,16 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     def sample(
         cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
     ) -> torch.Tensor:
-        dist = cls.dist_factory(*params)
-        return dist.sample(sample_shape)  # shape = sample_shape + (..., 2)
+        loc, scale, rho = params
+
+        Ni = sample_shape[0]
+        loc = loc.unsqueeze(0).expand(Ni, -1)  # (Ni, 2)
+        scale = scale.unsqueeze(0).expand(Ni, -1)  # (Ni, 2)
+        rho = rho.expand(Ni)  # (Ni,)
+
+        dist = cls.dist_factory(loc, scale, rho)
+        sample = dist.sample()
+        return sample
 
     @classmethod
     def mode(
@@ -521,7 +529,7 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
     ) -> WeightedTensor:
-        print(">>> [NLL] Entered _nll BivariateNormalFamily")
+        # print(">>> [NLL] Entered _nll BivariateNormalFamily")
         x, y = values.value.unbind(-1)
         x_mu, y_mu = loc.unbind(-1)
         x_std, y_std = scale.unbind(-1)
