@@ -4,6 +4,8 @@
 
 *Talk about mixed-effect models and their ability to handle missing values*
 
+Start writing here
+
 ## Riemanian framework
 
 ### Disease progression represented as trajectory
