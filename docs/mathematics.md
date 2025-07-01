@@ -22,6 +22,7 @@ We suppose that the parameters capturing the population and the individual varia
 Estimating the parameters of the models can be done through maximisation of the likelihood.
 
 Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters the likelihood estimated by the model is the following:
+
 $$
 p(y \mid \theta, \Pi) = \int_{z} p(y, z \mid  \theta, \Pi) dz
 $$
