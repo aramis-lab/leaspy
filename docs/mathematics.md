@@ -22,15 +22,21 @@ We suppose that the parameters capturing the population and the individual varia
 Estimating the parameters of the models can be done through maximisation of the likelihood.
 
 Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters the likelihood estimated by the model is the following:
-$$p(y \mid \theta, \Pi) = \int_{z} p(y, z \mid  \theta, \Pi) dz$$
+$$
+p(y \mid \theta, \Pi) = \int_{z} p(y, z \mid  \theta, \Pi) dz
+$$
 
 $p(y, z \mid  \theta, \Pi)$ can be divided into two different terms: data attachment, which represents how well the model describes the data $y$, and a prior attachment, which prevents over-fitting:
 
-$$\log p(y, z \mid  \theta ,\Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z \mid \theta , \Pi )
+$$
+\log p(y, z \mid  \theta ,\Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z \mid \theta , \Pi )
+$$
 
 The prior attachment term can be separated into two terms: two terms for the prior attachment of latent parameters (fixed and random). We end up with the following expression : 
 
-$$\log p(y, z \mid \theta, \Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z_{re} \mid z_{fe}, \theta, \Pi) +  \log p(z_{fe} \mid \theta, \Pi)$$
+$$
+\log p(y, z \mid \theta, \Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z_{re} \mid z_{fe}, \theta, \Pi) +  \log p(z_{fe} \mid \theta, \Pi)
+$$
 
 A common and well-defined algorithm for the likelihood maximization, proven to converge for non-linear mixed effects models is the MCMC-SAEM.
 
