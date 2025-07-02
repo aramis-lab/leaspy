@@ -98,18 +98,19 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
     def _center_xi_realizations(cls, state: State) -> None:
         """
         Center the ``xi`` realizations in place.
-
-        .. note::
-            This operation does not change the orthonormal basis
-            (since the resulting ``v0`` is collinear to the previous one)
-            Nor all model computations (only ``v0 * exp(xi_i)`` matters),
-            it is only intended for model identifiability / ``xi_i`` regularization
-            <!> all operations are performed in "log" space (``v0`` is log'ed)
-
+        
         Parameters
         ----------
-        realizations : :class:`.CollectionRealization`
-            The realizations to use for updating the :term:`MCMC` toolbox.
+        state : :class:`.State`
+            The dictionary-like object representing current model state, which
+            contains keys such as``"xi"`` and ``"log_v0"``.
+
+        Notes
+        -----
+        This transformation preserves the orthonormal basis since the new ``v0`` remains
+        collinear to the previous one. It is a purely internal operation meant to reduce
+        redundancy in the parameter space (i.e., improve identifiability and stabilize
+        inference).
         """
         mean_xi = torch.mean(state["xi"])
         state["xi"] = state["xi"] - mean_xi
@@ -148,7 +149,9 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
         Returns
         -------
         NamedVariables :
-            The specifications of the model's variables.
+            A dictionary-like object mapping variable names to their specifications.
+            These include `ModelParameter`, `Hyperparameter`, `PopulationLatentVariable`,
+            and `LinkedVariable` instances.
         """
         d = super().get_variables_specs()
         d.update(
@@ -193,7 +196,30 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
 
     @classmethod
     def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
-        """Returns a model without source. A bit dirty?"""
+        """
+        Return the model output when sources(spatial components) are not present.
+
+        Parameters
+        ----------
+        rt :  :class:`torch.Tensor`
+            The reparametrized time.
+        metric : Any
+            The metric tensor used for computing the spatial/temporal influence.
+        v0 : Any
+            The values of the popoulation parameter `v0` for each feature.
+        g : Any
+            The values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            The model output without contribution from source shifts.
+
+        Notes
+        -----
+        This implementation delegates to `model_with_sources` with `space_shifts`
+        set to a zero tensor of shape (1, 1), effectively removing source effects.
+        """
         return cls.model_with_sources(
             rt=rt,
             metric=metric,
@@ -223,6 +249,32 @@ class LinearInitializationMixin:
         self,
         dataset: Dataset,
     ) -> VariableNameToValueMapping:
+        """
+        Compute and return initial values for the model parameters using linear regression.
+        
+        Parameters
+        ----------
+        dataset : :class:`Dataset`
+            The dataset from which to extract observations and masks.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.VariableNameToValueMapping`
+            A dictionary mapping parameter names (as strings) to their initialized
+            torch.Tensor values.
+
+        Notes
+        -----
+        - The initial positions are computed using `intercept + t0 * slope` where `t0`
+        is the mean of all observation times.
+        - Velocities are averaged per feature, and log-transformed using
+        `get_log_velocities`.
+        - Time parameters (`tau_mean`, `tau_std`) and variability parameters
+        (`xi_std`) are also initialized.
+        - If `self.source_dimension >= 1`, zero initialization is used for `betas_mean`.
+        - If the observation model is a `FullGaussianObservationModel`, the
+        `noise_std` parameter is also added, expanded to the correct shape.
+        """
         from leaspy.models.utilities import (
             compute_linear_regression_subjects,
             get_log_velocities,
@@ -277,8 +329,8 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        NamedVariables :
-            The specifications of the model's variables.
+        :class:`~leaspy.variables.specs.NamedVariables :
+            A dictionary-like object mapping variable names to their specifications.
         """
         d = super().get_variables_specs()
         d.update(
@@ -291,7 +343,19 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """Used to define the corresponding variable."""
+        """
+        Compute the metric tensor for the model.
+    
+        Parameters
+        ----------
+        g :  :class:`torch.Tensor`
+            Input tensor with values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            A tensor of ones with the same shape as `g`.
+        """
         return torch.ones_like(g)
 
     @classmethod
@@ -304,7 +368,27 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
         v0,
         g,
     ) -> torch.Tensor:
-        """Returns a model with sources."""
+        """
+        Return the model output when sources(spatial components) are present.
+
+        Parameters
+        ----------
+        rt :  :class:`torch.Tensor`
+            The reparametrized time.
+        space_shifts :  :class:`torch.Tensor`
+            The values of the space-shifts
+        metric : Any
+            The metric tensor used for computing the spatial/temporal influence.
+        v0 : Any
+            The values of the popoulation parameter `v0` for each feature.
+        g : Any
+            The values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            The model output with contribution from sources.
+        """
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
         return (g[pop_s] + v0[pop_s] * rt + space_shifts[:, None, ...]).weighted_value
@@ -315,7 +399,31 @@ class LogisticInitializationMixin:
         self,
         dataset: Dataset,
     ) -> VariableNameToValueMapping:
-        """Compute initial values for model parameters."""
+        """
+        Compute initial values for model parameters.
+
+        Parameters
+        ----------
+        dataset : :class:`Dataset`
+            The dataset from which to extract observations and masks.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.VariableNameToValueMapping
+            A dictionary mapping parameter names (as strings) to their initialized
+            torch.Tensor values.
+
+        Notes
+        -----
+        - If the initialization method is `DEFAULT`, patient means are used.
+        - If `RANDOM`, parameters are sampled from normal distributions
+        centered at patient means with estimated standard deviations.
+        - `values` are clamped between 0.01 and 0.99 to avoid boundary issues.
+        - If the model includes sources (source_dimension >= 1),
+        regression coefficients `betas_mean` are initialized accordingly.
+        - If the observation model is a `FullGaussianObservationModel`,
+        the noise standard deviation parameter is expanded to the correct shape.
+        """
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
             compute_patient_time_distribution,
@@ -380,7 +488,7 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
         Returns
         -------
         NamedVariables :
-            The specifications of the model's variables.
+            A dictionary-like object mapping variable names to their specifications.
         """
         d = super().get_variables_specs()
         d.update(
@@ -394,7 +502,20 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """Used to define the corresponding variable."""
+        """
+        Compute the metric tensor from input tensor `g`.
+        This function calculates the metric as \((g + 1)^2 / g\) element-wise.
+
+        Parameters
+        ----------
+        g : t :class:`torch.Tensor`
+            Input tensor with values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            The computed metric tensor, same shape as g(number of features)
+        """
         return (g + 1) ** 2 / g
 
     @classmethod
@@ -407,7 +528,28 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
         v0: TensorOrWeightedTensor[float],
         g: TensorOrWeightedTensor[float],
     ) -> torch.Tensor:
-        """Returns a model with sources."""
+        """
+        Return the model output when sources(spatial components) are present.
+
+        Parameters
+        ----------
+        rt : TensorOrWeightedTensor[float]
+            Tensor containing the reparametrized time.
+        space_shifts : TensorOrWeightedTensor[float]
+            Tensor containing the values of the space-shifts
+        metric : TensorOrWeightedTensor[float]
+            Tensor containing the metric tensor used for computing the spatial/temporal influence.
+        v0 : TensorOrWeightedTensor[float]
+            Tensor containing the values of the popoulation parameter `v0` for each feature.
+        g : TensorOrWeightedTensor[float]
+            Tensor containing the values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            Weighted value tensor after applying sigmoid transformation,
+            representing the model output with sources.
+        """
         # Shape: (Ni, Nt, Nfts)
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
