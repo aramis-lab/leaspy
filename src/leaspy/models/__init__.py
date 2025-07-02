@@ -14,6 +14,7 @@ from .shared_speed_logistic import SharedSpeedLogisticModel
 from .stateful import StatefulModel
 from .stateless import StatelessModel
 from .time_reparametrized import TimeReparametrizedModel
+from .mixture import LogisticMultivariateMixtureModel
 
 __all__ = [
     "ModelInterface",
@@ -32,4 +33,6 @@ __all__ = [
     "LinearModel",
     "SharedSpeedLogisticModel",
     "JointModel",
+    "OrdinalMultivariateModel",
+    "LogisticMultivariateMixtureModel",
 ]

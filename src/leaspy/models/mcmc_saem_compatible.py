@@ -138,7 +138,7 @@ class McmcSaemCompatibleModel(StatefulModel):
                 f"Unknown hyperparameters provided: {unexpected_hyperparameters}."
             )
 
-    @abstractmethod
+    #@abstractmethod
     def _audit_individual_parameters(
         self, individual_parameters: DictParams
     ) -> KwargsType:
