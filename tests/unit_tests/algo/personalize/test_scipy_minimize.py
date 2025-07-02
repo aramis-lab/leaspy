@@ -165,7 +165,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
         )
 
     def test_fallback_without_jacobian(self):
-        model = self.get_hardcoded_model("logistic_scalar_noise").model
+        model = self.get_hardcoded_model("logistic_scalar_noise")
 
         # pretend as if compute_jacobian_tensorized was not implemented
         def not_implemented_compute_jacobian_tensorized(tpts, ips, **kws):
@@ -182,7 +182,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
     @skip("Broken : ScipyMinimize has not _pull_individual_parameters method")
     def test_get_reconstruction_error(self):
         """This method is not part of scipy minimize anymore but is a Gaussian noise-model class method."""
-        leaspy = self.get_hardcoded_model("logistic_scalar_noise")
+        model = self.get_hardcoded_model("logistic_scalar_noise")
         times = torch.tensor([70, 80])
         values = torch.tensor(
             [
@@ -192,15 +192,15 @@ class ScipyMinimizeTest(LeaspyTestCase):
         )
         individual_parameters = self.default_algorithm._pull_individual_parameters(
             [0.0, 75.2 / 7.1, 0.0, 0.0],
-            leaspy.model,
+            model,
         )
         dataset = self._get_individual_dataset_from_times_values(
-            leaspy.model, np.array(times), np.array(values)
+            model, np.array(times), np.array(values)
         )
-        predictions = leaspy.model.compute_individual_tensorized(
+        predictions = model.compute_individual_tensorized(
             dataset.timepoints, individual_parameters
         )
-        residuals = leaspy.model.noise_model.compute_residuals(dataset, predictions)
+        residuals = model.noise_model.compute_residuals(dataset, predictions)
 
         expected_residuals = torch.tensor(
             [

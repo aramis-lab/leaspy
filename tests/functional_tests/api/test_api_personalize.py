@@ -49,8 +49,7 @@ class LeaspyPersonalizeTestMixin(LeaspyTestCase):
     ):
         """Helper for a generic personalization in following tests."""
         data_kws = data_kws or {}
-        leaspy = cls.get_hardcoded_model(hardcoded_model_name)
-
+        model = cls.get_hardcoded_model(hardcoded_model_name)
         if data_path is None:
             # automatic (main test data)
             data = cls.get_suited_test_data_for_model(hardcoded_model_name)
@@ -59,12 +58,11 @@ class LeaspyPersonalizeTestMixin(LeaspyTestCase):
             data_full_path = cls.get_test_data_path("data_mock", data_path)
             data = Data.from_csv_file(data_full_path, **data_kws)
 
-        algo_settings = cls.get_algo_settings(
-            path=algo_path, name=algo_name, **algo_params
+        ips = model.personalize(
+            data, algo_name, algorithm_settings_path=algo_path, **algo_params
         )
-        ips = leaspy.personalize(data, settings=algo_settings)
 
-        return ips, leaspy  # data?
+        return ips, model
 
     def check_consistency_of_personalization_outputs(
         self,
@@ -122,7 +120,12 @@ class LeaspyPersonalizeTest(LeaspyPersonalizeTestMixin):
 
         ws = [str(w.message) for w in ws]
 
-        self.assertEqual(ws, [])
+        self.assertEqual(
+            ws,
+            [
+                "Outputs will be saved in '_outputs' relative to the current working directory"
+            ],
+        )
 
         self.check_consistency_of_personalization_outputs(
             ips,
@@ -805,7 +808,7 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
             }
         ).set_index(["ID", "TIME"])
 
-        lsp = self.get_hardcoded_model("logistic_diag_noise")
+        model = self.get_hardcoded_model("logistic_diag_noise")
 
         for perso_algo, perso_kws, coeff_tol_per_param_std in [
             ("scipy_minimize", dict(use_jacobian=False), general_tol),
@@ -818,23 +821,17 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
         ]:
             subtest = dict(perso_algo=perso_algo, perso_kws=perso_kws)
             with self.subTest(**subtest):
-                algo = self.get_algo_settings(
-                    name=perso_algo, seed=0, progress_bar=False, **perso_kws
-                )
-
                 with self.assertRaisesRegex(
                     ValueError, "Dataframe should have at least "
                 ):
                     # drop rows full of nans, nothing is left...
                     Data.from_dataframe(df)
-
                 with self.assertWarnsRegex(
                     UserWarning,
                     r"These columns only contain nans: \['Y0', 'Y1', 'Y2', 'Y3'\]",
                 ):
                     data_1 = Data.from_dataframe(df.head(1), drop_full_nan=False)
                     data_2 = Data.from_dataframe(df, drop_full_nan=False)
-
                 dataset_1 = Dataset(data_1)
                 dataset_2 = Dataset(data_2)
 
@@ -848,8 +845,12 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                 self.assertEqual(dataset_2.n_observations_per_ft.tolist(), [0, 0, 0, 0])
                 self.assertEqual(dataset_2.n_observations, 0)
 
-                ips_1 = lsp.personalize(data_1, algo)
-                ips_2 = lsp.personalize(data_2, algo)
+                ips_1 = model.personalize(
+                    data_1, perso_algo, seed=0, progress_bar=False, **perso_kws
+                )
+                ips_2 = model.personalize(
+                    data_2, perso_algo, seed=0, progress_bar=False, **perso_kws
+                )
 
                 indices_1, dict_1 = ips_1.to_pytorch()
                 indices_2, dict_2 = ips_2.to_pytorch()
@@ -865,7 +866,7 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                 # we have no information so high incertitude when stochastic perso algo
                 from leaspy.variables.specs import IndividualLatentVariable
 
-                all_params = lsp.model.parameters | lsp.model.hyperparameters
+                all_params = model.parameters | model.hyperparameters
                 allclose_custom = {
                     p: dict(
                         atol=(
@@ -877,16 +878,16 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                             * general_tol
                         )
                     )
-                    for p in lsp.model.dag.sorted_variables_by_type[
+                    for p in model.dag.sorted_variables_by_type[
                         IndividualLatentVariable
                     ]
                 }
                 self.assertDictAlmostEqual(
                     dict_1,
                     {
-                        "tau": [lsp.model.parameters["tau_mean"]],
+                        "tau": [model.parameters["tau_mean"]],
                         "xi": [[0.0]],
-                        "sources": [lsp.model.source_dimension * [0.0]],
+                        "sources": [model.source_dimension * [0.0]],
                     },
                     allclose_custom=allclose_custom,
                     msg=subtest,
@@ -904,7 +905,7 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
             }
         ).set_index(["ID", "TIME"])
 
-        lsp = self.get_hardcoded_model("logistic_diag_noise")
+        model = self.get_hardcoded_model("logistic_diag_noise")
 
         for perso_algo, perso_kws, tol in [
             ("scipy_minimize", dict(use_jacobian=False), 1e-3),
@@ -914,10 +915,6 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
         ]:
             subtest = dict(perso_algo=perso_algo, perso_kws=perso_kws)
             with self.subTest(**subtest):
-                algo = self.get_algo_settings(
-                    name=perso_algo, seed=0, progress_bar=False, **perso_kws
-                )
-
                 data_without_empty_visits = Data.from_dataframe(df)
                 data_with_empty_visits = Data.from_dataframe(df, drop_full_nan=False)
 
@@ -940,10 +937,20 @@ class LeaspyPersonalizeWithNansTest(LeaspyPersonalizeTestMixin):
                 )
                 self.assertEqual(dataset_with_empty_visits.n_observations, 7)
 
-                ips_without_empty_visits = lsp.personalize(
-                    data_without_empty_visits, algo
+                ips_without_empty_visits = model.personalize(
+                    data_without_empty_visits,
+                    perso_algo,
+                    seed=0,
+                    progress_bar=False,
+                    **perso_kws,
                 )
-                ips_with_empty_visits = lsp.personalize(data_with_empty_visits, algo)
+                ips_with_empty_visits = model.personalize(
+                    data_with_empty_visits,
+                    perso_algo,
+                    seed=0,
+                    progress_bar=False,
+                    **perso_kws,
+                )
 
                 indices_1, dict_1 = ips_without_empty_visits.to_pytorch()
                 indices_2, dict_2 = ips_with_empty_visits.to_pytorch()

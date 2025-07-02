@@ -2,8 +2,6 @@ from unittest import skip
 
 import numpy as np
 
-from leaspy.api import Leaspy
-
 # never import a real test case at top-level so to not duplicate tests, only tests MIXINS!
 from .test_api_estimate import LeaspyEstimateTestMixin
 
@@ -133,7 +131,7 @@ class LeaspyEstimateInverseTest(LeaspyEstimateTestMixin):
 
         # select right feature
         def select_feature_estimation(
-            estimations: dict, leaspy: Leaspy, feature: str
+            estimations: dict, leaspy, feature: str
         ) -> np.ndarray:
             """
             Select the right feature from multivariate estimation

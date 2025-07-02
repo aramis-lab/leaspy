@@ -1,6 +1,5 @@
-[![pipeline status](https://gitlab.com/icm-institute/aramislab/leaspy/badges/master/pipeline.svg)](https://gitlab.com/icm-institute/aramislab/leaspy/commits/master)
+[![Tests](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml/badge.svg)](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml)
 [![documentation status](https://readthedocs.org/projects/leaspy/badge/)](https://leaspy.readthedocs.io)
-[![code coverage](https://gitlab.com/icm-institute/aramislab/leaspy/badges/master/coverage.svg)](https://gitlab.com/icm-institute/aramislab/leaspy/-/graphs/master/charts)
 [![PyPI - license](https://img.shields.io/pypi/l/leaspy)](https://opensource.org/licenses/BSD-3-Clause)
 [![PyPI - version](https://img.shields.io/pypi/v/leaspy)](https://pypi.org/project/leaspy/)
 [![PyPI - downloads](https://img.shields.io/pypi/dm/leaspy)](https://pypi.org/project/leaspy/)

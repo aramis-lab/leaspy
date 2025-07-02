@@ -25,6 +25,10 @@ Biomarkers are often measured and evaluated using blood, urine, or soft tissues 
 Is the process that computes the population parameters, the [fixed effects](#fixed-effects-model) of the model.
 It is done by a [likelihood](#likelihood) maximisation using an [MCMC-SAEM](#mcmc-saem) algorithm.
 
+## CIF 
+CIF stands for [Cumulative Incidence Function](https://www.publichealth.columbia.edu/research/population-health-methods/competing-risk-analysis).
+It is a function that quantifies the cause-specific failure probability with competing risks data.
+
 ## Estimation
 
 The estimation consists in computing the trajectory of a given patient thanks to population parameters (computed during the [calibration](#calibration) step) and individual parameters (computed during [personalization](#personalization) step).
@@ -46,6 +50,10 @@ The log-likelihood could be separated into two parts:
 
 - the data [attachment](#attachment) term which describes how close the model is to the data.
 - the [regularity](#regularity) term which corresponds to how far from the priors the model is.
+
+## Longitudinal data
+
+Data collected from the same subjects, individuals, repeatedly over multiple time periods. This type of data enables researchers to observe trends, patterns, or changes in variables across time, making it valuable for studying development, causality, or long-term effects. It is commonly used in fields such as epidemiology, social sciences, psychology, and economics. 
 
 ## MCMC
 
@@ -114,3 +122,7 @@ That is to say that two subjects could be modelled at the same stage of the dise
 
 In statistics, a statistic is [sufficient](https://en.wikipedia.org/wiki/Sufficient_statistic) with respect to a statistical model and its associated unknown parameter if "no other statistic that can be calculated from the same sample provides any additional information as to the value of the parameter".
 In particular, a statistic is sufficient for a family of probability distributions if the sample from which it is calculated gives no additional information than the statistic, as to which of those probability distributions is the sampling distribution.
+
+## Survival data
+
+Data that tracks the time until a specific event of interest occurs for subjects under study. This type of data often includes censored observations, where the event has not occurred by the end of the study period or the subject is lost to follow-up.

@@ -1,9 +1,6 @@
-from typing import TypeVar
-
-from .base import BaseModel, InitializationMethod
+from .base import BaseModel, ModelInterface
 from .constant import ConstantModel
 from .factory import ModelName, model_factory
-from .generic import GenericModel
 from .joint import JointModel
 from .lme import LMEModel
 from .mcmc_saem_compatible import McmcSaemCompatibleModel
@@ -14,19 +11,19 @@ from .riemanian_manifold import (
 )
 from .settings import ModelSettings
 from .shared_speed_logistic import SharedSpeedLogisticModel
+from .stateful import StatefulModel
+from .stateless import StatelessModel
 from .time_reparametrized import TimeReparametrizedModel
 
-ModelType = TypeVar("ModelType", bound="BaseModel")
-
 __all__ = [
+    "ModelInterface",
     "ModelName",
-    "ModelType",
-    "InitializationMethod",
     "McmcSaemCompatibleModel",
     "TimeReparametrizedModel",
     "BaseModel",
     "ConstantModel",
-    "GenericModel",
+    "StatelessModel",
+    "StatefulModel",
     "LMEModel",
     "model_factory",
     "ModelSettings",

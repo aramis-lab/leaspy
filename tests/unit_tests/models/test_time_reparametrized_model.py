@@ -36,7 +36,7 @@ class TimeReparametrizedModelTest(ManifoldModelTestMixin):
         self.assertEqual(model.source_dimension, None)
 
     def test_bad_initialize_features_dimension_inconsistent(self):
-        with self.assertRaisesRegex(ValueError, "does not match"):
+        with self.assertRaises(LeaspyModelInputError):
             TimeReparametrizedModel("dummy", features=["x", "y"], dimension=3)
 
     def test_bad_initialize_source_dim(self):

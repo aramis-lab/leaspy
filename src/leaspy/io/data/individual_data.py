@@ -21,18 +21,18 @@ class IndividualData:
 
     Attributes
     ----------
-    idx : IDType
+    idx : :class:`~leaspy.utils.typing.IDType`
         Unique ID
-    timepoints : np.ndarray[float, 1D]
-        Timepoints associated with the observations
-    observations : np.ndarray[float, 2D]
-        Observed data points.
+    timepoints : :obj:`np.ndarray` [:obj:`float`]
+        Timepoints associated with the observations 1D array
+    observations : :obj:`np.ndarray` [:obj:`float`]
+        Observed data points,
         Shape is ``(n_timepoints, n_features)``
-    cofactors : Dict[FeatureType, Any]
+    cofactors : :obj:`dict` [:class:`~leaspy.utils.typing.FeatureType`, :class:`~leaspy.utils.typing.Any`]
         Cofactors in the form {cofactor_name: cofactor_value}
-    event_time: Float
+    event_time : :obj:`float`
         Time of an event, if the event is censored, the time correspond to the last patient observation
-    event_bool: bool
+    event_bool : :obj:`bool`
         Boolean to indicate if an event is censored or not: 1 observed, 0 censored
     """
 
@@ -43,6 +43,7 @@ class IndividualData:
         self.event_time: Optional[np.ndarray] = None
         self.event_bool: Optional[np.ndarray] = None
         self.cofactors: dict[FeatureType, Any] = {}
+        self.covariates: Optional[np.ndarray] = None
 
     def add_observations(
         self, timepoints: list[float], observations: list[list[float]]
@@ -52,10 +53,10 @@ class IndividualData:
 
         Parameters
         ----------
-        timepoints : array-like[float, 1D]
-            Timepoints associated with the observations to include
-        observations : array-like[float, 2D]
-            Observations to include
+        timepoints : :obj:`array-like` [:obj:`float`]
+            Timepoints associated with the observations to include, 1D array
+        observations : :obj:`array-like` [:obj:`float`]
+            Observations to include, 2D array
 
         Raises
         ------
@@ -84,14 +85,25 @@ class IndividualData:
 
         Parameters
         ----------
-        event_time : float
+        event_time : :obj:`float`
             Time of the event
-        event_bool : float
+        event_bool : :obj:`float`
             0 if censored (not observed) and 1 if observed
 
         """
         self.event_time = np.array(event_time)
         self.event_bool = np.array(event_bool)
+
+    def add_covariates(self, covariates: list[list[int]]) -> None:
+        """
+        Include covariates
+
+        Parameters
+        ----------
+        covariates : :obj:`array-like` [:obj:`float`]
+            Covariates to include, 2D array
+        """
+        self.covariates = np.array(covariates)
 
     def add_cofactors(self, cofactors: dict[FeatureType, Any]) -> None:
         """
@@ -99,7 +111,7 @@ class IndividualData:
 
         Parameters
         ----------
-        cofactors : Dict[FeatureType, Any]
+        cofactors : :obj:`dict` [:class:`~leaspy.utils.typing.FeatureType`, :class:`~leaspy.utils.typing.Any`]
             Cofactors to include, in the form `{name: value}`
 
         Raises
@@ -128,8 +140,38 @@ class IndividualData:
             self.cofactors[cofactor_name] = cofactor_value
 
     def to_frame(
-        self, headers: list, event_time_name: str, event_bool_name: str
+        self,
+        headers: list,
+        event_time_name: str,
+        event_bool_name: str,
+        covariate_names: list[str],
     ) -> pd.DataFrame:
+        """
+        Convert the individual data to a pandas DataFrame
+
+        Parameters
+        ----------
+        headers : :obj:`list` [:obj:`str`]
+            List of feature names for the observations
+        event_time_name : :obj:`str`
+            Name of the column for the event time
+        event_bool_name : :obj:`str`
+            Name of the column for the event boolean (0 or 1)
+        covariate_names : :obj:`list` [:obj:`str`]
+            List of covariate names
+
+        Returns
+        -------
+        :obj:`pd.DataFrame`
+            DataFrame containing the individual's data with the following columns:
+                * ID: Unique identifier for the individual
+                * TIME: Timepoints associated with the observations
+                * Observations: Observed data points for each feature
+                * Event Time: Time of the event (if any)
+                * Event Boolean: Boolean indicating if the event was observed (1) or censored (0)
+                * Covariates: Values of the covariates for the individual
+
+        """
         type_to_concat = []
         if self.observations is not None:
             ix_tpts = pd.MultiIndex.from_product(
@@ -142,7 +184,9 @@ class IndividualData:
             df_event = self._event_to_frame(event_time_name, event_bool_name)
             type_to_concat.append(df_event)
 
-        # TODO: add cofactors
+        if self.covariates is not None:
+            df_covariate = self._covariate_to_frame(covariate_names)
+            type_to_concat.append(df_covariate)
 
         if len(type_to_concat) == 1:
             return type_to_concat[0]
@@ -152,6 +196,24 @@ class IndividualData:
     def _event_to_frame(
         self, event_time_name: str, event_bool_name: str
     ) -> pd.DataFrame:
+        """
+        Convert the event data to a pandas DataFrame
+
+        Parameters
+        ----------
+        event_time_name : :obj:`str`
+            Name of the column for the event time
+        event_bool_name : :obj:`str`
+            Name of the column for the event boolean (0 or 1)
+
+        Returns
+        -------
+        :obj:`pd.DataFrame`
+            DataFrame containing the event data with the following columns:
+            - ID: Unique identifier for the individual
+            - Event Time: Time of the event (if any)
+            - Event Boolean: Boolean indicating if the event was observed (1) or censored (0)
+        """
         ix_tpts = pd.Index([self.idx], name="ID")
         if len(np.unique(self.event_time)) != 1:
             raise LeaspyInputError(
@@ -159,7 +221,7 @@ class IndividualData:
             )
 
         if self.event_bool.sum() == 1:
-            event_coded = np.where(self.event_bool == True)[0][0]
+            event_coded = np.where(self.event_bool)[0][0]
             event_bool = event_coded + 1
         elif self.event_bool.sum() == 0:
             event_bool = 0
@@ -176,3 +238,27 @@ class IndividualData:
         df_event[event_time_name] = df_event[event_time_name].astype(float)
         df_event[event_bool_name] = df_event[event_bool_name].astype(int)
         return df_event
+
+    def _covariate_to_frame(self, covariate_names: list[str]) -> pd.DataFrame:
+        """
+        Convert the covariates to a pandas DataFrame
+
+        Parameters
+        ----------
+        covariate_names : :obj:`list`[:obj:`str`]
+            List of covariate names
+
+        Returns
+        -------
+        :obj:`pd.DataFrame`
+            DataFrame containing the covariates with the following columns:
+            - ID: Unique identifier for the individual
+            - Covariates: Values of the covariates for the individual
+        """
+        ix_tpts = pd.Index([self.idx], name="ID")
+        df_covariates = pd.DataFrame(
+            data=[self.covariates],
+            index=ix_tpts,
+            columns=[covariate_names],
+        )
+        return df_covariates
