@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "leaspy"
-version = "2.0.0rc1"
+version = "2.0.0rc2"
 description = "Leaspy is a software package for the statistical analysis of longitudinal data."
 license = "BSD-3-Clause"
 authors = [
