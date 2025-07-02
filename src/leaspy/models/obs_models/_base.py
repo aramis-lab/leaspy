@@ -65,7 +65,29 @@ class ObservationModel:
         self,
         named_attach_vars: bool = True,
     ) -> dict[VariableName, VariableInterface]:
-        """Automatic specifications of variables for this observation model."""
+        """
+        Automatic specifications of variables for this observation model.
+
+        Parameters
+        ----------
+        named_attached_vars ::obj:`bool`, optional
+
+        Returns
+        -------
+        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`] 
+            A dictionary mapping variable name to their correspondind specifications with
+            - the primary DaraVariable
+            - any `extra_vars` defined by the model
+            - nll attachment variables :
+                - nll_attach_var_ind: a :class:`~leaspy.variables.specs.LinkedVariable` representing the individual-level
+                negative log-likelihood contributions
+                - nll_attach_var: a :class:`~leaspy.variables.specs.LinkedVariable` that sums the individual contributions
+
+        Notes
+        -----
+        The distribution object `self.dist`should provide a `get_func_nll(name)` method that
+        returns a callable for computing the nll
+        """
         # TODO change? a bit dirty? possibility of having aliases for variables?
 
         nll_attach_var = self.get_nll_attach_var_name(named_attach_vars)
@@ -86,7 +108,15 @@ class ObservationModel:
         }
 
     def serialized(self) -> Any:
-        """Nice representation of instance without its name (should be JSON exportable)."""
+        """
+        Returns a JSON-exportable representation of the instance, excluding its name.
+
+        Returns
+        -------
+        Any
+            A representation of the instance, currently based on `repr(self.dist)`, 
+            that is intended to be JSON-serializable.
+        """
         # TODO: dirty for now to go fast
         return repr(self.dist)
 
@@ -95,5 +125,12 @@ class ObservationModel:
         return {}
 
     def to_string(self) -> str:
-        """method for parameter saving"""
+        """
+        Returns a string representation of the parameter for saving
+
+        Returns
+        -------
+        :obj:`str`
+            A string representation of the parameter, as stored in `self.string_for_json`.
+        """
         return self.string_for_json
