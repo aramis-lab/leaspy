@@ -21,57 +21,57 @@ class Dataset:
 
     Parameters
     ----------
-    data : :class:`.Data`
+    data : :class:`~leaspy.io.data.Data`
         Create `Dataset` from `Data` object
-    no_warning : bool (default False)
+    no_warning : :obj:`bool`, default False
         Whether to deactivate warnings that are emitted by methods of this dataset instance.
         We may want to deactivate them because we rebuild a dataset per individual in scipy minimize.
         Indeed, all relevant warnings certainly occurred for the overall dataset.
 
     Attributes
     ----------
-    headers : list[str]
+    headers : :obj:`list` [:obj:`str`]
         Features names
-    dimension : int
+    dimension : :obj:`int`
         Number of features
-    n_individuals : int
+    n_individuals : :obj:`int`
         Number of individuals
-    indices : list[ID]
+    indices : :obj:`list` [:class:`~leaspy.utils.typing.IDType`]
         Order of patients
-    event_time: torch.FloatTensor
+    event_time : :obj:`torch.FloatTensor`
         Time of an event, if the event is censored, the time correspond to the last patient observation
-    event_bool: torch.BoolTensor
+    event_bool : :obj:`torch.BoolTensor`
         Boolean to indicate if an event is censored or not: 1 observed, 0 censored
-    n_visits_per_individual : list[int]
+    n_visits_per_individual : :obj:`list` [:obj:`int`]
         Number of visits per individual
-    n_visits_max : int
+    n_visits_max : :obj:`int`
         Maximum number of visits for one individual
-    n_visits : int
+    n_visits : :obj:`int`
         Total number of visits
-    n_observations_per_ind_per_ft : :class:`torch.LongTensor`, shape (n_individuals, dimension)
+    n_observations_per_ind_per_ft : :obj:`torch.LongTensor`, shape (n_individuals, dimension)
         Number of observations (not taking into account missing values) per individual per feature
-    n_observations_per_ft : :class:`torch.LongTensor`, shape (dimension,)
+    n_observations_per_ft : :obj:`torch.LongTensor`, shape (dimension,)
         Total number of observations per feature
-    n_observations : int
+    n_observations : :obj:`int`
         Total number of observations
-    timepoints : :class:`torch.FloatTensor`, shape (n_individuals, n_visits_max)
+    timepoints : :obj:`torch.FloatTensor`, shape (n_individuals, n_visits_max)
         Ages of patients at their different visits
-    values : :class:`torch.FloatTensor`, shape (n_individuals, n_visits_max, dimension)
+    values : :obj:`torch.FloatTensor`, shape (n_individuals, n_visits_max, dimension)
         Values of patients for each visit for each feature
-    mask : :class:`torch.FloatTensor`, shape (n_individuals, n_visits_max, dimension)
+    mask : :obj:`torch.FloatTensor`, shape (n_individuals, n_visits_max, dimension)
         Binary mask associated to values.
         If 1: value is meaningful
         If 0: value is meaningless (either was nan or does not correspond to a real visit - only here for padding)
-    L2_norm_per_ft : :class:`torch.FloatTensor`, shape (dimension,)
+    L2_norm_per_ft : :obj:`torch.FloatTensor`, shape (dimension,)
         Sum of all non-nan squared values, feature per feature
-    L2_norm : scalar :class:`torch.FloatTensor`
+    L2_norm : scalar :obj:`torch.FloatTensor`
         Sum of all non-nan squared values
-    no_warning : bool (default False)
+    no_warning : :obj:`bool`, default False
         Whether to deactivate warnings that are emitted by methods of this dataset instance.
         We may want to deactivate them because we rebuild a dataset per individual in scipy minimize.
         Indeed, all relevant warnings certainly occurred for the overall dataset.
 
-    _one_hot_encoding : Dict[sf: bool, :class:`torch.LongTensor`]
+    _one_hot_encoding : :obj:`dict` [:obj:`bool`, :obj:`torch.LongTensor`]
         Values of patients for each visit for each feature, but tensorized into a one-hot encoding (pdf or sf)
         Shapes of tensors are (n_individuals, n_visits_max, dimension, max_ordinal_level [-1 when `sf=True`])
 
@@ -129,6 +129,15 @@ class Dataset:
         self.no_warning = no_warning
 
     def _construct_values(self, data: Data):
+        """
+        Construct the values tensor and the mask tensor from the data.
+        The values tensor is of shape (n_individuals, n_visits_max, dimension).
+
+        Parameters
+        ----------
+        data : :class:`~leaspy.io.data.Data`
+            The data from which to construct the values and mask tensors.
+        """
         self.n_visits_per_individual = [len(_.timepoints) for _ in data]
         self.n_visits_max = (
             max(self.n_visits_per_individual) if self.n_visits_per_individual else 0
@@ -165,12 +174,28 @@ class Dataset:
         self.n_observations = self.n_observations_per_ft.sum().item()
 
     def _construct_timepoints(self, data: Data):
+        """
+        Construct the timepoints tensor from the data.
+
+        Parameters
+        ----------
+        data : :class:`~leaspy.io.data.Data`
+            The data from which to construct the timepoints tensor.
+        """
         self.timepoints = torch.zeros((self.n_individuals, self.n_visits_max))
         nbs_vis = [len(_.timepoints) for _ in data]
         for i, nb_vis in enumerate(nbs_vis):
             self.timepoints[i, 0:nb_vis] = torch.tensor(data[i].timepoints)
 
     def _construct_events(self, data: Data):
+        """
+        Construct the event time and event boolean tensors from the data.
+
+        Parameters
+        ----------
+        data : :class:`~leaspy.io.data.Data`
+            The data from which to construct the event time and event boolean tensors.
+        """
         self.event_time = torch.tensor(
             np.array([_.event_time for _ in data]), dtype=torch.double
         )
@@ -179,11 +204,23 @@ class Dataset:
         )
 
     def _construct_covariates(self, data: Data):
+        """
+        Construct the covariates tensor from the data.
+
+        Parameters
+        ----------
+        data : :class:`~leaspy.io.data.Data`
+            The data from which to construct the covariates tensor.
+        """
         self.covariates = torch.tensor(
             np.array([_.covariates for _ in data]), dtype=torch.int
         )
 
     def _compute_L2_norm(self):
+        """
+        Compute the L2 norm of the values tensor, feature per feature and overall.
+        The L2 norm is the sum of the squared values, ignoring nans.
+        """
         self.L2_norm_per_ft = torch.sum(
             self.mask.float() * self.values * self.values, dim=(0, 1)
         )  # 1D tensor of shape (dimension,)
@@ -195,12 +232,12 @@ class Dataset:
 
         Parameters
         ----------
-        i : int
+        i : :obj:`int`
             The index of the patient (<!> not its identifier)
 
         Returns
         -------
-        :class:`torch.Tensor`, shape (n_obs_of_patient,)
+        :obj:`torch.Tensor`, shape (n_obs_of_patient,)
             Contains float
         """
         return self.timepoints[i, : self.n_visits_per_individual[i]]
@@ -211,12 +248,12 @@ class Dataset:
 
         Parameters
         ----------
-        idx_patient : int
+        idx_patient : :obj:`int`
             The index of the patient (<!> not its identifier)
 
         Returns
         -------
-        :class:`torch.Tensor`, shape (n_obs_of_patient,)
+        :obj:`tuple` [:obj:`torch.Tensor`, :obj:`torch.Tensor`] , shape (n_obs_of_patient,)
             Contains float
         """
         if self.event_time is not None and self.event_bool is not None:
@@ -229,13 +266,18 @@ class Dataset:
 
         Parameters
         ----------
-        idx_patient : int
+        idx_patient : :obj:`int`
             The index of the patient (<!> not its identifier)
 
         Returns
         -------
-        :class:`torch.Tensor`, shape (n_obs_of_patient,)
+        :obj:`torch.Tensor`, shape (n_obs_of_patient,)
             Contains float
+
+        Raises
+        ------
+        :exc:`.ValueError`
+            If the dataset has no covariates.
         """
         if self.covariates is not None:
             return self.covariates[idx_patient]
@@ -247,9 +289,10 @@ class Dataset:
 
         Parameters
         ----------
-        i : int
+        i : :obj:`int`
             The index of the patient (<!> not its identifier)
-        adapt_for_model : None (default) or AbstractModel
+
+        adapt_for_model : None, default or :class:`~leaspy.models.mcmc_saem_compatible.McmcSaemCompatibleModel`
             The values returned are suited for this model.
             In particular:
                 * For model with `noise_model='ordinal'` will return one-hot-encoded values [P(X = l), l=0..ordinal_max_level]
@@ -258,7 +301,7 @@ class Dataset:
 
         Returns
         -------
-        :class:`torch.Tensor`, shape (n_obs_of_patient, dimension [, extra_dimension_for_ordinal_models])
+        :obj:`torch.Tensor`, shape (n_obs_of_patient, dimension [, extra_dimension_for_ordinal_models])
             Contains float or nans
         """
 
@@ -293,12 +336,19 @@ class Dataset:
 
          Parameters
         ----------
-        apply_headers : bool
+        apply_headers : :obj:`bool`
             Enable to select only the columns that are needed for leaspy fit (headers attribute)
 
         Returns
         -------
-        :class:`pandas.DataFrame`
+        :obj:`pandas.DataFrame`
+            DataFrame with index ['ID', 'TIME'] and columns corresponding to the features, events and covariates.
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError`
+            If the index of the DataFrame is not unique or contains invalid values.
+
         """
         to_concat = []
 
@@ -344,7 +394,7 @@ class Dataset:
 
         Parameters
         ----------
-        device : torch.device
+        device : :obj:`torch.device`
         """
         for attribute_name in dir(self):
             if attribute_name.startswith("__"):
@@ -361,22 +411,30 @@ class Dataset:
                 k: t.to(device) for k, t in self._one_hot_encoding.items()
             }
 
-    def get_one_hot_encoding(self, *, sf: bool, ordinal_infos: KwargsType):
+    def get_one_hot_encoding(
+        self, *, sf: bool, ordinal_infos: KwargsType
+    ) -> torch.LongTensor:
         """
         Builds the one-hot encoding of ordinal data once and for all and returns it.
 
         Parameters
         ----------
-        sf : bool
+        sf : :obj:`bool`
             Whether the vector should be the survival function [1(X > l), l=0..max_level-1]
             instead of the probability density function [1(X=l), l=0..max_level]
 
-        ordinal_infos : dict[str, Any]
+        ordinal_infos : :class:`~leaspy.utils.typing.KwargsType`
             All the hyperparameters concerning ordinal modelling (in particular maximum level per features)
 
         Returns
         -------
-        One-hot encoding of data values.
+        :obj:`torch.LongTensor`
+            One-hot encoding of data values.
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError`
+            If the values are not non-negative integers or if the features in `ordinal_infos` are not consistent with the dataset headers.
         """
         if self._one_hot_encoding is not None:
             return self._one_hot_encoding[sf]
