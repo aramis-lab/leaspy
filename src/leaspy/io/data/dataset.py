@@ -36,7 +36,7 @@ class Dataset:
         Number of features
     n_individuals : :obj:`int`
         Number of individuals
-    indices : :obj:`list`[:class:`~leaspy.utils.typing.IDType`]
+    indices : :obj:`list` [:class:`~leaspy.utils.typing.IDType`]
         Order of patients
     event_time : :obj:`torch.FloatTensor`
         Time of an event, if the event is censored, the time correspond to the last patient observation
