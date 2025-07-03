@@ -19,19 +19,57 @@ S = TypeVar("S")
 
 
 def _prod(iterable: Iterable[S], start: int = 1) -> S:
-    """Product of all elements of the provided iterable, starting from `start`."""
+    """Product of all elements of the provided iterable, starting from `start`.
+
+    Parameters
+    ----------
+    iterable : :obj:`Iterable` [:class:`.S`]
+        An iterable of elements to multiply.
+
+    start : :obj:`int`, optional
+        The initial value to start the product from, default is 1.
+
+    Returns
+    -------
+    :class:`.S`
+        The product of all elements in the iterable, starting from `start`.
+    """
     return reduce(operator.mul, iterable, start)
 
 
 def _prod_args(
     *args: TensorOrWeightedTensor[S], **start_kw
 ) -> TensorOrWeightedTensor[S]:
-    """Product of tensors with variadic input instead of standard iterable input."""
+    """Product of tensors with variadic input instead of standard iterable input.
+
+    Parameters
+    ----------
+    args : :class:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor` [:class:`.S`]
+        A variable number of tensors or weighted tensors to multiply.
+    start_kw : :obj:`dict`
+        Additional keyword arguments to pass to the product function.
+
+    Returns
+    -------
+    :obj:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor` [:class:`.S`]
+        The product of all tensors in `args`, starting from the value specified in `start_kw`.
+    """
     return _prod(args, **start_kw)
 
 
 def _identity(x: S) -> S:
-    """Unary identity function."""
+    """Unary identity function.
+
+    Parameters
+    ----------
+    x : :class:`.S`
+        The input value to return unchanged.
+
+    Returns
+    -------
+    :class:`.S`
+        The input value `x` unchanged.
+    """
     return x
 
 
@@ -39,6 +77,16 @@ def get_named_parameters(f: Callable) -> Tuple[str, ...]:
     """
     Get the names of parameters of the input function `f`, which should be
     a `NamedInputFunction` or a function with keyword-only parameters.
+
+    Parameters
+    ----------
+    f : :obj:`Callable`
+        The function from which to extract parameter names.
+
+    Returns
+    -------
+    :obj:`tuple` [:obj:`str`, ...]
+        A tuple containing the names of the parameters of the function `f`.
     """
     from inspect import signature
 
@@ -65,16 +113,17 @@ def _arguments_checker(
 
     Parameters
     ----------
-    nb_arguments : int, optional
+    nb_arguments : :obj:`int`, optional
         Fixed number of positional arguments required by the function.
-    mandatory_kws : set[str], optional
+    mandatory_kws : :obj:`set` :obj:`str`], optional
         Mandatory keyword-arguments for the function.
-    possible_kws : set[str], optional
+    possible_kws : :obj:`set` [:obj:`str`], optional
         Set of ALL possible keyword-arguments for the function.
 
     Returns
     -------
-    function (args: tuple[str, ...], kws: dict[str, Any]) -> None
+    :obj:`Callable`
+        A function that checks the provided arguments and keyword arguments against the specified criteria.
     """
     if nb_arguments is not None and (
         not isinstance(nb_arguments, int) or nb_arguments < 0
@@ -98,7 +147,24 @@ def _arguments_checker(
             )
 
     def check_arguments(args: tuple, kws: KwargsType) -> None:
-        """Positional and keyword arguments checker."""
+        """Positional and keyword arguments checker.
+
+        Parameters
+        ----------
+        args : :obj:`tuple`
+            Positional arguments to check.
+        kws : :class:`~leaspy.utils.typing.KwargsType`
+            Keyword arguments to check.
+
+        Raises
+        ------
+        :obj:`ValueError`
+            If the number of positional arguments does not match `nb_arguments`, or if
+            mandatory keyword arguments are missing, or if unknown keyword arguments are provided.
+        :obj:`TypeError`
+            If `nb_arguments` is not a positive integer or None.
+
+        """
         if nb_arguments_error_msg is not None:
             if len(args) != nb_arguments:
                 raise ValueError(nb_arguments_error_msg)
@@ -119,7 +185,20 @@ def _arguments_checker(
 
 
 def _sum_args(*args: TensorOrWeightedTensor, **start_kw) -> TensorOrWeightedTensor:
-    """Summation of regular tensors with variadic input instead of standard iterable input."""
+    """Summation of regular tensors with variadic input instead of standard iterable input.
+
+    Parameters
+    ----------
+    args : :class:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor`
+        A variable number of tensors or weighted tensors to sum.
+    start_kw : :obj:`dict`
+        Additional keyword arguments to pass to the sum function.
+
+    Returns
+    -------
+    :obj:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor`
+        The sum of all tensors in `args`, starting from the value specified in `start_kw`.
+    """
     summation = sum(args, **start_kw)
     if not isinstance(summation, (torch.Tensor, WeightedTensor)):
         # If args is empty, sum returns a float 0 that needs to be converted to a tensor
