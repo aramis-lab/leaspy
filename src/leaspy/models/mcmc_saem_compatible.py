@@ -32,7 +32,7 @@ class McmcSaemCompatibleModel(StatefulModel):
     name : :obj:`str`
         The name of the model.
 
-    obs_models : ObservationModel or Iterable[ObservationModel]
+    obs_models : :class:`~leaspy.models.obs_models` or :obj:`Iterable` [:class:`~leaspy.models.obs_models`]
         The noise model for observations (keyword-only parameter).
 
     fit_metrics : :obj:`dict`
@@ -52,11 +52,11 @@ class McmcSaemCompatibleModel(StatefulModel):
         Names of the model features.
     parameters : :obj:`dict`
         Contains the model's parameters
-    obs_models : Tuple[ObservationModel, ...]
+    obs_models : :obj:`tuple` [:class:`~leaspy.models.obs_models`, ...]
         The observation model(s) associated to the model.
     fit_metrics : :obj:`dict`
         Contains the metrics that are measured during the fit of the model and reported to the user.
-    _state : State
+    _state : :class:`~leaspy.variables.state.State`
         Private instance holding all values for model variables and their derived variables.
     """
 
@@ -85,9 +85,28 @@ class McmcSaemCompatibleModel(StatefulModel):
 
     @property
     def observation_model_names(self) -> list[str]:
+        """Get the names of the observation models.
+
+        Returns
+        -------
+        :obj:`list` [:obj:`str`] :
+            The names of the observation models.
+        """
         return [model.to_string() for model in self.obs_models]
 
     def has_observation_model_with_name(self, name: str) -> bool:
+        """
+        Check if the model has an observation model with the given name.
+        Parameters
+        ----------
+        name : :obj:`str`
+            The name of the observation model to check.
+
+        Returns
+        -------
+        :obj:`bool`:
+            True if the model has an observation model with the given name, False otherwise.
+        """
         return name in self.observation_model_names
 
     def to_dict(self, **kwargs) -> KwargsType:
@@ -95,7 +114,7 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Returns
         -------
-        KwargsType :
+        :class:`~leaspy.utils.typing.KwargsType`
             The model instance serialized as a dictionary.
         """
         d = super().to_dict()
@@ -116,20 +135,29 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        hyperparameters : :obj:`dict` [ :obj:`str`, Any ]
+        hyperparameters : :obj:`dict` [ :obj:`str`, :obj:`Any` ]
             Contains the model's hyperparameters.
 
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            If any of the consistency checks fail.
         """
 
     @classmethod
     def _raise_if_unknown_hyperparameters(
         cls, known_hps: Iterable[str], given_hps: KwargsType
     ) -> None:
-        """Raises a :exc:`.LeaspyModelInputError` if any unknown hyperparameter is provided to the model."""
+        """Check if the given hyperparameters are known for the model.
+
+        Parameters
+        ----------
+        known_hps : :obj:`Iterable` [:obj:`str`]
+            The known hyperparameters for the model.
+        given_hps : :class:`~leaspy.utils.typing.KwargsType`
+            The hyperparameters provided to the model.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If any unknown hyperparameter is provided to the model.
+        """
         # TODO: replace with better logic from GenericModel in the future
         unexpected_hyperparameters = set(given_hps.keys()).difference(known_hps)
         if len(unexpected_hyperparameters) > 0:
@@ -150,8 +178,8 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        individual_parameters : :obj:`dict` [param: str, Any]
-            Contains some un-trusted individual parameters.
+        individual_parameters : :class:`~leaspy.utils.typing.DictParams`
+            Contains some individual parameters.
             If representing only one individual (in a multivariate model) it could be:
                 * {'tau':0.1, 'xi':-0.3, 'sources':[0.1,...]}
 
@@ -162,7 +190,7 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Returns
         -------
-        ips_info : :obj:`dict`
+        ips_info : :class:`~leaspy.utils.typing.KwargsType`
             * ``'nb_inds'`` : :obj:`int` >= 0
                 Number of individuals present.
             * ``'tensorized_ips'`` : :obj:`dict` [ :obj:`str`, :class:`torch.Tensor` ]
@@ -170,11 +198,9 @@ class McmcSaemCompatibleModel(StatefulModel):
             * ``'tensorized_ips_gen'`` : generator
                 Generator providing tensorized individual parameters for
                 all individuals present (ordered as is).
-
         Raises
         ------
-        :exc:`.LeaspyIndividualParamsInputError`
-            If any of the consistency/compatibility checks fail.
+        :exc:`.NotImplementedError`
         """
         raise NotImplementedError
 
@@ -185,6 +211,30 @@ class McmcSaemCompatibleModel(StatefulModel):
         *,
         skip_ips_checks: bool = False,
     ) -> tuple[torch.Tensor, DictParamsTorch]:
+        """Convert the timepoints and individual parameters to tensors.
+
+        Parameters
+        ----------
+        timepoints : :obj:`torch.Tensor`
+            Contains the timepoints (age(s) of the subject).
+
+        individual_parameters : :class:`~leaspy.utils.typing.DictParamsTorch`
+            Contains the individual parameters.
+
+        skip_ips_checks : :obj:`bool` (default: ``False``)
+            Flag to skip consistency/compatibility checks and tensorization
+            of ``individual_parameters`` when it was done earlier (speed-up).
+
+        Returns
+        -------
+        :obj:`tuple` [:class:`torch.Tensor`, :class:`~leaspy.utils.typing.DictParamsTorch`]
+            The timepoints and individual parameters converted to tensors.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If computation is tried on more than 1 individual.
+        """
         from .utilities import tensorize_2D
 
         if not skip_ips_checks:
@@ -204,7 +254,18 @@ class McmcSaemCompatibleModel(StatefulModel):
     def _check_individual_parameters_provided(
         self, individual_parameters_keys: Iterable[str]
     ) -> None:
-        """Check consistency of individual parameters keys provided."""
+        """Check consistency of individual parameters keys provided.
+
+        Parameters
+        ----------
+        individual_parameters_keys : :obj:`Iterable` [:obj:`str`]
+            The keys of the individual parameters provided.
+
+        Raises
+        ------
+        :exc:`.LeaspyIndividualParamsInputError`
+            If any of the individual parameters keys are unknown or missing.
+        """
         ind_vars = set(self.individual_variables_names)
         unknown_ips = set(individual_parameters_keys).difference(ind_vars)
         missing_ips = ind_vars.difference(individual_parameters_keys)
@@ -230,11 +291,13 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        timepoints : scalar or array_like[scalar] (:obj:`list`, :obj:`tuple`, :class:`numpy.ndarray`)
+        timepoints : :obj:`scalar` or :obj:`array_like` [:obj:`scalar`] (:obj:`list`, :obj:`tuple`, :class:`numpy.ndarray`)
             Contains the age(s) of the subject.
-        individual_parameters : :obj:`dict`
+
+        individual_parameters : :class:`~leaspy.utils.typing.DictParams`
             Contains the individual parameters.
             Each individual parameter should be a scalar or array_like.
+
         skip_ips_checks : :obj:`bool` (default: ``False``)
             Flag to skip consistency/compatibility checks and tensorization
             of ``individual_parameters`` when it was done earlier (speed-up).
@@ -244,13 +307,6 @@ class McmcSaemCompatibleModel(StatefulModel):
         :class:`torch.Tensor`
             Contains the subject's scores computed at the given age(s)
             Shape of tensor is ``(1, n_tpts, n_features)``.
-
-        Raises
-        ------
-        :exc:`.LeaspyModelInputError`
-            If computation is tried on more than 1 individual.
-        :exc:`.LeaspyIndividualParamsInputError`
-            if invalid individual parameters.
         """
         self._check_individual_parameters_provided(individual_parameters.keys())
         timepoints, individual_parameters = self._get_tensorized_inputs(
@@ -280,15 +336,24 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        timepoints : :class:`torch.Tensor` [1, n_timepoints]
-        prior_type : LatentVariableInitType
-        n_individuals : int, optional
+        timepoints : :obj:`torch.Tensor` [1, n_timepoints]
+            Contains the timepoints (age(s) of the subject).
+
+        prior_type : :class:`~leaspy.variables.specs.LatentVariableInitType`
+            The type of prior to use for the individual parameters.
+
+        n_individuals : :obj:`int`, optional
             The number of individuals.
 
         Returns
         -------
         :class:`torch.Tensor` [1, n_timepoints, dimension]
             The group-average values at given timepoints.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If `n_individuals` is provided but not a positive integer, or if it is provided while `prior_type` is not `LatentVariableInitType.PRIOR_SAMPLES`.
         """
         exc_n_ind_iff_prior_samples = LeaspyModelInputError(
             "You should provide n_individuals (int >= 1) if, "
@@ -310,15 +375,40 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         return local_state["model"]
 
-    def compute_mean_traj(self, timepoints: torch.Tensor):
-        """Trajectory for average of individual parameters (not really meaningful for non-linear models)."""
+    def compute_mean_traj(
+        self, timepoints: torch.Tensor
+    ) -> TensorOrWeightedTensor[float]:
+        """Trajectory for average of individual parameters (not really meaningful for non-linear models).
+
+        Parameters
+        ----------
+        timepoints : :obj:`torch.Tensor` [1, n_timepoints]
+
+        Returns
+        -------
+        :class:`torch.Tensor` [1, n_timepoints, dimension]
+            The group-average values at given timepoints.
+        """
         # TODO/WIP: keep this in BaseModel interface? or only provide `compute_prior_trajectory`, or `compute_mode|typical_traj` instead?
         return self.compute_prior_trajectory(
             timepoints, LatentVariableInitType.PRIOR_MEAN
         )
 
-    def compute_mode_traj(self, timepoints: torch.Tensor):
-        """Most typical individual trajectory."""
+    def compute_mode_traj(
+        self, timepoints: torch.Tensor
+    ) -> TensorOrWeightedTensor[float]:
+        """Most typical individual trajectory.
+
+        Parameters
+        ----------
+        timepoints : :obj:`torch.Tensor` [1, n_timepoints]
+
+        Returns
+        -------
+        :class:`torch.Tensor` [1, n_timepoints, dimension]
+            The group-average values at given timepoints.
+
+        """
         return self.compute_prior_trajectory(
             timepoints, LatentVariableInitType.PRIOR_MODE
         )
@@ -334,14 +424,17 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        state : :class:`.State`
-            Instance holding values for all model variables (including latent individual variables), as well as:
-            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
+        state : :class:`~leaspy.variables.state.State`
+            Instance holding values for all model variables (including latent individual variables)
 
         Returns
         -------
-        :obj:`dict` [ param_name: :obj:`str`, :class:`torch.Tensor` ] :
+        :class:`~leaaspy.utils.typing.DictParamsTorch`
             Tensors are of shape ``(n_individuals, n_timepoints, n_features, n_dims_param)``.
+
+        Raises
+        ------
+        :exc:`NotImplementedError`
         """
         # return {
         #     ip: state[f"model_jacobian_{ip}"]
@@ -356,11 +449,12 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        state : :class:`.State`
+        state : :class:`~leaspy.variables.state.State`
 
         Returns
         -------
-        :obj:`dict` [ suff_stat: :obj:`str`, :class:`torch.Tensor`]
+        :class:`~leaspy.variables.specs.SuffStatsRW`
+            Contains the sufficient statistics computed from the state.
         """
         suff_stats = {}
         for mp_var in state.dag.sorted_variables_by_type[ModelParameter].values():
@@ -391,9 +485,17 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Parameters
         ----------
-        state : :class:`.State`
-        sufficient_statistics : dict[suff_stat: str, :class:`torch.Tensor`]
-        burn_in : bool
+        cls : :class:`~leaspy.models.mcmc_saem_compatible.McmcSaemCompatibleModel`
+            Model class to which the parameters belong.
+
+        state : :class:`~leaspy.variables.state.State`
+            Instance holding values for all model variables (including latent individual variables)
+
+        sufficient_statistics : :class:`~leaspy.variables.specs.SuffStatsRO`
+            Contains the sufficient statistics computed from the state.
+
+        burn_in : :obj:`bool`
+            If True, the parameters are updated in a burn-in phase.
         """
         # <!> we should wait before updating state since some updating rules may depending on OLD state
         # (i.e. no sequential update of state but batched updates once all updated values were retrieved)
@@ -411,6 +513,13 @@ class McmcSaemCompatibleModel(StatefulModel):
             state[mp] = mp_updated_val
 
     def get_variables_specs(self) -> NamedVariables:
+        """Get the specifications of the variables used in the model.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.NamedVariables`
+            Specifications of the variables used in the model, including timepoints and observation models.
+        """
         specifications = NamedVariables({"t": DataVariable()})
         single_obs_model = len(self.obs_models) == 1
         for obs_model in self.obs_models:
@@ -421,12 +530,34 @@ class McmcSaemCompatibleModel(StatefulModel):
 
     @abstractmethod
     def put_individual_parameters(self, state: State, dataset: Dataset):
+        """Put the individual parameters inside the provided state (in-place).
+
+        Raises
+        ------
+        :exc:`NotImplementedError`
+
+        """
         raise NotImplementedError()
 
     def _put_data_timepoints(
         self, state: State, timepoints: TensorOrWeightedTensor[float]
     ) -> None:
-        """Put the timepoints variables inside the provided state (in-place)."""
+        """Put the timepoints variables inside the provided state (in-place).
+
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.state.State`
+            Instance holding values for all model variables (including latent individual variables), as well as:
+            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
+
+        timepoints : :class:`~leaspy.utils.weighted_tensor.WeightedTensor` or :class:`torch.Tensor`
+            Contains the timepoints (age(s) of the subject).
+
+        Raises
+        ------
+        :exc:`TypeError`
+            If the provided timepoints are not of type :class:`torch.Tensor` or :class:`~leaspy.utils.weighted_tensor.WeightedTensor`.
+        """
         # TODO/WIP: we use a regular tensor with 0 for times so that 'model' is a regular tensor
         # (to avoid having to cope with `StatelessDistributionFamily` having some `WeightedTensor` as parameters)
         if isinstance(timepoints, WeightedTensor):
@@ -440,7 +571,17 @@ class McmcSaemCompatibleModel(StatefulModel):
             )
 
     def put_data_variables(self, state: State, dataset: Dataset) -> None:
-        """Put all the needed data variables inside the provided state (in-place)."""
+        """Put all the needed data variables inside the provided state (in-place).
+
+        Parameters
+        ----------
+
+        state : :class:`~leaspy.variables.state.State`
+            Instance holding values for all model variables (including latent individual variables), as well as:
+            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
+            The dataset containing the data to be put in the state.
+        """
         self._put_data_timepoints(
             state,
             WeightedTensor(
@@ -451,7 +592,14 @@ class McmcSaemCompatibleModel(StatefulModel):
             state[obs_model.name] = obs_model.getter(dataset)
 
     def reset_data_variables(self, state: State) -> None:
-        """Reset all data variables inside the provided state (in-place)."""
+        """Reset all data variables inside the provided state (in-place).
+
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.state.State`
+            Instance holding values for all model variables (including latent individual variables), as well as:
+            - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
+        """
         state["t"] = None
         for obs_model in self.obs_models:
             state[obs_model.name] = None
