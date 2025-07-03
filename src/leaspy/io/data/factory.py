@@ -44,7 +44,8 @@ class DataframeDataReaderNames(Enum):
         Raises
         ------
         :exc:`NotImplementedError`
-            If the provided `reader_name` does not match any of the enum members.
+            If the provided `reader_name` does not match any of the enum members and is not implemented.
+            Give the valid names in the error message.
         """
         try:
             return cls(reader_name.lower())
@@ -84,7 +85,7 @@ def dataframe_data_reader_factory(
 
     Returns
     -------
-    :class:`~leaspy.models.obs_models`
+    :class:`~leaspy.io.data.abstract_dataframe_data_reader.AbstractDataframeDataReader`
         The desired observation model.
 
     Raises
