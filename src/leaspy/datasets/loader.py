@@ -62,6 +62,11 @@ def get_individual_parameter_path(name: Union[str, DatasetName]) -> Path:
     -------
     :obj:`pathlib.Path`
         The path to the individual parameters file.
+
+    Raises
+    ------
+    :exc:`ValueError`
+        If the dataset does not have individual parameters, such as `parkinson-putamen-train_and_test`.
     """
     name = DatasetName(name)
     if name == DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
@@ -89,6 +94,11 @@ def get_model_path(name: Union[str, DatasetName]) -> Path:
     -------
     :obj:`pathlib.Path`
         The path to the model parameters file.
+
+    Raises
+    ------
+    :exc:`ValueError`
+        If the dataset does not have a model, such as `parkinson-putamen-train_and_test`.
     """
     name = DatasetName(name)
     if name == DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:

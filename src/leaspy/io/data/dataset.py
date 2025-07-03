@@ -273,6 +273,11 @@ class Dataset:
         -------
         :obj:`torch.Tensor`, shape (n_obs_of_patient,)
             Contains float
+
+        Raises
+        ------
+        :exc:`.ValueError`
+            If the dataset has no covariates.
         """
         if self.covariates is not None:
             return self.covariates[idx_patient]
@@ -337,6 +342,13 @@ class Dataset:
         Returns
         -------
         :obj:`pandas.DataFrame`
+            DataFrame with index ['ID', 'TIME'] and columns corresponding to the features, events and covariates.
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError`
+            If the index of the DataFrame is not unique or contains invalid values.
+
         """
         to_concat = []
 
@@ -418,6 +430,11 @@ class Dataset:
         -------
         :obj:`torch.LongTensor`
             One-hot encoding of data values.
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError`
+            If the values are not non-negative integers or if the features in `ordinal_infos` are not consistent with the dataset headers.
         """
         if self._one_hot_encoding is not None:
             return self._one_hot_encoding[sf]
