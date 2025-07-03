@@ -87,6 +87,12 @@ def get_named_parameters(f: Callable) -> Tuple[str, ...]:
     -------
     :obj:`tuple` [:obj:`str`, ...]
         A tuple containing the names of the parameters of the function `f`.
+
+    Raises
+    ------
+    :obj:`ValueError`
+        If the function `f` has positional parameters or if it has keyword-only parameters
+        that are not allowed by the `NamedInputFunction` interface.
     """
     from inspect import signature
 
@@ -124,6 +130,12 @@ def _arguments_checker(
     -------
     :obj:`Callable`
         A function that checks the provided arguments and keyword arguments against the specified criteria.
+
+    Raises
+    ------
+    :obj:`ValueError`
+        If `nb_arguments` is not a positive integer or None, or if mandatory keyword arguments
+        are not allowed, or if the number of positional arguments does not match `nb_arguments`.
     """
     if nb_arguments is not None and (
         not isinstance(nb_arguments, int) or nb_arguments < 0
@@ -161,8 +173,6 @@ def _arguments_checker(
         :obj:`ValueError`
             If the number of positional arguments does not match `nb_arguments`, or if
             mandatory keyword arguments are missing, or if unknown keyword arguments are provided.
-        :obj:`TypeError`
-            If `nb_arguments` is not a positive integer or None.
 
         """
         if nb_arguments_error_msg is not None:
