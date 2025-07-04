@@ -29,7 +29,7 @@ class DataframeDataReaderNames(Enum):
     @classmethod
     def from_string(cls, reader_name: str):
         """
-        Returns the DataframeDataReaderNames enum member corresponding to the given string.
+        Returns the enum member corresponding to the given string.
 
         Parameters
         ----------
@@ -77,7 +77,7 @@ def dataframe_data_reader_factory(
     Parameters
     ----------
     model : :obj:`str` or :class:`~leaspy.models.obs_models` or :obj:`dict` [ :obj:`str`, ...]
-        - If an instance of a subclass of `~leaspy.models.obs_models`, returns the instance.
+        - If :class:`~leaspy.models.obs_models`, returns the instance.
         - If a string, then returns a new instance of the appropriate class (with optional parameters `kws`).
         - If a dictionary, it must contain the 'name' key and other initialization parameters.
     **kwargs
