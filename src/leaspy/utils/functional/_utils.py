@@ -81,11 +81,23 @@ def _index_of(
     -------
     Tensor of shape (N,), where each element is the index in `unique_covariates`
     """
-    cov_value = covariates.value if isinstance(covariates, WeightedTensor) else covariates
-    unique_cov_value = unique_covariates.value if isinstance(unique_covariates, WeightedTensor) else unique_covariates
-    return (cov_value[:, None] == unique_cov_value[None, :]).nonzero(as_tuple=False)[:, 1]
+    cov_value = (
+        covariates.value if isinstance(covariates, WeightedTensor) else covariates
+    )
+    unique_cov_value = (
+        unique_covariates.value
+        if isinstance(unique_covariates, WeightedTensor)
+        else unique_covariates
+    )
+    index_map = {val.item(): i for i, val in enumerate(unique_cov_value)}
+    return torch.tensor(
+        [index_map[val.item()] for val in cov_value.squeeze()], dtype=torch.long
+    )
 
-def _batch_matmul_by_index(sources: torch.Tensor, mixing_matrices: torch.Tensor, group_indices: torch.Tensor):
+
+def _batch_matmul_by_index(
+    sources: torch.Tensor, mixing_matrices: torch.Tensor, group_indices: torch.Tensor
+):
     """
     Args:
         sources: (Ni, Ns)

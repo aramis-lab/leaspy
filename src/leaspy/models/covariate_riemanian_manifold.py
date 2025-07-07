@@ -70,6 +70,14 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             "g",
             "v0",
             "noise_std",
+            "phi_tau",
+            "phi_g",
+            "phi_v0",
+            "rho_tau",
+            "rho_g",
+            "rho_v0",
+            "phi_v0_mean",
+            "phi_tau_mean",
             # "tau_mean",
             # "tau_std",
             "xi_mean",
@@ -157,7 +165,7 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
                 ("phi_v0"), shape=(self.dimension, 2)
             ),
             phi_v0_std=Hyperparameter((0.001, 0.01)),
-            rho_v0=ModelParameter.for_correlation_covariate_linear(
+            rho_v0=ModelParameter.for_pop_coeff_corr(
                 ("phi_v0"), shape=(self.dimension,)
             ),
             xi_mean=Hyperparameter(0.0),
@@ -317,9 +325,7 @@ class CovariateLogisticModel(
                 ("phi_g"), shape=(self.dimension, 2)
             ),
             phi_g_std=Hyperparameter((0.001, 0.01)),
-            rho_g=ModelParameter.for_correlation_covariate_linear(
-                ("phi_g"), shape=(self.dimension,)
-            ),
+            rho_g=ModelParameter.for_pop_coeff_corr(("phi_g"), shape=(self.dimension,)),
             # LATENT VARS
             phi_g=PopulationLatentVariable(
                 BivariateNormal("phi_g_mean", "phi_g_std", "rho_g")

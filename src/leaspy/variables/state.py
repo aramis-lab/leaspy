@@ -510,6 +510,8 @@ class State(MutableMapping):
                     f"{variable_name}_{i}": value[:, i].tolist()
                     for i in range(value.shape[1])
                 }
+        elif value.ndim == 3:
+            return {variable_name: value.tolist()}
         else:
             raise ValueError(
                 f"The value of variable {variable_name} "
