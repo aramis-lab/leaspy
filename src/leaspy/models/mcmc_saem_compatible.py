@@ -32,7 +32,7 @@ class McmcSaemCompatibleModel(StatefulModel):
     name : :obj:`str`
         The name of the model.
 
-    obs_models : :class:`~leaspy.models.obs_models` or :obj:`Iterable` [:class:`~leaspy.models.obs_models`]
+    obs_models : :class:`~leaspy.models.obs_models` or :class:`~typing.Iterable` [:class:`~leaspy.models.obs_models`]
         The noise model for observations (keyword-only parameter).
 
     fit_metrics : :obj:`dict`
@@ -48,7 +48,7 @@ class McmcSaemCompatibleModel(StatefulModel):
         Indicates if the model is initialized.
     name : :obj:`str`
         The model's name.
-    features : :obj:`list` of :obj:`str`
+    features : :obj:`list` [:obj:`str`]
         Names of the model features.
     parameters : :obj:`dict`
         Contains the model's parameters
@@ -429,7 +429,7 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Returns
         -------
-        :class:`~leaaspy.utils.typing.DictParamsTorch`
+        :class:`~leaspy.utils.typing.DictParamsTorch`
             Tensors are of shape ``(n_individuals, n_timepoints, n_features, n_dims_param)``.
 
         Raises
