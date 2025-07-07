@@ -43,6 +43,11 @@ def get_dataset_path(name: Union[str, DatasetName]) -> Path:
     -------
     :obj:`pathlib.Path`
         The path to the dataset file.
+
+    Example:
+    --------
+    >>> from leaspy.datasets.loader import get_dataset_path
+    >>> path = get_dataset_path("alzheimer")
     """
     name = DatasetName(name)
     current_folder = Path(__file__).parent.resolve()
