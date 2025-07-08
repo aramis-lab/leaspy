@@ -28,7 +28,8 @@ class Result:
     Parameters
     ----------
     data : :class:`.Data`
-        Object containing the idx, time-points and observations of the patients
+        Object containing the information of the individuals, 
+        in particular the time-points :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
     individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
         Contains log-acceleration 'xi', time-shifts 'tau' & 'sources'
     noise_std : :obj:`float` or :class:`torch.FloatTensor`, optional (default None)
@@ -37,7 +38,8 @@ class Result:
     Attributes
     ----------
     data : :class:`.Data`
-        Object containing the idx, time-points and observations of the patients.
+        Object containing the information of the individuals, 
+        in particular the time-points :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
     individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
         Contains log-acceleration 'xi', time-shifts 'tau' & 'sources' (dictionary of `torch.Tensor`).
     ID_to_idx : :obj:`dict`
