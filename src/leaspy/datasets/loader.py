@@ -19,6 +19,11 @@ __all__ = [
 
 
 class DatasetName(str, Enum):
+    """
+    Enum for the names of the datasets available in Leaspy.
+    The names correspond to the files in the `data` folder.
+    """
+
     ALZHEIMER = "alzheimer"
     PARKINSON = "parkinson"
     PARKINSON_PUTAMEN = "parkinson-putamen"
@@ -26,12 +31,48 @@ class DatasetName(str, Enum):
 
 
 def get_dataset_path(name: Union[str, DatasetName]) -> Path:
+    """
+    Get the path to the dataset file.
+
+    Parameters
+    ----------
+    name : :obj:`str` or :class:`~leaspy.datasets.loader.DatasetName`
+        The name of the dataset.
+
+    Returns
+    -------
+    :obj:`pathlib.Path`
+        The path to the dataset file.
+
+    Example:
+    --------
+    >>> from leaspy.datasets.loader import get_dataset_path
+    >>> path = get_dataset_path("alzheimer")
+    """
     name = DatasetName(name)
     current_folder = Path(__file__).parent.resolve()
     return current_folder / "data" / f"{name.value}.csv"
 
 
 def get_individual_parameter_path(name: Union[str, DatasetName]) -> Path:
+    """
+    Get the path to the individual parameters file.
+
+    Parameters
+    ----------
+    name : :obj:`str` or :class:`~leaspy.datasets.loader.DatasetName`
+        The name of the dataset.
+
+    Returns
+    -------
+    :obj:`pathlib.Path`
+        The path to the individual parameters file.
+
+    Raises
+    ------
+    :exc:`ValueError`
+        If the dataset does not have individual parameters, such as `parkinson-putamen-train_and_test`.
+    """
     name = DatasetName(name)
     if name == DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
         raise ValueError(
@@ -46,6 +87,24 @@ def get_individual_parameter_path(name: Union[str, DatasetName]) -> Path:
 
 
 def get_model_path(name: Union[str, DatasetName]) -> Path:
+    """
+    Get the path to the model parameters file.
+
+    Parameters
+    ----------
+    name : :obj:`str` or :class:`~leaspy.datasets.loader.DatasetName`
+        The name of the dataset.
+
+    Returns
+    -------
+    :obj:`pathlib.Path`
+        The path to the model parameters file.
+
+    Raises
+    ------
+    :exc:`ValueError`
+        If the dataset does not have a model, such as `parkinson-putamen-train_and_test`.
+    """
     name = DatasetName(name)
     if name == DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
         raise ValueError(f"No model instance for the dataset {name.value}.")
@@ -59,12 +118,12 @@ def load_dataset(dataset_name: Union[str, DatasetName]) -> pd.DataFrame:
 
     Parameters
     ----------
-    dataset_name : str or DatasetName
+    dataset_name : :obj:`str` or :class:`DatasetName`
         The name of the dataset to load.
 
     Returns
     -------
-    :class:`pandas.DataFrame`
+    :obj:`pandas.DataFrame`
         The DataFrame containing the IDs, timepoints and observations.
 
     Notes
@@ -93,12 +152,12 @@ def load_individual_parameters(name: Union[str, DatasetName]) -> IndividualParam
 
     Parameters
     ----------
-    name : str or IndividualParameterName
+    name : :obj:`str` or :class:`~leaspy.datasets.loader.DatasetName`
         The name of the individual parameters to load.
 
     Returns
     -------
-    :class:`.IndividualParameters`
+    :class:`~leaspy.io.outputs.IndividualParameters`
         Leaspy instance with a model already calibrated.
     """
     return IndividualParameters.load(str(get_individual_parameter_path(name)))
@@ -109,7 +168,7 @@ def load_model(name: Union[str, DatasetName]) -> BaseModel:
 
     Parameters
     ----------
-    name : str or DatasetName
+    name : :obj:`str` or :class:`~leaspy.datasets.loader.DatasetName`
         The name of the instance to load.
 
     Returns
