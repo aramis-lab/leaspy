@@ -24,6 +24,7 @@ from leaspy.utils.functional import (
     Identity,
     Mean,
     NamedInputFunction,
+    Prod,
     Sqr,
     Std,
     Sum,
@@ -39,7 +40,11 @@ from leaspy.utils.weighted_tensor import (
 )
 
 from .distributions import SymbolicDistribution
-from .utilities import compute_individual_parameter_std_from_sufficient_statistics
+from .utilities import (
+    compute_correlation_ind,
+    compute_correlation_pop,
+    compute_individual_parameter_std_from_sufficient_statistics,
+)
 
 __all__ = [
     "VariableName",
@@ -354,6 +359,58 @@ class ModelParameter(IndepVariable):
             update_rule=update_rule_normal,
         )
 
+    @classmethod
+    def for_ind_coeff_corr(
+        cls,
+        variable_name: VariableName,
+        shape: tuple[int, ...],
+    ):
+        """Smart automatic definition of `ModelParameter` when it is a correlation coefficient (rho)
+        between two components of an individual latent variable (e.g. phi_tau[:, 0] and phi_tau[:, 1]).
+        """
+        update_rule = NamedInputFunction(
+            compute_correlation_ind,
+            parameters=(
+                "state",
+                variable_name,
+            ),
+            kws=dict(
+                parameters_name=variable_name,
+                dim=LVL_IND,
+            ),
+        )
+        return cls(
+            shape,
+            suff_stats=Collect(variable_name),
+            update_rule=update_rule,
+        )
+
+    @classmethod
+    def for_pop_coeff_corr(
+        cls,
+        variable_name: VariableName,
+        shape: tuple[int, ...],
+    ):
+        """Smart automatic definition of `ModelParameter` when it is a correlation coefficient (rho)
+        between two components of an individual latent variable (e.g. phi_tau[:, 0] and phi_tau[:, 1]).
+        """
+        update_rule = NamedInputFunction(
+            compute_correlation_pop,
+            parameters=(
+                "state",
+                variable_name,
+            ),
+            kws=dict(
+                parameters_name=variable_name,
+                dim=LVL_IND,
+            ),
+        )
+        return cls(
+            shape,
+            suff_stats=Collect(variable_name),
+            update_rule=update_rule,
+        )
+
 
 @dataclass(frozen=True)
 class DataVariable(IndepVariable):
@@ -585,6 +642,7 @@ class LinkedVariable(VariableInterface):
         :class:`~leaspy.variables.specs.VariableValue` :
             The value of the variable.
         """
+        # print({k: state[k].shape for k in self.parameters})
         return self.f(**{k: state[k] for k in self.parameters})
 
 
