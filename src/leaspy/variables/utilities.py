@@ -76,7 +76,8 @@ def compute_correlation_ind(
         raise ValueError(f"Standard deviation is zero for parameter {parameters_name}")
 
     rho = covariance / (std_mod * std_ref)
-    print(parameters_name, "update:", rho.item(), flush=True)
+    print("rho", rho)
+    print(f"rho_{parameters_name} update:", rho.item(), flush=True)
 
     return rho  # shape: (1,)
 
@@ -112,7 +113,8 @@ def compute_correlation_pop(
         raise ValueError(f"Standard deviation is zero for parameter {parameters_name}")
 
     rho = covariance / (std_mod * std_ref)  # shape: (K,)
-    print(parameters_name, "update:", rho.tolist(), flush=True)
+    print("rho", rho)
+    print(f"rho_{parameters_name} update:", rho.tolist(), flush=True)
 
     return rho  # shape: (K,)
 

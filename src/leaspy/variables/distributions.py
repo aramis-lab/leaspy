@@ -393,6 +393,9 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         Returns a bivariate normal distribution with given means, stds, and correlation.
         Assumes shape broadcasting is consistent.
         """
+        print("loc.requires_grad:", loc.requires_grad)
+        print("scale.requires_grad:", scale.requires_grad)
+        print("coeff_corr.requires_grad:", coeff_corr.requires_grad)
 
         if loc.dim() == 1:
             loc = loc.unsqueeze(0)
@@ -426,15 +429,10 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     def sample(
         cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
     ) -> torch.Tensor:
-        loc, scale, rho = params
-
-        Ni = sample_shape[0]
-        loc = loc.unsqueeze(0).expand(Ni, -1)  # (Ni, 2)
-        scale = scale.unsqueeze(0).expand(Ni, -1)  # (Ni, 2)
-        rho = rho.expand(Ni)  # (Ni,)
-
-        dist = cls.dist_factory(loc, scale, rho)
-        sample = dist.sample()
+        dist = cls.dist_factory(*params)
+        sample = dist.rsample(sample_shape)
+        sample = sample.squeeze(1) if sample.dim() == 3 else sample
+        print("sample shape:", sample.shape)
         return sample
 
     @classmethod
