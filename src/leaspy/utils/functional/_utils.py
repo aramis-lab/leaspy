@@ -35,6 +35,84 @@ def _identity(x: S) -> S:
     return x
 
 
+def _affine_from_vector(
+    coeffs: torch.Tensor,
+    x: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Affine transformation from (slope, intercept) and input x:
+    y = slope * x + intercept
+    Supports broadcasting.
+    """
+    if hasattr(x, "value"):
+        x_tensor = x.value
+    else:
+        x_tensor = x
+
+    slope = coeffs[:, 0].unsqueeze(1)
+    intercept = coeffs[:, 1].unsqueeze(1)
+
+    if x_tensor.dim() == 1:
+        x_tensor = x_tensor.unsqueeze(0)
+
+    return slope * x_tensor + intercept
+
+
+def _unique_wrapper(x) -> torch.Tensor:
+    # Si c'est un WeightedTensor, récupère son .weighted_value, sinon laisse tel quel
+    if isinstance(x, WeightedTensor):
+        x = x.weighted_value
+    return torch.unique(x)
+
+
+def _index_of(
+    covariates: torch.Tensor,
+    unique_covariates: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Returns the indices in `unique_covariates` corresponding to each entry in `covariates`.
+    Parameters
+    ----------
+    covariates : Tensor of shape (N,)
+    unique_covariates : Tensor of shape (M,)
+    Returns
+    -------
+    Tensor of shape (N,), where each element is the index in `unique_covariates`
+    """
+    cov_value = (
+        covariates.value if isinstance(covariates, WeightedTensor) else covariates
+    )
+    unique_cov_value = (
+        unique_covariates.value
+        if isinstance(unique_covariates, WeightedTensor)
+        else unique_covariates
+    )
+    index_map = {val.item(): i for i, val in enumerate(unique_cov_value)}
+    return torch.tensor(
+        [index_map[val.item()] for val in cov_value.squeeze()], dtype=torch.long
+    )
+
+
+def _batch_matmul_by_index(
+    sources: torch.Tensor, mixing_matrices: torch.Tensor, group_indices: torch.Tensor
+):
+    """
+    Args:
+        sources: (Ni, Ns)
+        mixing_matrices: (Nc, Ns, K)
+        group_indices: (Ni,)
+    Returns:
+        space_shifts: (Ni, K)
+    """
+    return torch.stack(
+        [
+            torch.matmul(sources[i], mixing_matrices[group_indices[i]])
+            for i in range(sources.shape[0])
+        ],
+        dim=0,
+    )
+
+
 def get_named_parameters(f: Callable) -> Tuple[str, ...]:
     """
     Get the names of parameters of the input function `f`, which should be

@@ -103,7 +103,7 @@ class FitOutputManager:
 
         if self.periodicity_save is not None:
             if iteration == 0 or iteration % self.periodicity_save == 0:
-                self.save_plot_patient_reconstructions(iteration, model, data)
+                # self.save_plot_patient_reconstructions(iteration, model, data)
                 self.save_model_parameters_convergence(iteration, model)
 
         if self.periodicity_plot is not None:

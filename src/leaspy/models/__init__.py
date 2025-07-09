@@ -1,5 +1,10 @@
 from .base import BaseModel, ModelInterface
 from .constant import ConstantModel
+from .covariate_riemanian_manifold import (
+    CovariateLogisticModel,
+    CovariateRiemanianManifoldModel,
+)
+from .covariate_time_reparametrized import CovariateTimeReparametrizedModel
 from .factory import ModelName, model_factory
 from .joint import JointModel
 from .lme import LMEModel
@@ -32,4 +37,7 @@ __all__ = [
     "LinearModel",
     "SharedSpeedLogisticModel",
     "JointModel",
+    "CovariateTimeReparametrizedModel",
+    "CovariateRiemannianManifoldModel",
+    "CovariateLogisticModel",
 ]
