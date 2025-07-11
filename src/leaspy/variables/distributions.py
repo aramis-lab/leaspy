@@ -452,9 +452,7 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             dim=-2,
         )  # shape (..., 2, 2)
 
-        mean = loc
-
-        dist = cls.dist_factory(mean, cov)
+        dist = cls.dist_factory(loc, cov)
         sample = dist.sample(sample_shape)
         sample = sample.squeeze(1) if sample.dim() == 3 else sample
         print("sample shape:", sample.shape)
