@@ -56,9 +56,9 @@ class OutputsSettings:
     def __init__(self, settings):
         self.print_periodicity = None
         self.plot_periodicity = None
-        self.save_periodicity = 50
+        self.save_periodicity = None
         self.plot_sourcewise = False
-        self.nb_of_patients_to_plot = 5
+        self.nb_of_patients_to_plot = None
 
         self.root_path = None
         self.parameter_convergence_path = None
@@ -499,11 +499,11 @@ class AlgorithmSettings:
         settings = {
             "path": path,
             "print_periodicity": None,
-            "save_periodicity": 10,
-            "plot_periodicity": 50,
+            "save_periodicity": None,
+            "plot_periodicity": None,
             "plot_sourcewise": False,
             "overwrite_logs_folder": False,
-            "nb_of_patients_to_plot": 5,
+            "nb_of_patients_to_plot": None,
         }
 
         for k, v in kwargs.items():
