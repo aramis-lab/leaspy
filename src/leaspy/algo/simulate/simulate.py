@@ -44,7 +44,7 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
     name : :obj:`str`
         The name of the algorithm.
 
-    family : :class:`~leaspy.algo.base import AlgorithmType`
+    family : :class:`~leaspy.algo.base.AlgorithmType`
         The type of algorithm, which is AlgorithmType.SIMULATE.
 
     PARAM_REQUIREMENTS : :obj:`dict`
