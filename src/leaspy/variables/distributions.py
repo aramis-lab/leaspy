@@ -375,27 +375,59 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Bivariate Normal / Gaussian family (stateless)."""
 
     parameters: ClassVar = ("loc", "scale", "coeff_corr")
-    # dist_factory: ClassVar = torch.distributions.Normal
+    dist_factory: ClassVar = torch.distributions.MultivariateNormal
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
     def shape(cls, loc_shape, scale_shape, coeff_corr_shape):
         return loc_shape
 
+    # @classmethod
+    # def dist_factory(
+    #     cls,
+    #     loc: torch.Tensor,
+    #     scale: torch.Tensor,
+    #     coeff_corr: torch.Tensor,
+    # ) -> MultivariateNormal:
+    #     """
+    #     Returns a bivariate normal distribution with given means, stds, and correlation.
+    #     Assumes shape broadcasting is consistent.
+    #     """
+
+    #     if loc.dim() == 1:
+    #         loc = loc.unsqueeze(0)
+    #     if scale.dim() == 1:
+    #         scale = scale.unsqueeze(0)
+    #     if coeff_corr.dim() == 0:
+    #         coeff_corr = coeff_corr.unsqueeze(0)
+
+    #     # Covariance matrix
+    #     x_mu, y_mu = loc.unbind(-1)
+    #     x_std, y_std = scale.unbind(-1)
+    #     rho = coeff_corr
+
+    #     cov_11 = x_std**2
+    #     cov_22 = y_std**2
+    #     cov_12 = rho * x_std * y_std
+
+    #     cov = torch.stack(
+    #         [
+    #             torch.stack([cov_11, cov_12], dim=-1),
+    #             torch.stack([cov_12, cov_22], dim=-1),
+    #         ],
+    #         dim=-2,
+    #     )  # shape (..., 2, 2)
+
+    #     mean = torch.stack([x_mu, y_mu], dim=-1)  # shape (..., 2)
+
+    #     return MultivariateNormal(loc=mean, covariance_matrix=cov)
+
     @classmethod
-    def dist_factory(
-        cls,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
-        coeff_corr: torch.Tensor,
-    ) -> MultivariateNormal:
-        """
-        Returns a bivariate normal distribution with given means, stds, and correlation.
-        Assumes shape broadcasting is consistent.
-        """
-        print("loc.requires_grad:", loc.requires_grad)
-        print("scale.requires_grad:", scale.requires_grad)
-        print("coeff_corr.requires_grad:", coeff_corr.requires_grad)
+    def sample(
+        cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
+    ) -> torch.Tensor:
+
+        loc, scale, coeff_corr = params
 
         if loc.dim() == 1:
             loc = loc.unsqueeze(0)
@@ -405,7 +437,6 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             coeff_corr = coeff_corr.unsqueeze(0)
 
         # Covariance matrix
-        x_mu, y_mu = loc.unbind(-1)
         x_std, y_std = scale.unbind(-1)
         rho = coeff_corr
 
@@ -421,16 +452,10 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             dim=-2,
         )  # shape (..., 2, 2)
 
-        mean = torch.stack([x_mu, y_mu], dim=-1)  # shape (..., 2)
+        mean = loc
 
-        return MultivariateNormal(loc=mean, covariance_matrix=cov)
-
-    @classmethod
-    def sample(
-        cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
-    ) -> torch.Tensor:
-        dist = cls.dist_factory(*params)
-        sample = dist.rsample(sample_shape)
+        dist = cls.dist_factory(mean, cov)
+        sample = dist.sample(sample_shape)
         sample = sample.squeeze(1) if sample.dim() == 3 else sample
         print("sample shape:", sample.shape)
         return sample
