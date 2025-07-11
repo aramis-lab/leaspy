@@ -26,19 +26,26 @@ __all__ = ["VariablesDAG"]
 
 @dataclass(frozen=True)
 class VariablesDAG(Mapping):
-    """Directed acyclic graph of symbolic variables used in a leaspy model with efficient topologically sorted bidirectional access.
+    """
+    Directed acyclic graph of symbolic variables used in a leaspy model with efficient topologically sorted bidirectional access.
 
     Parameters
     ----------
     variables : :class:`~typing.Mapping` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`]
-        The specifications of DAG nodes.
-
+        A dictionary mapping variable names to their specification objects (e.g., `IndepVariable`, `LinkedVariable`, etc.).
     direct_ancestors : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
-        The nodes that are directly connected (in-going edge) to a given node.
+        A dictionary mapping each variable name to the set of variable names it directly depends on (i.e., its parents).
         Use :meth:`~leaspy.variables.dag.VariablesDAG.from_dict()` class method to reach the natural dependencies of linked variables.
 
     Notes
     -----
+    Internally, this class precomputes:
+    - `direct_children`: inverse of `direct_ancestors`, mapping each node to its immediate dependents.
+    - `sorted_variables_names`: a topological ordering of variable names (roots to leaves).
+    - `sorted_children`: all transitive children of a node in topological order.
+    - `sorted_ancestors`: all transitive ancestors of a node in topological order.
+    - `sorted_variables_by_type`: variables grouped and ordered by their Python class/type.
+
     In general the VariablesDAG is not a tree because the graph may not be totally connected and may have multiple roots.
     It is not a multi-tree either since there may be multiple directed paths between two nodes - e.g. `logistic_model = f[g, b(g), ...]`.
     However, we do assume that there is no cycle in the graph (not checked currently), which is equivalent to be topologically sortable.
@@ -51,8 +58,8 @@ class VariablesDAG(Mapping):
 
     Finally, we do not store children nor ancestors in a specific node class to avoid cross-references in such nodes.
 
-    todo
-    ----
+    To Do
+    -----
     - pre-compute roots (no ancestors) and leaves (no children) as well?
     - stratify variables dictionary per variable class?
 
@@ -72,7 +79,7 @@ class VariablesDAG(Mapping):
     """
 
     variables: TMapping[VariableName, VariableInterface]
-    """The specifications of DAG nodes."""
+    """Dictionary of variable names to their corresponding variable specification objects."""
 
     direct_ancestors: VariablesToFrozenSet = field(repr=False)
     """Mapping of variable names to their direct ancestors."""
@@ -84,7 +91,7 @@ class VariablesDAG(Mapping):
     sorted_variables_names: tuple[VariableName, ...] = field(
         init=False, repr=False, compare=False
     )
-    """A topological sorting of variables from roots to leaves. The iteration order corresponds to this sorting."""
+    """Tuple of variable names sorted in topological order (from roots to leaves)."""
     # path_matrix: torch.Tensor = field(init=False, repr=False, compare=False)  # big and useless?
     sorted_children: TMapping[VariableName, tuple[VariableName, ...]] = field(
         init=False, repr=False, compare=False
@@ -105,7 +112,8 @@ class VariablesDAG(Mapping):
 
     @classmethod
     def from_dict(cls, input_dictionary: TMapping[VariableName, VariableInterface]):
-        """Instantiate a new DAG of variables from a dictionary of variables.
+        """
+        Instantiate a new DAG of variables from a dictionary of variables.
 
         This method is using :class:`~leaspy.variables.specs.LinkedVariable` dependencies as direct ancestors.
 
@@ -113,6 +121,12 @@ class VariablesDAG(Mapping):
         ----------
         input_dictionary : :class:`~typing.Mapping` [:class:`~leaspy.variables.specs.VariableName` , :class:`~leaspy.variables.specs.VariableInterface`]
             The dictionary to use to create the DAG.
+
+        Returns
+        -------
+        :class:`VariablesDAG`
+            A new instance of `VariablesDAG` with the computed direct ancestor relationships.
+
         """
         direct_ancestors = {
             variable_name: variable.get_ancestors_names()
@@ -121,6 +135,9 @@ class VariablesDAG(Mapping):
         return cls(input_dictionary, direct_ancestors=direct_ancestors)
 
     def __post_init__(self):
+        """
+        Post-initialization routine to compute and cache derived attributes for the DAG.
+        """
         nodes = self._check_consistency_of_nodes()
         children = self._compute_direct_children(nodes)
         (
@@ -138,6 +155,20 @@ class VariablesDAG(Mapping):
         object.__setattr__(self, "sorted_variables_by_type", d_types)
 
     def _check_consistency_of_nodes(self) -> frozenset[VariableName]:
+        """
+        Ensure internal consistency between variables and their declared ancestors.
+
+        Returns
+        -------
+        :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]
+            The set of all variable names (i.e. DAG nodes) in the graph.
+
+        Raises
+        ------
+        :exc:`ValueError`
+            If there is a mismatch between the declared variable names and the keys in `direct_ancestors`.
+
+        """
         nodes = frozenset(self.variables.keys())
         if nodes != self.direct_ancestors.keys():
             raise ValueError("Inconsistent nodes in dictionary of ancestors edges")
@@ -149,7 +180,24 @@ class VariablesDAG(Mapping):
     def _compute_direct_children(
         self, nodes: frozenset[VariableName]
     ) -> VariablesToFrozenSet:
-        """Compute children for efficient bidirectional access."""
+        """
+        Compute children for efficient bidirectional access.
+        
+        Parameters
+        ----------
+        nodes : :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]
+            The set of all variable names in the DAG.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.VariablesToFrozenSet`
+            A dictionary mapping each variable name to a frozenset of its direct children.
+
+        Raises
+        ------
+        :exc:`ValueError`
+            If a node appears isolated—i.e., not listed as an ancestor or child in either mapping.
+        """
         children = defaultdict(set)
         for child_name, set_ancestors in self.direct_ancestors.items():
             for ancestor in set_ancestors:
@@ -166,6 +214,25 @@ class VariablesDAG(Mapping):
         TMapping[VariableName, tuple[VariableName, ...]],
         TMapping[VariableName, tuple[VariableName, ...]],
     ]:
+        """
+        Compute the topological order of variables and their transitive relationships.
+
+        Parameters
+        ----------
+        children : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
+            Mapping from each variable to its direct children.
+
+        Returns
+        -------
+        sorted_variables_names : :obj:`tuple`[:class:`~leaspy.variables.specs.VariableName`, ...]
+            A tuple of variable names sorted in topological order (from roots to leaves).
+        sorted_children : :class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :obj:`tuple`:class:`~leaspy.variables.specs.VariableName`, ...]]
+            A dictionary mapping each variable to a tuple of its transitive children,
+            ordered according to the topological sort.
+        sorted_ancestors : :class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :obj:`tuple`[:class:`~leaspy.variables.specs.VariableName`, ...]]
+            A dictionary mapping each variable to a tuple of its transitive ancestors,
+            ordered according to the topological sort.
+        """
         (
             sorted_variables_names,
             path_matrix,
@@ -181,7 +248,20 @@ class VariablesDAG(Mapping):
         self,
         sorted_variables_names: tuple[VariableName, ...],
     ) -> TMapping[Type[VariableInterface], TMapping[VariableName, VariableInterface]]:
-        """Stratification of variables, per variable type."""
+        """
+        Stratification of variables, per variable type.
+
+        Parameters
+        ----------
+        sorted_variables_names : :obj:`tuple`[:class:`~leaspy.variables.specs.VariableName`, ...]
+            A topologically sorted tuple of variable names, typically from roots to leaves.
+
+        Returns
+        -------
+        :class:`~typing.Mapping`[:obj:`Type`[:class:`~leaspy.variables.specs.VariableInterface`], :class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`]]
+            A dictionary mapping each variable class/type to a filtered, read-only mapping of
+            variable names to variable instances of that type.
+        """
         d_types = defaultdict(list)
         for var_name in sorted_variables_names:
             d_types[type(self.variables[var_name])].append(var_name)
@@ -191,7 +271,9 @@ class VariablesDAG(Mapping):
         }
 
     def __iter__(self):
-        """Iterates on keys in topological order (.keys(), .values() and .items() methods are automatically provided by `Mapping`)."""
+        """
+        Iterates on keys in topological order (.keys(), .values() and .items() methods are automatically provided by :class:`~typing.Mapping`).
+        """
         return iter(self.sorted_variables_names)
 
     def __len__(self) -> int:
@@ -209,6 +291,24 @@ class VariablesDAG(Mapping):
         *,
         what: str,
     ) -> None:
+        """
+        Validate that all referenced nodes in edge mappings are known and that there are no self-references.
+
+        Parameters
+        ----------
+        d_edges : :class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]]
+            A dictionary mapping each node to a frozenset of connected nodes (e.g., ancestors or children).
+        s_nodes : :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]
+            The set of valid nodes expected in the graph.
+        what : :obj:`str`
+            A descriptive label for the type of edges being checked (e.g., "ancestors", "children"),
+            used in error messages.
+
+        Raises
+        ------
+        :exc:`LeaspyInputError`
+            If there are unknown nodes referenced in the edges, or if any self-loops are detected.
+        """
         pooled_nodes_from_edges = set().union(*d_edges.values())
         unknown_nodes = pooled_nodes_from_edges.difference(s_nodes)
         if len(unknown_nodes):
@@ -225,8 +325,20 @@ class VariablesDAG(Mapping):
         d_ancestors: VariablesToFrozenSet,
     ) -> None:
         """
-        Forbid left alone nodes (no children nor ancestors) which would be very suspicious.
-        (Yet, we allow multiple connected components when sub-graph have more than 1 node)
+        Raise an error if any node has neither children nor ancestors, indicating an isolated node.
+        
+        Parameters
+        ----------
+        d_children : :class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]]
+            Mapping from each variable to its direct children.
+
+        d_ancestors ::class:`~typing.Mapping`[:class:`~leaspy.variables.specs.VariableName`, :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]]
+            Mapping from each variable to its direct ancestors.
+
+        Raises
+        ------
+        :exc:`LeaspyInputError`
+            If any variables are detected that have no children and no ancestors, i.e., are left completely alone.
         """
         s_left_alone = {
             var_name
@@ -243,7 +355,8 @@ class VariablesDAG(Mapping):
         direct_children: VariablesToFrozenSet,
         direct_ancestors: VariablesToFrozenSet,
     ) -> tuple[tuple[VariableName, ...], torch.Tensor]:
-        """Produce a topological sorting of the DAG.
+        """P
+        roduce a topological sorting of the DAG.
 
         This relies on a modified Kahn's algorithm to produce a topological sorting of DAG,
         and the corresponding path matrix as a by-product.
@@ -251,16 +364,14 @@ class VariablesDAG(Mapping):
         Parameters
         ----------
         direct_children : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
-
+            Mapping from each variable to its direct children.
         direct_ancestors : :class:`~leaspy.variables.specs.VariablesToFrozenSet`
-            The edges out-going (children) and in-going (ancestors) from a given node
-            (at most one edge per node and no self-loop).
+            Mapping from each variable to its direct ancestors.
 
         Returns
         -------
         sorted_nodes : :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]
             Nodes in a topological order.
-
         path_matrix : :class:`torch.Tensor` [:obj:`bool`]
             Boolean triangle superior (strict) matrix indicating whether
             there is a (directed) path between nodes.
@@ -322,20 +433,21 @@ class VariablesDAG(Mapping):
         dict[VariableName, tuple[VariableName, ...]],
         dict[VariableName, tuple[VariableName, ...]],
     ]:
-        """Produce node-wise topologically sorted children and ancestors from provided nodes.
+        """
+        Produce node-wise topologically sorted children and ancestors from provided nodes.
 
         Parameters
         ----------
         sorted_nodes : :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName`
             The sorted nodes.
-
         path_matrix : :class:`torch.Tensor`
+            A binary 2D tensor where `path_matrix[i, j] == 1` indicates a path from node `i` to node `j`.
+            Assumes the row/column indices correspond to the order of `sorted_nodes`.
 
         Returns
         -------
         sorted_children : :obj:`dict` [:class:`~leaspy.variables.specs.VariableName`, :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]]
             The sorted children.
-
         sorted_ancestors : :obj:`dict` [:class:`~leaspy.variables.specs.VariableName`, :obj:`tuple` [:class:`~leaspy.variables.specs.VariableName`, ...]]
             The sorted ancestors.
         """
@@ -357,7 +469,8 @@ class VariablesDAG(Mapping):
 
     @property
     def individual_variable_names(self) -> tuple[VariableName, ...]:
-        """Returns a tuple of variable names corresponding to the individual variables.
+        """
+        Returns a tuple of variable names corresponding to the individual variables.
 
         Returns
         -------
