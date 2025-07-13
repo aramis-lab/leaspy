@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 from .base import BaseModel
 from .constant import ConstantModel
+from .covariate_riemanian_manifold import CovariateLogisticModel
 from .joint import JointModel
 from .lme import LMEModel
 from .riemanian_manifold import LinearModel, LogisticModel
@@ -23,6 +24,7 @@ class ModelName(str, Enum):
     SHARED_SPEED_LOGISTIC = "shared_speed_logistic"
     LME = "lme"
     CONSTANT = "constant"
+    COVARIATE = "covariate"
 
 
 def model_factory(
@@ -63,3 +65,5 @@ def model_factory(
         return LMEModel(instance_name, **kwargs)
     if name == ModelName.CONSTANT:
         return ConstantModel(instance_name, **kwargs)
+    if name == ModelName.COVARIATE:
+        return CovariateLogisticModel(instance_name, **kwargs)
