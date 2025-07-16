@@ -296,7 +296,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        parameter : :class:`~leaspy..utils.typing.ParamType`
+        parameter : :class:`~leaspy.utils.typing.ParamType`
             Name of the parameter
 
         Returns
