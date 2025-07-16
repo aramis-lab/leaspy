@@ -75,8 +75,8 @@ class IndividualParameters:
         ----------
         index : :class::class:`~leaspy..utils.typing.IDType`
             Index of the individual
-        individual_parameters : :class:`~leaspy..utils.typing.DictParams`
-            Individual parameters of the individual {name: value:}
+        individual_parameters : :class:`~leaspy.utils.typing.DictParams`
+            Individual parameters of the individual
 
         Raises
         ------
