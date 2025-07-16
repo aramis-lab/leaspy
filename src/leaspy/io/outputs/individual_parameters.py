@@ -51,7 +51,7 @@ class IndividualParameters:
 
         Returns
         -------
-        dict of ParamType to int
+       :obj:`dict` of ParamType to :obj:`int`
             A dictionary mapping each parameter type to its total number of scalar values.
 
         Examples
