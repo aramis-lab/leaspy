@@ -209,7 +209,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        indices : :obj:`Iterable`[:class:`~leaspy..utils.typing.IDType`]
+        indices : :obj:`Iterable`[:class:`~leaspy.utils.typing.IDType`]
             List of strings that corresponds to the indices of the individuals to return
         copy : :obj:`bool`, optional (default True)
             Should we copy underlying parameters or not?
