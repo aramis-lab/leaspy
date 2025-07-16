@@ -499,7 +499,7 @@ class IndividualParameters:
 
         Returns
         -------
-        indices: :obj:`list`[:class:`~leaspy..utils.typing.IDType`]
+        indices: :obj:`list`[:class:`~leaspy.utils.typing.IDType`]
             List of patient indices
         pytorch_dict: :class:`~leaspy..utils.typing.DictParamsTorch`
             Dictionary of the individual parameters {parameter name: pytorch tensor of values across individuals}
