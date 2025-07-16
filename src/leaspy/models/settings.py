@@ -12,15 +12,27 @@ class ModelSettings:
     """
     Used in :meth:`.Leaspy.load` to create a :class:`.Leaspy` class object from a `json` file.
 
+    Attributes
+    ----------
+    name : :obj:`str`
+        The model's name.
+
+    parameters : :obj:`KwargsType`
+        The model's parameters.
+
+    hyperparameters : :obj:`KwargsType`
+        The model's hyperparameters.
+
     Parameters
     ----------
-    path_to_model_settings_or_dict : dict or str
+    path_to_model_settings_or_dict : :obj:`dict` or :obj:`str`
         * If a str: path to a json file containing model settings
         * If a dict: content of model settings
 
     Raises
     ------
     :exc:`.LeaspyModelInputError`
+        If the provided settings are not valid or if the file cannot be read.
     """
 
     def __init__(self, path_to_model_settings_or_dict: Union[str, dict]):
@@ -46,6 +58,18 @@ class ModelSettings:
 
     @staticmethod
     def _check_settings(settings: dict) -> None:
+        """Check if the settings are valid.
+
+        Parameters
+        ----------
+        settings : :obj:`dict`
+            The settings to check.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the settings are not valid: Key is missing or version is incompatible.
+        """
         for mandatory_key in ("name", "parameters"):
             if mandatory_key not in settings:
                 raise LeaspyModelInputError(
