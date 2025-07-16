@@ -23,49 +23,110 @@ __all__ = [
 
 
 class InitializationMethod(str, Enum):
-    """Possible initialization methods for Leaspy models."""
+    """Possible initialization methods for Leaspy models.
+
+    Attributes
+    ----------
+    DEFAULT : str
+        Default initialization method.
+
+    RANDOM : str
+        Random initialization method.
+    """
 
     DEFAULT = "default"
     RANDOM = "random"
 
 
 class ModelInterface(ABC):
-    """This is the public interface for Leaspy models."""
+    """This is the public interface for Leaspy models.
+    It defines the methods and properties that all models should implement.
+    It is not meant to be instantiated directly, but rather to be inherited by concrete model classes.
+    """
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """The name of the model."""
+        """The name of the model.
+
+        Returns
+        -------
+        :obj:`str`
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def is_initialized(self) -> bool:
-        """True if the model is initialized, False otherwise."""
+        """True if the model is initialized, False otherwise.
+
+        Returns
+        -------
+        :obj:`bool`
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def dimension(self) -> int:
-        """Number of features."""
+        """Number of features.
+
+        Returns
+        -------
+        :obj:`int`
+
+        Raises
+        ------
+        NotImplementedError"""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def features(self) -> list[FeatureType]:
-        """List of model features (`None` if not initialization)."""
+        """List of model features (`None` if not initialization).
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def parameters(self) -> DictParamsTorch:
-        """Dictionary of values for model parameters."""
+        """Dictionary of values for model parameters.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.DictParamsTorch`
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def hyperparameters(self) -> DictParamsTorch:
-        """Dictionary of values for model hyperparameters."""
+        """Dictionary of values for model hyperparameters.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.DictParamsTorch`
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -74,17 +135,32 @@ class ModelInterface(ABC):
 
         Parameters
         ----------
-        path : :obj:`str` or Path
+        path : :obj:`str` or :obj:`Path`
             The path to store the model's parameters.
 
-        **kwargs : dict
+        **kwargs : :obj:`dict`
             Additional parameters for writing.
+
+        Raises
+        ------
+        NotImplementedError
         """
         raise NotImplementedError
 
     @classmethod
     @abstractmethod
     def load(cls, path_to_model_settings: Union[str, Path]):
+        """Load a model from a json model parameter file.
+
+        Parameters
+        ----------
+        path_to_model_settings : :obj:`str` or :obj:`Path`
+            The path to the model's parameters file.
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -110,11 +186,11 @@ class ModelInterface(ABC):
 
         Parameters
         ----------
-        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
+        data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`, optional
             Contains the information of the individuals, in particular the time-points
             :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
 
-        algorithm : str, optional
+        algorithm : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`,optional
             The name of the algorithm to use.
 
             .. note::
@@ -128,15 +204,19 @@ class ModelInterface(ABC):
                 :class:`~leaspy.algo.AlgorithmSettings` class.
                 If provided, the fit will rely on these settings.
 
-        algorithm_settings_path : str or Path, optional
+        algorithm_settings_path : :obj:`str` or :obj:`Path`, optional
             The path to the algorithm settings file.
 
             .. note::
                 If provided, the settings from the file will be used instead of the
                 settings provided through kwarsg.
 
-        **kwargs : dict
+        **kwargs : :obj:`dict`
             Contains the algorithm's settings.
+
+        Raises
+        ------
+        NotImplementedError
 
         Examples
         --------
@@ -174,11 +254,11 @@ class ModelInterface(ABC):
 
         Parameters
         ----------
-        data : pd.DataFrame | :class:`~leaspy.io.Data` | :class:`~leaspy.io.Dataset`, optional
+        data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`, optional
             Contains the information of the individuals, in particular the time-points
             :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
 
-        algorithm : str, optional
+        algorithm : :obj:`str` or `~leaspy.algo.base.AlgorithmName`, optional
             The name of the algorithm to use.
 
         algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
@@ -189,19 +269,23 @@ class ModelInterface(ABC):
                 :class:`~leaspy.algo.AlgorithmSettings` class.
                 If provided, the fit will rely on these settings.
 
-        algorithm_settings_path : str or Path, optional
+        algorithm_settings_path : :obj:`str` or :obj:`Path`, optional
             The path to the algorithm settings file.
 
             .. note::
                 If provided, the settings from the file will be used instead of the settings provided.
 
-        **kwargs : dict
+        **kwargs : :obj:`dict`
             Contains the algorithm's settings.
 
         Returns
         -------
         ips : :class:`~leaspy.io.IndividualParameters`
             Individual parameters computed.
+
+        Raises
+        ------
+        NotImplementedError
 
         Examples
         --------
@@ -227,7 +311,7 @@ class ModelInterface(ABC):
 
         Parameters
         ----------
-        timepoints : dictionary {str/int: array_like[numeric]} or :class:`pandas.MultiIndex`
+        timepoints : :obj:`pd.MultiIndex` or :obj:`dict`[:obj:`IDType`, :obj:`list`[:obj:`float` ] ]
             Contains, for each individual, the time-points to estimate.
             It can be a unique time-point or a list of time-points.
 
@@ -240,9 +324,13 @@ class ModelInterface(ABC):
 
         Returns
         -------
-        individual_trajectory : :class:`pandas.DataFrame` or dict (depending on `to_dataframe` flag)
+        individual_trajectory : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`IDType`, :obj:`list` [:obj:`float`]]
             Key: patient indices.
             Value: :class:`numpy.ndarray` of the estimated value, in the shape (number of timepoints, number of features)
+
+        Raises
+        ------
+        NotImplementedError
 
         Examples
         --------
@@ -265,6 +353,39 @@ class ModelInterface(ABC):
         data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
         **kwargs,
     ):
+        """Run the simulation pipeline using a leaspy model.
+         This method simulates longitudinal data using the given leaspy model.
+         It performs the following steps:
+         - Retrieves individual parameters (IP) from fixed effects of the model.
+         - Loads the specified Leaspy model.
+         - Generates visit ages (timepoints) for each individual (based on specifications
+           in visits_type).
+         - Simulates observations at those visit ages.
+         - Packages the result into a `Result` object, including simulated data,
+           individual parameters, and the model's noise standard deviation.
+
+         Parameters
+         ----------
+         individual_parameters : :class:`~leaspy.io.IndividualParameters`
+             Individual parameters to use for the simulation.
+
+         data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`
+             Data object. If None, returns empty Result.
+
+         **kwargs : :obj:`dict`
+         raise NotImplementedError
+        `  Additional arguments for algorithm settings.
+
+         Returns
+         -------
+         simulated_data : :class:`~leaspy.io.outputs.result.Result`
+             Contains the generated individual parameters & the corresponding generated scores.
+             Returns empty Result if any required input is None.
+
+         Raises
+         ------
+         NotImplementedError
+        """
         raise NotImplementedError
 
 
@@ -290,16 +411,49 @@ class BaseModel(ModelInterface):
 
     @property
     def name(self) -> str:
+        """The name of the model.
+
+        Returns
+        -------
+        :obj:`str`
+            The name of the model.
+        """
+
         return self._name
 
     @property
     def is_initialized(self) -> bool:
+        """True if the model is initialized, False otherwise.
+
+        Returns
+        -------
+        :obj:`bool`
+            True if the model is initialized, False otherwise.
+        """
         return self._is_initialized
 
     def _validate_user_provided_dimension_and_features_at_init(
         self,
         **kwargs,
     ) -> tuple[Optional[int], Optional[list[FeatureType]]]:
+        """Validate user provided dimension and features at model initialization.
+
+        Parameters
+        ----------
+        **kwargs : :obj:`dict`
+            Keyword arguments that may contain 'features' and 'dimension'.
+
+        Returns
+        -------
+        :obj:`tuple` [:obj:`int`, :obj:`list` [:obj:`FeatureType`]]
+            A tuple containing the validated dimension and features.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the provided dimension is not an integer or if the features are not sizeable.
+            If the provided dimension does not match the number of features.
+        """
         from collections.abc import Sized
 
         user_provided_features = kwargs.pop("features", None)
@@ -333,10 +487,29 @@ class BaseModel(ModelInterface):
 
     @property
     def features(self) -> Optional[list[FeatureType]]:
+        """List of model features (`None` if not initialization).
+
+        Returns
+        -------
+        : :obj:`list` [:obj:`FeatureType`], optional
+            The features of the model, or None if not initialized.
+        """
         return self._features
 
     @features.setter
     def features(self, features: Optional[list[FeatureType]]):
+        """Set the model's features.
+
+        Parameters
+        ----------
+        features : :obj:`list`[:obj:`FeatureType`], optional
+            The features to set for the model. If None, it resets the features.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the provided features do not match the model's dimension.
+        """
         if features is None:
             # used to reset features
             self._features = None
@@ -351,6 +524,13 @@ class BaseModel(ModelInterface):
 
     @property
     def dimension(self) -> Optional[int]:
+        """Number of features.
+
+        Returns
+        -------
+        :obj:`int`, optional
+            The dimension of the model, or None if not initialized.
+        """
         if self._dimension is not None:
             return self._dimension
         if self.features is not None:
@@ -359,6 +539,18 @@ class BaseModel(ModelInterface):
 
     @dimension.setter
     def dimension(self, dimension: int):
+        """Set the model's dimension.
+
+        Parameters
+        ----------
+        dimension : :obj:`int`
+            The dimension to set for the model.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the model has already been initialized with features that do not match the new dimension.
+        """
         if self.features is None:
             self._dimension = dimension
         elif len(self.features) != dimension:
@@ -369,19 +561,19 @@ class BaseModel(ModelInterface):
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
     ) -> None:
-        """Raise if the given :class:`.Dataset` is not compatible with the current model.
+        """Raise if the given Dataset is not compatible with the current model.
 
         Parameters
         ----------
-        dataset : :class:`.Dataset`, optional
-            The :class:`.Dataset` we want to model.
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`, optional
+            The class we want to model.
 
         Raises
         ------
         :exc:`.LeaspyModelInputError` :
-            - If the :class:`.Dataset` has a number of dimensions smaller than 2.
-            - If the :class:`.Dataset` does not have the same dimensionality as the model.
-            - If the :class:`.Dataset`'s headers do not match the model's.
+            - If the Dataset has a number of dimensions smaller than 2.
+            - If the Dataset does not have the same dimensionality as the model.
+            - If the Dataset's headers do not match the model's.
         """
         if not dataset:
             return
@@ -402,7 +594,7 @@ class BaseModel(ModelInterface):
 
         Parameters
         ----------
-        dataset : :class:`~leaspy.io.Dataset`, optional
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`, optional
             The dataset we want to initialize from.
         """
         if self.is_initialized and self.features is not None:
@@ -423,6 +615,21 @@ class BaseModel(ModelInterface):
         self._is_initialized = True
 
     def save(self, path: Union[str, Path], **kwargs) -> None:
+        """Save model as json model parameter file.
+
+        Parameters
+        ----------
+        path : :obj:`str` or :obj:`Path`
+            The path to store the model's parameters.
+
+        **kwargs : :obj:`dict`
+            Additional parameters for writing.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the model is not initialized.
+        """
         import json
         from inspect import signature
 
@@ -439,7 +646,7 @@ class BaseModel(ModelInterface):
 
         Returns
         -------
-        KwargsType :
+        :obj:`KwargsType`
             The model instance serialized as a dictionary.
         """
         from leaspy import __version__
@@ -461,6 +668,24 @@ class BaseModel(ModelInterface):
 
     @classmethod
     def load(cls, path_to_model_settings: Union[str, Path]):
+        """Load a model from a json model parameter file.
+
+        Parameters
+        ----------
+        path_to_model_settings : :obj:`str` or :obj:`Path`
+            The path to the model's parameters file.
+
+        Returns
+        -------
+        :class:`~leasp.models.base.BaseModel`
+            An instance of the model loaded from the file.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the model settings file is not found or cannot be read.
+        """
+
         from .factory import model_factory
         from .settings import ModelSettings
 
@@ -472,6 +697,17 @@ class BaseModel(ModelInterface):
 
     @abstractmethod
     def load_parameters(self, parameters: KwargsType) -> None:
+        """Load model parameters from a dictionary.
+
+        Parameters
+        ----------
+        parameters : :obj:`KwargsType`
+            The parameters to load into the model.
+
+        Raises
+        ------
+        NotImplementedError
+        """
         raise NotImplementedError
 
     def fit(
@@ -482,6 +718,28 @@ class BaseModel(ModelInterface):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
+        """Estimate the model's parameters for a given dataset and a given algorithm.
+        These model's parameters correspond to the fixed-effects of the mixed-effects model.
+
+        Parameters
+        ----------
+        data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`, optional
+            Contains the information of the individuals, in particular the time-points
+            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
+        algorithm : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`, optional
+            The name of the algorithm to use.
+            Use this if you want to provide algorithm settings through kwargs.
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+            Use this if you want to customize algorithm settings through the
+            :class:`~leaspy.algo.AlgorithmSettings` class.
+            If provided, the fit will rely on these settings.
+        algorithm_settings_path : :obj:`str` or :obj:`Path`, optional
+            The path to the algorithm settings file.
+            If provided, the settings from the file will be used instead of the settings provided.
+        **kwargs : :obj:`dict`
+            Contains the algorithm's settings.
+        """
         if (dataset := BaseModel._get_dataset(data)) is None:
             return
         if not self.is_initialized:
@@ -498,7 +756,18 @@ class BaseModel(ModelInterface):
     def _get_dataset(
         data: Optional[Union[pd.DataFrame, Data, Dataset]] = None,
     ) -> Optional[Dataset]:
-        """Process user provided data and return a Dataset object."""
+        """Process user provided data and return a Dataset object.
+
+        Parameters
+        ----------
+        data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`, optional
+            The data to process. If None, returns None.
+
+        Returns
+        -------
+        :class:`~leaspy.io.data.dataset.Dataset`, optional
+            A Dataset object if data is provided and valid, otherwise None.
+        """
         if data is None:
             return None
         if isinstance(data, pd.DataFrame):
@@ -512,7 +781,23 @@ class BaseModel(ModelInterface):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ):
-        """Process user provided algorithm and return the corresponding algorithm instance."""
+        """Process user provided algorithm and return the corresponding algorithm instance.
+
+        Parameters
+        ----------
+        algorithm : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`, optional
+            The name of the algorithm to use. If None, returns None.
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use. If None, returns None.
+        algorithm_settings_path : :obj:`str` or :obj:`Path`, optional
+            The path to the algorithm settings file. If None, returns None.
+        **kwargs : :obj:`dict`
+            Additional parameters for the algorithm settings.
+
+        Returns
+        -------
+        :class:`~leaspy.algo.base.AlgorithmInterface`, optional
+            An instance of the algorithm if provided, otherwise None."""
         from leaspy.algo import AlgorithmName, AlgorithmSettings, algorithm_factory
 
         if algorithm_settings is not None:
@@ -535,6 +820,33 @@ class BaseModel(ModelInterface):
         algorithm_settings_path: Optional[Union[str, Path]] = None,
         **kwargs,
     ) -> IndividualParameters:
+        """Estimate individual parameters for each `ID` of a given dataset.
+        These individual parameters correspond to the random-effects :math:`(z_{i,j})` of the mixed-effects model.
+
+        Parameters
+        ----------
+        data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`, optional
+            Contains the information of the individuals, in particular the time-points
+            :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
+        algorithm : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`, optional
+            The name of the algorithm to use.
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+            Use this if you want to customize algorithm settings through the
+            :class:`~leaspy.algo.AlgorithmSettings` class.
+            If provided, the fit will rely on these settings.
+        algorithm_settings_path : :obj:`str` or :obj:`Path`, optional
+            The path to the algorithm settings file.
+            If provided, the settings from the file will be used instead of the settings provided.
+        **kwargs : :obj:`dict`
+            Contains the algorithm's settings.
+
+        Returns
+        -------
+        :class:`~leaspy.io.outputs.IndividualParameters`
+            Individual parameters computed.
+        """
+
         from leaspy.exceptions import LeaspyInputError
 
         if not self.is_initialized:
@@ -556,6 +868,26 @@ class BaseModel(ModelInterface):
         *,
         to_dataframe: Optional[bool] = None,
     ) -> Union[pd.DataFrame, dict[IDType, np.ndarray]]:
+        """Return the model values for individuals characterized by their individual parameters :math:`z_i` at time-points :math:`(t_{i,j})_j`.
+
+        Parameters
+        ----------
+        timepoints : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`IDType`, :obj:`list`[ :obj:`float`]]
+            Contains, for each individual, the time-points to estimate.
+            It can be a unique time-point or a list of time-points.
+        individual_parameters : :class:`~leaspy.io.IndividualParameters`
+            Corresponds to the individual parameters of individuals.
+        to_dataframe : :obj:`bool`, optional
+            Whether to output a dataframe of estimations?
+            If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
+
+        Returns
+        -------
+        individual_trajectory : :obj:`pd.DataFrame` or :obj:`dict` [:obj:`IDType`, :obj:`np.ndarray`]
+            Key: patient indices.
+            Value: :class:`numpy.ndarray` of the estimated value, in the shape (number of timepoints, number of features)
+        """
+
         estimations = {}
         ix = None
         # get timepoints to estimate from index
@@ -606,6 +938,24 @@ class BaseModel(ModelInterface):
         timepoints: list[float],
         individual_parameters: IndividualParameters,
     ) -> torch.Tensor:
+        """Compute the model values for an individual characterized by their individual parameters at given time-points.
+        Parameters
+        ----------
+        timepoints : :obj:`list` [:obj:`float`]
+            The time-points at which to compute the model values.
+        individual_parameters : :class:`~leaspy.io.IndividualParameters`
+            The individual parameters of the individual.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            The computed model values for the individual at the given time-points.
+
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented in the subclass.
+        """
         raise NotImplementedError
 
     def simulate(
@@ -630,26 +980,26 @@ class BaseModel(ModelInterface):
 
         Parameters
         ----------
-        data : Optional[Union[pd.DataFrame, :class:`.Data`, :class:`.Dataset`]]
-            Data object. If None, returns empty Result.
-        algorithm : Optional[Union[str, :class:`.AlgorithmName`]]
-            Algorithm name. If None, returns empty Result.
-        algorithm_settings : Optional[:class:`.AlgorithmSettings`]
-            Contains the algorithm's settings. If None, returns empty Result.
-        algorithm_settings_path : Optional[Union[str, Path]]
-            Path to algorithm settings file. If None, returns empty Result.
-        **kwargs
-            Additional arguments for algorithm settings.
+        algorithm : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`, optional
+            The name of the algorithm to use.
+            Use this if you want to provide algorithm settings through kwargs.
+        algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
+            The algorithm settings to use.
+            Use this if you want to customize algorithm settings through the
+            :class:`~leaspy.algo.AlgorithmSettings` class.
+            If provided, the fit will rely on these settings.
+        algorithm_settings_path : :obj:`str` or :obj:`Path`, optional
+            The path to the algorithm settings file.
+            If provided, the settings from the file will be used instead of the settings provided.
+        **kwargs : :obj:`dict`
+            Contains the algorithm's settings.
 
         Returns
         -------
-        simulated_data : :class:`~.io.outputs.result.Result`
+        simulated_data : :class:`~leaspy.io.outputs.result.Result`
             Contains the generated individual parameters & the corresponding generated scores.
             Returns empty Result if any required input is None.
 
-        See Also
-        --------
-        :class:`~leaspy.algo.simulate.simulate.SimulationAlgorithm`
 
         Notes
         -----
@@ -698,6 +1048,12 @@ class BaseModel(ModelInterface):
         return algorithm.run(self)
 
     def __str__(self) -> str:
+        """String representation of the model.
+        Returns
+        -------
+        :obj:`str`
+            A string representation of the model, including its name, dimension, features, and parameters.
+        """
         from .utilities import serialize_tensor
 
         output = f"=== {self.__class__.__name__} {self.name} ==="
