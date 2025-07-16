@@ -450,7 +450,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        indices : :obj:`list`[:class:`~leaspy..utils.typing.IDType`]
+        indices : :obj:`list`[:class:`~leaspy.utils.typing.IDType`]
             List of the patients indices
         dict_pytorch : :class:`~leaspy..utils.typing.DictParmasTorch`
             Dictionary of the individual parameters
