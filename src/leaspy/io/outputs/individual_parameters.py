@@ -18,7 +18,7 @@ __all__ = ["IndividualParameters"]
 class IndividualParameters:
     r"""
     Data container for individual parameters, contains IDs, timepoints and observations values.
-    Output of the :meth:`.Leaspy.personalize` method, contains the *random effects*.
+    Output of the :class:`.leaspy.algo.personalize` method, contains the *random effects*.
 
     There are used as output of the `personalization algorithms` and as input/output of the `simulation algorithm`,
     to provide an initial distribution of individual parameters.
