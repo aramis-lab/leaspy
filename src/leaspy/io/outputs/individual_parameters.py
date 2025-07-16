@@ -168,7 +168,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`~leaspy..utils.typing.DictParams
+        :class:`~leaspy.utils.typing.DictParams
             A dictionary containing the individual parameters for the specific individual.
 
         Raises
