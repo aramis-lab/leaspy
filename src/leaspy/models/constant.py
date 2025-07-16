@@ -44,7 +44,13 @@ class ConstantModel(StatelessModel):
 
     @property
     def hyperparameters(self) -> DictParamsTorch:
-        """Dictionary of values for model hyperparameters."""
+        """Dictionary of values for model hyperparameters.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.DictParamsTorch`
+            Dictionary of hyperparameters.
+        """
         return {}
 
     def compute_individual_trajectory(
@@ -52,6 +58,25 @@ class ConstantModel(StatelessModel):
         timepoints: torch.Tensor,
         individual_parameters: dict,
     ) -> torch.Tensor:
+        """Compute the individual trajectory based on the model's features and parameters.
+
+        Parameters
+        ----------
+        timepoints : :obj:`torch.Tensor`
+            The time points at which to compute the trajectory.
+        individual_parameters : :obj:`dict`
+            Dictionary containing the individual's parameters, where keys are feature names.
+
+        Returns
+        -------
+        :obj:`torch.Tensor`
+            A tensor containing the computed trajectory for the individual.
+
+        Raises
+        ------
+        :class:`~leaspy.exceptions.LeaspyModelInputError`
+            If the model was not properly initialized or if features are not set.
+        """
         if self.features is None:
             raise LeaspyModelInputError("The model was not properly initialized.")
         values = [individual_parameters[f] for f in self.features]
