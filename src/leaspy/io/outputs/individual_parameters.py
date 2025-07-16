@@ -164,7 +164,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        item : :class::class:`~leaspy..utils.typing.IDType`
+        item : :class:`~leaspy.utils.typing.IDType`
 
         Returns
         -------
