@@ -10,7 +10,7 @@ __all__ = ["ModelSettings"]
 
 class ModelSettings:
     """
-    Used in :meth:`.Leaspy.load` to create a :class:`.Leaspy` class object from a `json` file.
+    Used in models.base.load to create a model class object from a `json` file.
 
     Attributes
     ----------
