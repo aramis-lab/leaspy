@@ -58,7 +58,7 @@ class OutputsSettings:
         self.plot_periodicity = None
         self.save_periodicity = None
         self.plot_sourcewise = False
-        self.nb_of_patients_to_plot = None
+        self.nb_of_patients_to_plot = 3
 
         self.root_path = None
         self.parameter_convergence_path = None
@@ -496,8 +496,8 @@ class AlgorithmSettings:
         """
         # TODO: all this logic should be delegated in dedicated OutputSettings class...!
 
-        settings = {
-            "path": path,
+        default_settings = {
+            "path": None,
             "print_periodicity": None,
             "save_periodicity": None,
             "plot_periodicity": None,
@@ -505,7 +505,7 @@ class AlgorithmSettings:
             "overwrite_logs_folder": False,
             "nb_of_patients_to_plot": None,
         }
-
+        settings = default_settings.copy()
         for k, v in kwargs.items():
             if k in (
                 "print_periodicity",
@@ -527,7 +527,8 @@ class AlgorithmSettings:
                         f"You provide {v} of type {type(v)}."
                     )
                 settings[k] = v
-        self.logs = OutputsSettings(settings)
+        if settings != default_settings:
+            self.logs = OutputsSettings(settings)
 
     def _manage_kwargs(self, kwargs):
         _special_kwargs = {
