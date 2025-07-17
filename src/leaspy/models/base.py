@@ -875,8 +875,10 @@ class BaseModel(ModelInterface):
         timepoints : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`IDType`, :obj:`list`[ :obj:`float`]]
             Contains, for each individual, the time-points to estimate.
             It can be a unique time-point or a list of time-points.
+
         individual_parameters : :class:`~leaspy.io.IndividualParameters`
             Corresponds to the individual parameters of individuals.
+
         to_dataframe : :obj:`bool`, optional
             Whether to output a dataframe of estimations?
             If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
