@@ -35,7 +35,7 @@ class ConstantModel(StatelessModel):
 
     See Also
     --------
-    :class:`~leaspy.algo.others.constant_prediction_algo.ConstantPredictionAlgorithm`
+    :class:`~leaspy.algo.personalize.constant_prediction_algo.ConstantPredictionAlgorithm`
     """
 
     def __init__(self, name: str, **kwargs):
