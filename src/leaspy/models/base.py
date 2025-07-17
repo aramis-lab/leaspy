@@ -27,10 +27,10 @@ class InitializationMethod(str, Enum):
 
     Attributes
     ----------
-    DEFAULT : str
+    DEFAULT : :obj:`str`
         Default initialization method.
 
-    RANDOM : str
+    RANDOM : :obj:`str`
         Random initialization method.
     """
 
@@ -258,7 +258,7 @@ class ModelInterface(ABC):
             Contains the information of the individuals, in particular the time-points
             :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
 
-        algorithm : :obj:`str` or `~leaspy.algo.base.AlgorithmName`, optional
+        algorithm : :obj:`str` or :class:`~leaspy.algo.base.AlgorithmName`, optional
             The name of the algorithm to use.
 
         algorithm_settings : :class:`~leaspy.algo.AlgorithmSettings`, optional
