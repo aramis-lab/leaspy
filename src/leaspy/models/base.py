@@ -318,7 +318,7 @@ class ModelInterface(ABC):
         individual_parameters : :class:`~leaspy.io.IndividualParameters`
             Corresponds to the individual parameters of individuals.
 
-        to_dataframe : : obj:`bool`, optional
+        to_dataframe : :obj:`bool`, optional
             Whether to output a dataframe of estimations?
             If None: default is to be True if and only if timepoints is a `pandas.MultiIndex`
 
