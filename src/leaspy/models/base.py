@@ -311,7 +311,7 @@ class ModelInterface(ABC):
 
         Parameters
         ----------
-        timepoints : :obj:`pd.MultiIndex` or :obj:`dict`[:obj:`IDType`, :obj:`list`[:obj:`float` ] ]
+        timepoints : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`IDType`, :obj:`list` [:obj:`float` ] ]
             Contains, for each individual, the time-points to estimate.
             It can be a unique time-point or a list of time-points.
 
@@ -872,7 +872,7 @@ class BaseModel(ModelInterface):
 
         Parameters
         ----------
-        timepoints : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`IDType`, :obj:`list`[ :obj:`float`]]
+        timepoints : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`IDType`, :obj:`list` [:obj:`float`]]
             Contains, for each individual, the time-points to estimate.
             It can be a unique time-point or a list of time-points.
 
