@@ -19,6 +19,16 @@ from leaspy.models import BaseModel, McmcSaemCompatibleModel
 
 
 class VisitType(str, Enum):
+    """
+
+    Parameters
+    ----------
+    :obj:`str`
+        String of the type of simulation running
+    :obj`Enum`
+        Enumeration of the type of simulation running
+    """
+
     DATAFRAME = "dataframe"  # Dataframe of visits
     RANDOM = "random"  # Random spaced visits
 
