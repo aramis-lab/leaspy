@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError
+from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError, LeaspyIndividualParamsInputError
 from leaspy.io.data.dataset import Dataset
 #from leaspy.models.abstract_model import AbstractModel, InitializationMethod
 #from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
@@ -23,6 +23,8 @@ from leaspy.models.obs_models import (
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul, OrthoBasis, Prod, Sqr, Sum
 from leaspy.utils.typing import KwargsType#, Optional
+from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
+
 
 # from sympy import Product
 # from sympy.codegen.cnodes import union
@@ -223,6 +225,23 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
         return d
     
+    @property
+    def has_sources(self) -> bool:
+        """
+        Indicates whether the model includes sources.
+
+        Returns
+        -------
+        :obj:`bool`
+            True if `source_dimension` is a positive integer.
+            False otherwise.
+        """
+        return (
+            hasattr(self, "source_dimension")
+            and isinstance(self.source_dimension, int)
+            and self.source_dimension > 0
+        )
+    
     @staticmethod
     def time_reparametrization(
         *,
@@ -305,6 +324,93 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
                 f"Number of clusters should be an integer greater than 2 "
                 f"but you provided `n_clusters` = {self.n_clusters} "
             )
+        
+    def _audit_individual_parameters(
+        self, individual_parameters: DictParams
+    ) -> KwargsType:
+        """
+        Validate and process individual parameter inputs for model compatibility.
+
+        Parameters
+        ----------
+        individual_parameters : DictParams
+            A dictionary mapping parameter names (strings) to their values,
+            which can be scalars or array-like structures.
+
+        Returns
+        -------
+        KwargsType
+            A dictionary with the following keys:
+            - "nb_inds": Number of individuals
+            - "tensorized_ips": Dictionary of parameters converted to 2D tensors.
+            - "tensorized_ips_gen": Generator yielding tensors for each individual,
+            each with an added batch dimension.
+
+        Raises
+        ------
+        LeaspyIndividualParamsInputError
+            If the provided dictionary keys do not match the expected parameter names,
+            or if the sizes of individual parameters are inconsistent,
+            or if `sources` parameter does not meet array-like requirements.
+        """
+        from .utilities import is_array_like, tensorize_2D
+
+        expected_parameters = set(["xi", "tau"] + int(self.has_sources) * ["sources"])
+        given_parameters = set(individual_parameters.keys())
+        symmetric_diff = expected_parameters.symmetric_difference(given_parameters)
+        if len(symmetric_diff) > 0:
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters dict provided {given_parameters} "
+                f"is not compatible for {self.name} model. "
+                f"The expected individual parameters are {expected_parameters}."
+            )
+        ips_is_array_like = {
+            k: is_array_like(v) for k, v in individual_parameters.items()
+        }
+        ips_size = {
+            k: len(v) if ips_is_array_like[k] else 1
+            for k, v in individual_parameters.items()
+        }
+        if self.has_sources:
+            if not ips_is_array_like["sources"]:
+                raise LeaspyIndividualParamsInputError(
+                    f"Sources must be an array_like but {individual_parameters['sources']} was provided."
+                )
+            tau_xi_scalars = all(ips_size[k] == 1 for k in ["tau", "xi"])
+            if tau_xi_scalars and (ips_size["sources"] > 1):
+                # is 'sources' not a nested array? (allowed iff tau & xi are scalars)
+                if not is_array_like(individual_parameters["sources"][0]):
+                    # then update sources size (1D vector representing only 1 individual)
+                    ips_size["sources"] = 1
+            # TODO? check source dimension compatibility?
+        uniq_sizes = set(ips_size.values())
+        if len(uniq_sizes) != 1:
+            raise LeaspyIndividualParamsInputError(
+                f"Individual parameters sizes are not compatible together. Sizes are {ips_size}."
+            )
+        # number of individuals present
+        n_individual_parameters = uniq_sizes.pop()
+        # properly choose unsqueezing dimension when tensorizing array_like (useful for sources)
+        # [1,2] => [[1],[2]] (expected for 2 individuals / 1D sources)
+        # [1,2] => [[1,2]] (expected for 1 individual / 2D sources)
+        unsqueeze_dim = 0 if n_individual_parameters == 1 else -1
+        # tensorized (2D) version of ips
+        tensorized_individual_parameters = {
+            name: tensorize_2D(value, unsqueeze_dim=unsqueeze_dim)
+            for name, value in individual_parameters.items()
+        }
+
+        return {
+            "nb_inds": n_individual_parameters,
+            "tensorized_ips": tensorized_individual_parameters,
+            "tensorized_ips_gen": (
+                {
+                    name: value[individual, :].unsqueeze(0)
+                    for name, value in tensorized_individual_parameters.items()
+                }
+                for individual in range(n_individual_parameters)
+            ),
+        }
 
     def put_individual_parameters(self, state: State, dataset: Dataset):
         df = dataset.to_pandas().reset_index("TIME").groupby("ID").min()
