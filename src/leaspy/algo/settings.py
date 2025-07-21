@@ -58,7 +58,7 @@ class OutputsSettings:
         self.plot_periodicity = None
         self.save_periodicity = None
         self.plot_sourcewise = False
-        self.nb_of_patients_to_plot = 3
+        self.nb_of_patients_to_plot = 5
 
         self.root_path = None
         self.parameter_convergence_path = None
@@ -70,6 +70,7 @@ class OutputsSettings:
         self._set_plot_periodicity(settings)
         self._set_nb_of_patients_to_plot(settings)
         self._set_plot_sourcewise(settings)
+        self._set_plot_patient_periodicity(settings)
 
         # only create folders if the user want to save data or plots and provided a valid path!
         self._create_root_folder(settings)
@@ -110,6 +111,9 @@ class OutputsSettings:
 
     def _set_plot_periodicity(self, settings: dict):
         self._set_param_as_int_or_ignore(settings, "plot_periodicity")
+
+    def _set_plot_patient_periodicity(self, settings: dict):
+        self._set_param_as_int_or_ignore(settings, "plot_patient_periodicity")
 
         if self.plot_periodicity is not None:
             if self.save_periodicity is None:
@@ -455,7 +459,7 @@ class AlgorithmSettings:
         with open(path, "w") as json_file:
             json.dump(json_settings, json_file, **kwargs)
 
-    def set_logs(self, path: Optional[Union[str, Path]] = None, **kwargs):
+    def set_logs(self, **kwargs):
         """
         Use this method to monitor the convergence of a model fit.
 
@@ -464,10 +468,10 @@ class AlgorithmSettings:
 
         Parameters
         ----------
-        path : :obj:`str`, optional
-            The path of the folder where graphs and csv files will be saved.
-            If None, no data will be saved. Even if `save_periodicity` or `plot_periodicity` is set.
         **kwargs
+            path : :obj:`str`, optional
+               The path of the folder where graphs and csv files will be saved.
+               If None, DEFAULT_LOGS_DIR will be used.
             * print_periodicity : :obj:`int`, optional, default 100
                 Prints every N iterations.
             * save_periodicity : :obj:`int`, optional, default 50
@@ -477,6 +481,8 @@ class AlgorithmSettings:
                 Notes:
                     * Must be a multiple of `save_periodicity`.
                     * Setting this value too low may significantly slow down the fitting process.
+            * plot_patient_periodicity : :obj:`int`
+                 Set the frequency of the saves of the patients' reconstructions
             * plot_sourcewise : :obj:`bool`, optional, default False
                 Set this to True to plot the source-based parameters sourcewise.
             * overwrite_logs_folder : :obj:`bool`, optional, default False
@@ -501,9 +507,10 @@ class AlgorithmSettings:
             "print_periodicity": None,
             "save_periodicity": None,
             "plot_periodicity": None,
+            "plot_patient_periodicity": None,
             "plot_sourcewise": False,
             "overwrite_logs_folder": False,
-            "nb_of_patients_to_plot": None,
+            "nb_of_patients_to_plot": 5,
         }
         settings = default_settings.copy()
         for k, v in kwargs.items():
@@ -511,6 +518,7 @@ class AlgorithmSettings:
                 "print_periodicity",
                 "plot_periodicity",
                 "save_periodicity",
+                "plot_patient_periodicity",
                 "nb_of_patients_to_plot",
                 "plot_sourcewise",
             ):
@@ -524,6 +532,13 @@ class AlgorithmSettings:
                 if not isinstance(v, bool):
                     raise LeaspyAlgoInputError(
                         f"You must provide a boolean to the input <{k}>! "
+                        f"You provide {v} of type {type(v)}."
+                    )
+                settings[k] = v
+            elif k == "path":
+                if v is not None and not isinstance(v, (str, Path)):
+                    raise LeaspyAlgoInputError(
+                        f"You must provide a string or Path to the input <{k}>! "
                         f"You provide {v} of type {type(v)}."
                     )
                 settings[k] = v
