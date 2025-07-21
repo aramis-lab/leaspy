@@ -57,6 +57,7 @@ class OutputsSettings:
         self.print_periodicity = None
         self.plot_periodicity = None
         self.save_periodicity = None
+        self.plot_patient_periodicity = None
         self.plot_sourcewise = False
         self.nb_of_patients_to_plot = 5
 
