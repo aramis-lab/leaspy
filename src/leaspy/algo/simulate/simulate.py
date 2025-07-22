@@ -69,13 +69,13 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
             - 'time_follow_up_std': :obj:`float`
                 Standard deviation of the follow-up TIME.
             - 'distance_visit_mean': :obj:`float`
-                Mean of distance_visits: mean time spacing between two visits.
+                Mean interval between two visits.
             - 'distance_visit_std': :obj:`float`
-                Standard deviation of distance_visits: std time spacing between two visits.
-                Time pacing between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std),
+               Standard deviation of the intervals between visits.
+                Time interval between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std),
                 thus setting distance_visit_std to 0 enable to simulate regularly spaced visits.
             - 'min_spacing_between_visits': :obj:`float`
-                Minimum spacing between two visits. This spacing has to be in the same unit as the TIME column.
+                Minimum interval between two visits. This interval has to be in the same unit as the TIME column.
                 If two visits are closer than this value, the second visit will be removed from the dataset.
                 This is used to avoid too close visits in the simulated dataset.
                 Default is 1/365 (1 day).
