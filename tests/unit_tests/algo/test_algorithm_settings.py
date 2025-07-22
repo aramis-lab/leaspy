@@ -204,7 +204,7 @@ class AlgorithmSettingsTest(LeaspyTestCase):
             UserWarning, "does not exist"
         ):  # path to be created, with a warning
             algo_settings.set_logs(
-                path_logs,
+                path=path_logs,
                 console_print_periodicity=50,
                 save_periodicity=50,
                 plot_periodicity=100,

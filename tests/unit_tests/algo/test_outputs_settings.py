@@ -14,6 +14,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                 "print_periodicity": 42,
                 "save_periodicity": None,
                 "plot_periodicity": None,
+                "plot_patient_periodicity": None,
                 "overwrite_logs_folder": False,
                 "plot_sourcewise": False,
             }
@@ -34,6 +35,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                     "path": self.get_test_tmp_path("fake"),
                     "print_periodicity": 42,
                     "save_periodicity": None,
+                    "plot_patient_periodicity": None,
                     "plot_periodicity": 50,
                     "overwrite_logs_folder": False,
                 }
@@ -47,6 +49,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                     "print_periodicity": 42,
                     "save_periodicity": 60,
                     "plot_periodicity": 50,
+                    "plot_patient_periodicity": 20,
                     "overwrite_logs_folder": False,
                 }
             )
@@ -65,6 +68,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                     "print_periodicity": None,
                     "save_periodicity": 20,
                     "plot_periodicity": 40,
+                    "plot_patient_periodicity": None,
                     "overwrite_logs_folder": False,
                     "plot_sourcewise": False,
                 }
@@ -94,6 +98,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                     "print_periodicity": 42,
                     "save_periodicity": 23,
                     "plot_periodicity": 46,
+                    "plot_patient_periodicity": 23,
                     "overwrite_logs_folder": False,
                     "plot_sourcewise": False,
                 }
@@ -124,6 +129,7 @@ class OutputSettingsAndFitOutputManagerTest(LeaspyTestCase):
                             "print_periodicity": bad_val,
                             "save_periodicity": None,
                             "plot_periodicity": None,
+                            "plot_patient_periodicity": None,
                             "overwrite_logs_folder": False,
                             "plot_sourcewise": False,
                         }
