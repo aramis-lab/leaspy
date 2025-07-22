@@ -20,6 +20,7 @@ def test_fit_output_manager(tmp_path):
         "print_periodicity": 10,
         "save_periodicity": 10,
         "plot_periodicity": 10,
+        "plot_patient_periodicity": 10,
         "plot_sourcewise": False,
         "overwrite_logs_folder": True,
         "nb_of_patients_to_plot": 5,

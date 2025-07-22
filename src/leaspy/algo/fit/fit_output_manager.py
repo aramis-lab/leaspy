@@ -48,6 +48,11 @@ class FitOutputManager:
         Set the frequency of the display of the statistics
     periodicity_save : :obj:`int`
         Set the frequency of the saves of the model's parameters
+    periodicity_plot_patients : :obj:`int`
+        Set the frequency of the saves of the patients' reconstructions
+    plot_sourcewise : :obj:`bool`
+        If True, plots will be generated for each source separately.
+
     """
 
     def __init__(self, outputs):
@@ -55,6 +60,7 @@ class FitOutputManager:
         self.periodicity_save = outputs.save_periodicity
         self.periodicity_plot = outputs.plot_periodicity
         self.nb_of_patients_to_plot = outputs.nb_of_patients_to_plot
+        self.periodicity_plot_patients = outputs.plot_patient_periodicity
         self.plot_sourcewise = outputs.plot_sourcewise
         if outputs.root_path is not None:
             self.path_output = Path(outputs.root_path)
@@ -103,8 +109,11 @@ class FitOutputManager:
 
         if self.periodicity_save is not None:
             if iteration == 0 or iteration % self.periodicity_save == 0:
-                self.save_plot_patient_reconstructions(iteration, model, data)
                 self.save_model_parameters_convergence(iteration, model)
+
+        if self.periodicity_plot_patients is not None:
+            if iteration == 0 or iteration % self.periodicity_plot_patients == 0:
+                self.save_plot_patient_reconstructions(iteration, model, data)
 
         if self.periodicity_plot is not None:
             if iteration % self.periodicity_plot == 0:
