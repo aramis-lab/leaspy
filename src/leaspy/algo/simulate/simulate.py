@@ -19,14 +19,14 @@ from leaspy.models import BaseModel, McmcSaemCompatibleModel
 
 
 class VisitType(str, Enum):
-    """
+    """Enum for different types of visit simulations.
 
-    Parameters
+    Attributes
     ----------
-    :obj:`str`
-        String of the type of simulation running
-    :obj`Enum`
-        Enumeration of the type of simulation running
+    DATAFRAME : :obj:`str`
+        Represents visits defined by a DataFrame containing visit times.
+    RANDOM : :obj:`str`
+        Represents visits generated randomly based on specified parameters.
     """
 
     DATAFRAME = "dataframe"  # Dataframe of visits
@@ -34,6 +34,54 @@ class VisitType(str, Enum):
 
 
 class SimulationAlgorithm(BaseSimulationAlgorithm):
+    """
+    SimulationAlgorithm class for simulating longitudinal data using a Leaspy model.
+    This class extends the BaseSimulationAlgorithm and implements the simulation logic
+    based on the provided model and settings.
+
+    Attributes
+    ----------
+    name : :obj:`str`
+        The name of the algorithm.
+
+    family : :class:`~leaspy.algo.base.AlgorithmType`
+        The type of algorithm, which is AlgorithmType.SIMULATE.
+
+    PARAM_REQUIREMENTS : :obj:`dict`
+        A dictionary defining the required parameters for different visit types.
+        It specifies the expected types and constraints for each parameter.
+
+        for visit_type "dataframe":
+            - 'df_visits': :obj:`pandas.DataFrame`
+                DataFrame of visits, with a column "ID" and a column 'TIME'.
+                TIME and number of visits for each simulated patients (with specified ID)
+                are given by a dataframe in dict_param.
+
+        for visit_type "random":
+            - 'patient_number': :obj:`int`
+                Number of patients.
+            - 'first_visit_mean': :obj:`float`
+                Mean of the first visit TIME.
+            - 'first_visit_std': :obj:`float`
+                Standard deviation of the first visit TIME.
+            - 'time_follow_up_mean': :obj:`float`
+                Mean of the follow-up TIME.
+            - 'time_follow_up_std': :obj:`float`
+                Standard deviation of the follow-up TIME.
+            - 'distance_visit_mean': :obj:`float`
+                Mean interval between two visits.
+            - 'distance_visit_std': :obj:`float`
+               Standard deviation of the intervals between visits.
+                Time interval between 2 visits is drawn in a normal distribution N(distance_visit_mean, distance_visit_std),
+                thus setting distance_visit_std to 0 enable to simulate regularly spaced visits.
+            - 'min_spacing_between_visits': :obj:`float`
+                Minimum interval between two visits. This interval has to be in the same unit as the TIME column.
+                If two visits are closer than this value, the second visit will be removed from the dataset.
+                This is used to avoid too close visits in the simulated dataset.
+                Default is 1/365 (1 day).
+
+    """
+
     name: str = "simulate"
     family: AlgorithmType = AlgorithmType.SIMULATE
 
