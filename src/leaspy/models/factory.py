@@ -4,8 +4,9 @@ from typing import Optional, Union
 from .base import BaseModel
 from .constant import ConstantModel
 from .joint import JointModel
+from .linear import LinearModel
 from .lme import LMEModel
-from .riemanian_manifold import LinearModel, LogisticModel
+from .logistic import LogisticModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
