@@ -17,7 +17,7 @@ from leaspy.variables.specs import (
     VariableNameToValueMapping,
 )
 
-from .riemanian_manifold import LogisticInitializationMixin
+from .logistic import LogisticInitializationMixin
 from .time_reparametrized import TimeReparametrizedModel
 
 __all__ = ["SharedSpeedLogisticModel"]
