@@ -126,5 +126,7 @@ The package is distributed under the BSD 3-Clause license.
 ## Support
 The development of this software has been supported by the European Union H2020 program (project EuroPOND, grant number 666992, project HBP SGA1 grant number 720270), by the European Research Council (to Stanley Durrleman project LEASP, grant number 678304) and by the ICM Big Brain Theory Program (project DYNAMO).
 
+Additional support has been provided by the REWIND project (pRecision mEdicine WIth loNgitudinal Data), as part of the PEPR Santé Numérique (grant number 2023000354-03), dedicated to advancing precision medicine with longitudinal data.
+
 ## Contact
 [ARAMIS Lab](https://www.aramislab.fr/)
