@@ -363,11 +363,11 @@ class ModelParameter(IndepVariable):
             compute_individual_parameter_std_from_sufficient_statistics,
             parameters=(
                 "state",
-                individual_variable_name,
-                individual_variance_sqr_name,
+                ind_var_name,
+                ind_var_sqr_name,
             ),
             kws=dict(
-                individual_parameter_name=individual_variable_name,
+                individual_parameter_name=ind_var_name,
                 dim=LVL_IND,
                 **tol_kw,
             ),
@@ -375,14 +375,14 @@ class ModelParameter(IndepVariable):
         return cls(
             shape,
             suff_stats=Collect(
-                individual_variable_name,
+                ind_var_name,
                 **{
-                    individual_variance_sqr_name: LinkedVariable(
-                        Sqr(individual_variable_name)
+                    ind_var_sqr_name: LinkedVariable(
+                        Sqr(ind_var_name)
                     )
                 },
             ),
-            update_rule_burn_in=Std(individual_variable_name, dim=LVL_IND),
+            update_rule_burn_in=Std(ind_var_name, dim=LVL_IND),
             update_rule=update_rule_normal,
         )
 
