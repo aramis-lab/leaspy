@@ -45,12 +45,18 @@ class StateForkType(Enum):
     """
     The strategy used to cache forked values in :class:`.State`.
 
-    REF : caching using references
-    COPY : caching using deepcopy
+    REF : Reference-based caching
+        Cached values are stored by reference, meaning no copying occurs. Mutating the original
+        variables after caching will affect the cached version.
+
+    COPY : Deep copy-based caching
+        Cached values are stored via `copy.deepcopy`, ensuring they are independent of the originals.
 
     Notes
     -----
-    If using `REF` beware that values will NOT be copied (it only keeps references of values),
+    - Use `REF` for efficiency when you're certain the original values will not be mutated after caching.
+    - Use `COPY` to ensure isolation between the cached values and any subsequent modifications.
+    - If using `REF` beware that values will NOT be copied (it only keeps references of values),
     so do NOT mutate them directly or the behavior will be unexpected.
     """
 
