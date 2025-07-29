@@ -33,12 +33,23 @@ __all__ = [
 
 
 class StatelessDistributionFamily(ABC):
-    """Interface to represent stateless distribution families (i.e. no distribution parameters are stored in instance).
+    """
+    Abstract base class defining a stateless interface for distribution families.
 
-    TODO / WIP? allow WeightedTensor for parameters as well?
-    (e.g. `batched_deltas = Normal(batched_deltas_mean, ...)` which should be masked at some indices)
-    --> mask at latent pop. variable level (`batched_deltas`) or
-        directly at model parameter level `batched_deltas_mean`?
+    This class represents a family of probability distributions in a stateless manner:
+    no parameters are stored in the instance. All methods operate purely via classmethods,
+    using explicitly passed distribution parameters.
+
+    Notes
+    -----
+    - Subclasses must define the `parameters` class variable, listing parameter names in order.
+    - Each method operates solely on the passed tensors; no state or caching is assumed.
+
+    TODO
+    ----
+    - Consider supporting `WeightedTensor` for distribution parameters,
+      e.g., to mask latent variables like `batched_deltas` at the input level
+      or directly at model parameter level (e.g., `batched_deltas_mean`).
     """
 
     parameters: ClassVar[tuple[str, ...]]
@@ -57,7 +68,7 @@ class StatelessDistributionFamily(ABC):
         Shape of distribution samples (without any additional expansion),
         given shapes of distribution parameters.
 
-         Parameters
+        Parameters
         ----------
         *params_shapes : :obj:`tuple` of :obj:`int`
             The shapes of the distribution parameters, passed in the order
@@ -183,7 +194,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     
     Attributes
     ----------
-    dist_factory : :obj:`Callable`[...,  :class:`torch.distributions.Distribution`]
+    dist_factory : :obj:`Callable` [...,  :class:`torch.distributions.Distribution`]
         A class variable that points to a factory function or class used to instantiate 
         the corresponding PyTorch distribution.
     """
