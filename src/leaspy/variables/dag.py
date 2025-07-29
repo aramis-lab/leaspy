@@ -40,11 +40,11 @@ class VariablesDAG(Mapping):
     Notes
     -----
     Internally, this class precomputes:
-    * `direct_children`: inverse of `direct_ancestors`, mapping each node to its immediate dependents.
-    * `sorted_variables_names`: a topological ordering of variable names (roots to leaves).
-    * `sorted_children`: all transitive children of a node in topological order.
-    * `sorted_ancestors`: all transitive ancestors of a node in topological order.
-    * `sorted_variables_by_type`: variables grouped and ordered by their Python class/type.
+        * `direct_children`: inverse of `direct_ancestors`, mapping each node to its immediate dependents.
+        * `sorted_variables_names`: a topological ordering of variable names (roots to leaves).
+        * `sorted_children`: all transitive children of a node in topological order.
+        * `sorted_ancestors`: all transitive ancestors of a node in topological order.
+        * `sorted_variables_by_type`: variables grouped and ordered by their Python class/type.
 
     In general the VariablesDAG is not a tree because the graph may not be totally connected and may have multiple roots.
     It is not a multi-tree either since there may be multiple directed paths between two nodes - e.g. `logistic_model = f[g, b(g), ...]`.
