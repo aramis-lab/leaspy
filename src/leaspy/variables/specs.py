@@ -254,10 +254,10 @@ class ModelParameter(IndepVariable):
         Shape of the parameter tensor. It must be fixed and known in advance.
     suff_stats : :class:`~leaspy.variables.specs.Collect`
         A callable object that collects sufficient statistics required to compute the update.
-    update_rule : :obj:`.typing.Callable`[..., :class:`~leaspy.variables.specs.VariableValue`]
+    update_rule : :obj:`.typing.Callable` [..., :class:`~leaspy.variables.specs.VariableValue`]
         The symbolic update rule for this parameter, used during both burn-in and standard
         learning phase unless overridden by `update_rule_burn_in`. 
-    update_rule_burn_in : :obj:`.typing.Callable`[..., :class:`~leaspy.variables.specs.VariableValue`] or None, optional
+    update_rule_burn_in : :obj:`.typing.Callable` [..., :class:`~leaspy.variables.specs.VariableValue`] or None, optional
         An optional alternative update rule specifically used during the burn-in phase.
         If provided, it overrides `update_rule` during that phase.
 
@@ -774,9 +774,9 @@ class LinkedVariable(VariableInterface):
     parameters : :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]
         The set of variable names on which this linked variable depends.
         This is inferred internally from the function `f`.
-    is_settable : `ClassVar`[bool]
+    is_settable : `ClassVar`[:obj:`bool`]
         Indicates that this variable is not settable directly (`False`).
-    fixed_shape : `ClassVar`[bool]
+    fixed_shape : `ClassVar`[obj:`bool`]
         Indicates whether the shape of the linked variable is fixed.
         By design it is `False`.
     """
