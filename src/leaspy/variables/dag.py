@@ -40,6 +40,7 @@ class VariablesDAG(Mapping):
     Notes
     -----
     Internally, this class precomputes:
+    
     * `direct_children`: inverse of `direct_ancestors`, mapping each node to its immediate dependents.
     * `sorted_variables_names`: a topological ordering of variable names (roots to leaves).
     * `sorted_children`: all transitive children of a node in topological order.
