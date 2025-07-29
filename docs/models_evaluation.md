@@ -35,10 +35,6 @@ AIC (Akaike Information Criterion) is a robust metric for model selection. It in
 
 $$
 \text{AIC} = 2 \cdot (\text{nb}_{\text{features}}) - 2 \cdot \log(\text{likelihood})
-=======
-\text{AIC} = 2 \cdot (\text{nb\_features}) - 2 \cdot \log(\text{likelihood})
-=======
-\text{AIC} = 2 \cdot (\text{nb}_{\text{features}}) - 2 \cdot \log(\text{likelihood})
 $$
 
 Package: `leaspy` 
@@ -207,28 +203,7 @@ For the joint model, it is interesting to have prediction metrics on survival as
 
 #### Integrated Brier Score (IBS)
 The Integrated Brier Score (IBS) is a robust metric used to evaluate the predictive accuracy of survival models. 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 
-$$
-\text{IBS} = \frac{1}{\tau} \int_0^\tau \text{BS}(t) \, dt
-$$
-
-where:
-
-- $\tau$ is a pre-specified maximum follow-up time,
-- $\text{BS}(t)$ is the Brier Score at time $t$, calculated as:
-
-$$
-\text{BS}(t) = \frac{1}{n} \sum_{i=1}^n w_i(t) \left( \mathbb{I}\{T_i > t\} - \hat{S}(t \mid X_i) \right)^2
-$$
-
-with $\hat{S}(t \mid X_i)$ being the predicted survival probability for subject $i$ at time $t$, and $w_i(t)$ accounting for censoring via inverse probability of censoring weights (IPCW).
-
->>>>>>> 00150e19 (Correct citations and equations)
-=======
->>>>>>> 12e13012 (Add code example for repeated measures prediction metrics)
 In survival analysis, IBS quantifies how well a model predicts the timing of events by integrating the Brier Score, a measure of prediction error for probabilistic outcomes, across all observed time points. It compares the model’s predicted survival probabilities against actual observed outcomes, penalizing discrepancies between predictions and reality. IBS accounts for censored data, ensuring reliability in real-world datasets where not all events are fully observed. IBS describes how closely predictions match reality. A low IBS indicates superior predictive performance, as it reflects smaller cumulative errors over time {cite}`graf1999assessment`.
 
 Package: [`scikit-survival`](https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.integrated_brier_score.html)
