@@ -1069,4 +1069,3 @@ class BaseModel(ModelInterface):
         # output += self._serialize_tensor(nm_props, indent="  ")
 
         return output
-    
