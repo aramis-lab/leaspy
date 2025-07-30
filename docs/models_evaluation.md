@@ -26,7 +26,6 @@ $$
 
 Where $p(y_i | \hat{\theta}_i)$ is the probability of the observation given the estimated parameters $\hat{\theta}_i$, and $n$ is the number of data points.
 
-Package: `leaspy`
 
 ### Frequentist Approach
 
@@ -37,11 +36,9 @@ $$
 \text{AIC} = 2 \cdot (\text{nb}_{\text{features}}) - 2 \cdot \log(\text{likelihood})
 $$
 
-Package: `leaspy` 
-
 ```python
 # Get the negative log-likelihood
-neg_LL = model.state['nll_attach']
+nll = model.state['nll_attach']
 
 # Compute the number of free parameters
 n_individuals = data.n_individuals
@@ -53,7 +50,7 @@ free_parameters_total = population_parameters_total + n_individuals * individual
 
 penalty = 2 * free_parameters_total
 
-aic = penalty + 2 * neg_LL
+aic = penalty + 2 * nll
 print(f"AIC: {aic}")
 
 AIC: -17236.7421875
@@ -66,11 +63,9 @@ $$
 \text{BIC} = \log(\text{nb}_{\text{patients}}) \cdot \text{features} - 2 \cdot \log(\text{likelihood})
 $$
 
-Package: `leaspy`
-
 ```python
 # Get the negative log-likelihood
-neg_LL = model.state['nll_attach']
+nll = model.state['nll_attach']
 
 # Compute the number of free parameters
 n_individuals = data.n_individuals
@@ -83,7 +78,7 @@ free_parameters_total = population_parameters_total + n_individuals * individual
 n_observations = data.n_visits
 penalty = free_parameters_total * np.log(n_observations)
 
-bic = penalty + 2 * neg_LL
+bic = penalty + 2 * nll
 print(f"BIC: {bic}")
 
 BIC: -12671.0820312
@@ -96,7 +91,7 @@ individual_parameters_total = individual_parameters_per_subject * n_individuals
 
 penalty = individual_parameters_total * np.log(n_individuals) + population_parameters_total * np.log(n_observations)
 
-bic_corrected = penalty + 2 * neg_LL
+bic_corrected = penalty + 2 * nll
 print(f"Corrected BIC: {bic_corrected}")
 
 Corrected BIC: -14503.0869140625
@@ -112,13 +107,15 @@ This section describes the main metrics used to evaluate the quality of predicti
 
 #### Mean Absolute Error (MAE)
 
+MAE is more robust to outliers than MSE, and provides a straightforward sense of typical prediction error.
+
+
 $$
 MAE = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
 $$
 
-MAE is more robust to outliers and provides a straightforward sense of typical prediction error.
 
-Package: [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html)
+For more information, please see [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html).
 
 ```python
 from sklearn.metrics import mean_absolute_error
@@ -137,13 +134,14 @@ Mean Absolute Error: 0.050412963298149406
 
 #### Mean Square Error (MSE)
 
+MSE penalizes larger errors more heavily than MAE, making it more sensitive to outliers {cite}`willmott2005advantages`{cite}`chai2014root`.
+
 $$
 MSE = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
 $$
 
-MSE penalizes larger errors more heavily than MAE, making it more sensitive to outliers {cite}`willmott2005advantages`{cite}`chai2014root`.
 
-Package: [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html)
+For more information, please see [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html).
 
 ```python
 from sklearn.metrics import mean_squared_error
@@ -163,7 +161,7 @@ Mean Squared Error: 0.0041833904503857655
 #### Residual Q-Q Plot
 A graphical tool to assess whether residuals follow a normal distribution, which is an assumption in many mixed-effects models {cite}`fox2015applied`.
 
-Package: [`statsmodels.api`](https://www.statsmodels.org/stable/generated/statsmodels.graphics.gofplots.qqplot.html)
+For more information, please see [`statsmodels.api`](https://www.statsmodels.org/stable/generated/statsmodels.graphics.gofplots.qqplot.html).
 
 ```python
 import statsmodels.api as sm
@@ -187,7 +185,7 @@ $$
 
 In mixed-effects models, multiple R² variants exist (e.g., marginal vs. conditional R²) to account for fixed and random effects {cite}`nakagawa2012method`.
 
-Package: [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html)
+For more information, please see [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html).
 
 ```python
 from sklearn.metrics import r2_score
@@ -205,12 +203,12 @@ For the joint model, it is useful to have prediction metrics on survival as well
 The Integrated Brier Score (IBS) is a robust metric used to evaluate the predictive accuracy of survival models. 
 In survival analysis, IBS quantifies how well a model predicts the timing of events by integrating the Brier Score, a measure of prediction error for probabilistic outcomes, across all observed time points. It compares the model’s predicted survival probabilities against actual observed outcomes, penalizing discrepancies between predictions and reality. IBS accounts for censored data, ensuring reliability in real-world datasets where not all events are fully observed. IBS describes how closely predictions match reality. A low IBS indicates superior predictive performance, as it reflects smaller cumulative errors over time {cite}`graf1999assessment`.
 
-Package: [`scikit-survival`](https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.integrated_brier_score.html)
+For more information, please see [`scikit-survival`](https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.integrated_brier_score.html).
 
 #### Cumulative Dynamic AUC
 Cumulative AUC (or time-dependent AUC) evaluates the model’s ability to discriminate between subjects who experience an event by a specific time and those who do not, based on their predicted risk scores. It focuses on ranking accuracy, ensuring high-risk subjects receive higher predicted probabilities than low-risk ones at each time point. Cumulative AUC describes how well risks are ordered. A high cumulative AUC means a strong discriminatory ability {cite}`uno2007evaluating` {cite}`hung2010estimation` {cite}`lambert2014summary`.
 
-Package: [`scikit-survival`](https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.cumulative_dynamic_auc.html)
+For more information, please see [`scikit-survival`](https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.cumulative_dynamic_auc.html).
 
 #### Avoid using C-index
 The C-index or Concordance index, similarly to the cumulative AUC, is a metric assessing the discriminatory ability of a survival model. However, this metric is criticized because it is a global metric that averages performance over the entire study period, hiding time-specific weaknesses {cite}`blanche2019cindex`. It also depends on the censoring distribution. Therefore, it is more convenient to use time-dependent AUC and the Brier Score presented above.
