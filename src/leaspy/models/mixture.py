@@ -530,14 +530,6 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
             "nll_regul_pop_sum",
             "nll_regul_all_sum",
             "nll_tot",
-            # specific to the mixture model :
-            #"probs",
-            #"probs_ind",
-            ##"nll_attach_ind",
-            ##"nll_regul_tau",
-            ##"nll_regul_tau_ind",
-            ##"nll_regul_xi",
-            ##"nll_regul_xi_ind",
         ]
 
         if self.source_dimension:
