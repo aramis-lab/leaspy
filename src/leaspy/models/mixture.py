@@ -9,34 +9,24 @@ import torch
 
 from leaspy.exceptions import LeaspyInputError, LeaspyModelInputError, LeaspyIndividualParamsInputError
 from leaspy.io.data.dataset import Dataset
-#from leaspy.models.abstract_model import AbstractModel, InitializationMethod
-#from leaspy.models.abstract_multivariate_model import AbstractMultivariateModel
 from leaspy.models.base import InitializationMethod
-#from leaspy.models.multivariate import LogisticMultivariateModel
-from pandas import Categorical
 
 from leaspy.models.obs_models import (
     FullGaussianObservationModel,
     observation_model_factory,
 )
 from leaspy.utils.docs import doc_with_super
-from leaspy.utils.functional import Exp, MatMul, OrthoBasis, Prod, Sqr, Sum
-from leaspy.utils.typing import KwargsType#, Optional
-from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
+from leaspy.utils.functional import Exp, MatMul, OrthoBasis, Sqr
+from leaspy.utils.typing import KwargsType
+from leaspy.utils.typing import DictParams, KwargsType
 
-
-# from sympy import Product
-# from sympy.codegen.cnodes import union
-# from torch.distributions import MixtureSameFamily
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import MixtureNormal, Normal, MultivariateNormal
-#from torch.distributions import Categorical as TorchCategorical
-from leaspy.variables.distributions import MultinomialDistribution as Multinomial
-from leaspy.variables.specs import (#
+from leaspy.variables.distributions import MixtureNormal, Normal
+from leaspy.variables.specs import (
     Hyperparameter,
     IndividualLatentVariable,
     LinkedVariable,
@@ -49,9 +39,6 @@ from leaspy.variables.specs import (#
 
 from leaspy.variables.specs import (
     LVL_FT,
-    Collect,
-    VariableInterface,
-    VariableName,
 )
 from leaspy.variables.state import State
 from .mcmc_saem_compatible import McmcSaemCompatibleModel
@@ -74,7 +61,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
     @property
     def xi_mean(self) -> torch.Tensor:
-        #return torch.tensor([self._xi_mean] * self.n_clusters)
         return torch.tensor([2 if i % 2 == 0 else -2 for i in range(self.n_clusters)])
 
     @property
@@ -91,7 +77,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
     @property
     def sources_mean(self) -> torch.Tensor:
-        #return torch.zeros(self.source_dimension, self.n_clusters)  # be careful with the dimensions
         return torch.tensor([[1 if (i + j) % 2 == 0 else -1 for j in range(self.n_clusters)]
                              for i in range(self.source_dimension)])
 
@@ -101,21 +86,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
             self.source_dimension, self.n_clusters
         )
 
-        #@property
-    #def sources_std(self) -> torch.Tensor:
-    #    return torch.Tensor(
-    #        [self._sources_std] * self.n_clusters
-    #    )  # not sure it's working, it was float before
-
-    #@property
-    #def sources_std(self) -> float:
-    #    return self._sources_std
-
-
     def __init__(self, name: str, **kwargs):
-        # n_clusters = kwargs.get('n_clusters', None)
-        # kwargs["obs_models"] = (observation_model_factory(observation_models, n_clusters=n_clusters, dimension=dimension),)
-        # not sure how to treat n_clusters
 
         self.source_dimension: Optional[int] = None
 
@@ -125,9 +96,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
             dimension = len(kwargs["features"])
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
-            #observation_models = "mixture-gaussian"
             observation_models = "gaussian-diagonal"
-        #if observation_models == "mixture-gaussian":
         if observation_models == "gaussian-diagonal":
             if n_clusters < 2:
                 raise LeaspyInputError(
@@ -185,7 +154,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
                                          sampling_kws={"scale": 10},),
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
-            #probs=LinkedVariable(self.compute_probs),
         )
 
         if self.source_dimension >= 1:
@@ -200,7 +168,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
                     "sources",
                     shape=(self.source_dimension, self.n_clusters,),
                 ),
-                #sources_std=Hyperparameter(self.sources_std),
                 sources_std=Hyperparameter(1.0),
                 # LATENT VARS
                 betas=PopulationLatentVariable(
@@ -209,10 +176,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
                 ),
                 sources=IndividualLatentVariable(MixtureNormal("sources_mean", "sources_std", "probs"),
                                                  sampling_kws={"scale": 10}),
-                #sources=IndividualLatentVariable(MultivariateNormal(
-                #    "sources_mean", "sources_std"
-                #)
-                #),
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(
                     MatMul("orthonormal_basis", "betas").then(torch.t)
@@ -409,19 +372,9 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
                 index=np.arange(state["xi"].shape[0]),  # use correct number of rows
             )
 
-        # Set the right initialisation point fpr barrier methods -JOINTMODEL
-        #df_inter = pd.concat(
-        #    [df["EVENT_TIME"] - self.init_tolerance, df_ind["tau"]], axis=1
-        #)
-        #df_ind["tau"] = df_inter.min(axis=1)
-
         if self.source_dimension > 0:
             for i in range(self.source_dimension):
                 df_ind[f"sources_{i}"] = 0.0
-
-        #if self.n_clusters > 0:
-        #    for i in range(self.n_clusters):
-        #        df_ind[f"probs_{i}"] = 1/self.n_clusters
 
         with state.auto_fork(None):
             state.put_individual_latent_variables(df=df_ind)
@@ -534,9 +487,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
                 "mixing_matrix",
                 "space_shifts",
                 "sources_mean",
-                ##"nll_regul_sources",
-                ##"nll_regul_sources_ind",
-            ]  # specific to the mixture model
+            ]
 
         variables_to_track = variables_to_track or default_variables_to_track
         self.tracked_variables = self.tracked_variables.union(set(variables_to_track))
@@ -558,9 +509,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
         Center the ``sources`` realizations in place.
         """
         mean_sources = torch.mean(state["sources"])
-        #std_sources = torch.std(state['sources'])
         state["sources"] = state["sources"] - mean_sources
-        #state["sources"] = (state["sources"] - mean_sources) / std_sources
 
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
@@ -654,11 +603,8 @@ class LogisticMixtureInitializationMixin:
         df = dataset.to_pandas(apply_headers=True)
         n_inds = df.reset_index("TIME").groupby("ID").min().shape[0]
         n_clusters = self.n_clusters
-        #probs_ind = torch.ones(n_inds, n_clusters) / n_clusters
-        #probs = probs_ind.sum(axis=0) / n_inds
         probs = torch.ones(n_clusters) / n_clusters
 
-        #df = self._get_dataframe_from_dataset(dataset)
         slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
         values_mu, values_sigma = compute_patient_values_distribution(df)
 
@@ -673,21 +619,6 @@ class LogisticMixtureInitializationMixin:
             betas = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample(
                 sample_shape=(self.dimension - 1, self.source_dimension)
             )
-
-        #probs_ind_df = pd.concat(
-        #    [
-        #        pd.DataFrame({"ID": np.arange(1, n_inds + 1, 1)}),
-        #        pd.DataFrame(probs_ind),
-        #    ],
-        #    axis=1,
-        #    join="outer",
-        #)
-        #for c in range(n_clusters):
-        #    probs_ind_df = probs_ind_df.rename(
-        #        columns={c: "prob_cluster_" + str(c + 1)}
-        #    )
-
-        # df = pd.concat([df, probs_ind_df], axis=1, join="outer")
 
         step = math.ceil(n_inds / n_clusters)
         start = 0
@@ -726,12 +657,10 @@ class LogisticMixtureInitializationMixin:
         parameters = {
             "log_g_mean": torch.log(1.0 / values - 1.0),
             "log_v0_mean": get_log_velocities(slopes, self.features),
-            # "log_v0_mean": log_velocities,
             "tau_mean": t0,
             "tau_std": self.tau_std,
             "xi_mean": self.xi_mean,
             "xi_std": self.xi_std,
-            #"probs_ind": probs_ind,
             "probs": probs,
         }
         if self.source_dimension >= 1:
@@ -741,7 +670,6 @@ class LogisticMixtureInitializationMixin:
                 str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
             }
             obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
-            #if isinstance(obs_model, MixtureGaussianObservationModel):
             if isinstance(obs_model, FullGaussianObservationModel):
                 rounded_parameters["noise_std"] = self.noise_std.expand(
                     obs_model.extra_vars["noise_std"].shape
