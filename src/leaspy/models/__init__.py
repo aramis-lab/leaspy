@@ -31,6 +31,5 @@ __all__ = [
     "LinearModel",
     "SharedSpeedLogisticModel",
     "JointModel",
-    "OrdinalMultivariateModel",
     "LogisticMultivariateMixtureModel",
 ]
