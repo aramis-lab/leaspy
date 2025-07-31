@@ -47,9 +47,30 @@ from .mcmc_saem_compatible import McmcSaemCompatibleModel
 @doc_with_super()
 class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     """
-    Contains the common attributes & methods of the mixture models.
-    Developed according to AbstractMultivariateModel.
-    Modified accordingly to handle the n_clusters parameter and model parameters as vectors with n_cluster items.
+    A time-reparametrized model tailored to handle mixture models with multiple clusters.
+    
+    This class extends `TimeReparametrizedModel` to incorporate mixture-specific behaviors,
+    including support for multiple clusters (`n_clusters`) and corresponding vectorized parameters.
+
+    Parameters
+    ----------
+    name : :obj:`str`
+        Name of the model.
+    source_dimension : Optional[:obj:`int`]
+        Number of sources. Dimension of spatial components (default is None).
+    **kwargs: :obj:`dict`
+       Additional hyperparameters for the model. Must include:
+            - 'n_clusters': int
+                Number of mixture components (must be ≥ 2).
+            - 'dimension' or 'features': int or list
+                Dimensionality of the input data.
+            - 'obs_models': str, list, or dict (optional)
+                Specification of the observation model(s). Defaults to "gaussian-diagonal".
+
+    Raises
+    ------
+    :exc:`.LeaspyModelInputError`
+        If inconsistent hyperparameters.
     """
 
     _xi_mean = 0
@@ -61,27 +82,33 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
     @property
     def xi_mean(self) -> torch.Tensor:
+        """Return the mean of xi as a tensor."""
         return torch.tensor([2 if i % 2 == 0 else -2 for i in range(self.n_clusters)])
 
     @property
     def xi_std(self) -> torch.Tensor:
+        """Return the standard deviation of xi as a tensor."""
         return torch.tensor([self._xi_std] * self.n_clusters)
 
     @property
     def tau_std(self) -> torch.Tensor:
+        """Return the standard deviation of tau as a tensor."""
         return torch.tensor([self._tau_std] * self.n_clusters)
 
     @property
     def noise_std(self) -> torch.Tensor:
+        """Return the standard deviation of the model as a tensor."""
         return torch.tensor(self._noise_std)
 
     @property
     def sources_mean(self) -> torch.Tensor:
+        """Return the mean of the sources as a tensor."""
         return torch.tensor([[1 if (i + j) % 2 == 0 else -1 for j in range(self.n_clusters)]
                              for i in range(self.source_dimension)])
 
     @property
     def sources_std(self) -> torch.Tensor:
+        """Return the standard deviation of the sources as a tensor."""
         return torch.ones(
             self.source_dimension, self.n_clusters
         )
@@ -136,6 +163,11 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
         """
         Return the specifications of the variables (latent variables,
         derived variables, model 'parameters') that are part of the model.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.NamedVariables` :
+            A dictionary-like object containing specifications for the variables
         """
         d = super().get_variables_specs()
 
@@ -224,11 +256,12 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
         alpha : :class:`torch.Tensor`
             Acceleration factors of individual(s)
         tau : :class:`torch.Tensor`
-            Time-shift(s).
+            Time-shift(s) of individual(s)
 
         Returns
         -------
-        :class:`torch.Tensor` of same shape as `timepoints`
+        :class:`torch.Tensor`
+            Reparametrized time of same shape as `timepoints`
         """
         return alpha * (t - tau)
 
@@ -237,8 +270,18 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
         self, dataset: Optional[Dataset] = None
     ) -> None:
         """
-        Checks compatibility of dataset.
-        Raises input errors if hyperparameters are not valid.
+        Validate the compatibility of the provided dataset with the model's configuration.
+
+        Parameters
+        ----------
+        dataset : Optional[:class:`~leaspy.io.data.Data.Dataset`], optional
+            The dataset to validate against, by default None.
+
+        Raises
+        ------
+        :exc: `.LeaspyModelInputError`
+            If `source_dimension` is provided but not an integer in the valid range
+            [0, dataset.dimension - 1), or if `n_clusters` is provided but is not an integer ≥ 2.
         """
         super()._validate_compatibility_of_dataset(dataset)
 
@@ -279,13 +322,13 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
         Parameters
         ----------
-        individual_parameters : DictParams
+        individual_parameters : :class:`~leaspy.utils.typing.DictParams`
             A dictionary mapping parameter names (strings) to their values,
             which can be scalars or array-like structures.
 
         Returns
         -------
-        KwargsType
+        KwargsType: :class:`~leaspy.utils.typing.KwargsType`
             A dictionary with the following keys:
             - "nb_inds": Number of individuals
             - "tensorized_ips": Dictionary of parameters converted to 2D tensors.
@@ -294,7 +337,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
         Raises
         ------
-        LeaspyIndividualParamsInputError
+        :exc: `LeaspyIndividualParamsInputError`
             If the provided dictionary keys do not match the expected parameter names,
             or if the sizes of individual parameters are inconsistent,
             or if `sources` parameter does not meet array-like requirements.
@@ -359,6 +402,16 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
         }
 
     def put_individual_parameters(self, state: State, dataset: Dataset):
+        """
+        Initialize individual latent parameters in the given state if not already set.
+        
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.state.State`
+            The current state object that holds all the variables
+        dataset : :class:`~leaspy.io.data.Data.Dataset`
+            Dataset used to initialize latent variables accordingly.
+        """
         df = dataset.to_pandas().reset_index("TIME").groupby("ID").min()
 
         # Initialise individual parameters if they are not already initialised
@@ -382,8 +435,25 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
         """
         Updates all model hyperparameters from the provided hyperparameters.
+
+        Parameters
+        ----------
+        hyperparameters : :class:`~leaspy.utils.typing.KwargsType`
+            Dictionary containing the hyperparameters to be loaded.
+            Expected keys include:
+            - "features": List or sequence of feature names
+            - "dimension": Integer specifying the number of features
+            - "source_dimension": Integer specifying the number of sources; must be in
+            [0, dimension - 1].
+            - "n_clusters": Integer, must be ≥ 2
+
+        Raises
+        ------
+        :exc: `LeaspyModelInputError`
+            - `dimension` does not match the number of `features`
+            - `source_dimension` is invalid or out of range
+            - `n_clusters` is missing or less than 2
         """
-        # add n_clusters
         expected_hyperparameters = (
             "features",
             "dimension",
@@ -434,7 +504,24 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """
-        Export ``Leaspy`` object as dictionary ready for :term:`JSON` saving.
+        Export model object as dictionary ready for :term:`JSON` saving.
+
+        Parameters
+        ----------
+        with_mixing_matrix : :obj:`bool` (default ``True``)
+            Save the :term:`mixing matrix` in the exported file in its 'parameters' section.
+
+            .. warning::
+                It is not a real parameter and its value will be overwritten at model loading
+                (orthonormal basis is recomputed from other "true" parameters and mixing matrix
+                is then deduced from this orthonormal basis and the betas)!
+                It was integrated historically because it is used for convenience in
+                browser webtool and only there...
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.KwargsType` :
+            The object as a dictionary.
         """
         # add n_clusters
         model_settings = super().to_dict()
@@ -454,7 +541,22 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 @doc_with_super()
 class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
     """
-    Manifold mixture model for multiple variables of interest (logistic or linear formulation).
+    A riemannian manifold model tailored to handle mixture models with multiple clusters.
+    
+    This class extends `RiemanianManifoldModel` to incorporate mixture-specific behaviors,
+    mainly the handling of sources for multiple clusters. 
+
+    Parameters
+    ----------
+    name : :obj:`str`
+        The name of the model.
+    **kwargs
+        Hyperparameters of the model (including `noise_model`)
+
+    Raises
+    ------
+    :exc:`.LeaspyModelInputError`
+        * If hyperparameters are inconsistent      
     """
 
     def __init__(
@@ -497,7 +599,20 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
     @classmethod
     def _center_xi_realizations(cls, state: State) -> None:
         """
-        Center the ``xi`` realizations in place
+        Center the ``xi`` realizations in place.
+
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.state.State`
+            The dictionary-like object representing current model state, which
+            contains keys such as``"xi"`` and ``"log_v0"``.
+
+        Notes
+        -----
+        This transformation preserves the orthonormal basis since the new ``v0`` remains
+        collinear to the previous one. It is a purely internal operation meant to reduce
+        redundancy in the parameter space (i.e., improve identifiability and stabilize
+        inference).
         """
         mean_xi = torch.mean(state["xi"])
         state["xi"] = state["xi"] - mean_xi
@@ -507,13 +622,31 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
     def _center_sources_realizations(cls, state: State) -> None:
         """
         Center the ``sources`` realizations in place.
+
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.state.State`
+            The dictionary-like object representing current model state, which
+            contains keys such as``"sources"``.
         """
         mean_sources = torch.mean(state["sources"])
         state["sources"] = state["sources"] - mean_sources
 
     @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
-        """ """
+        """
+        Compute the model's :term:`sufficient statistics`.
+
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.state.State`
+            The state to pick values from.
+
+        Returns
+        -------
+        SuffStatsRW :
+            The computed sufficient statistics.
+        """
         cls._center_xi_realizations(state)
         cls._center_sources_realizations(state)
 
@@ -523,6 +656,13 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
         """
         Return the specifications of the variables (latent variables, derived variables,
         model 'parameters') that are part of the model.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.NamedVariables`
+            A dictionary-like object mapping variable names to their specifications.
+            These include `ModelParameter`, `Hyperparameter`, `PopulationLatentVariable`,
+            and `LinkedVariable` instances.
         """
         d = super().get_variables_specs()
         d.update(
@@ -562,7 +702,30 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
 
     @classmethod
     def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
-        """Returns a model without source. A bit dirty?"""
+        """
+        Return the model output when sources(spatial components) are not present.
+
+        Parameters
+        ----------
+        rt :  :class:`torch.Tensor`
+            The reparametrized time.
+        metric : Any
+            The metric tensor used for computing the spatial/temporal influence.
+        v0 : Any
+            The values of the population parameter `v0` for each feature.
+        g : Any
+            The values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            The model output without contribution from source shifts.
+
+        Notes
+        -----
+        This implementation delegates to `model_with_sources` with `space_shifts`
+        set to a zero tensor of shape (1, 1), effectively removing source effects.
+        """
         return cls.model_with_sources(
             rt=rt,
             metric=metric,
@@ -590,7 +753,31 @@ class LogisticMixtureInitializationMixin:
         self,
         dataset: Dataset,
         ) -> VariablesLazyValuesRO:
-        """Compute initial values for model parameters."""
+        """
+        Compute initial values for model parameters.
+
+        Parameters
+        ----------
+        dataset : ::class:`~leaspy.io.data.Data.Dataset`
+            The dataset from which to extract observations and masks.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.VariablesLazyValuesRO`
+            A dictionary mapping parameter names (as strings) to their initialized
+            torch.Tensor values.
+
+        Notes
+        -----
+        - If the initialization method is `DEFAULT`, patient means are used.
+        - If `RANDOM`, parameters are sampled from normal distributions
+        centered at patient means with estimated standard deviations.
+        - `values` are clamped between 0.01 and 0.99 to avoid boundary issues.
+        - If the model includes sources (source_dimension >= 1),
+        regression coefficients `betas_mean` are initialized accordingly.
+        - If the observation model is a `FullGaussianObservationModel`,
+        the noise standard deviation parameter is expanded to the correct shape.
+        """
         from leaspy.models.utilities import (
             compute_patient_slopes_distribution,
             compute_patient_time_distribution,
@@ -687,8 +874,15 @@ class LogisticMultivariateMixtureModel(
 
     def get_variables_specs(self) -> NamedVariables:
         """
-        Return the specifications of the variables (latent variables,
-        derived variables, model 'parameters') that are part of the model.
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.NamedVariables`
+            A dictionary-like object mapping variable names to their specifications.
+            These include `ModelParameter`, `Hyperparameter`, `PopulationLatentVariable`,
+            and `LinkedVariable` instances.
         """
         d = super().get_variables_specs()
         d.update(
@@ -701,7 +895,20 @@ class LogisticMultivariateMixtureModel(
 
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """Used to define the corresponding variable."""
+        """
+        Compute the metric tensor from input tensor `g`.
+        This function calculates the metric as \((g + 1)^2 / g\) element-wise.
+
+        Parameters
+        ----------
+        g : t :class:`torch.Tensor`
+            Input tensor with values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            The computed metric tensor, same shape as g(number of features)
+        """
         return (g + 1) ** 2 / g
 
     @classmethod
@@ -714,7 +921,28 @@ class LogisticMultivariateMixtureModel(
         v0: TensorOrWeightedTensor[float],
         g: TensorOrWeightedTensor[float],
     ) -> torch.Tensor:
-        """Returns a model with sources."""
+        """
+        Return the model output when sources(spatial components) are present.
+
+        Parameters
+        ----------
+        rt : :class:`~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+            Tensor containing the reparametrized time.
+        space_shifts : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+            Tensor containing the values of the space-shifts
+        metric :`~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+            Tensor containing the metric tensor used for computing the spatial/temporal influence.
+        v0 : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+            Tensor containing the values of the population parameter `v0` for each feature.
+        g : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+            Tensor containing the values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            Weighted value tensor after applying sigmoid transformation,
+            representing the model output with sources.
+        """
         # Shape: (Ni, Nt, Nfts)
         pop_s = (None, None, ...)
         rt = unsqueeze_right(rt, ndim=1)  # .filled(float('nan'))
