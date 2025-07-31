@@ -17,7 +17,6 @@ from pandas import Categorical
 
 from leaspy.models.obs_models import (
     FullGaussianObservationModel,
-    MixtureGaussianObservationModel,
     observation_model_factory,
 )
 from leaspy.utils.docs import doc_with_super
