@@ -498,18 +498,22 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
 
 class MixtureNormalFamily(StatelessDistributionFamily):
     """
-    Mixture normal family (stateless).
-    Same functionality with the normal family but we have a set of parameters for every cluster c.
-    Each cluster is associated with a probability.
-    The mixture distribution is defined as a Categorical Distribution with the probabilities of each cluster as arguments.
-    The component_distribution is the probability distribution of each cluster - in our case Normal(loc,scale)
+    A stateless mixture of univariate normal distributions.
+
+    This class defines a mixture distribution where each component is a univariate
+    normal distribution, and the mixture weights are defined by a categorical distribution.
+
+    Parameters:
+        - loc (Tensor): Mean of each normal component, one for each cluster.
+        - scale (Tensor): Standard deviation of each normal component.
+        - probs (Tensor): Probabilities associated with each cluster; must sum to 1.
+
+    The mixture is modeled using `torch.distributions.MixtureSameFamily`, where:
+        - The mixing distribution is a `Categorical` defined by `probs`.
+        - The component distribution is `Normal(loc, scale)`.
     """
 
     parameters: ClassVar = ("loc", "scale", "probs")
-    # probs = torch.ones(n_clusters)/n_clusters
-    # mixture_distribution = torch.distributions.Categorical(probs),
-    # component_distribution = torch.distributions.Normal(torch.randn(n_clusters, ), torch.rand(n_clusters, ))
-    # dist_factory: ClassVar = torch.distributions.mixture_same_family.MixtureSameFamily
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
@@ -519,6 +523,23 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         scale: torch.Tensor,
         probs: torch.Tensor,
     ) -> MixtureSameFamily:
+        """
+        Construct a MixtureSameFamily distribution of univariate normal components.
+
+        Parameters
+        ----------
+        loc : :class:`torch.Tensor`
+            Mean(s) of the normal components. Shape should be broadcastable with `scale` and `probs`.
+        scale : :class:`torch.Tensor`
+            Standard deviation(s) of the normal components.
+        probs : :class:`torch.Tensor`
+            Probabilities of each mixture component. Must sum to 1 along the component axis.
+
+        Returns
+        -------
+        :class: `.MixtureSameFamily`
+            A mixture distribution with categorical mixing and normal components.
+        """
         from torch.distributions import Categorical, Normal
 
         return MixtureSameFamily(
@@ -528,10 +549,26 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
     @classmethod
     def sample(cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()) -> torch.Tensor:
+        """
+        Draw samples from the mixture of normal distributions.
+
+        Parameters
+        ----------
+        *params : :class:`torch.Tensor`
+            Distribution parameters in the order (loc, scale, probs). These should be
+            broadcastable to define a valid MixtureSameFamily distribution.
+        sample_shape : :obj:`tuple` of :obj:`int`, optional
+            The desired sample shape. Defaults to an empty tuple for a single sample.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            A tensor of samples drawn from the specified mixture distribution.
+            The shape is `sample_shape + batch_shape`.
+        """
         dist = cls.dist_factory(*params)
 
         return dist.sample(sample_shape)
-        #return dist.sample([1])
 
     @classmethod
     def set_component_distribution(
@@ -541,7 +578,26 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         scale: torch.Tensor,
     ) -> torch.distributions:
         """
-        Ensure that the component distribution is an instance of the torch.distributions.Normal.
+        Ensure that the component distribution is an instance of the :class:`torch.distributions.Normal`.
+
+        Parameters
+        ----------
+        component_distribution : :class:`torch.distributions.Distribution`
+            The distribution object to validate. Must be an instance of `torch.distributions.Normal`.
+        loc : :class:`torch.Tensor`
+            Mean(s) for the normal distribution.
+        scale : :class:`torch.Tensor`
+            Standard deviation(s) for the normal distribution.
+
+        Returns
+        -------
+        :class:`torch.distributions.Distribution`
+            The newly set Normal distribution instance.
+
+        Raises
+        ------
+        :exc:`ValueError`
+            If `component_distribution` is not an instance of `torch.distributions.Normal`.
         """
         if not isinstance(
             cls.dist_mixture.component_distribution, torch.distributions.Normal
@@ -556,11 +612,36 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
     @classmethod
     def extract_probs(cls, *params: Any) -> torch.Tensor:
-        """Return the probabilities of the distribution, given the mixture distribution."""
+        """
+        Extract the mixture probabilities from the distribution parameters.
+
+        Parameters
+        ----------
+        *params : :obj:`Any`
+            Distribution parameters (expected: loc, scale, probs), passed to `dist_factory`.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            A 1D tensor of probabilities for each component in the mixture.
+        """
         return cls.dist_factory(*params).mixture_distribution.probs
 
     @classmethod
     def extract_n_clusters(cls, *params: Any) -> int:
+        """
+        Return the number of mixture components (i.e., clusters) in the distribution.
+
+        Parameters
+        ----------
+        *params : :obj:`Any`
+            Distribution parameters (expected: loc, scale, probs), passed to `extract_probs`.
+
+        Returns
+        -------
+        :obj:`int`
+            The number of clusters/components in the mixture distribution.
+        """
         return cls.extract_probs(*params).size()[0]
 
     @classmethod
@@ -568,7 +649,22 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         cls,
         which_cluster: int,
     ) -> tuple[Tensor, Tensor, Tensor]:
-        """Return the parameters for a specific cluster."""
+        """
+        Extract the parameters (probability, mean, standard deviation) for a specific cluster.
+
+        Parameters
+        ----------
+        which_cluster : :obj:`int`
+            The index of the cluster to extract parameters for.
+
+        Returns
+        -------
+        :obj:`tuple` of :class:`torch.Tensor`
+            A tuple containing:
+            - prob: Probability of the selected cluster.
+            - loc: Mean of the selected normal component.
+            - scale: Standard deviation of the selected normal component.
+        """
         prob = torch.Tensor(cls.extract_probs)[which_cluster]
         loc = torch.Tensor(cls.mean)[which_cluster]
         scale = torch.Tensor(cls.stddev)[which_cluster]
@@ -576,20 +672,96 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
     @classmethod
     def mode(cls, *params: Any) -> torch.Tensor:
+        """
+        Return the mode of the mixture distribution.
+
+        For a mixture of normal distributions, this returns the mean of the overall
+        mixture distribution, which serves as a proxy for the mode.
+
+        Parameters
+        ----------
+        *params : :obj:`Any`
+            Distribution parameters (expected: loc, scale, probs), passed to `dist_factory`.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            The mode of the mixture distribution.
+        """
         return cls.dist_factory(*params).mean
 
     @classmethod
     def mean(cls, *params: Any) ->  torch.Tensor:
+        """
+        Return the mean of the mixture distribution.
+
+        For a mixture of normal distributions, this returns the mean of the overall
+        mixture distribution.
+
+        Parameters
+        ----------
+        *params : :obj:`Any`
+            Distribution parameters (expected: loc, scale, probs), passed to `dist_factory`.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            The mean of the mixture distribution.
+        """
         return cls.dist_factory(*params).mean
 
     @classmethod
     def stddev(cls, *params: Any) ->  torch.Tensor:
+        """
+        Return the standard deviation of the mixture distribution.
+
+        For a mixture of normal distributions, this returns the standard deviation
+        of the overall mixture distribution.
+
+        Parameters
+        ----------
+        *params : :obj:`Any`
+            Distribution parameters (expected: loc, scale, probs), passed to `dist_factory`.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            The standard deviation of the mixture distribution.
+        """
         return cls.dist_factory(*params).stddev
 
     @classmethod
     def _nll(
             cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor, probs: torch.Tensor,
     ) -> WeightedTensor:
+        """
+        Compute the element-wise negative log-likelihood (NLL) for a mixture of normal distributions.
+
+        This method handles two scenarios:
+        - If `loc` has more than one dimension, it's assumed to represent multiple sources 
+        per individual (e.g., shape [n_inds, n_clusters]).
+        - If `loc` is one-dimensional, it's treated as a simple mixture (e.g., for global parameters
+        like tau or xi), and broadcasting is used accordingly.
+
+        Parameters
+        ----------
+        x : :class:`.WeightedTensor`
+            A tensor-like object containing `value` (data tensor) and `weight` (observation weights).
+        loc : :class:`torch.Tensor`
+            The means of the normal components. Shape depends on the context:
+            - For individual sources: [n_inds, n_clusters]
+            - For shared/global parameters: [n_clusters]
+        scale : :class:`torch.Tensor`
+            The standard deviations of the normal components. Shape should match `loc`.
+        probs : :class:`torch.Tensor`
+            The mixture probabilities for each component. Not used directly in this method,
+            but passed for consistency with the full distribution signature.
+
+        Returns
+        -------
+        :class:`.WeightedTensor`
+            The element-wise negative log-likelihood for each data point, weighted by `x.weight`.
+        """
 
         z_list = []
 
@@ -620,6 +792,30 @@ class MixtureNormalFamily(StatelessDistributionFamily):
     def _nll_jacobian(
             cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor, probs:torch.Tensor,
     ) -> WeightedTensor:
+        """
+        Compute the Jacobian (gradient w.r.t. `loc`) of the negative log-likelihood 
+        for a mixture of normal distributions.
+        
+        Parameters
+        ----------
+        x : :class:`.WeightedTensor`
+            A tensor-like object with `.value` as the observed data and `.weight` as sample weights.
+        loc : :class:`torch.Tensor`
+            The means of the normal components. Shape can be:
+            - [n_inds, n_clusters] for individual sources
+            - [n_clusters] for shared parameters
+        scale : :class:`torch.Tensor`
+            The standard deviations of the components.
+        probs : :class:`torch.Tensor`
+            Mixture probabilities. Not used directly here, but included for signature consistency.
+
+        Returns
+        -------
+        :class:`WeightedTensor`
+            A tensor of Jacobian values for each sample and cluster, with shape:
+            - [n_inds, n_sources, n_clusters] or [n_inds, n_clusters], depending on input shape.
+            The `.weight` is preserved from the input `x`.
+        """
 
         z_list = []
 
@@ -651,6 +847,31 @@ class MixtureNormalFamily(StatelessDistributionFamily):
             scale: torch.Tensor,
             probs: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
+        """
+        Compute both the negative log-likelihood (NLL) and its Jacobian w.r.t. `loc`
+        for a mixture of normal distributions.
+
+        Parameters
+        ----------
+        x : :class:`WeightedTensor`
+            A tensor-like object containing observed values (`value`) and observation weights (`weight`).
+        loc : :class:`torch.Tensor`
+            Means of the normal components. Shape:
+            - [n_inds, n_clusters] for individual-specific sources.
+            - [n_clusters] for global/shared parameters.
+        scale : :class:`torch.Tensor`
+            Standard deviations of the normal components.
+        probs : :class:`torch.Tensor`
+            Mixture probabilities (not used in this method, but kept for signature consistency).
+
+        Returns
+        -------
+        :obj:`tuple` of :class:`WeightedTensor`
+            - nll : :class:`WeightedTensor`
+                Element-wise negative log-likelihood values.
+            - jacobian : :class:`WeightedTensor`
+                The Jacobian (gradient) of the NLL with respect to `loc`. Equal to `z / scale`.
+        """
         z_list = []
 
         if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
