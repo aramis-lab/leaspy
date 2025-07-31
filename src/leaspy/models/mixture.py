@@ -403,11 +403,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
             df_ind = df["TIME"].to_frame(name="tau")
             df_ind["xi"] = 0.0
         else:
-            #df_ind = pd.DataFrame(
-            #    torch.concat([state["xi"], state["tau"]], axis=1),
-            #    columns=["xi", "tau"],
-            #    index=df.index,
-            #)
             df_ind = pd.DataFrame(
                 torch.concat([state["xi"], state["tau"]], axis=1).detach().numpy(),
                 columns=["xi", "tau"],
