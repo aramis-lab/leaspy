@@ -41,24 +41,68 @@ $$
 *Interpretation*: Space shifts ($w_{i,k}$)  are more interpretable than sources ($s_i $), as they encapsulate total spatial variability effects.
 
 ## Logistic Model
+
+
 ### Definition
+
+The **logistic model** is a statistical model used to describe **sigmoidal trajectories** of longitudinal outcomes over time, typically biomarkers or clinical scores. This model is particularly useful when outcomes exhibit a **monotonic progression** from one asymptote to another, also called as bounded outcome scores, which is common in disease progression {cite}`lesaffreLogisticTransformBounded2007b`.
+The logistic model is governed by parameters, which control its **speed**, **inflection point**, and **asymmetry**.
+
+In Leaspy, the logistic model is implemented using a **non-linear mixed-effects** framework, where the disease evolution is described through a latent time variable (latent disease age) shared across outcomes, and individual variations are modeled through subject-specific parameters {cite}`durrleman2013toward`.
+
+This model provides interpretable components:
+- A population-level trajectory defined by a logistic function,
+- Individual deviations from this curve through time reparametrization and spatial shifts,
+- The ability to simulate, estimate, and personalize trajectories for unseen individuals.
+
+
 ### Data
-   - *"When you have this type of data, it is relevant to use this model"*
+
+A logistic model is relevant when you have:
+
+- **Longitudinal repeated measurements** of one or more continuous outcomes (e.g., cognitive scores, clinical scores, biomarkers)
+- **Monotonic or sigmoidal progression** of outcomes over time (typically increasing or decreasing to a plateau)
+- **No event or survival information required**, unlike joint models
+
+To fit a logistic model, you need a dataframe with the following columns:
+
+- `ID`: Patient identifier  
+- `TIME`: Time of measurement  
+- One or more columns representing the longitudinal outcomes (e.g., `FEATURE_1`, `FEATURE_2`, ...)
+
+For the importation of dataframe:
+
+```python
+dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
+print(dataset.head())
+
+                        FEATURE_1  FEATURE_2
+      ID    TIME
+132-S2-0  81.661          0.44444    0.04000
+          82.136          0.60000    0.56000
+          82.682          0.39267    0.04000
+          83.139          0.58511    0.30000
+          83.691          0.57044    0.05040
+
+data_logistic = Data.from_dataframe(dataset, "visit")
+```
+
 ### Mathematical background
 
-Logistic trajectories for outcome $k$, and from the latent disease age $\psi_i(t)$ is defined by:
+The logistic trajectory for outcome $k$, and from the latent disease age $\psi_i(t)$ is defined by:
 
 $$
 \gamma_{i,k}(t) = \left[ 1 + g_k x \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
 $$
 
 where:  
-- $ t_0 $: Population reference time
-- $ v_{0,k} $: Logistic curve speed at $ t_0 $
-- $ \frac{1}{1+g_k} $: Logistic curve value at $ t_0 $
+- $\gamma_{i,k}(t)$ is the modeled outcome value,
+- $t_0$ is the population reference time
+- $v_{0,k}$ is the speed of progression for outcome $k$ at reference time $t_0$,
+- $w_{i,k}$ is the individual space shift for outcome $k$.
+- $\frac{1}{1+g_k}$ is the value of the logistic curve at $t_0$
+- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](##) for more details.
 
-
-### References
 
 ## Joint Model
 
@@ -90,16 +134,16 @@ dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
                                 FEATURE_1  FEATURE_2  EVENT_TIME  EVENT_BOOL
-  ID       TIME                                                           
-  132-S2-0 81.661               0.44444    0.04000        84.0           1
-          82.13600000000001    0.60000    0.00000        84.0           1
-          82.682               0.39267    0.04000        84.0           1
-          83.139               0.58511    0.00000        84.0           1
-          83.691               0.57044    0.00000        84.0           1
-  184-S2-0 80.994               0.32600    0.00000        83.4           0
-          81.47199999999998    0.35556    0.00000        83.4           0
-          82.08800000000001    0.40000    0.00000        83.4           0
-          82.488               0.31111    0.00000        83.4           0
+        ID              TIME                                                           
+132-S2-0              81.661      0.44444    0.04000        84.0           1
+           82.13600000000001      0.60000    0.00000        84.0           1
+                      82.682      0.39267    0.04000        84.0           1
+                      83.139      0.58511    0.00000        84.0           1
+                      83.691      0.57044    0.00000        84.0           1
+184-S2-0              80.994      0.32600    0.00000        83.4           0
+           81.47199999999998      0.35556    0.00000        83.4           0
+           82.08800000000001      0.40000    0.00000        83.4           0
+                      82.488      0.31111    0.00000        83.4           0
 
 data_joint = Data.from_dataframe(dataset, "joint")
 ```
@@ -176,13 +220,11 @@ leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 ```
 For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the model. Note that for prediction purposes, the [CIF](./glossary.md#cif) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
-### References
+## Mixture Model
+## Covariate Model
+
+## References
 
 ```{bibliography}
 :filter: docname in docnames
 ```
-
-
-## Mixture Model
-## Covariate Model
-
