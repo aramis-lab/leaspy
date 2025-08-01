@@ -719,6 +719,14 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
             )
 
         previous_attachment, previous_regularity = compute_attachment_regularity()
+        if state["nll_regul_ind_sum_ind"].ndim > 1 :
+            nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+            nll_cluster = -nll_regul_ind_sum_ind
+            probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+
+        if previous_regularity.ndim == 2 : #it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
+            previous_regularity = (probs_ind * previous_regularity).sum(dim=1)
+
         # with state.auto_fork():
         state.put(
             self.name,
@@ -729,6 +737,14 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         # alpha is per individual and > 0, shape = (n_individuals,)
         # if new is "better" than previous, then alpha > 1 so it will always be accepted in `_group_metropolis_step`
         new_attachment, new_regularity = compute_attachment_regularity()
+
+        if state["nll_regul_ind_sum_ind"].ndim > 1:
+            nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
+            nll_cluster = -nll_regul_ind_sum_ind
+            probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+
+        if new_regularity.ndim == 2:  # it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
+            new_regularity = (probs_ind * new_regularity).sum(dim=1)
         alpha = torch.exp(
             -1
             * (
