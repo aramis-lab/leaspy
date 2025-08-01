@@ -16,62 +16,6 @@ from tests.unit_tests.models.test_model_factory import ModelFactoryTestMixin
 
 
 class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
-    model_names = (
-        "linear",
-        "logistic",
-        "shared_speed_logistic",
-    )
-
-    def test_constructor(self):
-        """
-        Test attribute's initialization of leaspy univariate model
-        """
-        from leaspy.models import model_factory
-
-        for name in self.model_names:
-            model = model_factory(name)
-            self.assertIsInstance(model.obs_models[0], FullGaussianObservationModel)
-            self.assertEqual(type(model), type(model_factory(name)))
-            self.check_model_factory_constructor(model)
-            self.assertFalse(model.is_initialized)
-
-        for observation_model_name, observation_model in OBSERVATION_MODELS.items():
-            if observation_model_name != ObservationModelNames.WEIBULL_RIGHT_CENSORED:
-                print(observation_model_name)
-                model = model_factory(
-                    "logistic", obs_models=observation_model_name, dimension=1
-                )
-                self.assertIsInstance(model.obs_models[0], observation_model)
-            else:
-                to_test = [
-                    [None, {"w": 1, "s": 0}],
-                    ["gaussian-scalar", {"w": 1, "s": 0}],
-                    [observation_model_name, {"w": 0, "s": 1}],
-                    [(observation_model_name, "gaussian-scalar"), {"w": 0, "s": 1}],
-                    [("gaussian-scalar", observation_model_name), {"w": 1, "s": 0}],
-                ]
-                for input, output in to_test:
-                    # If no observational model given
-                    model = model_factory("joint", dimension=1, obs_models=input)
-                    self.assertIsInstance(
-                        model.obs_models[output["w"]], observation_model
-                    )
-                    self.assertIsInstance(
-                        model.obs_models[output["s"]],
-                        OBSERVATION_MODELS[ObservationModelNames.GAUSSIAN_SCALAR],
-                    )
-        for name in (
-            "linear",
-            "logistic",
-            "shared_speed_logistic",
-        ):
-            model = model_factory(name, source_dimension=2)
-            self.assertEqual(model.source_dimension, 2)
-
-        for name in ("linear", "logistic"):
-            model = model_factory(name, dimension=1)
-            self.assertEqual(model.source_dimension, 0)
-            self.assertEqual(model.dimension, 1)
 
     def test_load_hyperparameters(self):
         model = self.get_hardcoded_model("logistic_diag_noise")

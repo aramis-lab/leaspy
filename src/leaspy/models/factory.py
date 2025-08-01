@@ -8,6 +8,7 @@ from .linear import LinearModel
 from .lme import LMEModel
 from .logistic import LogisticModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
+from .mixture import LogisticMultivariateMixtureModel
 
 __all__ = [
     "ModelName",
@@ -24,6 +25,7 @@ class ModelName(str, Enum):
     SHARED_SPEED_LOGISTIC = "shared_speed_logistic"
     LME = "lme"
     CONSTANT = "constant"
+    MIXTURE_LOGISTIC = "mixture_logistic"
 
 
 def model_factory(
@@ -64,3 +66,5 @@ def model_factory(
         return LMEModel(instance_name, **kwargs)
     if name == ModelName.CONSTANT:
         return ConstantModel(instance_name, **kwargs)
+    if name == ModelName.MIXTURE_LOGISTIC:
+        return LogisticMultivariateMixtureModel(instance_name, **kwargs)
