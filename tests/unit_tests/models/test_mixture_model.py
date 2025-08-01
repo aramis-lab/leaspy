@@ -63,10 +63,6 @@ class TestMultivariateModel(LeaspyTestCase):
     "xi_std": [
         0.631,
         0.631
-    ],
-    "mixing_matrix": [
-        [-0.015, 0.009, 0.002, -0.043],
-        [0.074, -0.003, -0.000, -0.014]
     ]
 }
 
