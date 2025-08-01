@@ -10,7 +10,7 @@ class TestMultivariateModel(LeaspyTestCase):
         Test the method load_parameters.
         """
         model_ref = self.get_hardcoded_model("mixture")
-        model = LogisticMultivariateMixtureModel("test_model", obs_models="gaussian-diagonal", dimension=4, source_dimension=2, n_cl)
+        model = LogisticMultivariateMixtureModel("test_model", obs_models="gaussian-diagonal", dimension=4, source_dimension=2, n_clusters=2)
         model.source_dimension = 2
         model.dimension = 4
         model.load_parameters(model_ref.parameters)
