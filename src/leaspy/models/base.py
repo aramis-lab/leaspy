@@ -129,6 +129,7 @@ class ModelInterface(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def save(self, path: Union[str, Path], **kwargs) -> None:
         """Save model as json model parameter file.
 
@@ -144,41 +145,7 @@ class ModelInterface(ABC):
         ------
         NotImplementedError
         """
-        import json
-        from inspect import signature
-
-        export_kws = {
-            k: kwargs.pop(k) for k in signature(self.to_dict).parameters if k in kwargs
-        }
-        model_settings = self.to_dict(**export_kws)
-        kwargs = {"indent": 2, **kwargs}
-        with open(path, "w") as fp:
-            json.dump(model_settings, fp, **kwargs)
-
-    def to_dict(self, **kwargs) -> KwargsType:
-        """Export model as a dictionary ready for export.
-
-        Returns
-        -------
-        KwargsType :
-            The model instance serialized as a dictionary.
-        """
-        from leaspy import __version__
-
-        from .utilities import tensor_to_list
-
-        return {
-            "leaspy_version": __version__,
-            "name": self.name,
-            "features": self.features,
-            "dimension": self.dimension,
-            "hyperparameters": {
-                k: tensor_to_list(v) for k, v in (self.hyperparameters or {}).items()
-            },
-            "parameters": {
-                k: tensor_to_list(v) for k, v in (self.parameters or {}).items()
-            },
-        }
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
@@ -590,12 +557,6 @@ class BaseModel(ModelInterface):
             raise LeaspyModelInputError(
                 f"Model has {len(self.features)} features. Cannot set the dimension to {dimension}."
             )
-
-    @property
-    @abstractmethod
-    def parameters(self) -> DictParamsTorch:
-        """Dictionary of values for model parameters."""
-        raise NotImplementedError
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None
