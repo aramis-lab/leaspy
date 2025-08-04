@@ -462,7 +462,7 @@ class ModelParameter(IndepVariable):
 
     @classmethod
     def for_ind_std(
-        cls, individual_variable_name: VariableName, shape: tuple[int, ...], **tol_kw
+        cls, ind_var_name: VariableName, shape: tuple[int, ...], **tol_kw
     ):
         """
         Smart automatic definition of `ModelParameter` when it is the std-dev 
@@ -479,7 +479,7 @@ class ModelParameter(IndepVariable):
         :class:`~leaspy.variables.specs.ModelParameter`
             A new instance of `ModelParameter` configured as a prior std-dev.
         """
-        individual_variance_sqr_name = f"{individual_variable_name}_sqr"
+        ind_var_sqr_name = f"{ind_var_name}_sqr"
         update_rule_normal = NamedInputFunction(
             compute_individual_parameter_std_from_sufficient_statistics,
             parameters=(
