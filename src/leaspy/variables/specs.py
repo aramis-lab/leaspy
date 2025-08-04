@@ -469,7 +469,7 @@ class ModelParameter(IndepVariable):
         of Gaussian prior of an individual latent variable.
         Parameters
         ----------
-        individual_variable_name : :class:`~leaspy.variables.specs.VariableName`
+        ind_var_name : :class:`~leaspy.variables.specs.VariableName`
             Name of the individual latent variable for which this is the prior std-dev.
         shape : :obj:`tuple` of :obj:`int`
             The shape of the model parameter (typically matching the variable's dimensionality).
