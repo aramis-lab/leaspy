@@ -66,7 +66,9 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         -------
         :class:`torch.Tensor`
          Metric value, computed as:
-         (g_deltas_exp + 1)^2 / g_deltas_exp
+               .. math::
+
+                    \\frac{(g \\cdot e^{-\\delta} + 1)^2}{g \\cdot e^{-\\delta}}
         """
         return (g_deltas_exp + 1) ** 2 / g_deltas_exp
 
@@ -88,20 +90,27 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
 
     @staticmethod
     def pad_deltas(*, deltas: torch.Tensor) -> torch.Tensor:
-        """Prepend deltas with a zero as delta_1 is set to zero in the equations."""
+        """Prepend deltas with a zero as delta_1 is set to zero in the equations.
+        .
+                Parameters:
+                    deltas (:class:`torch.Tensor`): Deltas tensor.
+
+                Returns:
+                    :class:`torch.Tensor`: Padded deltas tensor.
+        """
         return torch.cat((torch.tensor([0.0]), deltas))
 
     @staticmethod
     def denom(*, g_deltas_exp: torch.Tensor) -> torch.Tensor:
-        """
-        Compute the denominator for the gamma_t0 calculation.
+        r"""
+        Compute the denominator for the :math:`\gamma_{t_0}` calculation.
         """
         return 1 + g_deltas_exp
 
     @staticmethod
     def gamma_t0(*, denom: torch.Tensor) -> torch.Tensor:
-        """
-        Compute the gamma_t0 value, which is the inverse of the denominator.
+        r"""
+        Compute the :math:`\gamma_{t_0}` value, which is the inverse of the denominator.
 
         Parameters
         ----------
@@ -111,7 +120,7 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Returns
         -------
         :class:`torch.Tensor`
-            Gamma_t0 value.
+            :math:`\gamma_{t_0}` value.
         """
         return 1 / denom
 
@@ -123,13 +132,15 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Parameters
         ----------
         gamma_t0 : :class:`torch.Tensor`
-            Gamma_t0 value.
+            :math:`\\gamma_{t_0}` value.
 
         Returns
         -------
         :class:`torch.Tensor`
-            g_metric value, computed as:
-            (gamma_t0 * (1 - gamma_t0)) ** 2
+            :math:`g_{metric}` value, computed as:
+               .. math::
+
+                    g\\_metric = \\frac{1}{(\\gamma_{t0} \\cdot (1 - \\gamma_{t0}))^2}
         """
         return 1 / (gamma_t0 * (1 - gamma_t0)) ** 2
 
@@ -149,8 +160,7 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Returns
         -------
         :class:`torch.Tensor`
-            Collinear term to d_gamma_t0, computed as:
-            deltas_exp / denom**2
+            Collinear term to d_gamma_t0
         """
         return deltas_exp / denom**2
 

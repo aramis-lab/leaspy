@@ -37,15 +37,14 @@ def model_factory(
     Parameters
     ----------
     name : :obj:`str` or ModelName
-        The name of the model class to be instantiated.
-        Valid options include:
-        - "joint"
-        - "logistic"
-        - "linear"
-        - "shared_speed_logistic"
-        - "lme"
-        - "constant"
-        - "mixture_logistic"
+        The name of the model class to be instantiated. Valid options include:
+            - ``"joint"``
+            - ``"logistic"``
+            - ``"linear"``
+            - ``"shared_speed_logistic"``
+            - ``"lme"``
+            - ``"constant"``
+            - ``"mixture_logistic"``
 
     instance_name : :obj:`str`, optional
         A custom name for the model instance. If not provided, the model's name
