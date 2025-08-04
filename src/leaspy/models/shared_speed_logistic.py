@@ -60,12 +60,12 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Parameters
         ----------
         g_deltas_exp : :class:`torch.Tensor`
-          Product of slope and exp(-deltas), shape (..., D).
+          Product of slope and exp(-deltas).
 
         Returns
         -------
         :class:`torch.Tensor`
-         Metric value, shape (..., D), computed as:
+         Metric value, computed as:
          (g_deltas_exp + 1)^2 / g_deltas_exp
         """
         return (g_deltas_exp + 1) ** 2 / g_deltas_exp
@@ -75,10 +75,10 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         """Compute the exponential of the negative deltas.
 
         Parameters:
-            deltas_padded (:class:`torch.Tensor`): Padded deltas, shape (..., D).
+            deltas_padded (:class:`torch.Tensor`): Padded deltas.
 
         Returns:
-            :class:`torch.Tensor`: Exponential of the negative deltas, shape (..., D).
+            :class:`torch.Tensor`: Exponential of the negative deltas.
         """
         return torch.exp(-1 * deltas_padded)
 
@@ -106,12 +106,12 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Parameters
         ----------
         denom : :class:`torch.Tensor`
-            Denominator term, shape (..., D).
+            Denominator term.
 
         Returns
         -------
         :class:`torch.Tensor`
-            Gamma_t0 value, shape (..., D).
+            Gamma_t0 value.
         """
         return 1 / denom
 
@@ -123,12 +123,12 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Parameters
         ----------
         gamma_t0 : :class:`torch.Tensor`
-            Gamma_t0 value, shape (..., D).
+            Gamma_t0 value.
 
         Returns
         -------
         :class:`torch.Tensor`
-            g_metric value, shape (..., D), computed as:
+            g_metric value, computed as:
             (gamma_t0 * (1 - gamma_t0)) ** 2
         """
         return 1 / (gamma_t0 * (1 - gamma_t0)) ** 2
@@ -142,14 +142,14 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Parameters
         ----------
         deltas_exp : :class:`torch.Tensor`
-            Exponential of the negative deltas, shape (..., D).
+            Exponential of the negative deltas.
         denom : :class:`torch.Tensor`
-            Denominator term, shape (..., D).
+            Denominator term.
 
         Returns
         -------
         :class:`torch.Tensor`
-            Collinear term to d_gamma_t0, shape (..., D), computed as:
+            Collinear term to d_gamma_t0, computed as:
             deltas_exp / denom**2
         """
         return deltas_exp / denom**2
