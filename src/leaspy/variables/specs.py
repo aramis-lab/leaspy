@@ -438,6 +438,27 @@ class ModelParameter(IndepVariable):
             suff_stats=Collect(individual_variable_name),
             update_rule=Mean(individual_variable_name, dim=LVL_IND),
         )
+    
+    @classmethod
+    def for_ind_mean_mixture(cls,
+                             ind_var_name: VariableName ,shape: Tuple[int, ...],):
+        """
+        Smart automatic definition of `ModelParameter` when it is the mean of a mixture of Gaussians
+        prior of an individual latent variable.
+        Extra handling to keep one mean per cluster
+        """
+        update_rule_mixture = NamedInputFunction(
+            compute_ind_param_mean_from_suff_stats_mixture,
+            parameters = ("state",),
+            kws=dict(ip_name = ind_var_name)
+        )
+
+        return cls(
+            shape,
+            suff_stats=Collect(ind_var_name),
+            update_rule=update_rule_mixture,
+        )
+
 
     @classmethod
     def for_ind_std(
