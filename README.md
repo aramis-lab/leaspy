@@ -41,7 +41,7 @@ If you haven't done it already, create and activate a dedicated environment (see
 To install the project in development mode, you first need to get the source code by cloning the project's repository:
 
 ```bash
-git clone git@gitlab.com:icm-institute/aramislab/leaspy.git
+git clone git@github.com:aramis-lab/leaspy.git
 cd leaspy
 ```
 
