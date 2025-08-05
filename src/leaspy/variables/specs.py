@@ -97,7 +97,8 @@ class VariableInterface:
 
     @abstractmethod
     def compute(self, state: VariableNameToValueMapping) -> Optional[VariableValue]:
-        """Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
+        """
+        Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
 
         If not relevant for variable type return None.
 
@@ -114,7 +115,8 @@ class VariableInterface:
 
     @abstractmethod
     def get_ancestors_names(self) -> frozenset[VariableName]:
-        """Get the names of the variables that the current variable directly depends on.
+        """
+        Get the names of the variables that the current variable directly depends on.
 
         Returns
         -------
@@ -132,7 +134,8 @@ class IndepVariable(VariableInterface):
     """Base class for variable that is not dependent on any other variable."""
 
     def get_ancestors_names(self) -> frozenset[VariableName]:
-        """Get the names of the variables that the current variable directly depends on.
+        """
+        Get the names of the variables that the current variable directly depends on.
 
         Returns
         -------
@@ -142,7 +145,8 @@ class IndepVariable(VariableInterface):
         return frozenset()
 
     def compute(self, state: VariableNameToValueMapping) -> Optional[VariableValue]:
-        """Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
+        """
+        Compute variable value from a `state` exposing a dict-like interface: var_name -> values.
 
         If not relevant for variable type return None.
 
@@ -177,7 +181,8 @@ class Hyperparameter(IndepVariable):
             object.__setattr__(self, "value", torch.tensor(self.value))
 
     def to_device(self, device: torch.device) -> None:
-        """Move the value to specified device (other variables never hold values so need for this method).
+        """
+        Move the value to specified device (other variables never hold values so need for this method).
 
         Parameters
         ----------
@@ -193,8 +198,18 @@ class Hyperparameter(IndepVariable):
 
 @dataclass(frozen=True, init=False)
 class Collect:
-    """A convenient class to produce a function to collect sufficient stats that are existing or dedicated variables (to be automatically created)."""
+    """
+    A convenient class to produce a function to collect sufficient stats that are existing 
+    or dedicated variables (to be automatically created).
 
+    Parameters
+    ----------
+    existing_variables : :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName`, optional
+        Names of existing variables that should be included when collecting statistics.
+    dedicated_variables : :obj:`dict` [:class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`], optional
+        Custom or derived variables that will be included in the collection process.
+
+    """
     existing_variables: tuple[VariableName, ...] = ()
     dedicated_variables: Optional[TMapping[VariableName, LinkedVariable]] = None
 
@@ -207,16 +222,64 @@ class Collect:
 
     @property
     def variables(self) -> tuple[VariableName, ...]:
+        """
+        Get the combined list of all variable names to be collected.
+
+        Returns
+        -------
+        :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName`
+            Tuple containing both existing and dedicated variable names.
+        """
         return self.existing_variables + tuple(self.dedicated_variables or ())
 
     def __call__(self, state: VariableNameToValueMapping) -> SuffStatsRW:
+        """
+        Collect sufficient statistics from a given state.
+
+        Parameters
+        ----------
+        state : :class:`~leaspy.variables.specs.VariableNameToValueMapping`
+            A mapping from variable names to their current values.
+
+        Returns
+        -------
+        stats : :class:`~leaspy.variables.specs.SuffStatsRW`
+            A dictionary of variable names and their corresponding values, for all variables
+            defined in this collector.
+        """
         return {k: state[k] for k in self.variables}
 
 
 @dataclass(frozen=True)
 class ModelParameter(IndepVariable):
-    """Variable for model parameters with a maximization rule. This variable shouldn't be sampled and it shouldn't be data, a hyperparameter or a linked variable."""
+    """
+    Variable for model parameters with a maximization rule. This variable shouldn't 
+    be sampled and it shouldn't be data, a hyperparameter or a linked variable.
+    
+    Parameters
+    ----------
+    shape : :obj:`tuple` of :obj:`int`
+        Shape of the parameter tensor. It must be fixed and known in advance.
+    suff_stats : :class:`~leaspy.variables.specs.Collect`
+        A callable object that collects sufficient statistics required to compute the update.
+    update_rule : :obj:`.typing.Callable` [..., :class:`~leaspy.variables.specs.VariableValue`]
+        The symbolic update rule for this parameter, used during both burn-in and standard
+        learning phase unless overridden by `update_rule_burn_in`. 
+    update_rule_burn_in : :obj:`.typing.Callable` [..., :class:`~leaspy.variables.specs.VariableValue`] or None, optional
+        An optional alternative update rule specifically used during the burn-in phase.
+        If provided, it overrides `update_rule` during that phase.
 
+    Attributes
+    ----------
+    _update_rule_parameters : :obj:`frozenset` of :class:`~leaspy.variables.specs.VariableName`
+        Internal cache of variable names required by `update_rule`.
+    _update_rule_burn_in_parameters : :obj:`frozenset` of :class:`~leaspy.variables.specs.VariableName` or None
+        Internal cache of variable names required by `update_rule_burn_in`, if defined.
+    fixed_shape : :obj:`bool` (class attribute)
+        Indicates that this variable has a fixed shape (True by design).
+    is_settable : :obj:`bool` (class attribute)
+        Flags this variable as being settable externally (True by design).
+    """
     shape: tuple[int, ...]
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
     """
@@ -250,6 +313,22 @@ class ModelParameter(IndepVariable):
         self._check_and_store_update_rule_parameters("update_rule_burn_in")
 
     def _check_and_store_update_rule_parameters(self, update_method: str) -> None:
+        """
+        Validates and stores the keyword parameters required by the specified update rule.
+        Parameters
+        ----------
+        update_method : :obj:`str`
+            The name of the update method attribute to validate (either `"update_rule"` or
+            `"update_rule_burn_in"`).
+
+        Raises
+        ------
+        :exc:`LeaspyModelInputError`
+            If the function associated with the `update_method` has:
+            - Positional arguments
+            - Unexpected keyword arguments not matching `suff_stats` variables or `'state'`
+            - Any signature that cannot be parsed or is otherwise invalid
+        """
         method = getattr(self, update_method)
         if method is None:
             return
@@ -277,7 +356,8 @@ class ModelParameter(IndepVariable):
         suff_stats: SuffStatsRO,
         burn_in: bool,
     ) -> VariableValue:
-        """Compute the updated value for the model parameter using a maximization step.
+        """
+        Compute the updated value for the model parameter using a maximization step.
 
         Parameters
         ----------
@@ -312,7 +392,22 @@ class ModelParameter(IndepVariable):
     def for_pop_mean(
         cls, population_variable_name: VariableName, shape: tuple[int, ...]
     ):
-        """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of a population latent variable."""
+        """
+        Smart automatic definition of `ModelParameter` when it is the mean 
+        of Gaussian prior of a population latent variable.
+        
+        Parameters
+        ----------
+        population_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the population latent variable for which this is the prior mean.
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a prior mean.
+        """        
         return cls(
             shape,
             suff_stats=Collect(population_variable_name),
@@ -323,7 +418,22 @@ class ModelParameter(IndepVariable):
     def for_ind_mean(
         cls, individual_variable_name: VariableName, shape: tuple[int, ...]
     ):
-        """Smart automatic definition of `ModelParameter` when it is the mean of Gaussian prior of an individual latent variable."""
+        """
+        Smart automatic definition of `ModelParameter` when it is the mean 
+        of Gaussian prior of an individual latent variable.
+        
+        Parameters
+        ----------
+        individual_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the individual latent variable for which this is the prior mean.
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a prior mean.
+        """
 
         return cls(
             shape,
@@ -338,6 +448,18 @@ class ModelParameter(IndepVariable):
         Smart automatic definition of `ModelParameter` when it is the mean of a mixture of Gaussians
         prior of an individual latent variable.
         Extra handling to keep one mean per cluster
+
+        Parameters
+        ----------
+        individual_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the individual latent variable for which this is the prior mean.
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a prior mean.
         """
         update_rule_mixture = NamedInputFunction(
             compute_ind_param_mean_from_suff_stats_mixture,
@@ -355,8 +477,20 @@ class ModelParameter(IndepVariable):
     @classmethod
     def for_ind_std(cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw):
         """
-        Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
-        prior of an individual latent variable.
+        Smart automatic definition of `ModelParameter` when it is the std-dev 
+        of Gaussian prior of an individual latent variable.
+
+        Parameters
+        ----------
+        ind_var_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the individual latent variable for which this is the prior std-dev.
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a prior std-dev.
         """
         ind_var_sqr_name = f"{ind_var_name}_sqr"
         update_rule_normal = NamedInputFunction(
@@ -391,6 +525,18 @@ class ModelParameter(IndepVariable):
         """
         Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
         prior of an individual latent variable.
+
+        Parameters
+        ----------
+        ind_var_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the individual latent variable for which this is the prior std-dev.
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a prior std.
         """
         ind_var_sqr_name = f"{ind_var_name}_sqr"
         update_rule_mixture = NamedInputFunction(
@@ -414,6 +560,19 @@ class ModelParameter(IndepVariable):
 
     @classmethod
     def for_probs(cls, shape: Tuple[int, ...],):
+        """
+        Smart automatic definition of `ModelParameter` when it is the probabilities of a Gaussian mixture.
+
+        Parameters
+        ----------
+        shape : :obj:`tuple` of :obj:`int`
+            The shape of the model parameter (typically matching the variable's dimensionality).
+
+        Returns
+        -------
+        :class:`~leaspy.variables.specs.ModelParameter`
+            A new instance of `ModelParameter` configured as a probability vector.
+        """
 
         update_rule_probs = NamedInputFunction(
             compute_probs_from_state,
@@ -428,14 +587,36 @@ class ModelParameter(IndepVariable):
     
 @dataclass(frozen=True)
 class DataVariable(IndepVariable):
-    """Variables for input data, that may be reset."""
+    """
+    Variables for input data, that may be reset.
+    
+    Attributes
+    ----------
+    fixed_shape : :obj:`bool`
+        Indicates whether the shape of the variable is fixed. For `DataVariable`.
+        `False` by design, allowing for more flexible data injection.
+    is_settable : :obj:`bool`
+        Flag indicating whether this variable can be set/reset directly in the state.
+        `True` by desdign, meaning it can be modified externally.
+    """
 
     fixed_shape: ClassVar = False
     is_settable: ClassVar = True
 
 
 class LatentVariableInitType(str, Enum):
-    """Type of initialization for latent variables."""
+    """
+    Type of initialization for latent variables.
+
+    Members
+    -------
+    PRIOR_MODE : :obj:`str`
+        Initialize latent variables using the mode of their prior distribution.
+    PRIOR_MEAN : :obj:`str`
+        Initialize latent variables using the mean of their prior distribution.
+    PRIOR_SAMPLES : :obj:`str`
+        Initialize latent variables by sampling from their prior distribution.
+    """
 
     PRIOR_MODE = "mode"
     PRIOR_MEAN = "mean"
@@ -444,7 +625,21 @@ class LatentVariableInitType(str, Enum):
 
 @dataclass(frozen=True)
 class LatentVariable(IndepVariable):
-    """Unobserved variable that will be sampled, with symbolic prior distribution [e.g. Normal('xi_mean', 'xi_std')]."""
+    """
+    Unobserved variable that will be sampled, with symbolic prior distribution.
+
+    Attributes
+    ----------
+    prior : :class:`~leaspy.variables.distributions.SymbolicDistribution`
+        The symbolic prior distribution for the latent variable (e.g. `Normal('xi_mean', 'xi_std')`).
+    sampling_kws : :obj:`dict`, optional
+        Optional keyword arguments to customize the sampling process (e.g. number of samples, random seed).
+    
+    Class Attributes
+    ----------------
+    is_settable : :obj:`bool`
+        Indicates that this variable can be explicitly set in the model (default: True).    
+    """
 
     # TODO/WIP? optional mask derive from optional masks of prior distribution parameters?
     # or should be fixed & explicit here?
@@ -456,7 +651,25 @@ class LatentVariable(IndepVariable):
     def get_prior_shape(
         self, named_vars: TMapping[VariableName, VariableInterface]
     ) -> tuple[int, ...]:
-        """Get shape of prior distribution (i.e. without any expansion for `IndividualLatentVariable`)."""
+        """
+        Get shape of prior distribution (i.e. without any expansion for `IndividualLatentVariable`).
+        
+        Parameters
+        ----------
+        named_vars : :obj:`Mapping` [:class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`]
+            A mapping from variable names to their corresponding variable interfaces.
+            These should include the parameters of the prior distribution.
+
+        Returns
+        -------
+        :obj:`tuple` of :obj:`int`
+            The shape of the prior distribution (without any replication for individual variables).
+
+        Raises
+        ------
+        :exc:`LeaspyModelInputError`
+            If any of the prior distribution’s parameter variables do not have a fixed shape.
+        """
         bad_params = {
             n for n in self.prior.parameters_names if not named_vars[n].fixed_shape
         }
@@ -489,7 +702,26 @@ class LatentVariable(IndepVariable):
         *,
         sample_shape: tuple[int, ...],
     ) -> NamedInputFunction[torch.Tensor]:
-        """Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization."""
+        """
+        Return a function that may be used for initialization.
+        
+        Parameters
+        ----------
+        method : :obj:`str` or :class:`~leaspy.variables.specs.LatentVariableInitType`
+            Initialization method. Must be one of `'samples'`, `'mode'`, or `'mean'`.
+        sample_shape : :obj:`tuple` of :obj:`int`
+            The shape to prepend to the initialized tensor (i.e., left expansion).
+
+        Returns
+        -------
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`[:class:`torch.Tensor`]
+            A symbolic function to compute the initial value tensor.
+
+        Raises
+        ------
+        :exc:`ValueError`
+            If `method` is not one of the allowed values.
+        """
         method = LatentVariableInitType(method)
         if method is LatentVariableInitType.PRIOR_SAMPLES:
             return self.prior.get_func_sample(sample_shape)
@@ -514,7 +746,14 @@ class LatentVariable(IndepVariable):
 
 
 class PopulationLatentVariable(LatentVariable):
-    """Population latent variable."""
+    """
+    Population latent variable.
+    
+    Attributes
+    ----------
+    fixed_shape : `ClassVar`[:obj:`bool`]
+        Indicates that the shape is fixed (True).
+    """
 
     # not so easy to guarantee the fixed shape property in fact...
     # (it requires that parameters of prior distribution all have fixed shapes)
@@ -524,7 +763,8 @@ class PopulationLatentVariable(LatentVariable):
         self,
         method: Union[str, LatentVariableInitType],
     ) -> NamedInputFunction[torch.Tensor]:
-        """Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization.
+        """
+        Return a function that may be used for initialization.
 
         Parameters
         ----------
@@ -533,7 +773,7 @@ class PopulationLatentVariable(LatentVariable):
 
         Returns
         -------
-        :class:`~leaspy.utils.functional.NamedInputFunction` :
+        :class:`~leaspy.utils.functional._named_imput_function.NamedInputFunction`[:class:`torch.Tensor`] :
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=())
@@ -543,8 +783,7 @@ class PopulationLatentVariable(LatentVariable):
         variable_name: VariableName,
     ) -> dict[VariableName, LinkedVariable]:
         """
-        Return the negative log likelihood regularity for the
-        provided variable name.
+        Return the negative log likelihood regularity for the provided variable name.
 
         Parameters
         ----------
@@ -571,7 +810,14 @@ class PopulationLatentVariable(LatentVariable):
 
 
 class IndividualLatentVariable(LatentVariable):
-    """Individual latent variable."""
+    """
+    Individual latent variable.
+    
+    Attributes
+    ----------
+    fixed_shape : `ClassVar`[:obj:`bool`]
+        Indicates that the shape is fixed (True).
+    """
 
     fixed_shape: ClassVar = False
 
@@ -581,19 +827,19 @@ class IndividualLatentVariable(LatentVariable):
         *,
         n_individuals: int,
     ) -> NamedInputFunction[torch.Tensor]:
-        """Return a `NamedInputFunction`: State -> Tensor, that may be used for initialization.
+        """
+        Return a function that may be used for initialization.
 
         Parameters
         ----------
         method : :class:`~leaspy.variables.specs.LatentVariableInitType` or :obj:`str`
             The method to be used.
-
         n_individuals : :obj:`int`
             The number of individuals, used to define the shape.
 
         Returns
         -------
-        :class:`~leaspy.utils.functional.NamedInputFunction` :
+        :class:`~leaspy.utils.functional._named_imput_function.NamedInputFunction`[:class:`torch.Tensor`] :
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=(n_individuals,))
@@ -602,7 +848,8 @@ class IndividualLatentVariable(LatentVariable):
         self,
         variable_name: VariableName,
     ) -> dict[VariableName, LinkedVariable]:
-        """Return the negative log likelihood regularity for the provided variable name.
+        """
+        Return the negative log likelihood regularity for the provided variable name.
 
         Parameters
         ----------
@@ -661,7 +908,27 @@ class IndividualLatentVariable(LatentVariable):
 
 @dataclass(frozen=True)
 class LinkedVariable(VariableInterface):
-    """Variable which is a deterministic expression of other variables (we directly use variables names instead of mappings: kws <-> vars)."""
+    """
+    Variable which is a deterministic expression of other variables 
+    (we directly use variables names instead of mappings: kws <-> vars).
+    
+    Parameters
+    ----------
+    f : :obj:`Callable`[..., :class:`~leaspy.variables.specs.VariableValue`]
+        A deterministic function that computes this variable's value from its input variables.
+        The function should accept keyword arguments matching the variable names in `parameters`.
+
+    Attributes
+    ----------
+    parameters : :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]
+        The set of variable names on which this linked variable depends.
+        This is inferred internally from the function `f`.
+    is_settable : `ClassVar`[:obj:`bool`]
+        Indicates that this variable is not settable directly (`False`).
+    fixed_shape : `ClassVar`[obj:`bool`]
+        Indicates whether the shape of the linked variable is fixed.
+        By design it is `False`.
+    """
 
     f: Callable[..., VariableValue]
     parameters: frozenset[VariableName] = field(init=False)
@@ -683,10 +950,19 @@ class LinkedVariable(VariableInterface):
         object.__setattr__(self, "parameters", frozenset(inferred_params))
 
     def get_ancestors_names(self) -> frozenset[VariableName]:
+        """
+        Return the set of variable names that this linked variable depends on.
+
+        Returns
+        -------
+        :obj:`frozenset`[:class:`~leaspy.variables.specs.VariableName`]
+            The names of ancestor variables used as inputs by this linked variable.
+        """
         return self.parameters
 
     def compute(self, state: VariableNameToValueMapping) -> VariableValue:
-        """Compute the variable value from a given State.
+        """
+        Compute the variable value from a given State.
 
         Parameters
         ----------
