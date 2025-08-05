@@ -16,7 +16,7 @@ maintainers = [
 ]
 readme = "README.md"
 packages = [{include = "leaspy", from = "src"}]
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9,<=3.13"
 keywords = [
     "leaspy",
     "longitudinal",
@@ -32,6 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "joblib (>=1.2.0)",
