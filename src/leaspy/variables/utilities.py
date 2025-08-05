@@ -14,20 +14,26 @@ def compute_individual_parameter_std_from_sufficient_statistics(
     dim: int,
     **kws,
 ):
-    """Maximization rule, from the sufficient statistics, of the standard-deviation of Gaussian prior for individual latent variables.
+    """
+    Maximization rule, from the sufficient statistics, of the standard-deviation of Gaussian prior for individual latent variables.
 
     Parameters
     ----------
-    state : Dict[str, torch.Tensor]
-
-    individual_parameter_values : torch.Tensor
-
-    individual_parameter_sqr_values : torch.Tensor
-
-    individual_parameter_name : str
+    state : :obj:`dict`[:obj:`str`, :class:`torch.Tensor`]
+        The current state object that holds all the variables
+    individual_parameter_values : :class:`torch.Tensor`
+        Tensor containing individual parameter values, used to compute current means.
+    individual_parameter_sqr_values : :class:`torch.Tensor`
+        Tensor containing squared individual parameter values, used to compute variances.
+    individual_parameter_name : :obj:`str`
         The name of the individual parameter for which to compute the std.
-
-    dim : int
+    dim : :obj:`int`
+        The dimension along which to compute the mean and variance
+        
+    Returns
+    -------
+    :class:`torch.Tensor`
+        The updated standard deviation of the Gaussian prior for the individual parameter
     """
     from leaspy.models.utilities import compute_std_from_variance
 
