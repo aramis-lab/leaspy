@@ -39,12 +39,23 @@ __all__ = [
 
 
 class StatelessDistributionFamily(ABC):
-    """Interface to represent stateless distribution families (i.e. no distribution parameters are stored in instance).
+    """
+    Abstract base class defining a stateless interface for distribution families.
 
-    TODO / WIP? allow WeightedTensor for parameters as well?
-    (e.g. `batched_deltas = Normal(batched_deltas_mean, ...)` which should be masked at some indices)
-    --> mask at latent pop. variable level (`batched_deltas`) or
-        directly at model parameter level `batched_deltas_mean`?
+    This class represents a family of probability distributions in a stateless manner:
+    no parameters are stored in the instance. All methods operate purely via classmethods,
+    using explicitly passed distribution parameters.
+
+    Notes
+    -----
+    - Subclasses must define the `parameters` class variable, listing parameter names in order.
+    - Each method operates solely on the passed tensors; no state or caching is assumed.
+
+    TODO
+    ----
+    - Consider supporting `WeightedTensor` for distribution parameters,
+      e.g., to mask latent variables like `batched_deltas` at the input level
+      or directly at model parameter level (e.g., `batched_deltas_mean`).
     """
 
     parameters: ClassVar[tuple[str, ...]]
@@ -62,6 +73,24 @@ class StatelessDistributionFamily(ABC):
         """
         Shape of distribution samples (without any additional expansion),
         given shapes of distribution parameters.
+
+        Parameters
+        ----------
+        *params_shapes : :obj:`tuple` of :obj:`int`
+            The shapes of the distribution parameters, passed in the order
+            defined by `cls.parameters`.
+
+        Returns
+        -------
+        :obj:`tuple` of :obj:`int`
+            The shape of the distribution samples.
+
+        Raises
+        ------
+        :exc:`LeaspyInputError`
+            If the number of provided shapes does not match the expected number of parameters.
+        :exc:`NotImplementedError`
+            If the distribution has no parameters, and sample shape cannot be inferred.
         """
         # We provide a default implementation which should fit for most cases
         n_params = len(params_shapes)
@@ -170,13 +199,22 @@ class StatelessDistributionFamily(ABC):
 
 
 class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFamily):
-    """Wrapper to build a `StatelessDistributionFamily` class from an existing torch distribution class."""
+    """
+    Wrapper to build a `StatelessDistributionFamily` class from an existing torch distribution class.
+    
+    Attributes
+    ----------
+    dist_factory : :obj:`Callable` [...,  :class:`torch.distributions.Distribution`]
+        A class variable that points to a factory function or class used to instantiate 
+        the corresponding PyTorch distribution.
+    """
 
     dist_factory: ClassVar[Callable[..., torch.distributions.Distribution]]
 
     @classmethod
     def validate_parameters(cls, *params: Any) -> tuple[torch.Tensor, ...]:
-        """Validate consistency of distribution parameters, returning them with out-of-place modifications if needed.
+        """
+        Validate consistency of distribution parameters, returning them with out-of-place modifications if needed.
 
         Parameters
         ----------
@@ -197,12 +235,33 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
         *params: torch.Tensor,
         sample_shape: tuple[int, ...] = (),
     ) -> torch.Tensor:
+        """
+        Sample values, given distribution parameters (`sample_shape` is
+        prepended to shape of distribution parameters).
+
+        Parameters
+        ----------
+        params : :class:`torch.Tensor`
+            The distribution parameters.
+        sample_shape : :obj:`tuple` of :obj:`int`, optional
+            Desired shape of the sample batch (prepended to the shape of a single sample).
+            Defaults to an empty tuple, i.e., a single sample.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Sampled tensor
+        """
         return cls.dist_factory(*params).sample(sample_shape)
 
     @classmethod
     def mode(cls, *params: torch.Tensor) -> torch.Tensor:
-        """Mode of distribution (returning first value if discrete ties), given distribution parameters.
+        """
+        Mode of distribution (returning first value if discrete ties), given distribution parameters.
 
+        This method should be overridden in subclasses that wrap torch distributions which
+        explicitly define a mode.
+  
         Parameters
         ----------
         params : :class:`torch.Tensor`
@@ -212,12 +271,18 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
         -------
         :class:`torch.Tensor` :
             The value of the distribution's mode.
+
+        Raises
+        ------
+        :exc:`NotImplementedError`
+            If the mode is not explicitly implemented for the specific distribution subclass.
         """
         raise NotImplementedError("Not provided in torch.Distribution interface")
 
     @classmethod
     def mean(cls, *params: torch.Tensor) -> torch.Tensor:
-        """Return the mean of the distribution, if defined.
+        """
+        Return the mean of the distribution, if defined.
 
         Parameters
         ----------
@@ -233,7 +298,8 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def stddev(cls, *params: torch.Tensor) -> torch.Tensor:
-        """Return the standard-deviation of the distribution.
+        """
+        Return the standard-deviation of the distribution.
 
         Parameters
         ----------
@@ -249,6 +315,25 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
     @classmethod
     def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        """
+        Compute the negative log-likelihood (NLL) for a given value under the distribution
+        defined by the provided parameters.
+
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.typing.WeightedTensor`
+            A weighted tensor containing the values for which to compute the NLL.
+            The attribute `x.value` is the tensor of values, and `x.weight` contains
+            associated weights.
+        params : :class:`torch.Tensor`
+            Parameters of the distribution, in the order expected by `cls.dist_factory`.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A weighted tensor containing the NLL values (with negative log-probabilities in `.value`)
+            and the same weights as the input `x`.
+        """
         return WeightedTensor(-cls.dist_factory(*params).log_prob(x.value), x.weight)
 
     @classmethod
@@ -257,24 +342,84 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
         x: WeightedTensor,
         *params: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
+        """
+        Compute the negative log-likelihood (NLL) and its Jacobian with respect to input `x`.
+
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A weighted tensor containing the values for which to compute the NLL and gradient.
+            `x.value` is the input tensor, and `x.weight` contains the associated weights.
+        params : :class:`torch.Tensor`
+            Parameters of the distribution, passed to `cls.dist_factory`.
+
+        Returns
+        -------
+        nll : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The weighted negative log-likelihood.
+        jacobian : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The weighted gradient of the NLL with respect to `x.value`.
+        """
         nll = cls._nll(x, *params)
         (nll_grad_value,) = grad(nll.value, (x.value,), create_graph=x.requires_grad)
         return nll, WeightedTensor(nll_grad_value, x.weight)
 
     @classmethod
     def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        """
+        Compute the Jacobian (gradient) of the negative log-likelihood (NLL) with respect to input `x`.
+        
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A weighted tensor for which to compute the NLL gradient.
+            `x.value` is the input tensor, and `x.weight` contains the associated weights.
+        params : :class:`torch.Tensor`
+            Parameters of the distribution, passed to `cls.dist_factory`.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The weighted gradient of the NLL with respect to `x.value`.
+        """
         return cls._nll_and_jacobian(x, *params)[1]
 
 
 class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
-    """Bernoulli family (stateless)."""
+    """
+    Bernoulli family (stateless).
+    
+    Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
+
+    Class Attributes
+    ----------------
+    parameters : :obj:`tuple` of :obj:`str`
+        The names of the parameters for the distribution. Here, it is `("loc",)`, where `loc` 
+        represents the probability of success.
+    dist_factory : :obj:`Callable`
+        Reference to the torch distribution class, `torch.distributions.Bernoulli`.
+    """
 
     parameters: ClassVar = ("loc",)
     dist_factory: ClassVar = torch.distributions.Bernoulli
 
 
 class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
-    """Normal / Gaussian family (stateless)."""
+    """
+    Normal / Gaussian family (stateless).
+    
+    Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
+
+    Class Attributes
+    ----------------
+    parameters : :obj:`tuple` of :obj:`str`
+        The names of the distribution parameters: `("loc", "scale")`.
+    dist_factory : :obj:`Callable`
+        A reference to `torch.distributions.Normal`, the underlying PyTorch distribution.
+    nll_constant_standard : :class:`torch.Tensor`
+        The constant term `0.5 * log(2π)`, useful for computing the negative log-likelihood
+        of the standard normal distribution.
+    """
 
     parameters: ClassVar = ("loc", "scale")
     dist_factory: ClassVar = torch.distributions.Normal
@@ -282,13 +427,13 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     @classmethod
     def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """Return the mode of the distribution given the distribution's loc and scale parameters.
+        """
+        Return the mode of the distribution given the distribution's loc and scale parameters.
 
         Parameters
         ----------
         loc : :class:`torch.Tensor`
             The distribution loc.
-
         scale : :class:`torch.Tensor`
             The distribution scale.
 
@@ -302,13 +447,13 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     @classmethod
     def mean(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """Return the mean of the distribution, given the distribution loc and scale parameters.
+        """
+        Return the mean of the distribution, given the distribution loc and scale parameters.
 
         Parameters
         ----------
         loc : :class:`torch.Tensor`
             The distribution loc parameters.
-
         scale : :class:`torch.Tensor`
             The distribution scale parameters.
 
@@ -323,13 +468,13 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     @classmethod
     def stddev(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        """Return the standard-deviation of the distribution, given loc and scale of the distribution.
+        """
+        Return the standard-deviation of the distribution, given loc and scale of the distribution.
 
         Parameters
         ----------
         loc : :class:`torch.Tensor`
             The distribution loc parameter.
-
         scale : :class:`torch.Tensor`
             The distribution scale parameter.
 
@@ -346,6 +491,28 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     def _nll(
         cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor
     ) -> WeightedTensor:
+        """
+        Compute the negative log-likelihood (NLL) of a Normal distribution in a stateless manner.
+      
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A weighted tensor representing observed values and their associated weights.
+        loc : :class:`torch.Tensor`
+            The mean (location) parameter of the Normal distribution.
+        scale : :class:`torch.Tensor`
+            The standard deviation (scale) parameter of the Normal distribution.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A new `WeightedTensor` containing the computed NLL values, weighted appropriately.
+
+        Notes
+        -----
+        - Broadcasting is respected between `x.value`, `loc`, and `scale`.
+        - The constant `nll_constant_standard` corresponds to `0.5 * log(2π)`.
+        """
         # Hardcode method for efficiency
         return WeightedTensor(
             (
@@ -360,6 +527,24 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     def _nll_jacobian(
         cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor
     ) -> WeightedTensor:
+        """
+        Compute the Jacobian (gradient) of the negative log-likelihood (NLL) of a Normal distribution
+        with respect to the observed values `x`, in a stateless and efficient manner.
+
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A weighted tensor representing observed values and their associated weights.
+        loc : :class:`torch.Tensor`
+            The mean (location) parameter of the Normal distribution.
+        scale : :class:`torch.Tensor`
+            The standard deviation (scale) parameter of the Normal distribution.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            A weighted tensor containing the computed gradient values, weighted accordingly.
+        """
         # Hardcode method for efficiency
         return WeightedTensor((x.value - loc) / scale**2, x.weight)
 
@@ -370,6 +555,26 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         loc: torch.Tensor,
         scale: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
+        """
+        Compute both the negative log-likelihood (NLL) and its Jacobian (gradient) with respect to
+        the observed values `x` for a Normal distribution, using an efficient hardcoded formula.
+        
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            Weighted tensor of observed values and their weights.
+        loc : :class:`torch.Tensor`
+            Mean (location) parameter of the Normal distribution.
+        scale : :class:`torch.Tensor`
+            Standard deviation (scale) parameter of the Normal distribution.
+
+        Returns
+        -------
+        tuple of two :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            - The first element is the computed NLL as a weighted tensor.
+            - The second element is the Jacobian (gradient) of the NLL with respect to `x`,
+            also as a weighted tensor.
+        """
         # Hardcode method for efficiency
         z = (x.value - loc) / scale
         nll = 0.5 * z**2 + torch.log(scale) + cls.nll_constant_standard
@@ -925,6 +1130,24 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         sample_shape: tuple[int, ...] = (),
     ) -> torch.Tensor:
+        """
+        Sample values from a Weibull distribution.
+
+        Parameters
+        ----------
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau : :class:`torch.Tensor`
+        sample_shape : :obj:`tuple` of :obj:`int`, optional
+            Shape of the samples to draw
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Samples drawn from the transformed Weibull distribution, shaped according to
+            `sample_shape` combined with the distribution parameter shapes.
+        """
         return cls.dist_weibull(nu * torch.exp(-xi), rho).sample(sample_shape) + tau
 
     @classmethod
@@ -1014,6 +1237,29 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Extract reparametrized parameters for the distribution given inputs.
+
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The observed data values with associated weights.
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau : :class:`torch.Tensor`
+        params :class:`torch.Tensor`
+            Additional parameters for reparametrization if needed.
+
+        Returns
+        -------
+        event_reparametrized_time : :class:`torch.Tensor`
+            The reparametrized event times extracted from `x` and `tau`.
+        weight : :class:`torch.Tensor`
+            The weights associated with the original data `x`.
+        nu_reparametrized : :class:`torch.Tensor`
+            The reparametrized `nu` parameter combining `nu`, `rho`, `xi`, `tau`, and extra params.
+        """
         # Construct reparametrized variables
         event_reparametrized_time = cls._extract_reparametrized_event(x.value, tau)
         nu_reparametrized = cls._extract_reparametrized_nu(nu, rho, xi, tau, *params)
@@ -1029,6 +1275,25 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Compute the log hazard component of the likelihood for given data and parameters.
+
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The observed data values with associated weights.
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau : :class:`torch.Tensor`
+        params :class:`torch.Tensor`
+            Additional parameters for reparametrization if needed.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            The log hazard values for each observation, zeroed out for censored data.
+        """
         event_reparametrized_time, event_bool, nu_reparametrized = (
             cls._extract_reparametrized_parameters(x, nu, rho, xi, tau, *params)
         )
@@ -1053,6 +1318,25 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Compute the hazard function values for given observations and parameters.
+
+        Parameters
+        ----------
+        x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The observed data values with associated weights.
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau : :class:`torch.Tensor`
+        params :class:`torch.Tensor`
+            Additional parameters for reparametrization if needed.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Hazard values computed for each observation.
+        """
         event_reparametrized_time, _, nu_reparametrized = (
             cls._extract_reparametrized_parameters(x, nu, rho, xi, tau, *params)
         )
@@ -1075,6 +1359,25 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Compute the log survival function for the Weibull distribution
+        given observations and parameters.
+        
+        Parameters
+        ----------
+        x : :class:`torch.Tensor`
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau ::class:`torch.Tensor`
+        params : :class:`torch.Tensor`
+            Additional optional parameters used in reparametrization.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Log survival values for each observation.
+        """
         event_reparametrized_time, _, nu_reparametrized = (
             cls._extract_reparametrized_parameters(x, nu, rho, xi, tau, *params)
         )
@@ -1092,6 +1395,26 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Compute predicted survival or cumulative incidence probabilities for time-to-event data
+        using a reparametrized Weibull model.
+        
+        Parameters
+        ----------
+        x : :class:`torch.Tensor`
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau ::class:`torch.Tensor`
+        params : :class:`torch.Tensor`
+            Additional optional parameters used in reparametrization.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Predicted survival probabilities or cumulative incidence values (depending on event type count),
+            normalized by baseline survival at the last visit.
+        """
         nb_events = nu.shape[0]
 
         # consider that the first time to predict was the last visit and is a reference point
@@ -1144,6 +1467,21 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
     def _extract_reparametrized_event(
         event_time: torch.Tensor, tau: torch.Tensor
     ) -> torch.Tensor:
+        """
+        Compute reparametrized event time by shifting the original event time by `tau`.
+
+        Parameters
+        ----------
+        event_time : :class:`torch.Tensor`
+            Original event or censoring times for each individual.
+        tau : :class:`torch.Tensor`
+            Time shift (reference point), typically representing baseline time (e.g., last visit).
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Reparametrized event times: event_time - tau.
+        """
         return event_time - tau
 
     @staticmethod
@@ -1167,7 +1505,24 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> WeightedTensor:
-        """Compute survival neg log-likelihood."""
+        """
+        Compute the negative log-likelihood.
+
+        Parameters
+        ----------
+        x : :class:`torch.Tensor`
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau ::class:`torch.Tensor`
+        params : :class:`torch.Tensor`
+            Additional optional parameters used in reparametrization.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            The computed negative log-likelihood
+        """
         log_survival = cls.compute_log_survival(x, nu, rho, xi, tau, *params)
         log_hazard = cls.compute_log_likelihood_hazard(x, nu, rho, xi, tau, *params)
 
@@ -1182,6 +1537,26 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         xi: torch.Tensor,
         tau: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
+        """
+        Compute both the negative log-likelihood (NLL) and its Jacobian (gradient) with respect to
+        the observed values `x` for a Normal distribution, using an efficient hardcoded formula.
+
+        Parameters
+        ----------
+        x : :class:`torch.Tensor`
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau ::class:`torch.Tensor`
+        params : :class:`torch.Tensor`
+            Additional optional parameters used in reparametrization.
+
+        Returns
+        -------
+        tuple of two :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
+            - The first element is the computed NLL as a weighted tensor.
+            - The second element is the Jacobian (gradient) of the NLL with respect to `x`,
+        """
         return cls._nll(x, nu, rho, xi, tau), cls._nll_jacobian(x, nu, rho, xi, tau)
 
     @classmethod
@@ -1231,6 +1606,23 @@ class WeibullRightCensoredFamily(AbstractWeibullRightCensoredFamily):
         tau: torch.Tensor,
         *params: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Extract reparametrized nu parameter.
+
+        Parameters
+        ----------
+        nu : :class:`torch.Tensor`
+        rho : :class:`torch.Tensor`
+        xi : :class:`torch.Tensor`
+        tau : :class:`torch.Tensor`
+        params :class:`torch.Tensor`
+            Additional parameters for reparametrization if needed.
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            value of reparametrized nu
+        """
         return torch.exp(-xi) * nu
 
 
@@ -1277,7 +1669,24 @@ class SymbolicDistribution:
             object.__setattr__(self, bypass_method, self.get_func(bypass_method))
 
     def get_func(self, func: str, *extra_args_names: str, **kws):
-        """Get keyword-only function from the stateless distribution family."""
+        """
+        Retrieve a function (e.g., 'sample', 'mode', 'mean') from the associated stateless
+        distribution family, wrapped as a :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`.
+
+        Parameters
+        ----------
+        func : :obj:`str`
+            Name of the method to retrieve from the stateless distribution family.
+        *extra_args_names : :obj:`str`
+            Additional parameter names (e.g., 'sample_shape') to include before standard parameters.
+        **kws : :obj:`dict`
+            Optional keyword arguments passed to the :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`
+            A callable wrapper over the distribution method with named inputs.
+        """
         return NamedInputFunction(
             getattr(self.dist_family, func),
             parameters=extra_args_names + self.parameters_names,
@@ -1324,7 +1733,9 @@ class SymbolicDistribution:
     def get_func_regularization(
         self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
-        """Factory of symbolic function: state -> negative log-likelihood of value.
+        """
+        Factory method to return a symbolic function computing the negative log-likelihood
+        (used for regularization) from a given value.
 
         Parameters
         ----------
@@ -1332,7 +1743,7 @@ class SymbolicDistribution:
 
         Returns
         -------
-        :class:`~leaspy.utils.functional.NamedInputFunction` :
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`[:class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`]
             The named input function to use to compute negative log likelihood.
         """
         return self.get_func("regularization", value_name)
@@ -1340,15 +1751,17 @@ class SymbolicDistribution:
     def get_func_nll(
         self, value_name: str
     ) -> NamedInputFunction[WeightedTensor[float]]:
-        """Factory of symbolic function: state -> negative log-likelihood of value.
-
+        """
+        Factory method to return a symbolic function computing the negative log-likelihood
+        (NLL) from a given value.
+        
         Parameters
         ----------
         value_name : :obj:`str`
 
         Returns
         -------
-        :class:`~leaspy.utils.functional.NamedInputFunction` :
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`[:class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`]
             The named input function to use to compute negative log likelihood.
         """
         return self.get_func("nll", value_name)
@@ -1372,7 +1785,8 @@ class SymbolicDistribution:
     def get_func_nll_and_jacobian(
         self, value_name: str
     ) -> NamedInputFunction[tuple[WeightedTensor[float], WeightedTensor[float]]]:
-        """Factory of symbolic function: state -> (negative log-likelihood, its jacobian w.r.t. value).
+        """
+        Factory of symbolic function: state -> (negative log-likelihood, its jacobian w.r.t. value).
 
         Parameters
         ----------
@@ -1380,7 +1794,7 @@ class SymbolicDistribution:
 
         Returns
         -------
-        :obj:`tuple` [ :class:`~leaspy.utils.functional.NamedInputFunction`, :class:`~leaspy.utils.functional.NamedInputFunction`] :
+        :obj:`tuple`[:class:`~leaspy.utils.functional._named_input_function.NamedInputFunction`[:class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`]] :
             The named input functions to use to compute negative log likelihood and its jacobian.
         """
         return self.get_func("nll_and_jacobian", value_name)
@@ -1390,7 +1804,8 @@ class SymbolicDistribution:
         cls,
         dist_family: Type[StatelessDistributionFamily],
     ) -> Callable[..., SymbolicDistribution]:
-        """Return a factory to create `SymbolicDistribution` bound to the provided distribution family.
+        """
+        Return a factory to create `SymbolicDistribution` bound to the provided distribution family.
 
         Parameters
         ----------
@@ -1399,12 +1814,13 @@ class SymbolicDistribution:
 
         Returns
         -------
-        factory : Callable[..., :class:`~leaspy.variables.distributions.SymbolicDistribution`]
+        factory : :obj:`Callable`[..., :class:`~leaspy.variables.distributions.SymbolicDistribution`]
             The factory.
         """
 
         def factory(*parameters_names: str) -> SymbolicDistribution:
-            """Factory of a `SymbolicDistribution`, bounded to the provided distribution family.
+            """
+            Factory of a `SymbolicDistribution`, bounded to the provided distribution family.
 
             Parameters
             ----------
