@@ -411,6 +411,26 @@ class Dataset:
                 k: t.to(device) for k, t in self._one_hot_encoding.items()
             }
 
+    def get_max_levels(self) -> dict[str, int]:
+        df = self.to_pandas().dropna(how="all").sort_index()[self.headers]
+        return {feature: int(s.max()) for feature, s in df.items()}
+
+    def get_mask(self) -> torch.Tensor:
+        max_levels = self.get_max_levels()
+        max_level = max(max_levels.values())
+        return torch.stack(
+            [
+                torch.cat(
+                    [
+                        torch.ones(ft_max_level),
+                        torch.zeros(max_level - ft_max_level),
+                    ],
+                    dim=-1,
+                )
+                for ft_max_level in max_levels.values()
+            ],
+        )
+
     def get_one_hot_encoding(
         self, *, sf: bool, ordinal_infos: KwargsType
     ) -> torch.LongTensor:
