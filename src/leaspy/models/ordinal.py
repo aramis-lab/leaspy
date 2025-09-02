@@ -1,3 +1,4 @@
+from operator import itemgetter
 from typing import Optional
 
 import numpy as np
@@ -35,7 +36,7 @@ from .logistic import LogisticModel
 
 
 @doc_with_super(if_other_signature="force")
-class OrdinalMultivariateModel(LogisticModel):
+class OrdinalModel(LogisticModel):
     """
     Manifold model for multiple variables of interest (logistic or linear formulation).
 
@@ -52,33 +53,58 @@ class OrdinalMultivariateModel(LogisticModel):
         * If hyperparameters are inconsistent
     """
 
-    def __init__(
-        self, name: str, max_levels: Optional[dict[str, int]] = None, **kwargs
-    ):
+    def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        # deltas = ["deltas"]
-        self.tracked_variables.add("deltas")
-        self.max_levels: dict[str, int] = max_levels or {}
-        # self.mask: Optional[torch.Tensor] = None
+        deltas = ["deltas"]
 
-    @property
-    def max_level(self) -> int:
-        if self.max_levels:
-            return max(self.max_levels.values())
-        return 0
+        self.tracked_variables = self.tracked_variables.union(set(deltas))
 
-    def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
-        model_settings = super().to_dict(with_mixing_matrix=with_mixing_matrix)
-        model_settings["max_levels"] = self.max_levels
-        return model_settings
+    def initialize(self, dataset: Optional[Dataset] = None) -> None:
+        """Overloads base model initialization (in particular to handle internal model State).
 
-    def ordinal_reparametrized_time(
+        <!> We do not put data variables in internal model state at this stage (done in algorithm)
+
+        Parameters
+        ----------
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`, optional
+            Input dataset from which to initialize the model.
+        """
+        self.max_levels = dataset.get_max_levels()
+        self.max_level = max(self.max_levels.values())
+        super().initialize(dataset=dataset)
+
+    def ordinal_time_reparametrization(
         self,
         *,
-        rt: TensorOrWeightedTensor[float],
+        t: TensorOrWeightedTensor[float],
+        alpha: torch.Tensor,
+        tau: torch.Tensor,
         deltas: torch.Tensor,
-    ) -> WeightedTensor[float]:
-        reparametrized_time = unsqueeze_right(rt, ndim=2)  # add dim of ordinal level
+    ) -> TensorOrWeightedTensor[float]:
+        """
+        Tensorized time reparametrization formula.
+
+        .. warning::
+            Shapes of tensors must be compatible between them.
+
+        Parameters
+        ----------
+        t : :class:`torch.Tensor`
+            Timepoints to reparametrize
+        alpha : :class:`torch.Tensor`
+            Acceleration factors of individual(s)
+        tau : :class:`torch.Tensor`
+            Time-shift(s) of individual(s)
+
+        Returns
+        -------
+        :class:`torch.Tensor`
+            Reparametrized time of same shape as `timepoints`
+        """
+        reparametrized_time = alpha * (t - tau)
+        reparametrized_time = unsqueeze_right(
+            reparametrized_time, ndim=2
+        )  # add dim of ordinal level
         t0 = torch.zeros((self.dimension, 1))
         deltas = torch.cat(
             (t0, deltas), dim=-1
@@ -86,86 +112,6 @@ class OrdinalMultivariateModel(LogisticModel):
         deltas = deltas[None, None, ...]  # add (ind, tpts) dimensions
         reparametrized_time = reparametrized_time - deltas.cumsum(dim=-1)
         return reparametrized_time
-
-    def get_variables_specs(self) -> NamedVariables:
-        """
-        Return the specifications of the variables (latent variables, derived variables,
-        model 'parameters') that are part of the model.
-
-        Returns
-        -------
-        NamedVariables :
-            The specifications of the model's variables.
-        """
-        d = super().get_variables_specs()
-        d.update(
-            # PRIORS
-            log_deltas_mean=ModelParameter.for_pop_mean(
-                "log_deltas",
-                shape=(self.dimension, self.max_level - 1),
-            ),
-            log_deltas_std=Hyperparameter(0.1),
-            # LATENT VARS
-            log_deltas=PopulationLatentVariable(
-                Normal("log_deltas_mean", "log_deltas_std"),
-                # sampling_kws={"mask": self.obs_models[0]._mask}, # does not work yet, WIP in samplers
-            ),
-            # DERIVED VARS
-            deltas=LinkedVariable(Exp("log_deltas")),
-            ordinal_rt=LinkedVariable(self.ordinal_reparametrized_time),
-        )
-
-        # For not batched option, need to concatenate all the deltas
-        # if not self.batch_deltas:
-        #    d.update(
-        #        deltas=LinkedVariable( ??? )
-        #    )
-
-        # TODO: WIP
-        # variables_info.update(self.get_additional_ordinal_population_random_variable_information())
-        # self.update_ordinal_population_random_variable_information(variables_info)
-
-        return d
-
-    @classmethod
-    def model_no_sources(
-        cls, *, ordinal_rt: torch.Tensor, metric, v0, g
-    ) -> torch.Tensor:
-        """Returns a model without source. A bit dirty?"""
-        return cls.model_with_sources(
-            ordinal_rt=ordinal_rt,
-            metric=metric,
-            v0=v0,
-            g=g,
-            space_shifts=torch.zeros((1, 1)),
-        )
-
-    @staticmethod
-    def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """Used to define the corresponding variable."""
-        return (g + 1) ** 2 / g
-
-    @classmethod
-    def model_with_sources(
-        cls,
-        *,
-        ordinal_rt: TensorOrWeightedTensor[float],
-        space_shifts: TensorOrWeightedTensor[float],
-        metric: TensorOrWeightedTensor[float],
-        v0: TensorOrWeightedTensor[float],
-        g: TensorOrWeightedTensor[float],
-    ) -> torch.Tensor:
-        """Returns a model with sources."""
-        # Shape: (Ni, Nt, Nfts)
-        pop_s = (None, None, ..., None)
-        w_model_logit = metric[pop_s] * (
-            v0[pop_s] * ordinal_rt + space_shifts[:, None, ..., None]
-        ) - torch.log(g[pop_s])
-        model_logit, weights = WeightedTensor.get_filled_value_and_weight(
-            w_model_logit, fill_value=0.0
-        )
-        model = torch.sigmoid(model_logit).nan_to_num(0.0)  # Fill nan with 0.
-        return WeightedTensor(model, weights).weighted_value
 
     def _compute_initial_values_for_model_parameters(
         self,
@@ -176,7 +122,6 @@ class OrdinalMultivariateModel(LogisticModel):
         """
         parameters = super()._compute_initial_values_for_model_parameters(dataset)
 
-        self.max_levels = dataset.get_max_levels()
         df = dataset.to_pandas(apply_headers=True)
 
         deltas = {}
@@ -206,95 +151,37 @@ class OrdinalMultivariateModel(LogisticModel):
         deltas_ = float("inf") * torch.ones((len(deltas), self.max_level - 1))
         for i, name in enumerate(deltas):
             deltas_[i, : len(deltas[name])] = deltas[name]
+        # parameters["log_deltas_mean"] = deltas_[:, 0]
         parameters["log_deltas_mean"] = deltas_
         return parameters
 
-    def postprocess_model_estimation(
-        self,
-        estimation: np.ndarray,
-    ) -> np.ndarray:
+    def get_variables_specs(self) -> NamedVariables:
         """
-        Extra layer of processing used to output nice estimated values in main API `Leaspy.estimate`.
-
-        Parameters
-        ----------
-        estimation : numpy.ndarray[float]
-            The raw estimated values by model (from `compute_individual_trajectory`)
+        Return the specifications of the variables (latent variables, derived variables,
+        model 'parameters') that are part of the model.
 
         Returns
         -------
-        numpy.ndarray[float] or dict[str, numpy.ndarray[float]]
-            Post-processed values.
-            In case using 'probabilities' mode, the values are a dictionary with keys being:
-            `(feature_name: str, feature_level: int<0..max_level_for_feature>)`
-            Otherwise it is a standard numpy.ndarray corresponding to different model features (in order)
+        NamedVariables :
+            The specifications of the model's variables.
         """
-        return estimation.argmax(axis=-1)
-
-    def compute_appropriate_ordinal_model(
-        self, model_or_model_grad: torch.Tensor
-    ) -> torch.Tensor:
-        """Post-process model values (or their gradient) if needed."""
-        return compute_ordinal_pdf_from_ordinal_sf(model_or_model_grad)
-
-    # Not working anymore
-    def _ordinal_grid_search_value(
-        self,
-        grid_timepoints: torch.Tensor,
-        values: torch.Tensor,
-        *,
-        individual_parameters: DictParamsTorch,
-        feat_index: int,
-    ) -> torch.Tensor:
-        """Search first timepoint where ordinal MLE is >= provided values."""
-        grid_model = self.compute_individual_tensorized_logistic(
-            grid_timepoints.unsqueeze(0), individual_parameters, attribute_type=None
-        )[:, :, [feat_index], :]
-
-        # we search for the very first timepoint of grid where ordinal MLE was >= provided value
-        # TODO? shouldn't we return the timepoint where P(X = value) is highest instead?
-        MLE = grid_model.squeeze(dim=2).argmax(
-            dim=-1
-        )  # squeeze feat_index (after computing pdf when needed)
-        index_cross = (MLE.unsqueeze(1) >= values.unsqueeze(-1)).int().argmax(dim=-1)
-
-        return grid_timepoints[index_cross]
-
-    # Not good anymore
-    def _check_ordinal_parameters_consistency(self) -> None:
-        """Check consistency of ordinal model parameters."""
-        deltas_p = {k: v for k, v in self.parameters.items() if k.startswith("deltas")}
-        if deltas_p.keys() != {"deltas"}:
-            raise LeaspyModelInputError(
-                f"Unexpected delta parameters. Expected 'deltas' but got {deltas_p.keys()}"
-            )
-        if self.max_levels is None:
-            raise LeaspyModelInputError(
-                "Your ordinal noise model is incomplete (missing `max_levels`)."
-            )
-        deltas = self.parameters["deltas"]
-        if deltas.shape != (self.dimension, self.max_level - 1):
-            raise LeaspyModelInputError(
-                "Shape of deltas is inconsistent with noise model."
-            )
-        if not torch.equal(
-            torch.isinf(self.parameters["deltas"]), ~self.mask[:, 1:].bool()
-        ):
-            raise LeaspyModelInputError(
-                "Mask on deltas is inconsistent with noise model."
-            )
-
-    def get_additional_ordinal_population_random_variable_information(
-        self,
-    ) -> DictParams:
-        """Return the information of additional population random variables for the ordinal model."""
-        # Nota for shapes: the >= level-0 is not included (always = 1)
-        return {
-            "deltas": {
-                "name": "deltas",
-                "shape": torch.Size([self.dimension, self.max_level - 1]),
-                "rv_type": "multigaussian",
-                "mask": self.mask[:, 1:],
-                "scale": 0.5,
-            }
-        }
+        d = super().get_variables_specs()
+        del d["rt"]
+        d.update(
+            # PRIORS
+            log_deltas_mean=ModelParameter.for_pop_mean(
+                "log_deltas",
+                shape=(self.dimension, self.max_level - 1),
+                # shape=(self.dimension),
+            ),
+            log_deltas_std=Hyperparameter(0.1),
+            # LATENT VARS
+            log_deltas=PopulationLatentVariable(
+                Normal("log_deltas_mean", "log_deltas_std"),
+            ),
+            # DERIVED VARS
+            deltas=LinkedVariable(Exp("log_deltas")),
+            # ordinal_rt=LinkedVariable(self.ordinal_reparametrized_time(rt=self.time_reparametrization, deltas="deltas")),
+            rt=LinkedVariable(self.ordinal_time_reparametrization),
+        )
+        return d

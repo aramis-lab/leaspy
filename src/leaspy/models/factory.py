@@ -3,13 +3,12 @@ from typing import Optional, Union
 
 from .base import BaseModel
 from .constant import ConstantModel
-from .deneme import Deneme
 from .joint import JointModel
 from .linear import LinearModel
 from .lme import LMEModel
 from .logistic import LogisticModel
 from .mixture import LogisticMultivariateMixtureModel
-from .ordinal import OrdinalMultivariateModel
+from .ordinal import OrdinalModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
@@ -86,7 +85,5 @@ def model_factory(
     if name == ModelName.MIXTURE_LOGISTIC:
         return LogisticMultivariateMixtureModel(instance_name, **kwargs)
     if name == ModelName.ORDINAL:
-        return OrdinalMultivariateModel(instance_name, **kwargs)
-    if name == ModelName.DENEME:
-        return Deneme(instance_name, **kwargs)
+        return OrdinalModel(instance_name, **kwargs)
     raise ValueError(f"Invalid model name: {name}")
