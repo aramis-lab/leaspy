@@ -185,3 +185,37 @@ class OrdinalModel(LogisticModel):
             rt=LinkedVariable(self.ordinal_time_reparametrization),
         )
         return d
+
+    def model_with_sources(
+        cls,
+        *,
+        rt: TensorOrWeightedTensor[float],
+        space_shifts: TensorOrWeightedTensor[float],
+        metric: TensorOrWeightedTensor[float],
+        v0: TensorOrWeightedTensor[float],
+        g: TensorOrWeightedTensor[float],
+    ) -> torch.Tensor:
+        """
+        Return the model output when sources(spatial components) are present.
+
+        Parameters
+        ----------
+        rt : TensorOrWeightedTensor[float]
+            Tensor containing the reparametrized time.
+        space_shifts : TensorOrWeightedTensor[float]
+            Tensor containing the values of the space-shifts
+        metric : TensorOrWeightedTensor[float]
+            Tensor containing the metric tensor used for computing the spatial/temporal influence.
+        v0 : TensorOrWeightedTensor[float]
+            Tensor containing the values of the population parameter `v0` for each feature.
+        g : TensorOrWeightedTensor[float]
+            Tensor containing the values of the population parameter `g` for each feature.
+
+        Returns
+        -------
+         :class:`torch.Tensor`
+            Weighted value tensor after applying sigmoid transformation,
+            representing the model output with sources.
+        """
+        # Shape: (Ni, Nt, Nfts)
+        pass
