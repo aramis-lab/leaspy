@@ -77,7 +77,7 @@ sphinx_gallery_conf = {
     "examples_dirs": "../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
-    "plot_gallery": "True",
+    "plot_gallery": True,
 }
 
 # this is needed for some reason...
