@@ -55,9 +55,8 @@ class OrdinalModel(LogisticModel):
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        deltas = ["deltas"]
 
-        self.tracked_variables = self.tracked_variables.union(set(deltas))
+        self.tracked_variables.add("deltas")
 
     def initialize(self, dataset: Optional[Dataset] = None) -> None:
         """Overloads base model initialization (in particular to handle internal model State).
@@ -166,7 +165,7 @@ class OrdinalModel(LogisticModel):
             The specifications of the model's variables.
         """
         d = super().get_variables_specs()
-        del d["rt"]
+        # del d["rt"]
         d.update(
             # PRIORS
             log_deltas_mean=ModelParameter.for_pop_mean(
@@ -182,40 +181,46 @@ class OrdinalModel(LogisticModel):
             # DERIVED VARS
             deltas=LinkedVariable(Exp("log_deltas")),
             # ordinal_rt=LinkedVariable(self.ordinal_reparametrized_time(rt=self.time_reparametrization, deltas="deltas")),
-            rt=LinkedVariable(self.ordinal_time_reparametrization),
+            ordinal_rt=LinkedVariable(self.ordinal_time_reparametrization),
         )
         return d
 
+    @classmethod
+    def model_no_sources(
+        cls, *, ordinal_rt: torch.Tensor, metric, v0, g
+    ) -> torch.Tensor:
+        """Returns a model without source. A bit dirty?"""
+        return cls.model_with_sources(
+            ordinal_rt=ordinal_rt,
+            metric=metric,
+            v0=v0,
+            g=g,
+            space_shifts=torch.zeros((1, 1)),
+        )
+
+    @staticmethod
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
+        """Used to define the corresponding variable."""
+        return (g + 1) ** 2 / g
+
+    @classmethod
     def model_with_sources(
         cls,
         *,
-        rt: TensorOrWeightedTensor[float],
+        ordinal_rt: TensorOrWeightedTensor[float],
         space_shifts: TensorOrWeightedTensor[float],
         metric: TensorOrWeightedTensor[float],
         v0: TensorOrWeightedTensor[float],
         g: TensorOrWeightedTensor[float],
     ) -> torch.Tensor:
-        """
-        Return the model output when sources(spatial components) are present.
-
-        Parameters
-        ----------
-        rt : TensorOrWeightedTensor[float]
-            Tensor containing the reparametrized time.
-        space_shifts : TensorOrWeightedTensor[float]
-            Tensor containing the values of the space-shifts
-        metric : TensorOrWeightedTensor[float]
-            Tensor containing the metric tensor used for computing the spatial/temporal influence.
-        v0 : TensorOrWeightedTensor[float]
-            Tensor containing the values of the population parameter `v0` for each feature.
-        g : TensorOrWeightedTensor[float]
-            Tensor containing the values of the population parameter `g` for each feature.
-
-        Returns
-        -------
-         :class:`torch.Tensor`
-            Weighted value tensor after applying sigmoid transformation,
-            representing the model output with sources.
-        """
+        """Returns a model with sources."""
         # Shape: (Ni, Nt, Nfts)
-        pass
+        pop_s = (None, None, ..., None)
+        w_model_logit = metric[pop_s] * (
+            v0[pop_s] * ordinal_rt + space_shifts[:, None, ..., None]
+        ) - torch.log(g[pop_s])
+        model_logit, weights = WeightedTensor.get_filled_value_and_weight(
+            w_model_logit, fill_value=0.0
+        )
+        model = torch.sigmoid(model_logit).nan_to_num(0.0)  # Fill nan with 0.
+        return WeightedTensor(model, weights).weighted_value

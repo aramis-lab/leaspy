@@ -34,7 +34,7 @@ __all__ = [
     "WeibullRightCensoredWithSources",
     # "CategoricalFamily",
     "MixtureNormalFamily",
-    "MultivariateNormalFamily"
+    "MultivariateNormalFamily",
 ]
 
 
@@ -173,7 +173,7 @@ class StatelessDistributionFamily(ABC):
     ) -> WeightedTensor[float]:
         """Negative log-likelihood of value, given distribution parameters."""
 
-        if isinstance (x, Tensor):
+        if isinstance(x, Tensor):
             regul = cls._nll(WeightedTensor(x), *params)
         else:
             regul = cls._nll(x, *params)
@@ -201,11 +201,11 @@ class StatelessDistributionFamily(ABC):
 class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFamily):
     """
     Wrapper to build a `StatelessDistributionFamily` class from an existing torch distribution class.
-    
+
     Attributes
     ----------
     dist_factory : :obj:`Callable` [...,  :class:`torch.distributions.Distribution`]
-        A class variable that points to a factory function or class used to instantiate 
+        A class variable that points to a factory function or class used to instantiate
         the corresponding PyTorch distribution.
     """
 
@@ -261,7 +261,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
         This method should be overridden in subclasses that wrap torch distributions which
         explicitly define a mode.
-  
+
         Parameters
         ----------
         params : :class:`torch.Tensor`
@@ -368,7 +368,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         """
         Compute the Jacobian (gradient) of the negative log-likelihood (NLL) with respect to input `x`.
-        
+
         Parameters
         ----------
         x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
@@ -388,13 +388,13 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
     Bernoulli family (stateless).
-    
+
     Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
 
     Class Attributes
     ----------------
     parameters : :obj:`tuple` of :obj:`str`
-        The names of the parameters for the distribution. Here, it is `("loc",)`, where `loc` 
+        The names of the parameters for the distribution. Here, it is `("loc",)`, where `loc`
         represents the probability of success.
     dist_factory : :obj:`Callable`
         Reference to the torch distribution class, `torch.distributions.Bernoulli`.
@@ -404,10 +404,27 @@ class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     dist_factory: ClassVar = torch.distributions.Bernoulli
 
 
+class OrdinalFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """Ordinal family (stateless)."""
+
+    parameters: ClassVar = ("probs",)
+    dist_factory: ClassVar = MultinomialDistribution.from_sf
+
+    @classmethod
+    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        # Resolve the last dimension compression
+        return WeightedTensor(
+            -cls.dist_factory(*params).log_prob(x.value),
+            x.weight[
+                ..., 0
+            ],  # Weight should be the same across the last dimension as it is one-hot-encoded
+        )
+
+
 class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
     Normal / Gaussian family (stateless).
-    
+
     Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
 
     Class Attributes
@@ -493,7 +510,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     ) -> WeightedTensor:
         """
         Compute the negative log-likelihood (NLL) of a Normal distribution in a stateless manner.
-      
+
         Parameters
         ----------
         x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
@@ -558,7 +575,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         """
         Compute both the negative log-likelihood (NLL) and its Jacobian (gradient) with respect to
         the observed values `x` for a Normal distribution, using an efficient hardcoded formula.
-        
+
         Parameters
         ----------
         x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
@@ -584,6 +601,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     # def sample(cls, loc, scale, *, sample_shape = ()):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
+
 class MultivariateNormalFamily(StatelessDistributionFamily):
     """Multivariate Normal family with diagonal covariance (stateless)."""
 
@@ -592,16 +610,17 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
-    def multi_dist_factory(cls,
-                     loc: torch.Tensor,
-                     scale: torch.Tensor,
-                     ) -> MultivariateNormal:
-
+    def multi_dist_factory(
+        cls,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+    ) -> MultivariateNormal:
         loc = torch.tensor(loc, dtype=torch.float32)
         scale = torch.diag(scale)
         scale = torch.tensor(scale, dtype=torch.float32)
 
         return MultivariateNormal(loc, scale)
+
     """
     @classmethod
     def sample(
@@ -615,6 +634,7 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
 
         return multi_dist.sample(sample_shape)
     """
+
     @classmethod
     def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
         return loc  # mode = mean for Gaussian
@@ -631,23 +651,22 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
     def _nll(
         cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor
     ) -> WeightedTensor:
-
         if x.value.ndimension() != loc.ndimension():
-            if loc.ndimension()==1:
+            if loc.ndimension() == 1:
                 x_value_expanded = x.value.unsqueeze(1).repeat(1, loc.shape[0], 1, 1)
-                #x_weight_expanded = x.weight.unsqueeze(1).repeat(1, loc.shape[0], 1, 1)
+                # x_weight_expanded = x.weight.unsqueeze(1).repeat(1, loc.shape[0], 1, 1)
                 x = WeightedTensor(x_value_expanded)
             else:
                 x_value_expanded = x.value.unsqueeze(1).repeat(1, loc.shape[1], 1, 1)
                 x_weight_expanded = x.weight.unsqueeze(1).repeat(1, loc.shape[1], 1, 1)
                 x = WeightedTensor(x_value_expanded, x_weight_expanded)
 
-        #print('loc.shape : ', loc.shape)
+        # print('loc.shape : ', loc.shape)
         z = (x.value - loc) / scale
         LOG_2PI = torch.log(torch.tensor(2 * torch.pi))
 
-        nll = 0.5 * z ** 2 + torch.log(scale) + LOG_2PI
-        #nll = 0.5 * torch.sum(z**2 + 2 * torch.log(scale) + torch.log(2 * torch.pi), dim=-1)
+        nll = 0.5 * z**2 + torch.log(scale) + LOG_2PI
+        # nll = 0.5 * torch.sum(z**2 + 2 * torch.log(scale) + torch.log(2 * torch.pi), dim=-1)
         if x.value.ndimension() != nll.ndimension():
             x_value_expanded = x.value.unsqueeze(1).repeat(1, x.shape[0], 1, 1)
             x_weight_expanded = x.weight.unsqueeze(1).repeat(1, x.shape[0], 1, 1)
@@ -656,7 +675,7 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
             z = (x.value - loc) / scale
             LOG_2PI = torch.log(torch.tensor(2 * torch.pi))
 
-            nll = 0.5 * z ** 2 + torch.log(scale) + LOG_2PI
+            nll = 0.5 * z**2 + torch.log(scale) + LOG_2PI
 
         return WeightedTensor(nll, x.weight)
 
@@ -678,8 +697,8 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
         z = (x.value - loc) / scale
         LOG_2PI = torch.log(torch.tensor(2 * torch.pi))
 
-        nll = 0.5 * z ** 2 + torch.log(scale) + LOG_2PI
-        #nll = 0.5 * torch.sum(z**2 + 2 * torch.log(scale) + torch.log(2 * torch.pi), dim=-1)
+        nll = 0.5 * z**2 + torch.log(scale) + LOG_2PI
+        # nll = 0.5 * torch.sum(z**2 + 2 * torch.log(scale) + torch.log(2 * torch.pi), dim=-1)
         grad = z / scale
         return WeightedTensor(nll, x.weight), WeightedTensor(grad, x.weight)
 
@@ -753,7 +772,9 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         )
 
     @classmethod
-    def sample(cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()) -> torch.Tensor:
+    def sample(
+        cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
+    ) -> torch.Tensor:
         """
         Draw samples from the mixture of normal distributions.
 
@@ -896,7 +917,7 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         return cls.dist_factory(*params).mean
 
     @classmethod
-    def mean(cls, *params: Any) ->  torch.Tensor:
+    def mean(cls, *params: Any) -> torch.Tensor:
         """
         Return the mean of the mixture distribution.
 
@@ -916,7 +937,7 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         return cls.dist_factory(*params).mean
 
     @classmethod
-    def stddev(cls, *params: Any) ->  torch.Tensor:
+    def stddev(cls, *params: Any) -> torch.Tensor:
         """
         Return the standard deviation of the mixture distribution.
 
@@ -937,13 +958,17 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
     @classmethod
     def _nll(
-            cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor, probs: torch.Tensor,
+        cls,
+        x: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        probs: torch.Tensor,
     ) -> WeightedTensor:
         """
         Compute the element-wise negative log-likelihood (NLL) for a mixture of normal distributions.
 
         This method handles two scenarios:
-        - If `loc` has more than one dimension, it's assumed to represent multiple sources 
+        - If `loc` has more than one dimension, it's assumed to represent multiple sources
         per individual (e.g., shape [n_inds, n_clusters]).
         - If `loc` is one-dimensional, it's treated as a simple mixture (e.g., for global parameters
         like tau or xi), and broadcasting is used accordingly.
@@ -970,7 +995,9 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
         z_list = []
 
-        if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
+        if (
+            loc.ndim > 1
+        ):  # for sources !will need modification if we mess with the sources_std as well
             n_clusters = loc.shape[1]
 
             for i in range(n_clusters):
@@ -983,24 +1010,31 @@ class MixtureNormalFamily(StatelessDistributionFamily):
             n_clusters = loc.shape[0]
 
             for i in range(n_clusters):
-                #print(scale)
-                z_cluster = ((x.value - loc[i]) / scale[i]).squeeze(1)  # shape: [n_inds]
+                # print(scale)
+                z_cluster = ((x.value - loc[i]) / scale[i]).squeeze(
+                    1
+                )  # shape: [n_inds]
                 z_list.append(z_cluster)
 
             z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
 
-        return WeightedTensor((0.5 * z ** 2
-                               + torch.log(scale)
-                               + cls.nll_constant_standard),x.weight,)
+        return WeightedTensor(
+            (0.5 * z**2 + torch.log(scale) + cls.nll_constant_standard),
+            x.weight,
+        )
 
     @classmethod
     def _nll_jacobian(
-            cls, x: WeightedTensor, loc: torch.Tensor, scale: torch.Tensor, probs:torch.Tensor,
+        cls,
+        x: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        probs: torch.Tensor,
     ) -> WeightedTensor:
         """
-        Compute the Jacobian (gradient w.r.t. `loc`) of the negative log-likelihood 
+        Compute the Jacobian (gradient w.r.t. `loc`) of the negative log-likelihood
         for a mixture of normal distributions.
-        
+
         Parameters
         ----------
         x : :class:`.WeightedTensor`
@@ -1024,11 +1058,15 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
         z_list = []
 
-        if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
+        if (
+            loc.ndim > 1
+        ):  # for sources !will need modification if we mess with the sources_std as well
             n_clusters = loc.shape[1]
 
             for i in range(n_clusters):
-                z_cluster = (x.value - loc[:, i]) / scale ** 2 # shape: [n_inds, n_sources]
+                z_cluster = (
+                    x.value - loc[:, i]
+                ) / scale**2  # shape: [n_inds, n_sources]
                 z_list.append(z_cluster)
 
             z = torch.stack(z_list, dim=-1)  # shape: [n_inds, n_sources, n_clusters]
@@ -1037,7 +1075,9 @@ class MixtureNormalFamily(StatelessDistributionFamily):
             n_clusters = loc.shape[0]
 
             for i in range(n_clusters):
-                z_cluster = ((x.value - loc[i]) / scale[i] ** 2).squeeze(1)  # shape: [n_inds]
+                z_cluster = ((x.value - loc[i]) / scale[i] ** 2).squeeze(
+                    1
+                )  # shape: [n_inds]
                 z_list.append(z_cluster)
 
             z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
@@ -1046,11 +1086,11 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
     @classmethod
     def _nll_and_jacobian(
-            cls,
-            x: WeightedTensor,
-            loc: torch.Tensor,
-            scale: torch.Tensor,
-            probs: torch.Tensor,
+        cls,
+        x: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        probs: torch.Tensor,
     ) -> tuple[WeightedTensor, WeightedTensor]:
         """
         Compute both the negative log-likelihood (NLL) and its Jacobian w.r.t. `loc`
@@ -1079,7 +1119,9 @@ class MixtureNormalFamily(StatelessDistributionFamily):
         """
         z_list = []
 
-        if loc.ndim > 1:  # for sources !will need modification if we mess with the sources_std as well
+        if (
+            loc.ndim > 1
+        ):  # for sources !will need modification if we mess with the sources_std as well
             n_clusters = loc.shape[1]
 
             for i in range(n_clusters):
@@ -1092,12 +1134,14 @@ class MixtureNormalFamily(StatelessDistributionFamily):
             n_clusters = loc.shape[0]
 
             for i in range(n_clusters):
-                z_cluster = ((x.value - loc[i]) / scale[i]).squeeze(1)  # shape: [n_inds]
+                z_cluster = ((x.value - loc[i]) / scale[i]).squeeze(
+                    1
+                )  # shape: [n_inds]
                 z_list.append(z_cluster)
 
             z = torch.stack(z_list, dim=1)  # shape: [n_inds,n_clusters]
 
-        nll = 0.5 * z ** 2 + torch.log(scale) + cls.nll_constant_standard
+        nll = 0.5 * z**2 + torch.log(scale) + cls.nll_constant_standard
         return WeightedTensor(nll, x.weight), WeightedTensor(z / scale, x.weight)
 
 
@@ -1362,7 +1406,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         """
         Compute the log survival function for the Weibull distribution
         given observations and parameters.
-        
+
         Parameters
         ----------
         x : :class:`torch.Tensor`
@@ -1398,7 +1442,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         """
         Compute predicted survival or cumulative incidence probabilities for time-to-event data
         using a reparametrized Weibull model.
-        
+
         Parameters
         ----------
         x : :class:`torch.Tensor`
@@ -1754,7 +1798,7 @@ class SymbolicDistribution:
         """
         Factory method to return a symbolic function computing the negative log-likelihood
         (NLL) from a given value.
-        
+
         Parameters
         ----------
         value_name : :obj:`str`
@@ -1850,6 +1894,7 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
+Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 # Categorical = SymbolicDistribution.bound_to(CategoricalFamily)
 MixtureNormal = SymbolicDistribution.bound_to(MixtureNormalFamily)
 MultivariateNormal = SymbolicDistribution.bound_to(MultivariateNormalFamily)

@@ -431,49 +431,37 @@ class Dataset:
             ],
         )
 
-    def get_one_hot_encoding(
-        self, *, sf: bool, ordinal_infos: KwargsType
-    ) -> torch.LongTensor:
+    def get_one_hot_encoding(self, *, sf: bool):
         """
         Builds the one-hot encoding of ordinal data once and for all and returns it.
 
         Parameters
         ----------
-        sf : :obj:`bool`
+        sf : bool
             Whether the vector should be the survival function [1(X > l), l=0..max_level-1]
             instead of the probability density function [1(X=l), l=0..max_level]
 
-        ordinal_infos : :class:`~leaspy.utils.typing.KwargsType`
+        ordinal_infos : dict[str, Any]
             All the hyperparameters concerning ordinal modelling (in particular maximum level per features)
 
         Returns
         -------
-        :obj:`torch.LongTensor`
-            One-hot encoding of data values.
-
-        Raises
-        ------
-        :exc:`.LeaspyInputError`
-            If the values are not non-negative integers or if the features in `ordinal_infos` are not consistent with the dataset headers.
+        One-hot encoding of data values.
         """
         if self._one_hot_encoding is not None:
             return self._one_hot_encoding[sf]
-
-        ## Check the data & construct the one-hot encodings once for all for fast look-up afterwards
-
+        max_levels = self.get_max_levels()
+        max_level = max(max_levels.values())
         # Check for values different than non-negative integers
         if (self.values != self.values.round()).any() or (self.values < 0).any():
             raise LeaspyInputError(
                 "Please make sure your data contains only integers >= 0 when using ordinal noise modelling."
             )
-
         # First of all check consistency of features given in ordinal_infos compared to the ones in the dataset (names & order!)
-        ordinal_feat_names = list(ordinal_infos["max_levels"])
-        if ordinal_feat_names != self.headers:
+        if list(max_levels.keys()) != self.headers:
             raise LeaspyInputError(
-                f"Features stored in ordinal model ({ordinal_feat_names}) are not consistent with features in data ({self.headers})"
+                f"Features stored in ordinal model ({max_levels}) are not consistent with features in data ({self.headers})"
             )
-
         # Now check that integers are within the expected range, per feature [0, max_level_ft]
         # (masked values are encoded by 0 at this point)
         vals = self.values.long()
@@ -481,11 +469,9 @@ class Dataset:
             "unexpected": [],
             "missing": [],
         }
-        for ft_i, (ft, max_level_ft) in enumerate(ordinal_infos["max_levels"].items()):
+        for ft_i, (ft, max_level_ft) in enumerate(max_levels.items()):
             expected_codes = set(range(0, max_level_ft + 1))  # max level is included
-
             vals_ft = vals[:, :, ft_i]
-
             if not self.no_warning:
                 # replacing masked values by -1 (which was guaranteed not to be part of input from first check, all >= 0)
                 actual_vals_ft = vals_ft.where(
@@ -519,9 +505,7 @@ class Dataset:
             )
 
         # one-hot encode all the values after the checks & clipping
-        vals_pdf = torch.nn.functional.one_hot(
-            vals, num_classes=ordinal_infos["max_level"] + 1
-        )
+        vals_pdf = torch.nn.functional.one_hot(vals, num_classes=max_level + 1)
         # build the survival function by simple (1 - cumsum) and remove the useless P(X >= 0) = 1
         vals_sf = discrete_sf_from_pdf(vals_pdf)
         # cache the values to retrieve them fast afterwards
