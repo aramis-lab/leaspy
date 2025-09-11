@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.distributions import compute_ordinal_pdf_from_ordinal_sf
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp
 from leaspy.utils.weighted_tensor import (
@@ -136,13 +135,10 @@ class OrdinalModel(LogisticModel):
             ]
             deltas[feature] = torch.log(torch.clamp(torch.tensor(delays), min=0.1))
 
-        # Should not be used yet
-        # if self.batch_deltas:
         # we set the undefined deltas to be infinity to extend validity of formulas for them as well (and to avoid computations)
         deltas_ = float("inf") * torch.ones((len(deltas), self.max_level - 1))
         for i, name in enumerate(deltas):
             deltas_[i, : len(deltas[name])] = deltas[name]
-        # parameters["log_deltas_mean"] = deltas_[:, 0]
         parameters["log_deltas_mean"] = deltas_
         return parameters
 
@@ -172,7 +168,6 @@ class OrdinalModel(LogisticModel):
             ),
             # DERIVED VARS
             deltas=LinkedVariable(Exp("log_deltas")),
-            # ordinal_rt=LinkedVariable(self.ordinal_reparametrized_time(rt=self.time_reparametrization, deltas="deltas")),
             ordinal_rt=LinkedVariable(self.ordinal_time_reparametrization),
         )
         return d

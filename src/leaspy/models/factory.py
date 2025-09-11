@@ -28,7 +28,6 @@ class ModelName(str, Enum):
     CONSTANT = "constant"
     MIXTURE_LOGISTIC = "mixture_logistic"
     ORDINAL = "ordinal"
-    DENEME = "deneme"
 
 
 def model_factory(
