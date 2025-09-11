@@ -167,6 +167,16 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             check_kws=DEFAULT_CHECK_KWS,
         )
 
+    def test_fit_ordinal(self):
+        """Test MCMC-SAEM."""
+        self.generic_fit(
+            "ordinal",
+            "ordinal",
+            obs_models=observation_model_factory("ordinal"),
+            source_dimension=2,
+            check_kws=DEFAULT_CHECK_KWS,
+        )
+
     def test_fit_logistic_diagonal_noise(self):
         """Test MCMC-SAEM (1 noise per feature)."""
         # TODO: dimension should not be needed at this point...

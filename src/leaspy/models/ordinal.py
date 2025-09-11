@@ -4,17 +4,10 @@ from typing import Optional
 import numpy as np
 import torch
 
-from leaspy.exceptions import LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.models.base import InitializationMethod
-from leaspy.models.obs_models import (
-    FullGaussianObservationModel,
-    observation_model_factory,
-)
 from leaspy.utils.distributions import compute_ordinal_pdf_from_ordinal_sf
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp
-from leaspy.utils.typing import DictParams, DictParamsTorch, KwargsType
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
@@ -30,7 +23,6 @@ from leaspy.variables.specs import (
     PopulationLatentVariable,
     VariableNameToValueMapping,
 )
-from leaspy.variables.state import State
 
 from .logistic import LogisticModel
 
