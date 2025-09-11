@@ -7,19 +7,19 @@ import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyConvergenceError
-from leaspy.utils.weighted_tensor import WeightedTensor
 from leaspy.utils.functional import (
     Identity,
+    MatMul,
     Mean,
-    Prod,
     NamedInputFunction,
+    Prod,
     Sqr,
     Std,
     Sum,
     SumDim,
-    MatMul,
     get_named_parameters,
 )
+from leaspy.utils.weighted_tensor import WeightedTensor
 
 __all__ = [
     "tensorize_2D",
@@ -39,6 +39,7 @@ __all__ = [
     "compute_ind_param_std_from_suff_stats_mixture_burn_in",
     "compute_probs_from_state",
 ]
+
 
 def tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
     """Convert a scalar or array_like into an, at least 2D, dtype tensor.
@@ -319,19 +320,19 @@ def compute_ind_param_std_from_suff_stats(
     ip_var = ip_var_update + ip_old_mean**2
     return compute_std_from_variance(ip_var, varname=f"{ip_name}_std", **kws)
 
-def compute_ind_param_mean_from_suff_stats_mixture(
-        state: Dict[str, torch.Tensor],
-        *,
-        ip_name: str,
-) -> torch.Tensor:
 
+def compute_ind_param_mean_from_suff_stats_mixture(
+    state: Dict[str, torch.Tensor],
+    *,
+    ip_name: str,
+) -> torch.Tensor:
     ind_var = state[f"{ip_name}"]
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
     nll_cluster = -nll_regul_ind_sum_ind
 
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
 
-    if ip_name == 'sources' : #special treatement due to the extra dimension
+    if ip_name == "sources":  # special treatment due to the extra dimension
         ind_var_expanded = ind_var.unsqueeze(-1)
         probs_expanded = probs_ind.unsqueeze(1)
         result = ind_var_expanded * probs_expanded
@@ -342,6 +343,7 @@ def compute_ind_param_mean_from_suff_stats_mixture(
 
     return result
 
+
 def compute_ind_param_std_from_suff_stats_mixture(
     state: Dict[str, torch.Tensor],
     ip_values: torch.Tensor,
@@ -351,7 +353,6 @@ def compute_ind_param_std_from_suff_stats_mixture(
     dim: int,
     **kws,
 ):
-
     ip_old_mean = state[f"{ip_name}_mean"]
     ip_cur_mean = torch.mean(ip_values, dim=0)
     ip_var_update = torch.mean(ip_sqr_values, dim=0) - 2 * ip_old_mean * ip_cur_mean
@@ -361,53 +362,36 @@ def compute_ind_param_std_from_suff_stats_mixture(
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
     nll_cluster = -nll_regul_ind_sum_ind
 
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
 
-    result = (probs_ind * std).sum(dim=0) /probs_ind.sum(dim=0)
+    result = (probs_ind * std).sum(dim=0) / probs_ind.sum(dim=0)
 
     return result
 
-def compute_ind_param_std_from_suff_stats_mixture_burn_in(
-        state: Dict[str, torch.Tensor],
-        *,
-        ip_name: str,
-) -> torch.Tensor:
 
+def compute_ind_param_std_from_suff_stats_mixture_burn_in(
+    state: Dict[str, torch.Tensor],
+    *,
+    ip_name: str,
+) -> torch.Tensor:
     ind_var = state[f"{ip_name}"].std(dim=0)
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
     nll_cluster = -nll_regul_ind_sum_ind
 
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
 
     result = (probs_ind * ind_var).sum(dim=0) / probs_ind.sum(dim=0)
 
     return result
 
-def compute_probs_from_state(
-        state: Dict[str, torch.Tensor],
-) -> torch.Tensor:
 
-    #probs = state["probs"]
-    #n_clusters = probs.shape[0]
-    #nll_attach_ind = state["nll_attach_ind"]
+def compute_probs_from_state(
+    state: Dict[str, torch.Tensor],
+) -> torch.Tensor:
     nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
     n_inds = nll_regul_ind_sum_ind.shape[0]
-    #n_clusters = nll_regul_ind_sum_ind.shape[1]
-
-    #probs = probs.view(1, n_clusters)
-    #nll_attach_ind = nll_attach_ind.view(n_inds, 1)
     nll_cluster = -nll_regul_ind_sum_ind
-
-    #nominator = nll_cluster
-    #denominator = nll_cluster.sum(dim=1)  # sum for all the clusters
-    #probs_list = []
-
-    #for id_cluster in range(nominator.shape[1]):
-    #    probs_ind_cluster = nominator[:, id_cluster] / denominator
-    #    probs_list.append(probs_ind_cluster)
-
-    #probs_ind = torch.stack(probs_list, dim=1)
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
 
     return probs_ind.sum(dim=0) / n_inds
 
