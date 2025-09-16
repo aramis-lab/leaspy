@@ -1,7 +1,6 @@
 """
 Mixture Model
 =====================================================
-
 This notebook contains the code for a simple implementation of the Leaspy Mixture model on synthetic data.
 Before implementing the model take a look at the relevant mathematical framework in the user guide.
 """
@@ -23,12 +22,12 @@ from leaspy.io.data import Data, Dataset
 # an article to be submitted in a biostatistics journal. The dataset contains 1000 individuals each with 6 visits and 6 scores.
 
 leaspy_root = os.path.dirname(leaspy.__file__)
+
 data_path = os.path.join(leaspy_root, "datasets/data/simulated_data_for_mixture.csv")
 
 all_data = pd.read_csv(data_path, sep=";", decimal=",")
 all_data["ID"] = all_data["ID"].ffill()
 all_data = all_data.set_index(["ID", "TIME"])
-
 all_data.head()
 # %%
 # We load the Mixture Model from the leaspy library and transform the dataset in a leaspy-compatible form with the built-in functions.
@@ -69,7 +68,6 @@ def get_ip(df_leaspy, model):
     """
     leaspy_data : the dataframe with the correct indexing
     leaspy_mixture : the leaspy object after the fit
-
     """
     ip = pd.DataFrame(df_leaspy.index.get_level_values("ID").unique(), columns=["ID"])
 
