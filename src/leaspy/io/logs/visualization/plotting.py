@@ -27,14 +27,14 @@ class Plotting:
 
     Parameters
     ----------
-    model : leaspy Model
-        The model you want to do plots with.
-    output_path : str (optional)
+    model : :class:`~leaspy.models.BaseModel`
+        The used model.
+    output_path : :obj:`str`, (optional)
         Folder where plots will be saved.
         If None, default to current working directory.
-    palette : str (palette name) or :class:`matplotlib.colors.Colormap` (`ListedColormap` or `LinearSegmentedColormap`)
+    palette : :obj:`str` (palette name) or :class:`matplotlib.colors.Colormap` (`ListedColormap` or `LinearSegmentedColormap`)
         The palette to use.
-    max_colors : int > 0, optional (default, corresponding to model nb of features)
+    max_colors : :obj:`int` > 0, optional (default, corresponding to model nb of features)
         Only used if palette is a string
     """
 
@@ -70,10 +70,10 @@ class Plotting:
 
         Parameters
         ----------
-        palette : str (palette name) or :class:`matplotlib.colors.Colormap` (`ListedColormap` or `LinearSegmentedColormap`)
+        palette : :obj:`str` (palette name) or :class:`matplotlib.colors.Colormap` (`ListedColormap` or `LinearSegmentedColormap`)
             The palette to use.
 
-        max_colors : int > 0, optional (default, corresponding to model nb of features)
+        max_colors : :obj:`int` > 0, optional (default, corresponding to model nb of features)
             Only used if palette is a string
         """
 
@@ -176,19 +176,19 @@ class Plotting:
         Parameters
         ----------
         **kwargs
-            * alpha: float, default 0.6
+            * alpha: :obj:`float`, default 0.6
                 Matplotlib's transparency option. Must be in [0, 1].
             * linestyle: {'-', '--', '-.', ':', '', (offset, on-off-seq), ...}
                 Matplotlib's linestyle option.
-            * linewidth: float
+            * linewidth: :obj:`float`
                 Matplotlib's linewidth option.
-            * features: list[str]
+            * features: list[:obj:`str`]
                 Name of features (if set it must be a subset of model features)
                 Default: all model features.
-            * colors: list[str]
+            * colors: list[:obj:`str`]
                 Contains matplotlib compatible colors.
                 At least as many as number of features.
-            * labels: list[str]
+            * labels: list[:obj:`str`]
                 Used to rename features in the plot.
                 Exactly as many as number of features.
                 Default: raw variable name of each feature
@@ -196,12 +196,12 @@ class Plotting:
                 Axes object to modify, instead of creating a new one.
             * figsize: tuple of int
                 The figure's size.
-            * save_as: str, default None
+            * save_as: :obj:`str`, default None
                 Path to save the figure.
-            * title: str
-            * n_tpts: int
-                Nb of timepoints in plot (default: 100)
-            * n_std_left, n_std_right: float (default: 3 and 6 resp.)
+            * title: :obj:`str`
+            * n_tpts: :obj:`int`
+                Number of timepoints in plot (default: 100)
+            * n_std_left, n_std_right: :obj:`float` (default: 3 and 6 resp.)
                 Time window around `tau_mean`, expressed as times of max(`tau_std`, 4)
 
         Returns
@@ -440,7 +440,7 @@ class Plotting:
         ax : :class:`matplotlib.axes.Axes`
         df : :class:`pandas.DataFrame`
             Data to plot
-        features : list[str]
+        features : list[:obj:`str`]
             Which features to plot (subset of model features / data features)
         colors : list
             List of colors (associated to features selected), in order
@@ -563,9 +563,9 @@ class Plotting:
         Parameters
         ----------
         data : :class:`.Data`
-        patients_idx : 'all' (default), str or list[str]
+        patients_idx : 'all' (default), :obj:`str` or list[:obj:`str`]
             Patients to display (by their ID).
-        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be outputed by ip.to_dataframe()) or dict (Pytorch ip format) or None (default)
+        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format), optional
             If not None, observations are plotted with respect to reparametrized ages.
         """
 
@@ -584,7 +584,6 @@ class Plotting:
         """
         Plot patient observations (reparametrized ages)
 
-        cf. `patient_observations`, uniquely a reordering of arguments (and mandatory `individual_parameters`) for ease of use...
         """
 
         return self._plot_patients_generic(
@@ -611,9 +610,9 @@ class Plotting:
         ----------
         data : :class:`.Data`
         individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format)
-        patients_idx : 'all' (default), str or list[str]
+        patients_idx : 'all' (default), :obj:`str` or list[:obj:`str`]
             Patients to display (by their ID).
-        reparametrized_ages : bool (default False)
+        reparametrized_ages : :obj:`bool` (default False)
             Should we plot trajectories in reparam age or not? to study source impact essentially
         **kwargs
             cf. :meth:`._plot_model_trajectories`
