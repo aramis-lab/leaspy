@@ -26,7 +26,7 @@ class Plotter:
 
     Parameters
     ----------
-    output_path : str (optional)
+    output_path : :obj:`str`, (optional)
         Folder where plots will be saved.
         If None, default to current working directory.
     """
@@ -101,6 +101,11 @@ class Plotter:
         )
 
     def plt_show(self):
+        """Display the current matplotlib figure if `self._show` is True.
+
+        This method wraps `matplotlib.pyplot.show` using the internal
+        flags `_show` and `_block` to control interactive plotting.
+        """
         if self._show:
             plt.show(block=self._block)
 
@@ -113,6 +118,31 @@ class Plotter:
         n_std_right: int = 6,
         **kwargs,
     ):
+        """Plot the mean model trajectory.
+
+        Parameters
+        ----------
+        model : :class:`McmcSaemCompatibleModel` or iterable of such
+            Model(s) to compute the mean trajectory for.
+        n_pts : :obj:`int`, optional
+            Number of timepoints to evaluate between the start and end.
+            Default=100.
+        n_std_left : :obj:`int`, optional
+            How many standard deviations before the mean to plot.
+            Default=3.
+        n_std_right : :obj:`int`, optional
+            How many standard deviations after the mean to plot.
+            Default=6.
+        **kwargs :
+            - ``color`` : iterable of colors
+            - ``title`` : :obj:`str`, plot title
+            - ``save_as`` : :obj:`str`, filename to save the plot
+
+        Raises
+        ------
+        LeaspyInputError
+            If the model(s) is/are not initialized.
+        """
         labels = model.features
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
         colors = kwargs.get("color", cycle(mpl.colormaps["tab20"].colors))
@@ -199,6 +229,18 @@ class Plotter:
     def plot_mean_validity(
         self, model: McmcSaemCompatibleModel, results, **kwargs
     ) -> None:
+        """Plot histogram of reparametrized times for all individuals.
+
+        Parameters
+        ----------
+        model : :class:`McmcSaemCompatibleModel`
+            Fitted model providing `tau_mean` and `tau_std`.
+        results : object
+            Results containing `data` and `individual_parameters`
+            with keys ``xi`` and ``tau``.
+        **kwargs :
+            - ``save_as`` : :obj:`str`, filename to save the plot.
+        """
         t0 = model.parameters["tau_mean"].numpy()
         hist = []
 
@@ -209,7 +251,7 @@ class Plotter:
             reparametrized = np.exp(xi) * (ages - tau) + t0
             hist.append(reparametrized)
 
-        hist = [_ for l in hist for _ in l]
+        hist = np.concatenate(hist)
         plt.hist(hist)
 
         if "save_as" in kwargs.keys():
@@ -221,6 +263,22 @@ class Plotter:
     def plot_patient_trajectory(
         self, model: McmcSaemCompatibleModel, results, indices, **kwargs
     ) -> None:
+        """Plot observed data and reconstructed trajectory for one or more patients.
+
+        Parameters
+        ----------
+        model : :class:`McmcSaemCompatibleModel`
+            Model to use for computing individual trajectories.
+        results : object
+            Results containing data and individual parameters.
+        indices : :obj:`str` or list of :obj:`int`
+            Patient index/indices to plot.
+        **kwargs :
+            - ``ax`` : matplotlib axis to plot on.
+            - ``color`` : iterable of colors.
+            - ``title`` : :obj:`str`, plot title.
+            - ``save_as`` : :obj:`str`, filename to save the plot.
+        """
         colors = (
             kwargs["color"]
             if "color" in kwargs.keys()
@@ -283,6 +341,20 @@ class Plotter:
         timepoints: torch.Tensor,
         **kwargs,
     ) -> None:
+        """Plot a trajectory computed from given individual parameters.
+
+        Parameters
+        ----------
+        model : :class:`McmcSaemCompatibleModel`
+            Model used to compute the trajectory.
+        indiv_parameters : DictParamsTorch
+            Individual parameter dictionary.
+        timepoints : :obj:`torch.Tensor`
+            Timepoints at which to compute the trajectory.
+        **kwargs :
+            - ``color`` : iterable of colors.
+            - ``save_as`` : :obj:`str`, filename to save the plot.
+        """
         # 1 individual at a time...
         colors = (
             kwargs["color"]
@@ -306,6 +378,19 @@ class Plotter:
         plt.close()
 
     def plot_distribution(self, results, parameter: str, cofactor=None, **kwargs):
+        """Plot histogram(s) of an estimated parameter distribution.
+
+        Parameters
+        ----------
+        results : object
+            Results containing a `get_parameter_distribution` method.
+        parameter : :obj:`str`
+            Parameter name to plot.
+        cofactor : optional
+            Grouping variable; if given, plot separate histograms per group.
+        **kwargs :
+            - ``save_as`` : :obj:`str`, filename to save the plot.
+        """
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
 
         distribution = results.get_parameter_distribution(parameter, cofactor)
@@ -326,6 +411,21 @@ class Plotter:
     def plot_correlation(
         self, results, parameter_1, parameter_2, cofactor=None, **kwargs
     ):
+        """Plot scatter correlation between two parameters.
+
+        Parameters
+        ----------
+        results : object
+            Results containing a `get_parameter_distribution` method.
+        parameter_1 : :obj:`str`
+            First parameter name.
+        parameter_2 : :obj:`str`
+            Second parameter name.
+        cofactor : optional
+            Grouping variable; if given, scatter different colors per group.
+        **kwargs :
+            - ``save_as`` : :obj:`str`, filename to save the plot.
+        """
         fig, ax = plt.subplots(1, 1, figsize=(11, 6))
 
         d1 = results.get_parameter_distribution(parameter_1, cofactor)
@@ -354,6 +454,23 @@ class Plotter:
         n_std_right: int = 4,
         n_pts: int = 100,
     ) -> None:
+        """Plot observed patient values mapped onto the mean trajectory.
+
+        Parameters
+        ----------
+        model : :class:`McmcSaemCompatibleModel`
+            Model used for computing mean and individual trajectories.
+        results : object
+            Results containing data and individual parameters.
+        n_std_left : :obj:`int`, optional
+            How many standard deviations before the mean to plot.
+            Default=2.
+        n_std_right : :obj:`int`, optional
+            How many standard deviations after the mean to plot.
+            Default=4.
+        n_pts : :obj:`int`, optional
+            Number of timepoints to evaluate. Default=100.
+        """
         dataset = Dataset(results.data)
 
         model_values_np = self._compute_individual_tensorized_postprocessed(
