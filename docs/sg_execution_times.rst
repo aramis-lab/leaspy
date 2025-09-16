@@ -5,8 +5,8 @@
 
 
 Computation times
-=================
 **00:35.793** total execution time for 4 files **from all galleries**:
+
 
 .. container::
 
@@ -43,4 +43,3 @@ Computation times
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_simulate.py` (``../examples/plot_simulate.py``)
      - 00:02.573
-     - 0.0
