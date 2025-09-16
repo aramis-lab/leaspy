@@ -23,9 +23,12 @@ from leaspy.io.data import Data, Dataset
 # an article to be submitted in a biostatistics journal. The dataset contains 1000 individuals each with 6 visits and 6 scores.
 
 leaspy_root = os.path.dirname(leaspy.__file__)
-data_path = os.path.join(leaspy_root, "datasets/data/simulated_data_for_mixture.xlsx")
+data_path = os.path.join(leaspy_root, "datasets/data/simulated_data_for_mixture.csv")
 
-all_data = pd.read_excel(data_path, index_col=[0, 1])
+all_data = pd.read_csv(data_path, sep=";", decimal=",")
+all_data["ID"] = all_data["ID"].ffill()
+all_data = all_data.set_index(["ID", "TIME"])
+
 all_data.head()
 # %%
 # We load the Mixture Model from the leaspy library and transform the dataset in a leaspy-compatible form with the built-in functions.
