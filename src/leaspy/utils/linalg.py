@@ -45,7 +45,7 @@ def compute_orthonormal_basis(
             * If 1D (vector): `G` is a diagonal matrix (diagonal components > 0)
             * If 2D (square matrix): `G` is general (SPD)
 
-    strip_col : int in 0..model_dimension-1 (default 0)
+    strip_col : :obj:`int` in 0..model_dimension-1 (default 0)
         Which column of the basis should be the one collinear to `dgamma_t0` (that we get rid of)
 
     Returns

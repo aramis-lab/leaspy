@@ -16,18 +16,20 @@ __all__ = [
 
 def discrete_sf_from_pdf(pdf: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
     """
-    Compute the discrete survival function values [P(X > l), i.e.
-    P(X >= l+1), l=0..L-1] (l=0..L-1) from the discrete probability density
-    [P(X = l), l=0..L] (assuming discrete levels are in last dimension).
+    Compute the discrete survival function values from a discrete probability density.
+
+    For a discrete variable with levels ``l=0..L`` the survival function is
+    :math:`P(X>l)=P(X\\ge l+1)` for ``l=0..L-1``. This function assumes the last
+    dimension of ``pdf`` indexes the discrete levels.
 
     Parameters
     ----------
-    pdf : torch.Tensor or np.ndarray
+    pdf : :class:`torch.Tensor` or :class:`np.ndarray`
         The discrete probability density.
 
     Returns
     -------
-    np.ndarray :
+    :class:`np.ndarray` :
         The discrete survival function values.
     """
     return (1 - pdf.cumsum(-1))[..., :-1]
@@ -38,26 +40,27 @@ def compute_ordinal_pdf_from_ordinal_sf(
     dim_ordinal_levels: int = 3,
 ) -> torch.Tensor:
     """
-    Computes the probability density (or its jacobian) of an ordinal
-    model [P(X = l), l=0..L] from `ordinal_sf` which are the survival
-    function probabilities [P(X > l), i.e. P(X >= l+1), l=0..L-1] (or its jacobian).
+    Compute the probability density of an ordinal model from its survival function.
+
+    Given the survival function probabilities :math:`P(X>l)=P(X\\ge l+1)` for
+    ``l=0..L-1``, compute :math:`P(X=l)` for ``l=0..L``.
 
     Parameters
     ----------
-    ordinal_sf : `torch.FloatTensor`
+    ordinal_sf : :class:`torch.FloatTensor`
         Survival function values : ordinal_sf[..., l] is the proba to be superior or equal to l+1
         Dimensions are:
-        * 0=individual
-        * 1=visit
-        * 2=feature
-        * 3=ordinal_level [l=0..L-1]
-        * [4=individual_parameter_dim_when_gradient]
+           * 0=individual
+           * 1=visit
+           * 2=feature
+           * 3=ordinal_level [l=0..L-1]
+           * [4=individual_parameter_dim_when_gradient]
     dim_ordinal_levels : int, default = 3
         The dimension of the tensor where the ordinal levels are.
 
     Returns
     -------
-    ordinal_pdf : `torch.FloatTensor` (same shape as input, except for dimension 3 which has one more element)
+    ordinal_pdf : :class:`torch.FloatTensor` (same shape as input, except for dimension 3 which has one more element)
         ordinal_pdf[..., l] is the proba to be equal to l (l=0..L)
     """
     # nota: torch.diff was introduced in v1.8 but would not highly improve performance of this routine anyway
@@ -80,7 +83,7 @@ class MultinomialDistribution(torch.distributions.Multinomial):
 
     Parameters
     ----------
-    probs : torch.Tensor
+    probs : :class:`torch.Tensor`
         The pdf of the multinomial distribution.
 
     Attributes
@@ -116,7 +119,7 @@ class MultinomialCdfDistribution(torch.distributions.Distribution):
 
     Parameters
     ----------
-    sf : torch.Tensor
+    sf : :class:`torch.Tensor`
         Values of the survival function [P(X > l) for l=0..L-1 where L is max_level]
         from which the distribution samples.
         Ordinal levels are assumed to be in the last dimension.
@@ -126,11 +129,11 @@ class MultinomialCdfDistribution(torch.distributions.Distribution):
 
     Attributes
     ----------
-    cdf : torch.Tensor
+    cdf : :class:`torch.Tensor`
         The cumulative distribution function [P(X <= l) for l=0..L] from which the distribution samples.
         The shape of latest dimension is L+1 where L is max_level.
         We always have P(X <= L) = 1
-    arg_constraints : dict
+    arg_constraints : :obj:`dict`
         Contains the constraints on the arguments.
     """
 
@@ -172,7 +175,7 @@ class MultinomialCdfDistribution(torch.distributions.Distribution):
 
         Returns
         -------
-        torch.Tensor :
+        :class:`torch.Tensor` :
             Vector of integer values corresponding to the multinomial sampling.
             Result is in [[0, L]]
         """
