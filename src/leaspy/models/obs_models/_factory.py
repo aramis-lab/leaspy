@@ -78,6 +78,7 @@ def observation_model_factory(
         If `model` is not supported.
     """
     dimension = kwargs.pop("dimension", None)
+    n_clusters = kwargs.pop("n_clusters", None)
     if isinstance(model, ObservationModel):
         return model
     if isinstance(model, str):

@@ -4,27 +4,31 @@
 # Welcome to Leaspy's documentation!
 
 ```{toctree}
- :maxdepth: 3
- :hidden:
- :caption: Getting Started
-
+:caption: Getting Started
+:maxdepth: 2
 install
-auto_examples/plot_quickstart
 ```
 
 ```{toctree}
- :maxdepth: 4
- :hidden:
- :caption: Documentation
+:caption: Examples
+:maxdepth: 2
+
+auto_examples/index
+
+```
+
+```{toctree}
+:caption: Documentation
+:maxdepth: 3
 
 user_guide
-auto_examples/index
 glossary
 notations
 references
 changelog
 license
 ```
+
 
 ## LEArning Spatiotemporal Patterns in Python
 

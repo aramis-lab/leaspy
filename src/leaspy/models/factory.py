@@ -4,8 +4,10 @@ from typing import Optional, Union
 from .base import BaseModel
 from .constant import ConstantModel
 from .joint import JointModel
+from .linear import LinearModel
 from .lme import LMEModel
-from .riemanian_manifold import LinearModel, LogisticModel
+from .logistic import LogisticModel
+from .mixture import LogisticMultivariateMixtureModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
@@ -23,6 +25,7 @@ class ModelName(str, Enum):
     SHARED_SPEED_LOGISTIC = "shared_speed_logistic"
     LME = "lme"
     CONSTANT = "constant"
+    MIXTURE_LOGISTIC = "mixture_logistic"
 
 
 def model_factory(
@@ -33,21 +36,34 @@ def model_factory(
 
     Parameters
     ----------
-    name : str or ModelName
-        The name of the model class to be instantiated.
+    name : :obj:`str` or ModelName
+        The name of the model class to be instantiated. Valid options include:
+            - ``"joint"``
+            - ``"logistic"``
+            - ``"linear"``
+            - ``"shared_speed_logistic"``
+            - ``"lme"``
+            - ``"constant"``
+            - ``"mixture_logistic"``
 
-    instance_name : str, optional
-        The custom name of the instance to be created.
-        If not provided, it will be the model class name.
+    instance_name : :obj:`str`, optional
+        A custom name for the model instance. If not provided, the model's name
+        will be used as the instance name.
 
     **kwargs
-        Contains model's hyper-parameters.
-        Raise an error if the keyword is inappropriate for the given model's name.
+        Additional keyword arguments corresponding to the model's hyperparameters.
+        These must be valid for the specified model, or an error will be raised.
 
     Returns
     -------
     :class:`.BaseModel`
         A child class object of :class:`.models.BaseModel` class object determined by ``name``.
+
+    Raises
+    ------
+    ValueError
+        If an invalid model name is provided or the model cannot be instantiated
+        with the provided arguments.
     """
     name = ModelName(name)
     instance_name = instance_name or name.value
@@ -63,3 +79,5 @@ def model_factory(
         return LMEModel(instance_name, **kwargs)
     if name == ModelName.CONSTANT:
         return ConstantModel(instance_name, **kwargs)
+    if name == ModelName.MIXTURE_LOGISTIC:
+        return LogisticMultivariateMixtureModel(instance_name, **kwargs)

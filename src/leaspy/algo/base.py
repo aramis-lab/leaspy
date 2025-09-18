@@ -448,7 +448,5 @@ def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgorithm:
         The requested algorithm. If it exists, it will be compatible with algorithm family.
     """
     algorithm = get_algorithm_class(settings.name)(settings)
-    if settings.logs is None and algorithm.family == AlgorithmType.FIT:
-        settings.set_logs()
     algorithm.set_output_manager(settings.logs)
     return algorithm

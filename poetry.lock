@@ -840,7 +840,10 @@ numpy = ">=1.16.5"
 pandas = ">=1.0"
 scipy = ">=1.6"
 typing-extensions = ">=4.2.0"
-wrapt = {version = ">=1.0", markers = "python_version < \"3.13\""}
+wrapt = [
+    {version = ">=1.0", markers = "python_version < \"3.13\""},
+    {version = ">=1.17.0rc1", markers = "python_version >= \"3.13\""},
+]
 
 [package.extras]
 arrow = ["pyarrow (>=1)"]
@@ -4270,5 +4273,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.9,<3.13"
-content-hash = "f9d81a37e1ea61692302488ad21bdc038e09dab1537da2f3c934c15fd580aa49"
+python-versions = ">=3.9,<=3.13"
+content-hash = "dded7e9f869644ef5a44547c68609a5cd990a4ccec437bd43a8b9ec9ce57b97f"

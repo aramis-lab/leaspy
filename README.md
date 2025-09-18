@@ -13,7 +13,7 @@ Leaspy is a software package for the statistical analysis of **longitudinal data
 
 ### Installation
 
-Leaspy requires Python >= 3.9, < 3.13.
+Leaspy requires Python >= 3.9, <= 3.13.
 
 Whether you wish to install a released version of Leaspy, or to install its development version, it is **highly recommended** to use a virtual environment to install the project and its dependencies.
 
@@ -41,7 +41,7 @@ If you haven't done it already, create and activate a dedicated environment (see
 To install the project in development mode, you first need to get the source code by cloning the project's repository:
 
 ```bash
-git clone git@gitlab.com:icm-institute/aramislab/leaspy.git
+git clone git@github.com:aramis-lab/leaspy.git
 cd leaspy
 ```
 
@@ -125,6 +125,8 @@ The package is distributed under the BSD 3-Clause license.
 
 ## Support
 The development of this software has been supported by the European Union H2020 program (project EuroPOND, grant number 666992, project HBP SGA1 grant number 720270), by the European Research Council (to Stanley Durrleman project LEASP, grant number 678304) and by the ICM Big Brain Theory Program (project DYNAMO).
+
+Additional support has been provided by the REWIND project (pRecision mEdicine WIth loNgitudinal Data), as part of the PEPR Santé Numérique (grant number 2023000354-03), dedicated to advancing precision medicine with longitudinal data.
 
 ## Contact
 [ARAMIS Lab](https://www.aramislab.fr/)
