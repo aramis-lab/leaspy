@@ -1,6 +1,40 @@
 # To Go Further
 
 ## Model Implementation
+
+This section aims to provide a survival guide for any potential futue developper who wishes to contribute to leaspy by implementing a new model. In order to implement a new model you should be able to answer the following questions :
+
+- Data
+    - What kind of data my model aims to analyze?
+- Parameters
+    - What parameters my model needs to be fully specified?
+- Algorithm
+    - Does my model require a new/modified version of the MCMC-SAEM algortihm to estimate the parameters?
+
+You could start by creating a *my_model.py* with the basic structure of you model.
+What model class should be branched?
+
+### Data
+
+If other than longitudinal, events, covariates you should buid a *_data_reader.py* 
+
+### Parameters
+
+- **DAG**
+    For models to be computationally sound, we needed to have a flow of dependency: a variable cannot depend on a variable that itself depends on it. Said differently, every model
+    should be laid out as a Directed Acyclic Graph (DAG). The graph specifies the properties of each variable, as well as the dependency flow and the update rules. Such structure can
+    optimise computations and has the advantage of being close to the mathematical formulation.
+- **Parameter classes**
+    Decide on what class to attribute each parameter, *get_variable_specs*
+- **Likelihood**
+    *distributions* for the latent parameters
+- **Sufficient Statistics**
+    *utils* functions for new model parameters
+
+### Algortihm
+
+Probably *samplers* because *algo/mcmc_saem* provides the basic structure.
+
 ### DAG Intuition and Structure for Models
 
 ## What kind of scientific question could be answered with leaspy? 
