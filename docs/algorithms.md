@@ -46,8 +46,8 @@ from leaspy.models import LogisticModel
 We need to specify the arguments `name`, `dimension` (the number of features in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per feature or 'gaussian-scalar' to estimate one noise coefficient for all the features). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md####Individual-trajectory-&Spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of features ($\sqrt(dimension)$).
 
 ```python
-leaspy_logistic = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_models='gaussian-diagonal')
-leaspy_logistic.fit(data_leaspy, "mcmc_saem", n_iter=20000)
+model = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_models='gaussian-diagonal')
+model.fit(data_leaspy, "mcmc_saem", n_iter=20000)
 ```
 You can also control add a `seed`or control other arguments for the output and the logs like `save_periodicity`, `path`, e.t.c.
 
@@ -56,8 +56,8 @@ You can also control add a `seed`or control other arguments for the output and t
 Once the iterations are done we can see the parameters that were estimated by the model and save them in a dedicated file.
 
 ```python
-leaspy_logistic.save('my_path/my_model/model_parameters.json')
-leaspy_logistic.parameters
+model.save('my_path/my_model/model_parameters.json')
+model.parameters
 ```
 
 And we can also plot the estimated average trajectory.
@@ -65,7 +65,7 @@ And we can also plot the estimated average trajectory.
 ```python
 import matplotlib.pyplot as plt
 from leaspy.io.logs.visualization.plotting import Plotting
-leaspy_plotting = Plotting(leaspy_logistic)
+leaspy_plotting = Plotting(model)
 
 ax = leaspy_plotting.average_trajectory(
     alpha=1, figsize=(14, 6), n_std_left=2, n_std_right=8
@@ -136,6 +136,42 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 
 
 ## Estimate
+
+This sections describes the procedure for estimating a patient's trajectory.
+Once the personalization is performed then we can estimate and visualize the trajectory of a specific subject using its individual parameters.
+
+```python
+import numpy as np
+
+observations = dataframe.loc["GS-187"]
+print(f"Seen ages: {observations.index.values}")
+print("Individual Parameters : ", ip["GS-187"])
+
+timepoints = np.linspace(60, 100, 100)
+reconstruction = model.estimate({"GS-187": timepoints}, ip)
+```
+
+The reconstruction object contains the estimated feature values for the individual and we can plot them along with the actual observations.
+
+```python
+ax = leaspy_plotting.patient_trajectories(
+    data_leaspy,
+    ip,
+    patients_idx=["GS-187"],
+    labels=["FEATURE_1", "FEATURE_2"],
+    alpha=1,
+    linestyle="-",
+    linewidth=2,
+    markersize=8,
+    obs_alpha=0.5,
+    figsize=(16, 6),
+    factor_past=0.5,
+    factor_future=5,
+)
+ax.set_xlim(45, 80)
+plt.show()
+```
+
 ## Simulate
 
 This section describes the procedure for simulating new patient data under the Spatiotemporal model structure. The simulation method, relying on a fitted Leaspy model and user-defined parameters, involves the following steps:
