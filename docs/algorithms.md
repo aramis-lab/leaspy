@@ -1,18 +1,78 @@
 # Algorithms
 
 ## Fit
+
+In this section we describe how to fit a `leaspy` model in your data. Leaspy uses the MCMC-SAEM algorithm to fit a model by jointly estimating the fixed effects and the distribution of the random effects. It is particularly well suited to this kind of models where the likelihood involves latent variables and is not available in closed form.
+
+The algorithm is an adaptation of the Expectation-Maximisation (EM) algorithm that relies on an iterative procedure that alternates between the following main steps:
+
+- Expectation/Stochastic Approximation Step: the algorithm uses Markov Chain Monte Carlo (MCMC) to generate samples of the latent variables (random effects) conditional on the current parameter estimates, and compute the sufficient statistics of the complete-data log-likelihood using a stochastic approximation scheme. 
+- Maximization Step: Given the updated sufficient statistics, the fixed effects and variance components are re-estimated by maximizing the approximate complete-data log-likelihood.
+
+By iterating these steps, the MCMC-SAEM algorithm converges to the maximum likelihood estimates of the model parameters.
+
 ### Prerequisites
-   - Data format and preprocessing steps.
+
+To fit a logistic model, you need a dataframe with the following columns:
+
+- `ID`: Patient identifier  
+- `TIME`: Time of measurement  
+- One or more columns representing the longitudinal outcomes (e.g., `FEATURE_1`, `FEATURE_2`, ...)
+
+For the importation of dataframe:
+
+```python
+dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
+print(dataset.head())
+
+                        FEATURE_1  FEATURE_2
+      ID    TIME
+132-S2-0  81.661          0.44444    0.04000
+          82.136          0.60000    0.56000
+          82.682          0.39267    0.04000
+          83.139          0.58511    0.30000
+          83.691          0.57044    0.05040
+
+data_leaspy = Data.from_dataframe(dataset, "visit")
+```
 ### Running Task
-   - How to run the fit algorithm.
-   - Example commands and code snippets.
+
+Then you will need to choose one from the existing models in `leaspy.models` . Let's use th logistic model as an example.
+
+```python
+from leaspy.models import LogisticModel
+```
+
+We need to specify the arguments `name`, `dimension` (the number of features in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per feature or 'gaussian-scalar' to estimate one noise coefficient for all the features). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md####Individual-trajectory-&Spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of features ($\sqrt(dimension)$).
+
+```python
+leaspy_logistic = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_models='gaussian-diagonal')
+leaspy_logistic.fit(data_leaspy, "mcmc_saem", n_iter=20000)
+```
+You can also control add a `seed`or control other arguments for the output and the logs like `save_periodicity`, `path`, e.t.c.
+
 ### Output
-   - What results to expect from the fitting process.
-   - DataFrame object 
-   - Plotting object 
-### Setting Options (Different Models)
-   - How to set specific options for different types of models.
-   - Customizing parameters for logistic, joint, mixture, and covariate models.
+
+Once the iterations are done we can see the parameters that were estimated by the model and save them in a dedicated file.
+
+```python
+leaspy_logistic.save('my_path/my_model/model_parameters.json')
+leaspy_logistic.parameters
+```
+
+And we can also plot the estimated average trajectory.
+
+```python
+import matplotlib.pyplot as plt
+from leaspy.io.logs.visualization.plotting import Plotting
+leaspy_plotting = Plotting(leaspy_logistic)
+
+ax = leaspy_plotting.average_trajectory(
+    alpha=1, figsize=(14, 6), n_std_left=2, n_std_right=8
+)
+plt.show()
+```
+
 
 ## Personalize
 

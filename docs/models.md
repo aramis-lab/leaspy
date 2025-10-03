@@ -255,7 +255,7 @@ To use the mixture model in Leaspy you need to choose the number of cluster you 
 from leaspy.models import LogisticMultivariateMixtureModel
 
 leaspy_mixture = LogisticMultivariateMixtureModel(source_dimension=1, n_clusters=2, dimension=3)
-leaspy_mixture.fit(data_logistic, n_iter=1000)
+leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
 ```
 
 ## Covariate Model
