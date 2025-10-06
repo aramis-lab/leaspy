@@ -2,14 +2,22 @@
 
 ## Convergence diagnosis
 
-## Likelihood based metrics
+When using leaspy, you have to choose the number of iterations to estimate the model and hopefully to reach convergence of the MCMC-SAEM algorithm used. A famous way to monitor it is by running several MC chains with various random seeds and compute the statistic of Gelman-Rubin{cite}`gelman1992inference`, denoted  $\hat{R}$. The $\hat{R}$ measures the ratio of the **within-chain variance** to the **between-chain variance**. If the chain has converged to the same stationary distribution, these two variances should be roughly equal{cite}`vehtari2021convergence`.
+
+$$
+\hat{R} = \frac{\hat{V}}{W}
+$$
+
+where $W$ is the within-chain variance and $\hat{V}$ is the posterior variance estimate for the pooled rank-traces.
+
+This could be computed thanks to the package `arviz` with the function [`rhat`](https://python.arviz.org/en/stable/api/generated/arviz.rhat.html).
 
 ## Fit metrics
 
 Leaspy stores three negative log likelihood (nll) values in the `fit_metrics` of the model’s json file:
 - `nll_attach`: $-\log p(y \mid z, \theta, \Pi)$, where $y$ are the observations, $z$ the latent parameters, $\theta$ the model parameters, and $\Pi$ the hyperparameters. It corresponds to the nll attached to the data.
 - `nll_regul_ind_sum`: $-\log p(z_{\text{re}} \mid z_{\text{fe}}, \theta, \Pi)$, where $z_{\text{re}}$ denotes the latent random effects and $z_{\text{fe}}$ the latent fixed effects. It corresponds to the nll from the random effects.
-- `nll_tot`: $-\log p(y, z, \theta \mid \Pi)$. It corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (`v0`,`xi`,`tau`), that is not reported directly in the json file.
+- `nll_tot`: $-\log p(y, z, \theta \mid \Pi)$. It corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the fixed effects $-\log p(z_{\text{fe}} \mid \theta, \Pi)$, that is not reported directly in the json file.
 
 The last conditional nll can be used for computing fit metrics.
 

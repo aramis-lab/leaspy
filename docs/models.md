@@ -221,6 +221,43 @@ leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the model. Note that for prediction purposes, the [CIF](./glossary.md#cif) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
 ## Mixture Model
+
+### Definition
+
+Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity in the sense that the inter-patient variability as random variations around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of MCMC-SAEM for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
+
+In Leaspy the mixture model is implemented as an adaptation of the spatio-temporal logistic model where the individual parameters (`tau`, `xi`and `sources`) come from a mixture of gaussian distributions with a number of components defined by the user.
+
+### Data
+
+The same rules apply as for the standard [logistic model](#logistic-model).
+
+### Mathematical background
+
+To build a mixture model, we add another layer upon the hierarchical structure of the model. We suppose that each subgroup $c$ can be described by a different set of $(\overline{\tau}^c, \overline{\xi}^c, \overline{s}^c)$ and has a respective probability of occurrence $\pi^c$. We suppose that the population parameters come from normal distributions as in the standard model, while the individual parameters are sampled from a mixture of gaussians with mixing probabilities $\pi^c$.
+
+The individual parameters (random effects):
+
+$$
+\begin{cases}
+\xi_i \sim \sum_{c=1}^{n_c} \pi^c \mathcal{N} (\overline\xi^c, \sigma_{\xi}^c) \\
+\tau_i \sim \sum_{c=1}^{n_c} \pi^c \mathcal{N} (\overline\tau^c, \sigma_{\tau}^c)\\
+s_{il} \sim \sum_{c=1}^{n_c} \pi^c \mathcal{N} (\overline s^c, 1)
+\end{cases}
+$$
+
+
+### Model summary
+
+To use the mixture model in Leaspy you need to choose the number of cluster you wish to estimate beforehand.
+
+```python
+from leaspy.models import LogisticMultivariateMixtureModel
+
+leaspy_mixture = LogisticMultivariateMixtureModel(source_dimension=1, n_clusters=2, dimension=3)
+leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
+```
+
 ## Covariate Model
 
 ## References
