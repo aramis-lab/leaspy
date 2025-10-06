@@ -10,7 +10,7 @@ $$
 
 where $W$ is the within-chain variance and $\hat{V}$ is the posterior variance estimate for the pooled rank-traces.
 
-This could be computed thanks to the package `arviz` with the function `rhat`. To use this function, what you need to do is to run different MC chains, with different initialisation random seeds and keep iterations after a given time when it has stabilised. Then the function computes the statistic that should be ideally close to 1 (and below 1.1) in order to safely conclude that the MCMC has converged.
+This could be computed thanks to the package `arviz` with the function [`rhat`](https://python.arviz.org/en/stable/api/generated/arviz.rhat.html).
 
 ## Fit metrics
 
