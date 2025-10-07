@@ -1,33 +1,4 @@
-
 ![leaspy logo](./_static/images/leaspy_logo.png)
-
-# Welcome to Leaspy's documentation!
-
-```{toctree}
-:caption: Getting Started
-:maxdepth: 2
-install
-```
-
-```{toctree}
-:caption: Examples
-:maxdepth: 2
-
-auto_examples/index
-
-```
-
-```{toctree}
-:caption: Documentation
-:maxdepth: 3
-
-user_guide
-glossary
-notations
-references
-changelog
-license
-```
 
 
 ## LEArning Spatiotemporal Patterns in Python
@@ -79,3 +50,30 @@ More detailed explanations about the models themselves and about the estimation 
 - **Intensive application for Alzheimer's Disease progression**: *AD Course Map charts Alzheimer's disease progression*, I. Koval, A. Bone, M. Louis, S. Bottani, A. Marcoux, J. Samper-Gonzalez, N. Burgos, B. Charlier, A. Bertrand, S. Epelbaum, O. Colliot, S. Allassonniere & S. Durrleman, Scientific Reports, 2021. 11(1):1-16 [Open Access](https://hal.inria.fr/hal-01964821)
 - [www.digital-brain.org](https://project.inria.fr/digitalbrain/) : Website related to the application of the model for Alzheimer's disease.
 - [Disease Course Mapping](https://disease-progression-modelling.github.io/pages/models/disease_course_mapping.html) webpage by Igor Koval
+
+
+```{toctree}
+:caption: Getting Started
+:maxdepth: 2
+install
+```
+
+```{toctree}
+:caption: Examples
+:maxdepth: 2
+
+auto_examples/index
+
+```
+
+```{toctree}
+:caption: Documentation
+:maxdepth: 3
+
+user_guide
+glossary
+notations
+references
+changelog
+license
+```
