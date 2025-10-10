@@ -13,6 +13,5 @@ mathematics
 models
 algorithms
 models_evaluation
-tutorials
 to_go_further
 ```

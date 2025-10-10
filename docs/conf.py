@@ -45,7 +45,6 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "numpydoc",
-    "sphinx_rtd_theme",
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
@@ -74,8 +73,8 @@ autoapi_options = [
 ]
 
 sphinx_gallery_conf = {
-    "examples_dirs": "../examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "examples_dirs": ["../examples"],  # path to your example scripts
+    "gallery_dirs": ["auto_examples"],  # path to where to save gallery generated output
     "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
     "plot_gallery": True,
 }
@@ -151,6 +150,7 @@ html_static_path = ["_static"]
 html_css_files = [
     "custom.css",
 ]
+html_js_files = ["custom.js"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further. For a list of options available for each theme, see the

@@ -37,7 +37,7 @@ The main documentation. This contains an in-depth description of all algorithms 
 
 #### License
 
-The package is distributed under the BSD 3-Clause license.
+The package is distributed under the GNU LESSER GENERAL PUBLIC LICENSE.
 
 ### Further information
 
@@ -53,12 +53,14 @@ More detailed explanations about the models themselves and about the estimation 
 
 
 ```{toctree}
+ :hidden:
 :caption: Getting Started
 :maxdepth: 2
 install
 ```
 
 ```{toctree}
+:hidden:
 :caption: Examples
 :maxdepth: 2
 
@@ -67,6 +69,7 @@ auto_examples/index
 ```
 
 ```{toctree}
+:hidden:
 :caption: Documentation
 :maxdepth: 3
 

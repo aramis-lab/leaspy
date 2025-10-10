@@ -1,7 +1,7 @@
 # Installation
 
 ```{warning}
-Leaspy requires Python >= 3.9, < 3.13.
+Leaspy requires Python >= 3.9, <= 3.13.
 ```
 
 ```{tip}
