@@ -215,7 +215,7 @@ $$
 In practice in leaspy, to use the joint model, you need to precise "joint" in Leaspy object creation, then you can use it to fit, personnalize, estimate and simulate.
 
 ```python
-leaspy_joint = Joint(nb_events=2, source_dimension=3)
+leaspy_joint = JointModel(nb_events=2, source_dimension=3)
 leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 ```
 For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the model. Note that for prediction purposes, the [CIF](./glossary.md#cif) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
