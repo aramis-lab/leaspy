@@ -24,7 +24,7 @@ This includes, for instance, clinical scores, cognitive assessments, physiologic
 
 #### Getting started
 
-Information to install, test, and contribute to the package are available [here](./nutshell.md).
+Information to install, test, and contribute to the package are available [here](./install.md).
 
 #### API Documentation
 
