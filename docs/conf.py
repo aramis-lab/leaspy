@@ -16,6 +16,7 @@ import re
 from datetime import date
 
 import sphinx
+from sphinx_gallery.sorting import FileNameSortKey
 
 # -- Project information -----------------------------------------------------
 
@@ -77,6 +78,7 @@ sphinx_gallery_conf = {
     "gallery_dirs": ["auto_examples"],  # path to where to save gallery generated output
     "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
     "plot_gallery": True,
+    "within_subsection_order": FileNameSortKey,
 }
 
 # this is needed for some reason...
