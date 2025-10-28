@@ -719,6 +719,20 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
             )
 
         previous_attachment, previous_regularity = compute_attachment_regularity()
+
+        # print("variable:", self.name)
+
+        # if self.name == "phi_tau":
+        #     # shapes & quick stats
+        #     print("[DEBUG] phi_tau: current shape", tuple(state["phi_tau"].shape))
+        #     print("[DEBUG] prev_attach shape", tuple(previous_attachment.shape), " prev_attach mean", float(previous_attachment.mean()))
+        #     print("[DEBUG] prev_regul shape", tuple(previous_regularity.shape), " prev_regul mean", float(previous_regularity.mean()))
+        # if self.name == "tau":
+        #     # shapes & quick stats
+        #     print("[DEBUG] tau: current shape", tuple(state["tau"].shape))
+        #     print("[DEBUG] prev_attach shape", tuple(previous_attachment.shape), " prev_attach mean", float(previous_attachment.mean()))
+        #     print("[DEBUG] prev_regul shape", tuple(previous_regularity.shape), " prev_regul mean", float(previous_regularity.mean()))
+
         # with state.auto_fork():
         state.put(
             self.name,
@@ -736,7 +750,20 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
                 + (new_attachment - previous_attachment)
             )
         )
+
+        # if self.name == "phi_tau":
+        #     print("[DBG] alpha: shape", tuple(alpha.shape),
+        #         " mean", float(alpha.mean()), " min", float(alpha.min()), " max", float(alpha.max()))
+        #     # detect NaN/Inf
+        #     print("[DBG] alpha has_nan", bool(torch.isnan(alpha).any()), " has_inf", bool(torch.isinf(alpha).any()))
+
         accepted = self._group_metropolis_step(alpha)
+
+        # if self.name == "phi_tau":
+        #     print("[DBG] accepted mean (fraction accepted)", float(accepted.float().mean()))
+        #     # show a sample of per-individual alpha/accepted
+        #     print("[DBG] alpha[:10]", alpha[:10].detach().cpu().numpy())
+        #     print("[DBG] accepted[:10]", accepted[:10].detach().cpu().numpy())
 
         # Partial reversion where proposals were not accepted
         state.revert(~accepted)

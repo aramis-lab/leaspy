@@ -217,7 +217,7 @@ class ModelParameter(IndepVariable):
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
     """
     The symbolic update functions will take variadic `suff_stats` values,
-    in order to re-use NamedInputFunction logic: e.g. update_rule=Std('xi')
+    in order to reuse NamedInputFunction logic: e.g. update_rule=Std('xi')
 
     <!> ISSUE: for `tau_std` and `xi_std` we also need `state` values in addition to
     `suff_stats` values (only after burn-in) since we can NOT use the variadic form
@@ -392,7 +392,7 @@ class ModelParameter(IndepVariable):
         shape: tuple[int, ...],
     ):
         """Smart automatic definition of `ModelParameter` when it is a correlation coefficient (rho)
-        between two components of an individual latent variable (e.g. phi_tau[:, 0] and phi_tau[:, 1]).
+        between two components of an population latent variable (e.g. phi_tau[:, 0] and phi_tau[:, 1]).
         """
         update_rule = NamedInputFunction(
             compute_correlation_pop,
@@ -642,7 +642,7 @@ class LinkedVariable(VariableInterface):
         :class:`~leaspy.variables.specs.VariableValue` :
             The value of the variable.
         """
-        # print({k: state[k].shape for k in self.parameters})
+        # print("[debug]", {k: state[k].shape for k in self.parameters})
         return self.f(**{k: state[k] for k in self.parameters})
 
 

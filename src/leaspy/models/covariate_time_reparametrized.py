@@ -201,7 +201,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             phi_tau_mean=ModelParameter.for_ind_mean(
                 ("phi_tau"), shape=(2,)
             ),  # (phi_mod_tau_mean, phi_ref_tau_mean)
-            phi_tau_std=Hyperparameter((0.001, 0.01)),
+            phi_tau_std=Hyperparameter((0.01, 0.1)),
             rho_tau=ModelParameter.for_ind_coeff_corr(("phi_tau"), shape=(1,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             # LATENT VARS

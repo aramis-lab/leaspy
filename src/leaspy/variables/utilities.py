@@ -76,8 +76,9 @@ def compute_correlation_ind(
         raise ValueError(f"Standard deviation is zero for parameter {parameters_name}")
 
     rho = covariance / (std_mod * std_ref)
-    print("rho", rho)
-    print(f"rho_{parameters_name} update:", rho.item(), flush=True)
+    rho = torch.clamp(rho, -0.9999, 0.9999)
+    # print("[DEBUG] rho", rho)
+    # print(f"[DEBUG] rho_{parameters_name} update:", rho.item(), flush=True)
 
     return rho  # shape: (1,)
 
@@ -113,8 +114,7 @@ def compute_correlation_pop(
         raise ValueError(f"Standard deviation is zero for parameter {parameters_name}")
 
     rho = covariance / (std_mod * std_ref)  # shape: (K,)
-    print("rho", rho)
-    print(f"rho_{parameters_name} update:", rho.tolist(), flush=True)
+    # print("[DEBUG] rho", rho)
+    # print(f"[DEBUG] rho_{parameters_name} update:", rho.tolist(), flush=True)
 
     return rho  # shape: (K,)
-

@@ -375,7 +375,7 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """Bivariate Normal / Gaussian family (stateless)."""
 
     parameters: ClassVar = ("loc", "scale", "coeff_corr")
-    dist_factory: ClassVar = torch.distributions.MultivariateNormal
+    dist_multivariate: ClassVar = torch.distributions.MultivariateNormal
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
@@ -422,11 +422,14 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     #     return MultivariateNormal(loc=mean, covariance_matrix=cov)
 
+    # def sample(cls, *params: torch.Tensor, sample_shape: tuple[int, ...]=()) -> torch.Tensor :
+    #     dist = cls.dist_factory(*params)
+    #     return dist.sample(sample_shape)
+
     @classmethod
     def sample(
         cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
     ) -> torch.Tensor:
-
         loc, scale, coeff_corr = params
 
         if loc.dim() == 1:
@@ -440,8 +443,9 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         x_std, y_std = scale.unbind(-1)
         rho = coeff_corr
 
-        cov_11 = x_std**2
-        cov_22 = y_std**2
+        eps = 1e-6
+        cov_11 = x_std**2 + eps
+        cov_22 = y_std**2 + eps
         cov_12 = rho * x_std * y_std
 
         cov = torch.stack(
@@ -452,10 +456,8 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             dim=-2,
         )  # shape (..., 2, 2)
 
-        dist = cls.dist_factory(loc, cov)
-        sample = dist.sample(sample_shape)
-        sample = sample.squeeze(1) if sample.dim() == 3 else sample
-        print("sample shape:", sample.shape)
+        sample = cls.dist_multivariate(loc, covariance_matrix=cov).sample(sample_shape)
+        sample = sample.squeeze(-2) if sample.dim() == 3 else sample
         return sample
 
     @classmethod
@@ -540,7 +542,7 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
     ) -> WeightedTensor:
-        # print(">>> [NLL] Entered _nll BivariateNormalFamily")
+        # print("[DEBUG] >>> [NLL] Entered _nll BivariateNormalFamily")
         x, y = values.value.unbind(-1)
         x_mu, y_mu = loc.unbind(-1)
         x_std, y_std = scale.unbind(-1)
