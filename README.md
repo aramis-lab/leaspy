@@ -111,6 +111,8 @@ This includes, for instance, clinical scores, cognitive assessments, physiologic
 More detailed explanations about the models themselves and about the estimation procedure can be found in the following articles :
 
 - **Mathematical framework**: *A Bayesian mixed-effects model to learn trajectories of changes from repeated manifold-valued observations*. Jean-Baptiste Schiratti, Stéphanie Allassonnière, Olivier Colliot, and Stanley Durrleman. The Journal of Machine Learning Research, 18:1–33, December 2017. [Open Access](https://hal.archives-ouvertes.fr/hal-01540367).
+- **Mixture Model**: *A mixture model for subtype identification: Application to CADASIL* Sofia Kaisaridi, Juliette Ortholand, Caglayan Tuna, Nicolas Gensollen, and Sophie Tezenas Du Montcel
+ISCB 46-46th Annual Conference of the International Society for Clinical Biostatistics, August 2025. [Open Access](https://hal.science/hal-05266776v1)
 - [www.digital-brain.org](https://www.digital-brain.org): website related to the application of the model for Alzheimer's disease
 
 ## License
