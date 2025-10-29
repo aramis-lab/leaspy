@@ -34,7 +34,7 @@ pip install leaspy
 
 #### Install in development mode
 
-If you haven't done it already, create and activate a dedicated environment (see the beginning of the installation section). 
+If you haven't done it already, create and activate a dedicated environment. 
 
 **Clone the repository**
 
@@ -97,7 +97,7 @@ Considering these series of short-term data, the software aims at :
 - predicting future observations
 - simulating virtual patients to un-bias the initial cohort or mimics its characteristics
 
-The software package can be used with scalar multivariate data whose progression can be modelled by a logistic shape or linear progression.
+The software package can be used with scalar multivariate data whose progression can be described by a logistic model, linear, joint or mixture model.
 The simplest type of data handled by the software are scalar data: they correspond to one (univariate) or multiple (multivariate) measurement(s) per patient observation.
 This includes, for instance, clinical scores, cognitive assessments, physiological measurements (e.g. blood markers, radioactive markers) but also imaging-derived data that are rescaled, for instance, between 0 and 1 to describe a logistic progression.
 
@@ -111,8 +111,8 @@ This includes, for instance, clinical scores, cognitive assessments, physiologic
 More detailed explanations about the models themselves and about the estimation procedure can be found in the following articles :
 
 - **Mathematical framework**: *A Bayesian mixed-effects model to learn trajectories of changes from repeated manifold-valued observations*. Jean-Baptiste Schiratti, Stéphanie Allassonnière, Olivier Colliot, and Stanley Durrleman. The Journal of Machine Learning Research, 18:1–33, December 2017. [Open Access](https://hal.archives-ouvertes.fr/hal-01540367).
-- **Mixture Model**: *A mixture model for subtype identification: Application to CADASIL* Sofia Kaisaridi, Juliette Ortholand, Caglayan Tuna, Nicolas Gensollen, and Sophie Tezenas Du Montcel
-ISCB 46-46th Annual Conference of the International Society for Clinical Biostatistics, August 2025. [Open Access](https://hal.science/hal-05266776v1)
+- **Mixture Model**: *A mixture model for subtype identification: Application to CADASIL* Sofia Kaisaridi, Juliette Ortholand, Caglayan Tuna, Nicolas Gensollen, and Sophie Tezenas Du Montcel. ISCB 46-46th Annual Conference of the International Society for Clinical Biostatistics, August 2025. [Open Access](https://hal.science/hal-05266776v1)
+- **Joint Model**: *Joint model with latent disease age: overcoming the need for reference time* Juliette Ortholand, Nicolas Gensollen, Stanley Durrleman, Sophie Tezenas du Montcel. arXiv preprint arXiv:2401.17249. 2024 [Open Access](https://arxiv.org/abs/2401.17249)
 - [www.digital-brain.org](https://www.digital-brain.org): website related to the application of the model for Alzheimer's disease
 
 ## License

@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:37.426** total execution time for 5 files **from all galleries**:
+**00:36.810** total execution time for 5 files **from all galleries**:
 
 .. container::
 
@@ -33,17 +33,17 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_plot_01_quickstart.py` (``../examples/plot_01_quickstart.py``)
-     - 00:21.433
+     - 00:20.917
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_05_simulate.py` (``../examples/plot_05_simulate.py``)
-     - 00:05.618
+     - 00:05.703
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_04_mixture.py` (``../examples/plot_04_mixture.py``)
-     - 00:05.067
+     - 00:04.900
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_02_parkinson_example.py` (``../examples/plot_02_parkinson_example.py``)
-     - 00:04.720
+     - 00:04.716
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plot_03_joint.py` (``../examples/plot_03_joint.py``)
-     - 00:00.587
+     - 00:00.574
      - 0.0
