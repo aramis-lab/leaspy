@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:30.526** total execution time for 4 files **from all galleries**:
+**00:36.810** total execution time for 5 files **from all galleries**:
 
 .. container::
 
@@ -32,15 +32,18 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_auto_examples_plot_quickstart.py` (``../examples/plot_quickstart.py``)
-     - 00:20.482
+   * - :ref:`sphx_glr_auto_examples_plot_01_quickstart.py` (``../examples/plot_01_quickstart.py``)
+     - 00:20.917
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_plot_parkinson_example.py` (``../examples/plot_parkinson_example.py``)
-     - 00:04.638
+   * - :ref:`sphx_glr_auto_examples_plot_05_simulate.py` (``../examples/plot_05_simulate.py``)
+     - 00:05.703
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_plot_mixture.py` (``../examples/plot_mixture.py``)
-     - 00:02.755
+   * - :ref:`sphx_glr_auto_examples_plot_04_mixture.py` (``../examples/plot_04_mixture.py``)
+     - 00:04.900
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_plot_simulate.py` (``../examples/plot_simulate.py``)
-     - 00:02.651
+   * - :ref:`sphx_glr_auto_examples_plot_02_parkinson_example.py` (``../examples/plot_02_parkinson_example.py``)
+     - 00:04.716
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plot_03_joint.py` (``../examples/plot_03_joint.py``)
+     - 00:00.574
      - 0.0

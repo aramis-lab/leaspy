@@ -1,3 +1,6 @@
 .wy-nav-content {
     max-width: 96% !important;
 }
+.sphx-glr-thumbcontainer .xref.std.std-ref {
+    display: none;
+}

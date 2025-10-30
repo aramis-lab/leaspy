@@ -1,9 +1,0 @@
-{
-  "name": "scipy_minimize",
-  "seed": 0,
-  "parameters": {
-    "progress_bar": true,
-    "use_jacobian": true,
-    "n_jobs": 1
-  }
-}

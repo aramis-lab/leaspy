@@ -18,13 +18,13 @@ Considering these series of short-term data, the software aims at :
 - Predicting future observations
 - Simulating virtual patients to un-bias the initial cohort or mimic its characteristics
 
-The software package can be used with scalar multivariate data whose progression can be modelled by a logistic shape, an exponential decay or a linear progression.
+The software package can be used with scalar multivariate data whose progression can be described by a logistic model, linear, joint or mixture model.
 The simplest type of data handled by the software are scalar data: they correspond to one (univariate) or multiple (multivariate) measurement(s) per patient observation.
 This includes, for instance, clinical scores, cognitive assessments, physiological measurements (e.g. blood markers, radioactive markers) but also imaging-derived data that are rescaled, for instance, between 0 and 1 to describe a logistic progression.
 
 #### Getting started
 
-Information to install, test, and contribute to the package are available [here](./nutshell.md).
+Information to install, test, and contribute to the package are available [here](./install.md).
 
 #### API Documentation
 
@@ -37,28 +37,28 @@ The main documentation. This contains an in-depth description of all algorithms 
 
 #### License
 
-The package is distributed under the BSD 3-Clause license.
+The package is distributed under the GNU LESSER GENERAL PUBLIC LICENSE.
 
 ### Further information
 
 More detailed explanations about the models themselves and about the estimation procedure can be found in the following articles :
 
-- **Mathematical framework**: *A Bayesian mixed-effects model to learn trajectories of changes from repeated manifold-valued observations.* Jean-Baptiste Schiratti, Stéphanie Allassonnière, Olivier Colliot, and Stanley Durrleman. The Journal of Machine Learning Research, 18:1–33, December 2017. [Open Access](https: //hal.archives-ouvertes.fr/hal-01540367)
-- **Application to imaging data**: *Statistical learning of spatiotemporal patterns from longitudinal manifold-valued networks.* I. Koval, J.-B. Schiratti, A. Routier, M. Bacci, O. Colliot, S. Allassonnière and S. Durrleman. MICCAI, September 2017. [Open Access](https://hal.archives-ouvertes.fr/hal-01540828)
-- **Application to imaging data**: *Spatiotemporal Propagation of the Cortical Atrophy: Population and Individual Patterns.* Igor Koval, Jean-Baptiste Schiratti, Alexandre Routier, Michael Bacci, Olivier Colliot, Stéphanie Allassonnière, and Stanley Durrleman. Front Neurol. 2018 May 4;9:235. [Open Access](https://hal.inria.fr/hal-01910400)
-- **Application to data with missing values**: *Learning disease progression models with longitudinal data and missing values*. R. Couronne, M. Vidailhet, JC. Corvol, S. Lehéricy, S. Durrleman. ISBI, April 2019. [Open Access](https://hal.archives-ouvertes.fr/hal-02091571)
-- **Intensive application for Alzheimer's Disease progression**: *AD Course Map charts Alzheimer's disease progression*, I. Koval, A. Bone, M. Louis, S. Bottani, A. Marcoux, J. Samper-Gonzalez, N. Burgos, B. Charlier, A. Bertrand, S. Epelbaum, O. Colliot, S. Allassonniere & S. Durrleman, Scientific Reports, 2021. 11(1):1-16 [Open Access](https://hal.inria.fr/hal-01964821)
+- **Mathematical framework**: *A Bayesian mixed-effects model to learn trajectories of changes from repeated manifold-valued observations.* Jean-Baptiste Schiratti, Stéphanie Allassonnière, Olivier Colliot, and Stanley Durrleman. The Journal of Machine Learning Research, 18:1–33, December 2017. [Open Access](https://hal.archives-ouvertes.fr/hal-01540367)
+- **Mixture Model**: *A mixture model for subtype identification: Application to CADASIL* Sofia Kaisaridi, Juliette Ortholand, Caglayan Tuna, Nicolas Gensollen, and Sophie Tezenas Du Montcel
+ISCB 46-46th Annual Conference of the International Society for Clinical Biostatistics, August 2025. [Open Access](https://hal.science/hal-05266776v1)
+- **Joint Model**: *Joint model with latent disease age: overcoming the need for reference time* Juliette Ortholand, Nicolas Gensollen, Stanley Durrleman, Sophie Tezenas du Montcel. arXiv preprint arXiv:2401.17249. 2024 [Open Access](https://arxiv.org/abs/2401.17249)
 - [www.digital-brain.org](https://project.inria.fr/digitalbrain/) : Website related to the application of the model for Alzheimer's disease.
-- [Disease Course Mapping](https://disease-progression-modelling.github.io/pages/models/disease_course_mapping.html) webpage by Igor Koval
 
 
 ```{toctree}
+ :hidden:
 :caption: Getting Started
 :maxdepth: 2
 install
 ```
 
 ```{toctree}
+:hidden:
 :caption: Examples
 :maxdepth: 2
 
@@ -67,6 +67,7 @@ auto_examples/index
 ```
 
 ```{toctree}
+:hidden:
 :caption: Documentation
 :maxdepth: 3
 

@@ -1,7 +1,7 @@
 # Installation
 
 ```{warning}
-Leaspy requires Python >= 3.9, < 3.13.
+Leaspy requires Python >= 3.9, <= 3.13.
 ```
 
 ```{tip}
@@ -15,7 +15,7 @@ conda create --name leaspy python=3.10
 conda activate leaspy
 ```
 
-## Install a released version
+## 1. Install a released version
 
 To install the latest version of Leaspy:
 
@@ -23,11 +23,11 @@ To install the latest version of Leaspy:
 pip install leaspy
 ```
 
-## Install in development mode
+## 2. Install in development mode
 
-If you haven't done it already, create and activate a dedicated environment (see the beginning of the installation section). 
+If you haven't done it already, create and activate a dedicated environment. 
 
-### Clone the repository
+### 2.1 Clone the repository
 
 To install the project in development mode, you first need to get the source code by cloning the project's repository:
 
@@ -36,7 +36,7 @@ git clone git@gitlab.com:icm-institute/aramislab/leaspy.git
 cd leaspy
 ```
 
-### Install poetry
+### 2.2 Install poetry
 
 This project relies on [poetry](https://python-poetry.org) that you would need to install (see the [official instructions](https://python-poetry.org/docs/#installation)).
 
@@ -54,7 +54,7 @@ pipx ensurepath
 pipx install poetry
 ```
 
-### Install Leaspy and its dependencies
+### 2.3 Install Leaspy and its dependencies
 
 Install leaspy in development mode:
 
@@ -62,7 +62,7 @@ Install leaspy in development mode:
 poetry install
 ```
 
-### Install the pre-commit hook
+### 2.4 Install the pre-commit hook
 
 Once you have installed Leaspy in development mode, do not forget to install the [pre-commit](https://pre-commit.com) hook in order to automatically format and lint your commits:
 
@@ -71,9 +71,9 @@ pipx install pre-commit
 pre-commit install
 ```
 
-## Notebook configuration
+## 3. Notebook configuration
 
-After installation, you can run the examples [here](./nutshell.md).
+After installation, you can run the examples in the next section.
 
 To do so, in your ``leaspy`` environment, you can download ``ipykernel`` to use ``leaspy`` with ``jupyter`` notebooks:
 
