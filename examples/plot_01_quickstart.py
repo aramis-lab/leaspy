@@ -75,7 +75,3 @@ print(individual_parameters.to_dataframe())
 #
 # 1. See the [User Guide](../user_guide.md) and full API documentation.
 # 2. Explore additional [examples](./index.rst).
-# 3. Visit the [Disease Progression Modelling](https://disease-progression-modelling.github.io/) website,
-#    which provides a [mathematical introduction](https://disease-progression-modelling.github.io/pages/models/disease_course_mapping.html)
-#    and [tutorials](https://disease-progression-modelling.github.io/pages/notebooks/disease_course_mapping/disease_course_mapping.html)
-#    for earlier versions such as v1.5.
