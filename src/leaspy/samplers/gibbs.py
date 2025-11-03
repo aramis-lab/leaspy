@@ -720,8 +720,6 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
 
         previous_attachment, previous_regularity = compute_attachment_regularity()
 
-        # print("variable:", self.name)
-
         # if self.name == "phi_tau":
         #     # shapes & quick stats
         #     print("[DEBUG] phi_tau: current shape", tuple(state["phi_tau"].shape))

@@ -114,7 +114,5 @@ def compute_correlation_pop(
         raise ValueError(f"Standard deviation is zero for parameter {parameters_name}")
 
     rho = covariance / (std_mod * std_ref)  # shape: (K,)
-    # print("[DEBUG] rho", rho)
-    # print(f"[DEBUG] rho_{parameters_name} update:", rho.tolist(), flush=True)
 
     return rho  # shape: (K,)

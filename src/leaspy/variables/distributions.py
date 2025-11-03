@@ -22,7 +22,8 @@ __all__ = [
     "StatelessDistributionFamilyFromTorchDistribution",
     "BernoulliFamily",
     "NormalFamily",
-    "BivariateNormalFamily",
+    "BivariateNormalFamilyInd",
+    "BivariateNormalFamilyPop",
     "AbstractWeibullRightCensoredFamily",
     "WeibullRightCensoredFamily",
     "WeibullRightCensoredWithSourcesFamily",
@@ -371,60 +372,194 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     #    # Hardcode method for efficiency? (<!> broadcasting)
 
 
-class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
+class BivariateNormalFamilyPop(StatelessDistributionFamilyFromTorchDistribution):
     """Bivariate Normal / Gaussian family (stateless)."""
 
     parameters: ClassVar = ("loc", "scale", "coeff_corr")
-    dist_multivariate: ClassVar = torch.distributions.MultivariateNormal
+    dist_family: ClassVar = torch.distributions.MultivariateNormal
     nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
 
     @classmethod
     def shape(cls, loc_shape, scale_shape, coeff_corr_shape):
         return loc_shape
 
-    # @classmethod
-    # def dist_factory(
-    #     cls,
-    #     loc: torch.Tensor,
-    #     scale: torch.Tensor,
-    #     coeff_corr: torch.Tensor,
-    # ) -> MultivariateNormal:
-    #     """
-    #     Returns a bivariate normal distribution with given means, stds, and correlation.
-    #     Assumes shape broadcasting is consistent.
-    #     """
+    @classmethod
+    def mode(
+        cls,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+    ) -> torch.Tensor:
+        """Return the mode of the distribution given the distribution's loc and scale parameters.
+        Parameters
+        ----------
+        loc : :class:`torch.Tensor`
+            The distribution loc.
+        scale : :class:`torch.Tensor`
+            The distribution scale.
+        Returns
+        -------
+        :class:`torch.Tensor` :
+            The value of the distribution's mode.
+        """
+        # `loc`, but with possible broadcasting of shape
 
-    #     if loc.dim() == 1:
-    #         loc = loc.unsqueeze(0)
-    #     if scale.dim() == 1:
-    #         scale = scale.unsqueeze(0)
-    #     if coeff_corr.dim() == 0:
-    #         coeff_corr = coeff_corr.unsqueeze(0)
+        # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
+        return loc
 
-    #     # Covariance matrix
-    #     x_mu, y_mu = loc.unbind(-1)
-    #     x_std, y_std = scale.unbind(-1)
-    #     rho = coeff_corr
+    @classmethod
+    def mean(
+        cls,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+    ) -> torch.Tensor:
+        """Return the mean of the distribution, given the distribution loc and scale parameters.
+        Parameters
+        ----------
+        loc : :class:`torch.Tensor`
+            The distribution loc parameters.
+        scale : :class:`torch.Tensor`
+            The distribution scale parameters.
+        Returns
+        -------
+        :class:`torch.Tensor` :
+            The value of the distribution's mean.
+        """
+        # Hardcode method for efficiency
+        # `loc`, but with possible broadcasting of shape
 
-    #     cov_11 = x_std**2
-    #     cov_22 = y_std**2
-    #     cov_12 = rho * x_std * y_std
+        # TODO : sachant que ici covariates doit être de dim "nb de modalité de cov" et pas nb_patient
+        return loc
 
-    #     cov = torch.stack(
-    #         [
-    #             torch.stack([cov_11, cov_12], dim=-1),
-    #             torch.stack([cov_12, cov_22], dim=-1),
-    #         ],
-    #         dim=-2,
-    #     )  # shape (..., 2, 2)
+    @classmethod
+    def stddev(
+        cls,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+    ) -> torch.Tensor:
+        """Return the standard-deviation of the distribution, given loc and scale of the distribution.
+        Parameters
+        ----------
+        loc : :class:`torch.Tensor`
+            The distribution loc parameter.
+        scale : :class:`torch.Tensor`
+            The distribution scale parameter.
+        Returns
+        -------
+        :class:`torch.Tensor` :
+            The value of the distribution's standard deviation.
+        """
+        # Hardcode method for efficiency
+        # `scale`, but with possible broadcasting of shape
 
-    #     mean = torch.stack([x_mu, y_mu], dim=-1)  # shape (..., 2)
+        # TODO
+        return scale
 
-    #     return MultivariateNormal(loc=mean, covariance_matrix=cov)
+    @classmethod
+    def _nll(
+        cls,
+        values: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+    ) -> WeightedTensor:
+        x, y = values.value.unbind(-1)
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
 
-    # def sample(cls, *params: torch.Tensor, sample_shape: tuple[int, ...]=()) -> torch.Tensor :
-    #     dist = cls.dist_factory(*params)
-    #     return dist.sample(sample_shape)
+        norm_x = (x - x_mu) / x_std
+        norm_y = (y - y_mu) / y_std
+
+        log_part = (
+            torch.log(2 * torch.tensor(math.pi))
+            + torch.log(x_std)
+            + torch.log(y_std)
+            + 0.5 * torch.log(1 - rho**2)
+        )
+        quad_part = (norm_x**2 - 2 * rho * norm_x * norm_y + norm_y**2) / (
+            2 * (1 - rho**2)
+        )
+
+        nll = log_part + quad_part
+
+        return WeightedTensor(nll, values.weight)
+
+    @classmethod
+    def _nll_jacobian(
+        cls,
+        values: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+    ) -> WeightedTensor:
+        x, y = values.value.unbind(-1)
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
+
+        norm_x = (x - x_mu) / x_std
+        norm_y = (y - y_mu) / y_std
+
+        dx = (norm_x - rho * norm_y) / (x_std * (1 - rho**2))
+        dy = (norm_y - rho * norm_x) / (y_std * (1 - rho**2))
+
+        grads = torch.stack([dx, dy], dim=1)
+
+        return WeightedTensor(grads, values.weight.unsqueeze(-1).expand_as(grads))
+
+    @classmethod
+    def _nll_and_jacobian(
+        cls,
+        values: WeightedTensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        coeff_corr: torch.Tensor,
+    ) -> tuple[WeightedTensor, WeightedTensor]:
+        x, y = values.value.unbind(-1)
+        x_mu, y_mu = loc.unbind(-1)
+        x_std, y_std = scale.unbind(-1)
+        rho = coeff_corr
+
+        norm_x = (x - x_mu) / x_std
+        norm_y = (y - y_mu) / y_std
+
+        # NLL
+        log_part = (
+            torch.log(2 * torch.tensor(math.pi))
+            + torch.log(x_std)
+            + torch.log(y_std)
+            + 0.5 * torch.log(1 - rho**2)
+        )
+        quad_part = (norm_x**2 - 2 * rho * norm_x * norm_y + norm_y**2) / (
+            2 * (1 - rho**2)
+        )
+
+        nll = log_part + quad_part
+
+        # Jacobian matrix
+        dx = (norm_x - rho * norm_y) / (x_std * (1 - rho**2))
+        dy = (norm_y - rho * norm_x) / (y_std * (1 - rho**2))
+
+        grads = torch.stack([dx, dy], dim=1)
+
+        return WeightedTensor(nll, values.weight), WeightedTensor(
+            grads, values.weight.unsqueeze(-1).expand_as(grads)
+        )
+
+
+class BivariateNormalFamilyInd(StatelessDistributionFamilyFromTorchDistribution):
+    """Bivariate Normal / Gaussian family (stateless)."""
+
+    parameters: ClassVar = ("loc", "scale", "coeff_corr")
+    dist_family: ClassVar = torch.distributions.MultivariateNormal
+    nll_constant_standard: ClassVar = 0.5 * torch.log(2 * torch.tensor(math.pi))
+
+    @classmethod
+    def shape(cls, loc_shape, scale_shape, coeff_corr_shape):
+        return loc_shape
 
     @classmethod
     def sample(
@@ -456,7 +591,7 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             dim=-2,
         )  # shape (..., 2, 2)
 
-        sample = cls.dist_multivariate(loc, covariance_matrix=cov).sample(sample_shape)
+        sample = cls.dist_family(loc, covariance_matrix=cov).sample(sample_shape)
         sample = sample.squeeze(-2) if sample.dim() == 3 else sample
         return sample
 
@@ -542,17 +677,23 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         scale: torch.Tensor,
         coeff_corr: torch.Tensor,
     ) -> WeightedTensor:
-        # print("[DEBUG] >>> [NLL] Entered _nll BivariateNormalFamily")
         x, y = values.value.unbind(-1)
-        x_mu, y_mu = loc.unbind(-1)
-        x_std, y_std = scale.unbind(-1)
+        x_mu, y_mu = loc[None, :].expand(x.shape[0], -1).unbind(-1)
+        x_std, y_std = scale[None, :].expand(x.shape[0], -1).unbind(-1)
         rho = coeff_corr
+        if rho.ndim == 0:
+            rho = rho.expand(values.value.shape[0])
+
+        # numeric safety: clamp std and rho
+        x_std = x_std.clamp(min=1e-8)
+        y_std = y_std.clamp(min=1e-8)
+        rho = rho.clamp(min=-0.9999, max=0.9999)
 
         norm_x = (x - x_mu) / x_std
         norm_y = (y - y_mu) / y_std
 
         log_part = (
-            torch.log(2 * torch.tensor(math.pi))
+            math.log(2 * math.pi)
             + torch.log(x_std)
             + torch.log(y_std)
             + 0.5 * torch.log(1 - rho**2)
@@ -561,9 +702,29 @@ class BivariateNormalFamily(StatelessDistributionFamilyFromTorchDistribution):
             2 * (1 - rho**2)
         )
 
-        nll = log_part + quad_part
+        nll = (log_part + quad_part).unsqueeze(-1)
 
-        return WeightedTensor(nll, values.weight)
+        # # [DEBUG]
+        # print("[DEBUG NLL]")
+        # print("values:", values.shape)
+        # print("x:", x.shape)
+        # print("y:", y.shape)
+        # print("loc:", loc.shape)
+        # print("scale:", scale.shape)
+        # print("x_mu:", x_mu.shape)
+        # print("y_mu:", y_mu.shape)
+        # print("x_std:", x_std.shape)
+        # print("y_std:", y_std.shape)
+        # print("rho:", rho.shape)
+        # print("nll pre-sum:", (log_part + quad_part).shape)
+        # print("nll.sum(-1):", (log_part + quad_part).sum(-1))
+
+        # assert nll.ndim == 1, f"Expected nll per individual, got {nll.shape}"
+        # assert not torch.isnan(nll).any(), "NaNs in NLL computation"
+
+        wt = WeightedTensor(nll, values.weight)
+        # print("WeightedTensor nll shape:", wt.value.shape)
+        return wt
 
     @classmethod
     def _nll_jacobian(
@@ -1147,7 +1308,8 @@ class SymbolicDistribution:
 
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
-BivariateNormal = SymbolicDistribution.bound_to(BivariateNormalFamily)
+BivariateNormalInd = SymbolicDistribution.bound_to(BivariateNormalFamilyInd)
+BivariateNormalPop = SymbolicDistribution.bound_to(BivariateNormalFamilyPop)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
 WeibullRightCensored = SymbolicDistribution.bound_to(WeibullRightCensoredFamily)
 WeibullRightCensoredWithSources = SymbolicDistribution.bound_to(

@@ -14,7 +14,7 @@ from leaspy.utils.functional import (
 )
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
-from leaspy.variables.distributions import BivariateNormal, Normal
+from leaspy.variables.distributions import BivariateNormalInd, Normal
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,
@@ -201,13 +201,13 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             phi_tau_mean=ModelParameter.for_ind_mean(
                 ("phi_tau"), shape=(2,)
             ),  # (phi_mod_tau_mean, phi_ref_tau_mean)
-            phi_tau_std=Hyperparameter((0.01, 0.1)),
+            phi_tau_std=Hyperparameter((1, 10)),
             rho_tau=ModelParameter.for_ind_coeff_corr(("phi_tau"), shape=(1,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             # LATENT VARS
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             phi_tau=IndividualLatentVariable(
-                BivariateNormal("phi_tau_mean", "phi_tau_std", "rho_tau")
+                BivariateNormalInd("phi_tau_mean", "phi_tau_std", "rho_tau")
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
             tau=LinkedVariable(AffineFromVector("phi_tau", "covariates")),

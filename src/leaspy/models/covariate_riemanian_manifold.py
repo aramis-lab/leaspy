@@ -11,7 +11,7 @@ from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import BivariateNormal, Normal
+from leaspy.variables.distributions import BivariateNormalPop, Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     LinkedVariable,
@@ -171,7 +171,7 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             phi_v0=PopulationLatentVariable(
-                BivariateNormal("phi_v0_mean", "phi_v0_std", "rho_v0")
+                BivariateNormalPop("phi_v0_mean", "phi_v0_std", "rho_v0")
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
             unique_covariates=LinkedVariable(Unique("covariates")),
@@ -328,7 +328,7 @@ class CovariateLogisticModel(
             rho_g=ModelParameter.for_pop_coeff_corr(("phi_g"), shape=(self.dimension,)),
             # LATENT VARS
             phi_g=PopulationLatentVariable(
-                BivariateNormal("phi_g_mean", "phi_g_std", "rho_g")
+                BivariateNormalPop("phi_g_mean", "phi_g_std", "rho_g")
             ),  # phi_g = (phi_mod_g, phi_ref_g)
             # LINKED VARS
             log_g=LinkedVariable(
