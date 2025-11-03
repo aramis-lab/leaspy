@@ -258,7 +258,10 @@ leaspy_mixture = LogisticMultivariateMixtureModel(source_dimension=1, n_clusters
 leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
 ```
 
+<!--
 ## Covariate Model
+This section will be implemented later.
+-->
 
 ## References
 
