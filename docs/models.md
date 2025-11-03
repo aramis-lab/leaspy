@@ -3,7 +3,7 @@
 ## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
-Individual variability for patient $i$ is modeled with the [latent disease age](./notations.md#latent-disease-age) $\psi_i(t)$ :  
+Individual temporal variability for patient $i$ is modeled with the [latent disease age](./notations.md#latent-disease-age) $\psi_i(t)$ :  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
@@ -21,7 +21,7 @@ The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from
 
 ### Spatial Random Effects
 Disease presentation variability is captured by [space-shifts](./notations.md#space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
-- $\mathbf{A}$: [mixing matrix](./notations.md#mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of [space shifts](./notations.md#space-shift)).
+- $\mathbf{A}$: [mixing matrix](./notations.md#mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of outcomes).
 - $ \mathbf{s}_i$: Independent sources  
 
 For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ {cite}`schirattiBayesianMixedEffectsModel`, so that:
@@ -32,7 +32,7 @@ $$
 
 with $\beta$ the matrix of coefficients.
 
-Each event ( $l$ ) has a [space shift](./notations.md#space-shift):
+Each event ( $l$ ) has a [survival shift](./notations.md#survival-shift):
 
 $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}

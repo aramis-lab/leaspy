@@ -37,19 +37,19 @@ data_leaspy = Data.from_dataframe(dataset, "visit")
 ```
 ### Running Task
 
-Then you will need to choose one from the existing models in `leaspy.models` . Let's use th logistic model as an example.
+Then you will need to choose one from the existing models in `leaspy.models` . Let's use the logistic model as an example.
 
 ```python
 from leaspy.models import LogisticModel
 ```
 
-We need to specify the arguments `name`, `dimension` (the number of features in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per feature or 'gaussian-scalar' to estimate one noise coefficient for all the features). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md####Individual-trajectory-&Spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of features ($\sqrt(dimension)$).
+We need to specify the arguments `name`, `dimension` (the number of features $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per feature or 'gaussian-scalar' to estimate one noise coefficient for all the features). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md####Individual-trajectory-&Spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of features ($\sqrt{dimension}$).
 
 ```python
 model = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_models='gaussian-diagonal')
 model.fit(data_leaspy, "mcmc_saem", n_iter=20000)
 ```
-You can also control add a `seed`or control other arguments for the output and the logs like `save_periodicity`, `path`, e.t.c.
+You can also add a `seed` or control other arguments for the output and the logs like `save_periodicity`, `path`, etc.
 
 ### Output
 

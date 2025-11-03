@@ -2,7 +2,7 @@
 
 ## Nonlinear mixed effect models
 
-Mixed effects models have become a powerful and widely used statistical tool for analyzing longitudinal, or more specifically repeated measurements, data, especially in the context of biomedical and epidemiological research. These models are particularly suited for studying neurodegenerative and brain diseases where patients are followed over time, and multiple clinical characteristics are measured repeatedly. Moreover these diseases have been known to be heterogenous with subtypes that are often difficult ot characterize.
+Mixed effects models have become a powerful and widely used statistical tool for analyzing longitudinal data, or more specifically repeated measurements, especially in the context of biomedical and epidemiological research. These models are particularly suited for studying neurodegenerative and brain diseases where patients are followed over time, and multiple clinical characteristics are measured repeatedly. Moreover these diseases have been known to be heterogeneous with subtypes that are often difficult to characterize.
 
 One of the key strengths of mixed-effects models lies in their ability to capture two types of variability:
 
@@ -17,11 +17,11 @@ Brain and neurodegenerative diseases typically do not progress at a constant rat
 
 ### Parameter estimation
 
-We suppose that the parameters capturing the population and the individual variability, namely fixed and random effects respectively, are latent ($z$) follow some prior distributions. The parameters that define these distributions are called namely model parameters ($\theta$). We can also include hyperparmeters $\Pi$ that have known values.
+We suppose that the parameters capturing the population and the individual variability, namely fixed and random effects respectively, are latent variables ($z$) that follow some prior distributions. The parameters that define these distributions are called model parameters ($\theta$). We can also include hyperparmeters $\Pi$ that have known values.
 
 Estimating the parameters of the models can be done through maximisation of the likelihood.
 
-Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters the likelihood estimated by the model is the following:
+Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters, the likelihood estimated by the model is the following:
 
 $$
 p(y \mid \theta, \Pi) = \int_{z} p(y, z \mid  \theta, \Pi) dz
@@ -77,15 +77,15 @@ From there, the [individual trajectory $\gamma_i(t)$](./notations.md#individual-
 
 #### Individual trajectory & Temporal random effects:
 
-If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, than it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p$).
+If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, then it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p$).
 
-A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-speed-factor), this time initial conditions are impacted so that ($ t_0, v_0 $ [$ e^{\xi_i} $](./notations.md#individual-speed-factor) $, p$). Note that the two first aspect encompass temporal variability.
+A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $ [$ e^{\xi_i} $](./notations.md#individual-speed-factor) $, p$). Note that the two first aspects encompass temporal variability.
 
-From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi(t) = v_0 e^{\xi_i} (t -\tau) + t_0$. 
+From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$. 
 
 #### Individual trajectory & Spatial random effects
 
-Finally, patients may vary in terms of disease presentation, i.e. from a clinical point of view which means the order of outcome progressions might not be the same.
+Finally, patients may vary in terms of disease presentation, i.e. from a clinical point of view, meaning that the order of outcome progression might differ between individuals.
 
 From a geometric point of view, this means that the geometric trajectory is not overlapping through the same points. This variability is enabled by manipulating the initial position $p$. It is done thanks to the vectors [$ w_k $ named space-shifts](./notations.md#space-shift) in the tangent space of the manifold that modified the trajectory in the sense of the Exp-parallelisation to assure the identifiability.
 
