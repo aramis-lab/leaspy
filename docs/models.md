@@ -92,7 +92,7 @@ data_logistic = Data.from_dataframe(dataset, "visit")
 The logistic trajectory for outcome $k$, and from the latent disease age $\psi_i(t)$ is defined by:
 
 $$
-\gamma_{i,k}(t) = \left[ 1 + g_k x \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
+\gamma_{i,k}(t) = \left[ 1 + g_k \times \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
 $$
 
 where:  
@@ -101,7 +101,7 @@ where:
 - $v_{0,k}$ is the speed of progression for outcome $k$ at reference time $t_0$,
 - $w_{i,k}$ is the individual space shift for outcome $k$.
 - $\frac{1}{1+g_k}$ is the value of the logistic curve at $t_0$
-- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](##) for more details.
+- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](#introduction-to-spatio-temporal-models) for more details.
 
 
 ## Joint Model
@@ -224,7 +224,7 @@ For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the mode
 
 ### Definition
 
-Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity in the sense that the inter-patient variability as random variations around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of MCMC-SAEM for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
+Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity, in the sense that inter-patient variability is considered as random variation around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of MCMC-SAEM for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
 
 In Leaspy the mixture model is implemented as an adaptation of the spatio-temporal logistic model where the individual parameters (`tau`, `xi`and `sources`) come from a mixture of gaussian distributions with a number of components defined by the user.
 

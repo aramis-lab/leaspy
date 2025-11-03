@@ -77,9 +77,9 @@ From there, the [individual trajectory $\gamma_i(t)$](./notations.md#individual-
 
 #### Individual trajectory & Temporal random effects:
 
-If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, then it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p$).
+If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p$).
 
-A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $ [$ e^{\xi_i} $](./notations.md#individual-speed-factor) $, p$). Note that the two first aspects encompass temporal variability.
+A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-log-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $, [$ e^{\xi_i} $](./notations.md#individual-log-speed-factor) $, p$). Note that the two first aspects encompass temporal variability.
 
 From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$. 
 
