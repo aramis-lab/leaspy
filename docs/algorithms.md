@@ -13,11 +13,11 @@ By iterating these steps, the MCMC-SAEM algorithm converges to the maximum likel
 
 ### Prerequisites
 
-Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](./models.md#data), [joint](./models.md#data-1), and [mixture](./models.md#data-2) models).
+Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](./models.md#logistic-data), [joint](./models.md#joint-data), and [mixture](./models.md#mixture-data) models).
 
 ### Running Task
 
-First, choose one of the the existing models in `leaspy.models`. The model you select determines the expected structure of your dataset (see [data format requirements](#prerequisites)).
+First, choose one of the the existing models in `leaspy.models`. The model you select determines the expected structure of your dataset (see [Prerequisites](#prerequisites)).
 
 Let's use the logistic model as an example.
 

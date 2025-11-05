@@ -42,7 +42,6 @@ $$
 
 ## Logistic Model
 
-
 ### Definition
 
 The **logistic model** is a statistical model used to describe **sigmoidal trajectories** of longitudinal outcomes over time, typically biomarkers or clinical scores. This model is particularly useful when outcomes exhibit a **monotonic progression** from one asymptote to another, also called as bounded outcome scores, which is common in disease progression {cite}`lesaffreLogisticTransformBounded2007b`.
@@ -55,7 +54,7 @@ This model provides interpretable components:
 - Individual deviations from this curve through time reparametrization and spatial shifts,
 - The ability to simulate, estimate, and personalize trajectories for unseen individuals.
 
-
+(logistic-data)=
 ### Data
 
 A logistic model is relevant when you have:
@@ -112,7 +111,7 @@ Joint models are a class of statistical models that simultaneously analyze [long
 
 In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](./models.md#Introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
-
+(joint-data)=
 ### Data
 A joint model is relevant when you have:
 - **Longitudinal measurements** as repeated biomarker readings, clinical scores
@@ -228,6 +227,7 @@ Mixture models are a class of statistical models that represent a population as 
 
 In Leaspy the mixture model is implemented as an adaptation of the spatio-temporal logistic model where the individual parameters (`tau`, `xi`and `sources`) come from a mixture of gaussian distributions with a number of components defined by the user.
 
+(mixture-data)=
 ### Data
 
 The same rules apply as for the standard [logistic model](#logistic-model).
