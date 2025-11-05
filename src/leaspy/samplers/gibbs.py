@@ -309,6 +309,11 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
         for idx in self._get_shuffled_iterator_indices():
             previous_attachment, previous_regularity = compute_attachment_regularity()
             # with state.auto_fork():  # not needed since state already have auto_fork on
+
+            # if self.name in ["phi_g", "log_g"]:
+            #     print(f"\n[POP DEBUG] Sampling {self.name}, idx={idx}")
+            #     print(f"  prev_attach mean={float(previous_attachment.mean()):.4f}, " f"prev_regul mean={float(previous_regularity.mean()):.4f}")
+
             state.put(
                 self.name,
                 self._proposed_change_idx(idx),
@@ -325,8 +330,20 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
                     + (new_attachment - previous_attachment)
                 )
             )
+
+            # if self.name in ["phi_g", "log_g"]:
+            #     print(f"  new_attach mean={float(new_attachment.mean()):.4f}, "
+            #         f"new_regul mean={float(new_regularity.mean()):.4f}")
+            #     print(f"  Δattach={float((new_attachment - previous_attachment).mean()):.4f}, "
+            #         f"Δregul={float((new_regularity - previous_regularity).mean()):.4f}, "
+            #         f"α mean={float(alpha.mean()):.4f}, "
+            #         f"min={float(alpha.min()):.4f}, max={float(alpha.max()):.4f}")
+
             accepted = self._metropolis_step(alpha)
             accepted_array[idx] = accepted
+
+            # if self.name in ["phi_g", "log_g"]:
+            #     print(f"  accepted: {bool(accepted)}")
 
             if not accepted:
                 state.revert()

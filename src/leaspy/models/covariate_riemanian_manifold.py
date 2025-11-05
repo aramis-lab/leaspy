@@ -11,7 +11,7 @@ from leaspy.utils.weighted_tensor import (
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import BivariateNormalPop, Normal
+from leaspy.variables.distributions import BivariateNormal, BivariateNormalPop, Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     LinkedVariable,
@@ -70,28 +70,25 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             "g",
             "v0",
             "noise_std",
-            "phi_tau",
-            "phi_g",
-            "phi_v0",
-            "rho_tau",
-            "rho_g",
-            "rho_v0",
-            "phi_v0_mean",
             "phi_tau_mean",
-            # "tau_mean",
-            # "tau_std",
             "xi_mean",
             "xi_std",
             "nll_attach",
             "nll_regul_phi_g",
             "nll_regul_phi_v0",
-            # "nll_regul_log_g",
-            # "nll_regul_log_v0",
             "xi",
             "tau",
             "nll_regul_pop_sum",
             "nll_regul_all_sum",
             "nll_tot",
+            "rho_g",
+            "rho_v0",
+            "rho_tau",
+            "phi_tau",
+            "phi_v0_mean",
+            "phi_v0",
+            "phi_g_mean",
+            "phi_g",
         ]
         if self.source_dimension:
             default_variables_to_track += [
@@ -171,7 +168,7 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             phi_v0=PopulationLatentVariable(
-                BivariateNormalPop("phi_v0_mean", "phi_v0_std", "rho_v0")
+                BivariateNormal("phi_v0_mean", "phi_v0_std", "rho_v0")
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
             unique_covariates=LinkedVariable(Unique("covariates")),
@@ -328,7 +325,7 @@ class CovariateLogisticModel(
             rho_g=ModelParameter.for_pop_coeff_corr(("phi_g"), shape=(self.dimension,)),
             # LATENT VARS
             phi_g=PopulationLatentVariable(
-                BivariateNormalPop("phi_g_mean", "phi_g_std", "rho_g")
+                BivariateNormal("phi_g_mean", "phi_g_std", "rho_g")
             ),  # phi_g = (phi_mod_g, phi_ref_g)
             # LINKED VARS
             log_g=LinkedVariable(
