@@ -33,7 +33,7 @@ $$
 \log p(y, z \mid  \theta ,\Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z \mid \theta , \Pi )
 $$
 
-The prior attachment term can be separated into two terms: two terms for the prior attachment of latent parameters (fixed and random). We end up with the following expression : 
+The prior attachment term can be separated into two terms: two terms for the prior attachment of latent parameters (fixed and random). We end up with the following expression :
 
 $$
 \log p(y, z \mid \theta, \Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z_{re} \mid z_{fe}, \theta, \Pi) +  \log p(z_{fe} \mid \theta, \Pi)
@@ -47,7 +47,7 @@ A common and well-defined algorithm for the likelihood maximization, proven to c
 
 As presented in the figure, the model draws a parallel line between a clinical and a Riemannian point of view of the disease progression.
 
-The idea is to see the variability of the disease progression mapped onto a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an [individual trajectory $\gamma_i$](./notations.md#individual-trajectory) that traverses the manifold. 
+The idea is to see the variability of the disease progression mapped onto a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an [individual trajectory $\gamma_i$](./notations.md#individual-trajectory) that traverses the manifold.
 
 ![intuition](./_static/images/intuition.png)
 __From clinical to Riemannian point of view (extracted from {cite}`ortholand_joint_2024`)__
@@ -63,7 +63,7 @@ For a K-dimensional dataset, we used the product manifold of a 1-dimensional met
 
 __Application context:__ Here, we want to model clinical data such as clinical scores. Such data have a potential floor or ceiling effects {cite}`gordon_progression_2010`, thus a logistic curve is often used. The Riemmanian metric $G(p)$ and the manifold $M$ that enable to define a logistic progression through time are: $G(p) = \frac{1}{p^2(1-p)^2}$ an $M = (0, 1)$.
 
-### Individual variability define as initial conditions
+### Disentanglement of parameters with a hierarchical model
 
 #### Population trajectory & Fixed effects:
 
@@ -81,7 +81,7 @@ If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (late
 
 A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-log-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $, [$ e^{\xi_i} $](./notations.md#individual-log-speed-factor) $, p$). Note that the two first aspects encompass temporal variability.
 
-From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$. 
+From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$.
 
 #### Individual trajectory & Spatial random effects
 
@@ -92,7 +92,8 @@ From a geometric point of view, this means that the geometric trajectory is not 
 ![pop_to_ind](./_static/images/pop_to_ind.png)
 __Temporal and spatial random effects: from population to individual progression (extracted from {cite}`ortholand_joint_2024`)__
 _This figure presents from two points of view (clinical and Riemannian) how the three types of random effects (two temporal and one spatial) enable to modify the population average progression to calibrate the patient observations. Clinical: Two normalised clinical scores (blue and orange) (0: the healthiest value, +1: the maximum pathological change) depending on the age of the patients. The scatter represents the real observed values for one patient at different visits. Riemannian: The same two normalised scores are represented but this time depending on each other. The scatter represents the same real observed values as in the clinical version. The black cross on the curve corresponds to what is modelled at the visit ages of the patient._
-- Population progression (1.a., 1.b.): Population average trajectory compared to the observed values of the patient. 
+
+- Population progression (1.a., 1.b.): Population average trajectory compared to the observed values of the patient.
 - Time Shift (2.a., 2.b.): The progression starts earlier due to the individual estimated reference time, Clinical graph: the curves are shifted on the left, Riemannian graph: black crosses are shifted on the right following the trajectory (for the same age the patient is more advanced).
 - Speed factor (3.a., 3.b.): The progression speed increases, Clinical graph: the curves become steeper, Riemannian graph: black crosses get further from each other on the trajectory (for the same time of follow-up a wider portion of the trajectory is observed).
 - Space Shift (4.a., 4.b.): the blue curves progress before the orange curve, Clinical graph: the curves are shifted in opposite directions, Riemannian graph: most of the blue (resp. orange) score value is observed for an orange (resp. blue) value of 0 (resp. 1)
