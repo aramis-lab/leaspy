@@ -699,12 +699,18 @@ class BivariateNormalFamilyPop(StatelessDistributionFamilyFromTorchDistribution)
         values: WeightedTensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
-        coeff_corr: torch.Tensor,
+        cov: torch.Tensor,
     ) -> WeightedTensor:
+        loc = loc.expand_as(values.value)
+        scale = scale.expand_as(values.value)
+        cov = cov.expand(values.value.shape[0])
+
         x, y = values.value.unbind(-1)
         x_mu, y_mu = loc.unbind(-1)
         x_std, y_std = scale.unbind(-1)
-        rho = coeff_corr
+
+        rho = cov / (x_std * y_std)
+        rho = torch.clamp(rho, -0.9999, 0.9999)
 
         norm_x = (x - x_mu) / x_std
         norm_y = (y - y_mu) / y_std
@@ -801,23 +807,23 @@ class BivariateNormalFamilyInd(StatelessDistributionFamilyFromTorchDistribution)
     def sample(
         cls, *params: torch.Tensor, sample_shape: tuple[int, ...] = ()
     ) -> torch.Tensor:
-        loc, scale, coeff_corr = params
+        loc, scale, cov = params
 
         if loc.dim() == 1:
             loc = loc.unsqueeze(0)
         if scale.dim() == 1:
             scale = scale.unsqueeze(0)
-        if coeff_corr.dim() == 0:
-            coeff_corr = coeff_corr.unsqueeze(0)
+        if cov.dim() == 0:
+            cov = cov.unsqueeze(0)
 
         # Covariance matrix
         x_std, y_std = scale.unbind(-1)
-        rho = coeff_corr
+        # rho = cov / (x_std*y_std)
 
         eps = 1e-6
         cov_11 = x_std**2 + eps
         cov_22 = y_std**2 + eps
-        cov_12 = rho * x_std * y_std
+        cov_12 = cov
 
         cov = torch.stack(
             [
@@ -911,18 +917,18 @@ class BivariateNormalFamilyInd(StatelessDistributionFamilyFromTorchDistribution)
         values: WeightedTensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
-        coeff_corr: torch.Tensor,
+        cov: torch.Tensor,
     ) -> WeightedTensor:
         x, y = values.value.unbind(-1)
         x_mu, y_mu = loc[None, :].expand(x.shape[0], -1).unbind(-1)
         x_std, y_std = scale[None, :].expand(x.shape[0], -1).unbind(-1)
-        rho = coeff_corr
-        if rho.ndim == 0:
-            rho = rho.expand(values.value.shape[0])
+        if cov.ndim == 0:
+            cov = cov.expand(values.value.shape[0])
 
         # numeric safety: clamp std and rho
         x_std = x_std.clamp(min=1e-8)
         y_std = y_std.clamp(min=1e-8)
+        rho = cov / (x_std * y_std)
         rho = rho.clamp(min=-0.9999, max=0.9999)
 
         norm_x = (x - x_mu) / x_std

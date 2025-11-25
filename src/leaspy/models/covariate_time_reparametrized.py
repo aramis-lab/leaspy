@@ -8,6 +8,8 @@ from leaspy.io.data.dataset import Dataset
 from leaspy.utils.functional import (
     AffineFromVector,
     BatchMatMulByIndex,
+    CorrCoeff,
+    Cov,
     Exp,
     IndexOf,
     MatMul,
@@ -51,7 +53,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
     """
 
     _xi_std = 0.5
-    _tau_std = 5.0
+    _phi_tau_std = [0.1, 5.0]
     _noise_std = 0.1
     _sources_std = 1.0
 
@@ -108,8 +110,8 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
         return torch.tensor([self._xi_std])
 
     @property
-    def tau_std(self) -> torch.Tensor:
-        return torch.tensor([self._tau_std])
+    def phi_tau_std(self) -> torch.Tensor:
+        return torch.tensor(self._phi_tau_std)
 
     @property
     def noise_std(self) -> torch.Tensor:
@@ -201,13 +203,17 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             phi_tau_mean=ModelParameter.for_ind_mean(
                 ("phi_tau"), shape=(2,)
             ),  # (phi_mod_tau_mean, phi_ref_tau_mean)
-            phi_tau_std=Hyperparameter((0.1, 1)),
-            rho_tau=ModelParameter.for_ind_coeff_corr(("phi_tau"), shape=(1,)),
+            # phi_tau_std=Hyperparameter((1, 10)),
+            phi_tau_std=ModelParameter.for_ind_std("phi_tau", shape=(2,)),
+            # rho_tau=ModelParameter.for_ind_coeff_corr(("phi_tau"), shape=(1,)),
+            # cov_tau=LinkedVariable(Cov("rho_tau", "phi_tau_std")),
+            cov_tau=ModelParameter.for_ind_cov(("phi_tau"), shape=(1,)),
+            rho_tau=LinkedVariable(CorrCoeff("cov_tau", "phi_tau_std")),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             # LATENT VARS
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             phi_tau=IndividualLatentVariable(
-                BivariateNormal("phi_tau_mean", "phi_tau_std", "rho_tau")
+                BivariateNormalInd("phi_tau_mean", "phi_tau_std", "cov_tau")
             ),  # phi_tau = (phi_mod_tau, phi_ref_tau)
             # DERIVED VARS
             tau=LinkedVariable(AffineFromVector("phi_tau", "covariates")),

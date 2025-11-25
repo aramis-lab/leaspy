@@ -1,6 +1,8 @@
 from ._functions import (
     AffineFromVector,
     BatchMatMulByIndex,
+    CorrCoeff,
+    Cov,
     Exp,
     Identity,
     IndexOf,
@@ -21,6 +23,8 @@ from ._utils import get_named_parameters
 __all__ = [
     "AffineFromVector",
     "BatchMatMulByIndex",
+    "Cov",
+    "CorrCoeff",
     "Exp",
     "get_named_parameters",
     "Identity",

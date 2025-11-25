@@ -5,7 +5,15 @@ import pandas as pd
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import AffineFromVector, Exp, OrthoBasisBatch, Sqr, Unique
+from leaspy.utils.functional import (
+    AffineFromVector,
+    CorrCoeff,
+    Cov,
+    Exp,
+    OrthoBasisBatch,
+    Sqr,
+    Unique,
+)
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
@@ -71,6 +79,7 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             "v0",
             "noise_std",
             "phi_tau_mean",
+            "phi_tau_std",
             "xi_mean",
             "xi_std",
             "nll_attach",
@@ -89,6 +98,9 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
             "phi_v0",
             "phi_g_mean",
             "phi_g",
+            "cov_g",
+            "cov_v0",
+            "cov_tau",
         ]
         if self.source_dimension:
             default_variables_to_track += [
@@ -162,13 +174,16 @@ class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
                 ("phi_v0"), shape=(self.dimension, 2)
             ),
             phi_v0_std=Hyperparameter((0.001, 0.01)),
-            rho_v0=ModelParameter.for_pop_coeff_corr(
-                ("phi_v0"), shape=(self.dimension,)
-            ),
+            # rho_v0=ModelParameter.for_pop_coeff_corr(
+            #     ("phi_v0"), shape=(self.dimension,)
+            # ),
+            # cov_v0=LinkedVariable(Cov("rho_v0", "phi_v0_std")),
+            cov_v0=ModelParameter.for_pop_cov(("phi_v0"), shape=(self.dimension,)),
+            rho_v0=LinkedVariable(CorrCoeff("cov_v0", "phi_v0_std")),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             phi_v0=PopulationLatentVariable(
-                BivariateNormal("phi_v0_mean", "phi_v0_std", "rho_v0")
+                BivariateNormalPop("phi_v0_mean", "phi_v0_std", "cov_v0")
             ),  # phi_v0 = (phi_mod_v0, phi_ref_v0)
             # LINKED VARS
             unique_covariates=LinkedVariable(Unique("covariates")),
@@ -267,21 +282,22 @@ class CovariateLogisticInitializationMixin:
             "phi_tau_mean": torch.Tensor([1.0, t0]),
             "phi_g_mean": torch.stack(
                 [
-                    torch.full((self.dimension,), 0.01),  # slopes
+                    torch.full((self.dimension,), 1),  # slopes
                     torch.log(1.0 / values - 1.0),  # intercepts (logit)
                 ],
                 dim=0,
             ).T,
             "phi_v0_mean": torch.stack(
                 [
-                    torch.full((self.dimension,), 0.01),  # slopes
+                    torch.full((self.dimension,), 1),  # slopes
                     get_log_velocities(slopes, self.features),  # intercepts
                 ],
                 dim=0,
             ).T,
-            "rho_tau": torch.zeros(1),
-            "rho_g": torch.zeros(self.dimension),
-            "rho_v0": torch.zeros(self.dimension),
+            "cov_tau": torch.zeros(1),
+            "cov_g": torch.zeros(self.dimension),
+            "cov_v0": torch.zeros(self.dimension),
+            "phi_tau_std": self.phi_tau_std,
             "xi_std": self.xi_std,
         }
         if self.source_dimension >= 1:
@@ -322,10 +338,13 @@ class CovariateLogisticModel(
                 ("phi_g"), shape=(self.dimension, 2)
             ),
             phi_g_std=Hyperparameter((0.001, 0.01)),
-            rho_g=ModelParameter.for_pop_coeff_corr(("phi_g"), shape=(self.dimension,)),
+            # rho_g=ModelParameter.for_pop_coeff_corr(("phi_g"), shape=(self.dimension,)),
+            # cov_g=LinkedVariable(Cov("rho_g","phi_g_std")),
+            cov_g=ModelParameter.for_pop_cov(("phi_g"), shape=(self.dimension,)),
+            rho_g=LinkedVariable(CorrCoeff("cov_g", "phi_g_std")),
             # LATENT VARS
             phi_g=PopulationLatentVariable(
-                BivariateNormal("phi_g_mean", "phi_g_std", "rho_g")
+                BivariateNormalPop("phi_g_mean", "phi_g_std", "cov_g")
             ),  # phi_g = (phi_mod_g, phi_ref_g)
             # LINKED VARS
             log_g=LinkedVariable(

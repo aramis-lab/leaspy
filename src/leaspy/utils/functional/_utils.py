@@ -65,6 +65,24 @@ def _unique_wrapper(x) -> torch.Tensor:
     return torch.unique(x)
 
 
+def _corr_coeff(
+    cov: torch.Tensor,
+    std: torch.Tensor,
+) -> torch.Tensor:
+    rho = cov / (std[0] * std[1])
+    # rho = torch.clamp(rho, -0.9999, 0.9999)
+    return rho
+
+
+def _cov(
+    rho: torch.Tensor,
+    std: torch.Tensor,
+) -> torch.Tensor:
+    rho = torch.clamp(rho, -0.9999, 0.9999)
+    cov = rho * std[0] * std[1]
+    return cov
+
+
 def _index_of(
     covariates: torch.Tensor,
     unique_covariates: torch.Tensor,
