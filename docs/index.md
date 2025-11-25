@@ -9,14 +9,15 @@
 
 ![leaspy front](./_static/images/leaspy_front.png)
 
-Considering these series of short-term data, the software aims at :
+Figures (a) and (b) provide an intuitive overview of the objective of the software. Figure (a) illustrates how sparse individual observations (colored dots) can be recombined into a common population trajectory (in black), while accounting for the fact that each subject may progress earlier/later or faster/slower than the average (the green individual progresses earlier, and the blue one slower than the average). Figure (b) shows the corresponding geometric interpretation: individual data points are mapped onto a shared trajectory on a Riemannian manifold. Individual trajectories are then computed through subject-specific temporal transformations (time-shift $\tau_i$ and acceleration $\alpha_i$), and spatial transformations ($w_i$) capturing differences in the ordering and pattern of deterioration across outcomes.
 
-- Recombining them to reconstruct the long-term spatio-temporal trajectory of evolution
-- Positioning each patient observations relatively to the group-average timeline, in term of both temporal differences (time shift and acceleration factor) and spatial differences (different sequences of events, spatial pattern of progression, ...)
-- Quantifying impact of cofactors (gender, genetic mutation, environmental factors, ...) on the evolution of the signal
-- Imputing missing values
-- Predicting future observations
-- Simulating virtual patients to un-bias the initial cohort or mimic its characteristics
+By estimating these temporal and spatial transformations, Leaspy positions each patient relative to the group-average disease timeline, enabling meaningful comparison across individuals despite heterogeneous follow-ups. 
+
+The framework further allows:
+- Quantifying impact of cofactors (gender, genetic mutation, environmental factors, ...) on the evolution of the signal;
+- Imputing missing values;
+- Predicting future observations;
+- Simulating virtual patients to un-bias the initial cohort or mimic its characteristics.
 
 The software package can be used with scalar multivariate data whose progression can be described by a logistic model, linear, joint or mixture model.
 The simplest type of data handled by the software are scalar data: they correspond to one (univariate) or multiple (multivariate) measurement(s) per patient observation.
