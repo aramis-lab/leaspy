@@ -72,6 +72,7 @@ sphinx-autoapi = "*"
 myst-nb = "*"
 sphinxcontrib-bibtex = "*"
 pydata-sphinx-theme = "^0.16.1"
+furo = "^2025.9.25"
 
 [tool.ruff]
 target-version = "py39"

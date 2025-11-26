@@ -295,3 +295,10 @@ plt.title("scores 4-6")
 plt.suptitle("Population progression", fontsize=18)
 plt.tight_layout()
 plt.show()
+
+# %%
+# This concludes the Mixture Model example using Leaspy. We can also use these fit models to
+# simulate new data according to the estimated parameters. This can be useful for
+# validating the model, for generating synthetic datasets for further analysis or for
+# generate a trajectory for a new individual given specific parameters. Let's check this
+# in the [next example](./plot_05_simulate.py).

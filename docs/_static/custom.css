@@ -4,3 +4,62 @@
 .sphx-glr-thumbcontainer .xref.std.std-ref {
     display: none;
 }
+
+/* Hide images in the gallery */
+.sphx-glr-thumbcontainer img {
+    display: none !important;
+}
+
+/* Reset container height to fit text only */
+.sphx-glr-thumbcontainer {
+    min-height: auto !important;
+    height: auto !important;
+}
+
+/* Set background as white for the sidebar logo and the Leaspy logo in index */
+.sidebar-logo, img[src*="leaspy_logo.png"] {
+    background-color: white;
+    padding: 5px;       /* Adds some space around the logo */
+    border-radius: 4px; /* Optional: Rounds the corners of the background */
+}
+
+/* Pandas DataFrame styling for Furo */
+table.dataframe {
+    border: none !important;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 1em;
+    width: auto;
+    overflow-x: auto;
+    display: block; /* Makes it scrollable if wide */
+}
+
+table.dataframe thead {
+    border-bottom: 1px solid var(--color-border-primary);
+    vertical-align: bottom;
+}
+
+table.dataframe tr, table.dataframe th, table.dataframe td {
+    text-align: right;
+    vertical-align: middle;
+    padding: 0.5em 0.5em;
+    line-height: normal;
+    white-space: normal;
+    max-width: none;
+    border: none;
+    color: var(--color-foreground-primary); /* Fix dark mode text */
+}
+
+table.dataframe th {
+    font-weight: bold;
+    background: var(--color-background-secondary); /* Header background */
+}
+
+table.dataframe tbody tr:nth-child(odd) {
+    background: var(--color-background-secondary); /* Zebra striping */
+}
+
+table.dataframe tbody tr:hover {
+    background: var(--color-background-hover); /* Hover effect */
+}
+

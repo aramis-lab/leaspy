@@ -141,7 +141,8 @@ pygments_style = "sphinx"
 
 # html_theme = 'alabaster'
 # html_theme = 'sphinx-theme'
-html_theme = "pydata_sphinx_theme"
+# html_theme = "pydata_sphinx_theme"
+html_theme = "furo"
 
 add_function_parentheses = True
 

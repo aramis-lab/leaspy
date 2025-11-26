@@ -127,3 +127,8 @@ ax = leaspy_plotting.patient_trajectories(
 )
 ax.set_xlim(45, 120)
 plt.show()
+
+# %%
+# This concludes the Parkinson's disease progression modeling example using Leaspy.
+# Leaspy is also capable of handling various other types of models, as the Joint Models,
+# which will be explored in the [next section](./plot_03_joint).

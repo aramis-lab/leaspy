@@ -56,3 +56,7 @@ model.fit(data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
 # %%
 # The Joint Model includes specific parameters such as `log_rho_mean` and `zeta_mean`.
 print(model.parameters)
+
+# %%
+# We have seend how to fit a Joint Model using Leaspy. It also provides other models as the
+# [Mixture Model](./plot_04_mixture) that can be explored in the next examples.
