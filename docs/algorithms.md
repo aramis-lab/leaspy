@@ -174,9 +174,7 @@ Visit times are generated based on user-specified visit parameters, such as the 
 
 **Step 3: Estimation of Observations** <br>
 The estimate function from Leaspy is used to compute the patients observation at the generated visit time $t_{i,j,k}$, based on the individual parameters:<br>
-$$
-y_{i,j,k} = \gamma_{i,k}(t_{i,j,k}) + \epsilon_{i,j,k}, \quad \epsilon_{i,j,k} \sim \mathcal{N}(0, \sigma^2_k)
-$$
+$y_{i,j,k} = \gamma_{i,k}(t_{i,j,k}) + \epsilon_{i,j,k}, \quad \epsilon_{i,j,k} \sim \mathcal{N}(0, \sigma^2_k)$
 
 To reflect variability in the observations, beta-distributed noise is added, appropriate for modeling outcomes in a logistic framework.
 
