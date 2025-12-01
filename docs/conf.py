@@ -49,6 +49,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
+    "sphinx.ext.viewcode",
 ]
 
 bibtex_bibfiles = ["references.bib"]
