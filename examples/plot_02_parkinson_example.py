@@ -79,7 +79,7 @@ plt.show()
 
 # %%
 # Individual parameters are obtained for the test data using the personalization step.
-ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False)
+ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False)
 
 # %%
 # The test data with individually re-parametrized ages is plotted below.

@@ -1,4 +1,5 @@
 import contextlib
+import warnings
 
 import torch
 
@@ -57,10 +58,14 @@ class AlgorithmWithDeviceMixin:
             algorithm_tensor_type = "torch.cuda.FloatTensor"
 
         try:
-            yield torch.set_default_tensor_type(algorithm_tensor_type)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*torch.set_default_tensor_type.*")
+                yield torch.set_default_tensor_type(algorithm_tensor_type)
         finally:
             if self.algorithm_device != self._default_algorithm_device.type:
                 model.move_to_device(self._default_algorithm_device)
                 dataset.move_to_device(self._default_algorithm_device)
 
-            torch.set_default_tensor_type(self._default_algorithm_tensor_type)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*torch.set_default_tensor_type.*")
+                torch.set_default_tensor_type(self._default_algorithm_tensor_type)

@@ -65,7 +65,7 @@ model.fit(
 # This is done using a personalization algorithm, here `scipy_minimize`:
 
 individual_parameters = model.personalize(
-    dataset, "scipy_minimize", seed=0, progress_bar=False
+    dataset, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False
 )
 print(individual_parameters.to_dataframe())
 
