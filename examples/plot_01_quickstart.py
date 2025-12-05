@@ -39,10 +39,16 @@ print(alzheimer_df.head())
 # - For logistic models, data must be rescaled between 0 and 1.
 # ```
 
-from leaspy.io.data import Data, Dataset
+from leaspy.io.data import Data
 
 data = Data.from_dataframe(alzheimer_df)
-dataset = Dataset(data)
+
+# %%
+# ```{seealso}
+# For a deeper understanding of the `Data` and `Dataset` classes, including
+# iteration, cofactors, and best practices, see the
+# [Data Containers Guide](../data_summary.ipynb).
+# ```
 
 # %%
 # The core functionality of Leaspy is to estimate the group-average trajectory
@@ -53,7 +59,7 @@ from leaspy.models import LogisticModel
 
 model = LogisticModel(name="test-model", source_dimension=2)
 model.fit(
-    dataset,
+    data,
     "mcmc_saem",
     seed=42,
     n_iter=100,
@@ -65,7 +71,7 @@ model.fit(
 # This is done using a personalization algorithm, here `scipy_minimize`:
 
 individual_parameters = model.personalize(
-    dataset, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False
+    data, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False
 )
 print(individual_parameters.to_dataframe())
 

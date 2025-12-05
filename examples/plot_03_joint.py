@@ -7,14 +7,11 @@ This notebook contains the code for a simple implementation of the Leaspy Joint 
 # %%
 # The following imports are required libraries for numerical computation and data manipulation.
 import os
-
 import pandas as pd
-
 import leaspy
 from leaspy.io.data import Data
 
 leaspy_root = os.path.dirname(leaspy.__file__)
-
 data_path = os.path.join(leaspy_root, "datasets/data/simulated_data_for_joint.csv")
 
 df = pd.read_csv(data_path, dtype={"ID": str}, sep=";")

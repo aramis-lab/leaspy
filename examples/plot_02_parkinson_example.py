@@ -44,7 +44,6 @@ model = LogisticModel(name="test-model", source_dimension=2)
 # %%
 # Visualization utilities from Leaspy and Matplotlib are imported.
 import matplotlib.pyplot as plt
-
 from leaspy.io.logs.visualization.plotting import Plotting
 
 leaspy_plotting = Plotting(model)
@@ -116,13 +115,7 @@ ax = leaspy_plotting.patient_trajectories(
     ip,
     patients_idx=["GS-187"],
     labels=["MDS1", "MDS2", "MDS3 (off)"],
-    alpha=1,
-    linestyle="-",
-    linewidth=2,
-    markersize=8,
-    obs_alpha=0.5,
     figsize=(16, 6),
-    factor_past=0.5,
     factor_future=5,
 )
 ax.set_xlim(45, 120)
