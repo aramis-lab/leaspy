@@ -63,7 +63,7 @@ plt.show()
 
 The idea of this section is to describe how the inference over new patients could be done. For this, random effects of new patients should be estimated using some follow-up visits to be able to describe their progression and make predictions about their future progression. We assume that fixed effects have already been estimated. To estimate the random effects, two main approaches exist in Leaspy. 
 
-__more of a frequentist one:__ random effects are estimated using the solver [_minimise_](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html) from the package Scipy {cite}`2020SciPy_NMeth` to maximize the likelihood knowing the fixed effects.
+- __More of a frequentist one:__ random effects are estimated using the solver [_minimise_](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html) from the package Scipy {cite}`2020SciPy_NMeth` to maximize the likelihood knowing the fixed effects.
 
 ```python
 >>> personalize_settings = AlgorithmSettings("scipy_minimize", seed=0)
@@ -91,7 +91,7 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 [200 rows x 4 columns]
 ```
 
-__more a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase (see [fit description](##Fit))and temperature scheme [fit description](##Fit). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
+- __More of a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase (see [fit description](##Fit))and temperature scheme [fit description](##Fit). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
 
 ```python
 >>> personalize_settings = AlgorithmSettings("mean_posterior", seed=0)
