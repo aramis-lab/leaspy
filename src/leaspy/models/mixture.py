@@ -78,6 +78,23 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     _tau_std = 5.0
     _noise_std = 0.1
     _sources_mean = 0
+
+    # Override: in mixture models, tau/xi/sources means define cluster centers (population-level)
+    _individual_prior_params = ("tau_std", "xi_std", "sources_std")
+    _noise_params = ("noise_std",)
+
+    # Extend base _param_axes with mixture-specific cluster-indexed parameters
+    _param_axes = {
+        **McmcSaemCompatibleModel._param_axes,
+        "tau_mean": ("cluster",),
+        "tau_std": ("cluster",),
+        "xi_mean": ("cluster",),
+        "xi_std": ("cluster",),
+        "sources_mean": ("source", "cluster"),
+        "sources_std": ("source", "cluster"),
+        "probs": ("cluster",),
+    }
+
     _sources_std = 1.0
 
     @property

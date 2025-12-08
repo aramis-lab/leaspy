@@ -751,6 +751,259 @@ class BaseModel(ModelInterface):
         ) is None:
             return
         algorithm.run(self, dataset)
+        
+    def summary(self) -> None:
+        """Print a formatted summary of the model parameters.
+
+        This method prints a statistical summary of the model. It displays the model's
+        population parameters (fixed effects), individual parameter
+        distributions (random effects), and noise estimates.
+
+        Examples
+        --------
+        >>> from leaspy.models import LogisticModel
+        >>> model = LogisticModel(name="test")
+        >>> model.fit(data, "mcmc_saem", n_iter=100)
+        >>> model.summary()
+        """
+        if not self.is_initialized:
+            print("Model is not initialized. Call fit() first.")
+            return
+
+        if self.parameters is None or len(self.parameters) == 0:
+            print("Model has no parameters. Call fit() first.")
+            return
+
+        lines = []
+        sep = "=" * 60
+
+        # Header
+        lines.append(sep)
+        lines.append(f"{'Model Summary':^60}")
+        lines.append(sep)
+        lines.append(f"Model Name: {self.name}")
+        lines.append(f"Model Type: {self.__class__.__name__}")
+        if self.features is not None:
+            lines.append(f"Features ({self.dimension}): {', '.join(self.features)}")
+        if (fm := getattr(self, "fit_metrics", None)) and (nll := fm.get("nll_tot")):
+            lines.append(f"Neg. Log-Likelihood: {nll:.4f}")
+        lines.append(sep)
+
+        # Get parameter categories (from model or fallback)
+        if hasattr(self, "_param_categories"):
+            cats = self._param_categories
+            pop_params = cats.get("population", [])
+            ind_params = cats.get("individual_priors", [])
+            noise_params = cats.get("noise", [])
+        else:
+            # Fallback: all params as population
+            pop_params = sorted(self.parameters.keys())
+            ind_params = []
+            noise_params = []
+
+        # Population Parameters (Fixed Effects)
+        if pop_params:
+            lines.append("")
+            lines.append("Population Parameters")
+            lines.append("-" * 60)
+            lines.extend(self._format_parameter_group(pop_params))
+
+        # Individual Parameters (Random Effects)
+        if ind_params:
+            lines.append("")
+            lines.append("Individual Parameters")
+            lines.append("-" * 60)
+            lines.extend(self._format_parameter_group(ind_params))
+
+        # Noise Model
+        if noise_params:
+            lines.append("")
+            lines.append("Noise Model")
+            lines.append("-" * 60)
+            lines.extend(self._format_parameter_group(noise_params))
+
+        lines.append(sep)
+
+        print("\n".join(lines))
+
+    def _format_parameter_group(self, param_names: list[str]) -> list[str]:
+        """Format a group of parameters, consolidating 1D parameters with the same axis.
+
+        This method groups consecutive 1D parameters that share the same axis
+        to avoid repeating column headers.
+
+        Parameters
+        ----------
+        param_names : :obj:`list` [:obj:`str`]
+            List of parameter names to format.
+
+        Returns
+        -------
+        :obj:`list` [:obj:`str`]
+            List of formatted lines.
+        """
+        lines = []
+        axes_map = getattr(self, "_param_axes", {})
+
+        # Group consecutive 1D parameters with the same axis
+        i = 0
+        while i < len(param_names):
+            name = param_names[i]
+            value = self.parameters[name]
+            axes = axes_map.get(name, ())
+
+            # Check if this is a 1D parameter with axis labels
+            if value.ndim == 1 and len(axes) >= 1:
+                axis_name = axes[0]
+                n = len(value)
+
+                # Collect consecutive 1D params with the same axis and size
+                group = [(name, value)]
+                j = i + 1
+                while j < len(param_names):
+                    next_name = param_names[j]
+                    next_value = self.parameters[next_name]
+                    next_axes = axes_map.get(next_name, ())
+                    if (next_value.ndim == 1 and
+                        len(next_axes) >= 1 and
+                        next_axes[0] == axis_name and
+                        len(next_value) == n):
+                        group.append((next_name, next_value))
+                        j += 1
+                    else:
+                        break
+
+                # Format the group with a single header
+                if len(group) > 1:
+                    col_labels = self._get_axis_labels(axis_name, n)
+                    if col_labels:
+                        header = " " * 20 + "  ".join(f"{lbl:>8}" for lbl in col_labels)
+                        lines.append(header)
+                        for gname, gvalue in group:
+                            row = f"  {gname:<18}" + "  ".join(
+                                f"{v.item():>8.4f}" for v in gvalue
+                            )
+                            lines.append(row)
+                        i = j
+                        continue
+
+            # Default: format individually
+            lines.append(self._format_parameter(name, value))
+            i += 1
+
+        return lines
+
+    def _format_parameter(self, name: str, value: torch.Tensor) -> str:
+        """Format a single parameter for display in the summary.
+
+        Uses axis metadata from `_param_axes` (if defined) to create
+        properly labeled tables for multi-dimensional parameters.
+
+        Parameters
+        ----------
+        name : :obj:`str`
+            The name of the parameter.
+        value : :class:`torch.Tensor`
+            The tensor value of the parameter.
+
+        Returns
+        -------
+        :obj:`str`
+            A formatted string representation of the parameter.
+        """
+        # Get axis labels if available
+        axes = getattr(self, "_param_axes", {}).get(name, ())
+
+        if value.ndim == 0:
+            # Scalar
+            val_str = f"{value.item():.4f}"
+            return f"  {name:<18} {val_str}"
+
+        elif value.ndim == 1:
+            # 1D tensor - format as table with column headers
+            n = len(value)
+            if n > 10:
+                return f"  {name:<18} Tensor of shape ({n},)"
+
+            axis_name = axes[0] if len(axes) >= 1 else None
+            col_labels = self._get_axis_labels(axis_name, n)
+
+            if col_labels:
+                # Create table format for 1D with labeled columns
+                header = " " * 20 + "  ".join(f"{lbl:>8}" for lbl in col_labels)
+                values = f"  {name:<18}" + "  ".join(
+                    f"{v.item():>8.4f}" for v in value
+                )
+                return header + "\n" + values
+            else:
+                # Simple list format
+                val_str = "[" + ", ".join(f"{v.item():.4f}" for v in value) + "]"
+                return f"  {name:<18} {val_str}"
+
+        elif value.ndim == 2:
+            rows, cols = value.shape
+            if rows > 8 or cols > 8:
+                return f"  {name:<18} Tensor of shape {tuple(value.shape)}"
+
+            row_axis = axes[0] if len(axes) >= 1 else None
+            col_axis = axes[1] if len(axes) >= 2 else None
+
+            row_labels = self._get_axis_labels(row_axis, rows)
+            col_labels = self._get_axis_labels(col_axis, cols)
+
+            lines = [f"  {name}:"]
+
+            # Column headers
+            if col_labels:
+                header = " " * 12 + "  ".join(f"{lbl:>8}" for lbl in col_labels)
+                lines.append(header)
+
+            # Data rows
+            for i, row in enumerate(value):
+                row_lbl = row_labels[i] if row_labels else f"[{i}]"
+                row_str = f"    {row_lbl:<8}" + "  ".join(f"{v.item():>8.4f}" for v in row)
+                lines.append(row_str)
+
+            return "\n".join(lines)
+
+        else:
+            return f"  {name:<18} Tensor of shape {tuple(value.shape)}"
+
+    def _get_axis_labels(self, axis_name: Optional[str], size: int) -> Optional[list[str]]:
+        """Get human-readable labels for an axis dimension.
+
+        Parameters
+        ----------
+        axis_name : :obj:`str` or None
+            The semantic name of the axis (e.g., 'feature', 'source', 'cluster').
+        size : :obj:`int`
+            The size of the axis.
+
+        Returns
+        -------
+        :obj:`list` [:obj:`str`] or None
+            A list of labels, or None if no meaningful labels available.
+        """
+        if axis_name is None:
+            return None
+
+        if axis_name == "feature":
+            if hasattr(self, "features") and self.features is not None:
+                # Use actual feature names (truncated), respecting the actual size
+                feats = self.features[:size]  # In case size < len(features)
+                return [f[:8] if len(f) <= 8 else f[:7] + "." for f in feats]
+            return [f"f{i}" for i in range(size)]
+        elif axis_name == "source":
+            return [f"s{i}" for i in range(size)]
+        elif axis_name == "cluster":
+            return [f"c{i}" for i in range(size)]
+        elif axis_name == "event":
+            return [f"e{i}" for i in range(size)]
+        elif axis_name == "basis":
+            # For basis vectors (e.g., in betas_mean), use generic indices
+            return [f"b{i}" for i in range(size)]
+        else:
+            return [f"{axis_name[:1]}{i}" for i in range(size)]
 
     @staticmethod
     def _get_dataset(

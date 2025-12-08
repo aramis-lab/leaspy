@@ -65,6 +65,7 @@ model.fit(
     n_iter=100,
     progress_bar=False,
 )
+model.summary()
 
 # %%
 # Leaspy can also estimate the *individual trajectories* of each participant.

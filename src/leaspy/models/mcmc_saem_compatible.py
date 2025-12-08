@@ -60,6 +60,35 @@ class McmcSaemCompatibleModel(StatefulModel):
         Private instance holding all values for model variables and their derived variables.
     """
 
+    # Base parameter categories for summary display (override in subclasses)
+    _individual_prior_params: tuple[str, ...] = ()
+    _noise_params: tuple[str, ...] = ("noise_std",)
+
+    # Explicit axis labels for multi-dimensional parameters
+    # Maps param_name -> tuple of axis names, e.g., ("feature",) or ("feature", "source")
+    # Subclasses can extend this with: _param_axes = {**ParentClass._param_axes, "new_param": ("axis",)}
+    _param_axes: dict[str, tuple[str, ...]] = {
+        "log_g_mean": ("feature",),
+        "log_g_std": ("feature",),
+        "log_v0_mean": ("feature",),
+        "betas_mean": ("basis", "source"),  # basis vectors, not features (dim-1)
+        "mixing_matrix": ("source", "feature"),
+        "noise_std": ("feature",),
+    }
+
+    @property
+    def _param_categories(self) -> dict[str, list[str]]:
+        """Categorize parameters for summary display."""
+        ind_priors = set(self._individual_prior_params)
+        noise = set(self._noise_params)
+        all_params = set(self.parameters.keys()) if self.parameters else set()
+        pop = all_params - ind_priors - noise
+        return {
+            "population": sorted(k for k in pop if k in all_params),
+            "individual_priors": sorted(k for k in ind_priors if k in all_params),
+            "noise": sorted(k for k in noise if k in all_params),
+        }
+
     def __init__(
         self,
         name: str,

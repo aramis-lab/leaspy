@@ -45,6 +45,7 @@ model = LogisticMultivariateMixtureModel(
 )
 
 model.fit(leaspy_data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
+model.summary()
 
 # %%
 # First we take a look in the population parameters.
