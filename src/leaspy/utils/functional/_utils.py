@@ -70,7 +70,7 @@ def _corr_coeff(
     std: torch.Tensor,
 ) -> torch.Tensor:
     rho = cov / (std[0] * std[1])
-    # rho = torch.clamp(rho, -0.9999, 0.9999)
+    rho = torch.clamp(rho, -0.9999, 0.9999)
     return rho
 
 
