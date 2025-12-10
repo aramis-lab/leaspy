@@ -25,7 +25,7 @@ Let's use the logistic model as an example.
 from leaspy.models import LogisticModel
 ```
 
-We need to specify the arguments `name`, `dimension` (the number of features $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per feature or 'gaussian-scalar' to estimate one noise coefficient for all the features). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md#individual-trajectory--spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of features ($\sqrt{dimension}$).
+We need to specify the arguments `name`, `dimension` (the number of outcomes $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per outcome or 'gaussian-scalar' to estimate one noise coefficient for all the outcomes). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md#individual-trajectory--spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of outcomes ($\sqrt{dimension}$).
 
 You can also add a `seed` or control other arguments for the output and the logs like `save_periodicity`, `path`, etc.
 
@@ -136,14 +136,14 @@ timepoints = np.linspace(60, 100, 100)
 reconstruction = model.estimate({"GS-187": timepoints}, ip)
 ```
 
-The reconstruction object contains the estimated feature values for the individual and we can plot them along with the actual observations.
+The reconstruction object contains the estimated outcome values for the individual and we can plot them along with the actual observations.
 
 ```python
 ax = leaspy_plotting.patient_trajectories(
     data_leaspy,
     ip,
     patients_idx=["GS-187"],
-    labels=["FEATURE_1", "FEATURE_2"],
+    labels=["OUTCOME_1", "OUTCOME_2"],
     alpha=1,
     linestyle="-",
     linewidth=2,
@@ -183,7 +183,7 @@ To run a simulation, the following variables are required:
 - A fitted Leaspy model (see the `fit` function), used for both parameter sampling (step 1) and the estimate function (step 3).
 - A dictionary of visit parameters, specifying the number, type, and timing of visits (used in step 2).
 - An `AlgorithmSettings` object, configured for simulation and including:
-  - The name of the features to simulate.
+  - The name of the outcomes to simulate.
   - The visit parameter dictionary.
 
 ### Running the Task
@@ -203,7 +203,7 @@ To run a simulation, the following variables are required:
     }
 >>> simulated_data = model.simulate( 
          algorithm="simulate", 
-         features=["MDS1_total", "MDS2_total", "MDS3_off_total"],
+         outcomes=["MDS1_total", "MDS2_total", "MDS3_off_total"],
          visit_parameters= visits_params
     )
 >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
@@ -224,7 +224,7 @@ To run a simulation, the following variables are required:
 
 ### Output
 
-The output is a Data object with ID, TIME and simulated values of each feature. 
+The output is a Data object with ID, TIME and simulated values of each outcome. 
 
 ### Setting options
 

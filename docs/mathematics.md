@@ -7,9 +7,9 @@ Mixed effects models have become a powerful and widely used statistical tool for
 One of the key strengths of mixed-effects models lies in their ability to capture two types of variability:
 
 - **Within-subject variability (fixed effects)**
-    This reflects systematic influences that affect all patients in similar ways, such as the effect of treatment, demographic factors, or known disease subtypes. Fixed effects represent consistent trends or shifts in the data that apply across the **population** or across specific groups.
+  This reflects systematic influences that affect all patients in similar ways, such as the effect of treatment, demographic factors, or known disease subtypes. Fixed effects represent consistent trends or shifts in the data that apply across the **population** or across specific groups.
 - **Between-subject variability (random effects)**
-    This accounts for differences among individual patients. For example, even if patients share the same diagnosis, their disease progression rates and onset time can vary considerably. By incorporating random effects, the model can capture this heterogeneity, allowing for personalized trajectory estimates at an **individual** level.
+  This accounts for differences among individual patients. For example, even if patients share the same diagnosis, their disease progression rates and onset time can vary considerably. By incorporating random effects, the model can capture this heterogeneity, allowing for personalized trajectory estimates at an **individual** level.
 
 With a mixed effects model, we can estimate the long-term progression of a disease by reconstructing individual patient trajectories over time, even when measurements are irregularly spaced or partially missing. This is crucial for understanding the natural history of a disease, identifying typical progression patterns, and recognizing outliers. Importantly, understanding how a disease evolves over time and quantifying the expected variability between individuals have significant clinical and research implications. Clinically, it supports personalized medicine approaches, tailoring treatment plans based on predicted progression. From a research standpoint, it helps identify factors driving heterogeneity in disease progression, which can inform new hypotheses about disease mechanisms or guide the development of targeted therapies.
 
@@ -17,9 +17,9 @@ Brain and neurodegenerative diseases typically do not progress at a constant rat
 
 ### Parameter estimation
 
-We suppose that the parameters capturing the population and the individual variability, namely fixed and random effects respectively, are latent variables ($z$) that follow some prior distributions. The parameters that define these distributions are called model parameters ($\theta$). We can also include hyperparmeters $\Pi$ that have known values.
+We suppose that the parameters capturing the population and the individual variability, namely fixed and random effects respectively, are latent variables ($z$) that follow some prior distributions. The parameters that define these distributions are called model parameters ($\theta$). We can also include hyperparmeters ($\Pi$) that have known values.
 
-Estimating the parameters of the models can be done through maximisation of the likelihood.
+Estimating the parameters of the models can be done through maximization of the likelihood.
 
 Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters, the likelihood estimated by the model is the following:
 
@@ -69,17 +69,17 @@ __Application context:__ Here, we want to model clinical data such as clinical s
 
 To separate the average disease progression from the individual progression, a mixed-effects model structure is added to the trajectories.
 
-Any trajectory $\gamma$ (geodesic) can be defined by the two parameters of its initial condition at a time $t_0$: the initial position $\gamma(t_0) = p$ and the initial speed $\dot{\gamma}(t_0) = v_0$.
+Any trajectory $\gamma$ (geodesic) can be defined by the two parameters of its initial condition at a time $t_0$: the initial position $\gamma(t_0) = p_0$ and the initial speed $\dot{\gamma}(t_0) = v_0$.
 
-The average trajectory  $\gamma_0$ is thus parametrized by its initial conditions ($t_0, v_0, p$) with a shape imposed by the metric.
+The average trajectory  $\gamma_0$ is thus parametrized by its initial conditions ($t_0, v_0, p_0$) with a shape imposed by the metric.
 
 From there, the [individual trajectory $\gamma_i(t)$](./notations.md#individual-trajectory) could be defined playing on the three initial conditions.
 
 #### Individual trajectory & Temporal random effects:
 
-If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p$).
+If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p_0$).
 
-A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-log-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $, [$ e^{\xi_i} $](./notations.md#individual-log-speed-factor) $, p$). Note that the two first aspects encompass temporal variability.
+A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-log-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $, [$ e^{\xi_i} $](./notations.md#individual-log-speed-factor) $, p_0$). Note that the two first aspects encompass temporal variability.
 
 From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$.
 
@@ -87,7 +87,7 @@ From a mathematical point of view these impacts could be seen as a transformatio
 
 Finally, patients may vary in terms of disease presentation, i.e. from a clinical point of view, meaning that the order of outcome progression might differ between individuals.
 
-From a geometric point of view, this means that the geometric trajectory is not overlapping through the same points. This variability is enabled by manipulating the initial position $p$. It is done thanks to the vectors [$ w_k $ named space-shifts](./notations.md#space-shift) in the tangent space of the manifold that modified the trajectory in the sense of the Exp-parallelisation to assure the identifiability.
+From a geometric point of view, this means that the geometric trajectory is not overlapping through the same points. This variability is enabled by manipulating the initial position $p_0$. It is done thanks to the vectors $ w_k $ named [space-shifts](./notations.md#space-shift) in the tangent space of the manifold that modified the trajectory in the sense of the Exp-parallelisation to assure the identifiability.
 
 ![pop_to_ind](./_static/images/pop_to_ind.png)
 __Temporal and spatial random effects: from population to individual progression (extracted from {cite}`ortholand_joint_2024`)__

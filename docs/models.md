@@ -67,7 +67,7 @@ To fit a logistic model, you need a dataframe with the following columns:
 
 - `ID`: Patient identifier  
 - `TIME`: Time of measurement  
-- One or more columns representing the longitudinal outcomes (e.g., `FEATURE_1`, `FEATURE_2`, ...)
+- One or more columns representing the longitudinal outcomes (e.g., `OUTCOME_1`, `OUTCOME_2`, ...)
 
 For the importation of dataframe:
 
@@ -75,7 +75,7 @@ For the importation of dataframe:
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
-                        FEATURE_1  FEATURE_2
+                        OUTCOME_1  OUTCOME_2
       ID    TIME
 132-S2-0  81.661          0.44444    0.04000
           82.136          0.60000    0.56000
@@ -132,7 +132,7 @@ For the importation of dataframe:
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
-                                FEATURE_1  FEATURE_2  EVENT_TIME  EVENT_BOOL
+                                OUTCOME_1  OUTCOME_2  EVENT_TIME  EVENT_BOOL
         ID              TIME                                                           
 132-S2-0              81.661      0.44444    0.04000        84.0           1
            82.13600000000001      0.60000    0.00000        84.0           1
