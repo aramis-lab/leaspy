@@ -91,7 +91,7 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 [200 rows x 4 columns]
 ```
 
-- __More of a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase (see [fit description](##Fit))and temperature scheme [fit description](##Fit). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
+- __More of a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase and temperature scheme (see [fit description](##Fit)). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
 
 ```python
 >>> personalize_settings = AlgorithmSettings("mean_posterior", seed=0)
