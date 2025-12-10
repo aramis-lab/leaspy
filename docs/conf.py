@@ -33,7 +33,7 @@ def find_var(varname: str, *py_file_paths):
 
 # The full version, including alpha/beta/rc tags
 release = find_var("__version__", "../src", "leaspy", "__init__.py").s
-copyright = f"2017-{date.today().year}, Juliette Ortholand, Nicolas Gensollen, Etienne Maheux, Caglayan Tuna, 
+copyright = f"2017-{date.today().year}, Juliette Ortholand, Nicolas Gensollen, Etienne Maheux, Caglayan Tuna, Raphael Couronne, Arnaud Valladier, Sofia Kaisaridi, Pierre-Emmanuel Poulet, Nemo Fournier, Léa Aguilhon, Maylis Tran, Gabrielle Casimiro, Igor Koval, Stanley Durrleman, Sophie Tezenas Du Montcel"
 Raphael Couronne, Arnaud Valladie, Sofia Kaisaridi, Pierre-Emmanuel Poulet, Nemo Fournier, Léa Aguilhon, 
 
 # -- General configuration ---------------------------------------------------
