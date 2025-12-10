@@ -61,7 +61,17 @@ class McmcSaemCompatibleModel(StatefulModel):
     """
 
     # Base parameter categories for summary display (override in subclasses)
-    _individual_prior_params: tuple[str, ...] = ()
+    
+    _individual_prior_params: tuple[str, ...] = (
+        "tau_mean",
+        "tau_std",
+        "xi_mean",
+        "xi_std",
+        "sources_mean",
+        "sources_std",
+        "zeta_mean"
+    )
+    
     _noise_params: tuple[str, ...] = ("noise_std",)
 
     # Explicit axis labels for multi-dimensional parameters
@@ -83,10 +93,27 @@ class McmcSaemCompatibleModel(StatefulModel):
         noise = set(self._noise_params)
         all_params = set(self.parameters.keys()) if self.parameters else set()
         pop = all_params - ind_priors - noise
+
+        def sort_key(name: str) -> tuple[int, str, str]:
+            # Sort by number of columns (ascending), then primary axis, then name
+            val = self.parameters[name]
+            axes = self._param_axes.get(name, ())
+            primary_axis = axes[0] if axes else ""
+
+            n_cols = 1
+            if val.ndim == 1 and axes:
+                # Check if this axis produces labeled columns
+                if self._get_axis_labels(primary_axis, len(val)) is not None:
+                    n_cols = len(val)
+            elif val.ndim == 2:
+                n_cols = val.shape[1]
+
+            return (n_cols, primary_axis, name)
+
         return {
-            "population": sorted(k for k in pop if k in all_params),
-            "individual_priors": sorted(k for k in ind_priors if k in all_params),
-            "noise": sorted(k for k in noise if k in all_params),
+            "population": sorted((k for k in pop if k in all_params), key=sort_key),
+            "individual_priors": sorted((k for k in ind_priors if k in all_params), key=sort_key),
+            "noise": sorted((k for k in noise if k in all_params), key=sort_key),
         }
 
     def __init__(

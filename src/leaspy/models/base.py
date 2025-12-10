@@ -775,18 +775,51 @@ class BaseModel(ModelInterface):
             return
 
         lines = []
-        sep = "=" * 60
+        width = 90
+        sep = "=" * width
+        
+        # ANSI escape codes for bold text
+        BOLD = "\033[1m"
+        RESET = "\033[0m"
+
+        def wrap_text(label: str, text: str, indent: int = 0) -> list[str]:
+            """Wrap text to fit within the table width."""
+            import textwrap
+            prefix = f"{label}: " if label else ""
+            initial_indent = " " * indent + prefix
+            subsequent_indent = " " * (indent + len(prefix))
+            wrapper = textwrap.TextWrapper(
+                width=width,
+                initial_indent=initial_indent,
+                subsequent_indent=" " * (indent + 4), # Fixed indent for subsequent lines
+                break_long_words=False,
+                break_on_hyphens=False
+            )
+            return wrapper.wrap(text)
 
         # Header
         lines.append(sep)
-        lines.append(f"{'Model Summary':^60}")
+        lines.append(f"{BOLD}{'Model Summary':^{width}}{RESET}")
         lines.append(sep)
-        lines.append(f"Model Name: {self.name}")
-        lines.append(f"Model Type: {self.__class__.__name__}")
+        lines.append(f"{BOLD}Model Name:{RESET} {self.name}")
+        lines.append(f"{BOLD}Model Type:{RESET} {self.__class__.__name__}")
+        
         if self.features is not None:
-            lines.append(f"Features ({self.dimension}): {', '.join(self.features)}")
+            feat_str = ", ".join(self.features)
+            lines.extend(wrap_text(f"{BOLD}Features ({self.dimension}){RESET}", feat_str))
+            
+        # Sources
+        if hasattr(self, "source_dimension") and self.source_dimension is not None:
+            sources = [f"Source {i} (s{i})" for i in range(self.source_dimension)]
+            lines.extend(wrap_text(f"{BOLD}Sources ({self.source_dimension}){RESET}", ", ".join(sources)))
+
+        # Clusters (for Mixture models)
+        if hasattr(self, "n_clusters") and self.n_clusters is not None:
+             clusters = [f"Cluster {i} (c{i})" for i in range(self.n_clusters)]
+             lines.extend(wrap_text(f"{BOLD}Clusters ({self.n_clusters}){RESET}", ", ".join(clusters)))
+
         if (fm := getattr(self, "fit_metrics", None)) and (nll := fm.get("nll_tot")):
-            lines.append(f"Neg. Log-Likelihood: {nll:.4f}")
+            lines.append(f"{BOLD}Neg. Log-Likelihood:{RESET} {nll:.4f}")
         lines.append(sep)
 
         # Get parameter categories (from model or fallback)
@@ -804,22 +837,22 @@ class BaseModel(ModelInterface):
         # Population Parameters (Fixed Effects)
         if pop_params:
             lines.append("")
-            lines.append("Population Parameters")
-            lines.append("-" * 60)
+            lines.append(f"{BOLD}Population Parameters{RESET}")
+            lines.append("-" * width)
             lines.extend(self._format_parameter_group(pop_params))
 
         # Individual Parameters (Random Effects)
         if ind_params:
             lines.append("")
-            lines.append("Individual Parameters")
-            lines.append("-" * 60)
+            lines.append(f"{BOLD}Individual Parameters{RESET}")
+            lines.append("-" * width)
             lines.extend(self._format_parameter_group(ind_params))
 
         # Noise Model
         if noise_params:
             lines.append("")
-            lines.append("Noise Model")
-            lines.append("-" * 60)
+            lines.append(f"{BOLD}Noise Model{RESET}")
+            lines.append("-" * width)
             lines.extend(self._format_parameter_group(noise_params))
 
         lines.append(sep)
@@ -955,13 +988,13 @@ class BaseModel(ModelInterface):
 
             # Column headers
             if col_labels:
-                header = " " * 12 + "  ".join(f"{lbl:>8}" for lbl in col_labels)
+                header = " " * 20 + "  ".join(f"{lbl:>8}" for lbl in col_labels)
                 lines.append(header)
 
             # Data rows
             for i, row in enumerate(value):
                 row_lbl = row_labels[i] if row_labels else f"[{i}]"
-                row_str = f"    {row_lbl:<8}" + "  ".join(f"{v.item():>8.4f}" for v in row)
+                row_str = f"            {row_lbl:<8}" + "  ".join(f"{v.item():>8.4f}" for v in row)
                 lines.append(row_str)
 
             return "\n".join(lines)
@@ -998,7 +1031,7 @@ class BaseModel(ModelInterface):
         elif axis_name == "cluster":
             return [f"c{i}" for i in range(size)]
         elif axis_name == "event":
-            return [f"e{i}" for i in range(size)]
+            return None
         elif axis_name == "basis":
             # For basis vectors (e.g., in betas_mean), use generic indices
             return [f"b{i}" for i in range(size)]
