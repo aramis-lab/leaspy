@@ -6,7 +6,7 @@ In this section we describe how to fit a `leaspy` model with your data. Leaspy u
 
 The algorithm is an adaptation of the Expectation-Maximisation (EM) algorithm that relies on an iterative procedure that alternates between the following main steps:
 
-- Expectation/Stochastic Approximation Step: the algorithm uses [Markov Chain Monte Carlo (MCMC)](./glossary.md#mcmc) to generate samples of the latent variables (random effects) conditional on the current parameter estimates, and compute the sufficient statistics of the complete-data log-likelihood using a stochastic approximation scheme. 
+- Expectation/Stochastic Approximation Step: the algorithm uses [Markov Chain Monte Carlo (MCMC)](./glossary.md#mcmc) to generate samples of the latent variables (random effects) conditional on the current parameter estimates. In particular, Gibbs sampling is employed, which iteratively updates each latent variable conditional on the current values of the others, allowing efficient exploration of the latent space. To avoid convergence to local maxima, a temperature scheme is applied: the sampling distribution is initially “flattened” during the burn-in phase, to allow exploration of a wider range of values, and the temperature is gradually reduced over iterations so that the chain focuses increasingly on high-likelihood regions. The sufficient statistics of the complete-data log-likelihood are then computed using a stochastic approximation scheme.
 - Maximization Step: Given the updated sufficient statistics, the fixed effects and variance components are re-estimated by maximizing the approximate complete-data log-likelihood.
 
 By iterating these steps, the MCMC-SAEM algorithm converges to the maximum likelihood estimates of the model parameters.
