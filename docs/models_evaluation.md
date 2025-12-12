@@ -38,10 +38,10 @@ Where $p(y_i | \hat{\theta}_i)$ is the probability of the observation given the 
 ### Frequentist Approach
 
 #### AIC
-AIC (Akaike Information Criterion) is a robust metric for model selection. It integrates the goodness-of-fit and the complexity of the model (number of features and number of patients). It has a penalty term for the number of parameters in the model, thus penalizing more complex models with unnecessary features. Lower AIC values indicate a better model {cite}`akaike1974new`.
+AIC (Akaike Information Criterion) is a robust metric for model selection that quantifies the balance between goodness-of-fit and model complexity. It has a penalty term for the number of parameters in the model, thus penalizing more complex models with unnecessary features. Lower AIC values indicate a better model {cite}`akaike1974new`.
 
 $$
-\text{AIC} = 2 \cdot (\text{nb}_{\text{features}}) - 2 \cdot \log(\text{likelihood})
+\text{AIC} = 2 \cdot (\text{nb}_{\text{parameters}}) - 2 \cdot \log(\text{likelihood})
 $$
 
 ```python
@@ -49,12 +49,9 @@ $$
 nll = model.state['nll_attach']
 
 # Compute the number of free parameters
-n_individuals = data.n_individuals
-population_parameters_total = (
-        3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
-    )
-individual_parameters_per_subject = 2 + model.source_dimension
-free_parameters_total = population_parameters_total + n_individuals * individual_parameters_per_subject
+free_parameters_total = (
+    3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
+)
 
 penalty = 2 * free_parameters_total
 
@@ -65,10 +62,10 @@ AIC: -17236.7421875
 ```
 
 #### BIC
-BIC (Bayesian Information Criterion) is similar to the AIC metric, but it also integrates the number of patients. It penalizes both the number of features and the number of patients {cite}`schwarz1978estimating`.
+BIC (Bayesian Information Criterion) is similar to the AIC metric, but applies a stronger penalty that depends on the number of observations {cite}`schwarz1978estimating`. It tends to favor simpler models more strongly than AIC.
 
 $$
-\text{BIC} = \log(\text{nb}_{\text{patients}}) \cdot \text{features} - 2 \cdot \log(\text{likelihood})
+\text{BIC} = \text{nb}_{\text{parameters}} \cdot \log(\text{nb}_{\text{observations}}) - 2 \cdot \log(\text{likelihood})
 $$
 
 ```python
@@ -76,12 +73,9 @@ $$
 nll = model.state['nll_attach']
 
 # Compute the number of free parameters
-n_individuals = data.n_individuals
-population_parameters_total = (
-        3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
-    )
-individual_parameters_per_subject = 2 + model.source_dimension
-free_parameters_total = population_parameters_total + n_individuals * individual_parameters_per_subject
+free_parameters_total = (
+    3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
+)
 
 n_observations = data.n_visits
 penalty = free_parameters_total * np.log(n_observations)
@@ -92,6 +86,7 @@ print(f"BIC: {bic}")
 BIC: -12671.0820312
 ```
 
+<!-- #### Corrected BIC
 The BIC with a correction for mixed effects models can also be computed, see {cite}`delattreNoteBICMixedeffects2014` for more details. 
 
 ```python
@@ -103,7 +98,7 @@ bic_corrected = penalty + 2 * nll
 print(f"Corrected BIC: {bic_corrected}")
 
 Corrected BIC: -14503.0869140625
-```
+``` -->
 
 ## Prediction metrics
 
