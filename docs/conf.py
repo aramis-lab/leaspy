@@ -49,6 +49,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
+    "sphinx.ext.viewcode",
 ]
 
 bibtex_bibfiles = ["references.bib"]
@@ -141,7 +142,8 @@ pygments_style = "sphinx"
 
 # html_theme = 'alabaster'
 # html_theme = 'sphinx-theme'
-html_theme = "pydata_sphinx_theme"
+# html_theme = "pydata_sphinx_theme"
+html_theme = "furo"
 
 add_function_parentheses = True
 

@@ -44,7 +44,6 @@ model = LogisticModel(name="test-model", source_dimension=2)
 # %%
 # Visualization utilities from Leaspy and Matplotlib are imported.
 import matplotlib.pyplot as plt
-
 from leaspy.io.logs.visualization.plotting import Plotting
 
 leaspy_plotting = Plotting(model)
@@ -79,7 +78,7 @@ plt.show()
 
 # %%
 # Individual parameters are obtained for the test data using the personalization step.
-ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False)
+ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False)
 
 # %%
 # The test data with individually re-parametrized ages is plotted below.
@@ -116,14 +115,13 @@ ax = leaspy_plotting.patient_trajectories(
     ip,
     patients_idx=["GS-187"],
     labels=["MDS1", "MDS2", "MDS3 (off)"],
-    alpha=1,
-    linestyle="-",
-    linewidth=2,
-    markersize=8,
-    obs_alpha=0.5,
     figsize=(16, 6),
-    factor_past=0.5,
     factor_future=5,
 )
 ax.set_xlim(45, 120)
 plt.show()
+
+# %%
+# This concludes the Parkinson's disease progression modeling example using Leaspy.
+# Leaspy is also capable of handling various other types of models, as the Joint Models,
+# which will be explored in the [next section](./plot_03_joint).

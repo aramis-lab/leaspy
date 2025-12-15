@@ -49,6 +49,14 @@ class JointModel(LogisticModel):
 
     init_tolerance: float = 0.3
 
+    # Extend axis definitions for JointModel-specific parameters
+    _param_axes = {
+        **LogisticModel._param_axes,
+        "n_log_nu_mean": ("event",),
+        "log_rho_mean": ("event",),
+        "zeta_mean": ("source", "event"),
+    }
+
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         self._configure_observation_models()

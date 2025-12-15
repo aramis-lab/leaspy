@@ -124,6 +124,14 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
             None,
         )
 
+        # Don't compare training metadata - these are informational and vary by run
+        # The core model parameters are still fully verified
+        # TODO (Sebastian): we need to create a separated file to thest model.summary and
+        # model.info, as this file is centered to the model results.
+        for key in ["dataset_info", "training_info"]:
+            model_parameters_new.pop(key, None)
+            expected_model_parameters.pop(key, None)
+
         self.assertDictAlmostEqual(
             model_parameters_new, expected_model_parameters, **allclose_kwds
         )

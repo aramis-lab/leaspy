@@ -50,10 +50,13 @@ class ModelSettings:
         ModelSettings._check_settings(settings)
         self.name: str = settings["name"].lower()
         self.parameters: KwargsType = settings["parameters"]
+        self.dataset_info: dict = settings.get("dataset_info", {})
+        self.training_info: dict = settings.get("training_info", {})
+        
         self.hyperparameters: KwargsType = {
             k.lower(): v
             for k, v in settings.items()
-            if k not in ("name", "parameters", "hyperparameters", "leaspy_version")
+            if k not in ("name", "parameters", "hyperparameters", "leaspy_version", "dataset_info", "training_info")
         }
 
     @staticmethod

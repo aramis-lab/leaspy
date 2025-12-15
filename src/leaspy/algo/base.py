@@ -115,7 +115,7 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
             np.random.seed(seed)
             torch.manual_seed(seed)
             # TODO: use logger instead (level=INFO)
-            print(f" ==> Setting seed to {seed}")
+            # print(f" ==> Setting seed to sdfsdf {seed}") # Silenced to reduce verbosity
 
     def run(
         self, model: ModelType, dataset: Optional[Dataset] = None, **kwargs
@@ -262,7 +262,7 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
             self.algo_parameters[k] = v
 
     @staticmethod
-    def _duration_to_str(seconds: float, *, seconds_fmt=".0f") -> str:
+    def _duration_to_str(seconds: float, *, seconds_fmt=".2f") -> str:
         """
         Convert a float representing computation time in seconds to a string giving time in hour, minutes and
         seconds ``%h %min %s``.

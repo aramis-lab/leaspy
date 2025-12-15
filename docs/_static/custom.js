@@ -19,5 +19,8 @@ document.addEventListener("DOMContentLoaded", function() {
             // Change cursor to pointer
             el.style.cursor = 'pointer';
         }
+
+        // Remove the tooltip attribute to prevent the description from popping up
+        el.removeAttribute('tooltip');
     });
 });
