@@ -238,14 +238,14 @@ There are three options to simulate the visit times in Leaspy, which can be spec
 Refer to the docstring for further details.
 
 
-## Data Generalities
+<!-- ## Data Generalities
 - monotonicity
 - NaN 
 - number of visits 
 - outliers
 - not enough patients 
 - parameters don't converge 
-- score don't progress
+- score don't progress -->
 
 ## References
 
