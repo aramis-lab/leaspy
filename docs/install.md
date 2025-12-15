@@ -8,7 +8,7 @@ Leaspy requires Python >= 3.9, <= 3.13.
 Whether you wish to install a released version of Leaspy, or to install its development version, it is **highly recommended** to use a virtual environment to install the project and its dependencies.
 ```
 
-There exists multiple solutions for that, the most common option is to use `conda`:
+There are multiple solutions for that, the most common option is to use `conda`:
 
 ```bash
 conda create --name leaspy python=3.10
