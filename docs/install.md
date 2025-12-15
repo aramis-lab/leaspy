@@ -75,7 +75,7 @@ pre-commit install
 
 After installation, you can run the examples in the next section.
 
-To do so, in your ``leaspy`` environment, you can download ``ipykernel`` to use ``leaspy`` with ``jupyter`` notebooks:
+To do so, in your `leaspy` environment, you can download ``ipykernel`` to use `leaspy` with `jupyter` notebooks:
 
 ```bash
 conda install ipykernel
