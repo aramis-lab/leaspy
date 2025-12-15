@@ -37,7 +37,7 @@ The main documentation. This contains an in-depth description of all algorithms 
 
 #### License
 
-The package is distributed under the BSD 3-Clause license.
+The package is distributed under the BSD-3 license.
 
 ### Further information
 
