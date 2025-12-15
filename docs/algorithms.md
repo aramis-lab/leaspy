@@ -31,10 +31,10 @@ You can also add a `seed` or control other arguments for the output and the logs
 
 ```python
 model = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_models='gaussian-diagonal')
-model.fit(data_leaspy, "mcmc_saem", n_iter=20000)
+model.fit(data_leaspy, "mcmc_saem", n_iter=20000, seed=42)
 ```
 
-Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](./models.md#model-summary) and [mixture model](./models.md#model-summary-1).
+Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](./models.md#model-summary) and [mixture model](./models.md#id20).
 
 ### Output
 

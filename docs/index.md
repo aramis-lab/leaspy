@@ -6,9 +6,11 @@
 
 **Leaspy** is a software package for the statistical analysis of **longitudinal data**, particularly **medical** data that comes in a form of **repeated observations** of patients at different time-points.
 
-![leaspy_front](./_static/images/leaspy_front.png)
+```{figure} ./_static/images/leaspy_front.png
+:name: fig-leaspy-front
+:alt: Leaspy Front Illustration
 
-*Figure 1: Illustration of the Disease Progression Model underlying Leaspy. (a) illustrates how sparse individual observations (colored dots) can be recombined into a common population trajectory (in black), while accounting for the fact that each subject may progress earlier/later or faster/slower than the average (the green individual progresses earlier, and the blue one slower than the average). (b) shows the corresponding geometric interpretation: individual data points are mapped onto a shared trajectory on a Riemannian manifold. Individual trajectories are then computed through subject-specific temporal transformations (time-shift $\tau_i$ and acceleration $\alpha_i$), and spatial transformations ($w_i$) capturing differences in the ordering and pattern of deterioration across outcomes.*
+Figure 1: Illustration of the Disease Progression Model underlying Leaspy. (a) illustrates how sparse individual observations (colored dots) can be recombined into a common population trajectory (in black), while accounting for the fact that each subject may progress earlier/later or faster/slower than the average (the green individual progresses earlier, and the blue one slower than the average). (b) shows the corresponding geometric interpretation: individual data points are mapped onto a shared trajectory on a Riemannian manifold. Individual trajectories are then computed through subject-specific temporal transformations (time-shift $\tau_i$ and acceleration $\alpha_i$), and spatial transformations ($w_i$) capturing differences in the ordering and pattern of deterioration across outcomes.
 
 Figure 1 provides an intuitive overview of the objective of the software. By estimating the temporal and spatial transformations, Leaspy positions each patient relative to the group-average disease timeline, enabling meaningful comparison across individuals despite heterogeneous follow-ups.
 
@@ -18,7 +20,7 @@ The framework further allows:
 - Predicting future observations;
 - Simulating virtual patients to un-bias the initial cohort or mimic its characteristics.
 
-The software package can be used with scalar multivariate data whose progression can be described by a logistic model, linear, joint or mixture model.
+The software package can be used with scalar multivariate data whose progression can be described by a logistic, linear, joint, or mixture model.
 The simplest type of data handled by the software are scalar data: they correspond to one (univariate) or multiple (multivariate) measurement(s) per patient observation.
 This includes, for instance, clinical scores, cognitive assessments, physiological measurements (e.g. blood markers, radioactive markers) but also imaging-derived data that are rescaled, for instance, between 0 and 1 to describe a logistic progression.
 

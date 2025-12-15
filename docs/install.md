@@ -38,12 +38,12 @@ cd leaspy
 
 ### 2.2 Install poetry
 
-This project relies on [poetry](https://python-poetry.org) that you would need to install (see the [official instructions](https://python-poetry.org/docs/#installation)).
+This project relies on [poetry](https://python-poetry.org) which you will need to install (see the [official instructions](https://python-poetry.org/docs/#installation)).
 
 ```{tip}
 It is recommended to install it in a dedicated environment, separated from the one in which you will install Leaspy and its dependencies. One possibility is to install it with a tool called [pipx](https://pipx.pypa.io/stable/).
 
-If you don't have `pipx` installed, already, you can follow the [official installation guidelines](https://pipx.pypa.io/stable/installation/).
+If you don't have `pipx` installed already, you can follow the [official installation guidelines](https://pipx.pypa.io/stable/installation/).
 ```
 
 In short, you can do:
