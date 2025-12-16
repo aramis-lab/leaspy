@@ -16,6 +16,7 @@ import re
 from datetime import date
 
 import sphinx
+from sphinx_gallery.sorting import FileNameSortKey
 
 # -- Project information -----------------------------------------------------
 
@@ -32,7 +33,7 @@ def find_var(varname: str, *py_file_paths):
 
 # The full version, including alpha/beta/rc tags
 release = find_var("__version__", "../src", "leaspy", "__init__.py").s
-copyright = f"2017-{date.today().year}, Leaspy contributors"
+copyright = f"2017-{date.today().year}, Juliette Ortholand, Nicolas Gensollen, Etienne Maheux, Caglayan Tuna, Raphael Couronne, Arnaud Valladier, Sofia Kaisaridi, Pierre-Emmanuel Poulet, Nemo Fournier, Léa Aguilhon, Maylis Tran, Gabrielle Casimiro, Igor Koval, Stanley Durrleman, Sophie Tezenas Du Montcel"
 
 # -- General configuration ---------------------------------------------------
 
@@ -45,7 +46,6 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "numpydoc",
-    "sphinx_rtd_theme",
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
@@ -74,10 +74,11 @@ autoapi_options = [
 ]
 
 sphinx_gallery_conf = {
-    "examples_dirs": "../examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "examples_dirs": ["../examples"],  # path to your example scripts
+    "gallery_dirs": ["auto_examples"],  # path to where to save gallery generated output
     "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
     "plot_gallery": True,
+    "within_subsection_order": FileNameSortKey,
 }
 
 # this is needed for some reason...
@@ -140,7 +141,7 @@ pygments_style = "sphinx"
 
 # html_theme = 'alabaster'
 # html_theme = 'sphinx-theme'
-html_theme = "sphinx_rtd_theme"
+html_theme = "pydata_sphinx_theme"
 
 add_function_parentheses = True
 
@@ -151,6 +152,7 @@ html_static_path = ["_static"]
 html_css_files = [
     "custom.css",
 ]
+html_js_files = ["custom.js"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further. For a list of options available for each theme, see the

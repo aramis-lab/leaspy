@@ -13,6 +13,7 @@ clean.doc:
 	@$(RM) -rf site/
 	@$(RM) -rf docs/_build/
 	@$(RM) -rf docs/auto_examples/
+	@$(RM) -rf docs/sg_execution_times.rst
 
 .PHONY: clean.py
 clean.py:

@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "leaspy"
-version = "2.0.0rc3"
+version = "2.0.0"
 description = "Leaspy is a software package for the statistical analysis of longitudinal data."
 license = "BSD-3-Clause"
 authors = [
@@ -71,6 +71,7 @@ sphinx_theme = ">=1.0"
 sphinx-autoapi = "*"
 myst-nb = "*"
 sphinxcontrib-bibtex = "*"
+pydata-sphinx-theme = "^0.16.1"
 
 [tool.ruff]
 target-version = "py39"

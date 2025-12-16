@@ -46,7 +46,7 @@ $$
 
 where :
 
-- $ e^{\xi_i} $ is the [individual speed factor](#individual-speed-factor) of individual $ i $.
+- $ e^{\xi_i} $ is the [individual speed factor](#individual-log-speed-factor) of individual $ i $.
 - $ \tau_i $ is the [estimated reference time](#estimated-reference-time) of individual $ i $.
 - $ t_0 $ is the [population reference time](#population-reference-time).
 

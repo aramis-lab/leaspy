@@ -2,14 +2,22 @@
 
 ## Convergence diagnosis
 
-## Likelihood based metrics
+When using leaspy, you have to choose the number of iterations to estimate the model and hopefully to reach convergence of the MCMC-SAEM algorithm used. A famous way to monitor it is by running several MC chains with various random seeds and compute the statistic of Gelman-Rubin{cite}`gelman1992inference`, denoted  $\hat{R}$. The $\hat{R}$ measures the ratio of the **within-chain variance** to the **between-chain variance**. If the chain has converged to the same stationary distribution, these two variances should be roughly equal{cite}`vehtari2021convergence`.
+
+$$
+\hat{R} = \frac{\hat{V}}{W}
+$$
+
+where $W$ is the within-chain variance and $\hat{V}$ is the posterior variance estimate for the pooled rank-traces.
+
+This could be computed thanks to the package `arviz` with the function [`rhat`](https://python.arviz.org/en/stable/api/generated/arviz.rhat.html).
 
 ## Fit metrics
 
 Leaspy stores three negative log likelihood (nll) values in the `fit_metrics` of the model’s json file:
 - `nll_attach`: $-\log p(y \mid z, \theta, \Pi)$, where $y$ are the observations, $z$ the latent parameters, $\theta$ the model parameters, and $\Pi$ the hyperparameters. It corresponds to the nll attached to the data.
 - `nll_regul_ind_sum`: $-\log p(z_{\text{re}} \mid z_{\text{fe}}, \theta, \Pi)$, where $z_{\text{re}}$ denotes the latent random effects and $z_{\text{fe}}$ the latent fixed effects. It corresponds to the nll from the random effects.
-- `nll_tot`: $-\log p(y, z, \theta \mid \Pi)$. It corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the individual parameters (`v0`,`xi`,`tau`), that is not reported directly in the json file.
+- `nll_tot`: $-\log p(y, z, \theta \mid \Pi)$. It corresponds to the total nll: nll_attach, nll_regul_ind_sum and the nll linked to the fixed effects $-\log p(z_{\text{fe}} \mid \theta, \Pi)$, that is not reported directly in the json file.
 
 The last conditional nll can be used for computing fit metrics.
 
@@ -30,10 +38,10 @@ Where $p(y_i | \hat{\theta}_i)$ is the probability of the observation given the 
 ### Frequentist Approach
 
 #### AIC
-AIC (Akaike Information Criterion) is a robust metric for model selection. It integrates the goodness-of-fit and the complexity of the model (number of features and number of patients). It has a penalty term for the number of parameters in the model, thus penalizing more complex models with unnecessary features. Lower AIC values indicate a better model {cite}`akaike1974new`.
+AIC (Akaike Information Criterion) is a robust metric for model selection that quantifies the balance between goodness-of-fit and model complexity. It has a penalty term for the number of parameters in the model, thus penalizing more complex models with unnecessary features. Lower AIC values indicate a better model {cite}`akaike1974new`.
 
 $$
-\text{AIC} = 2 \cdot (\text{nb}_{\text{features}}) - 2 \cdot \log(\text{likelihood})
+\text{AIC} = 2 \cdot (\text{nb}_{\text{parameters}}) - 2 \cdot \log(\text{likelihood})
 $$
 
 ```python
@@ -41,12 +49,9 @@ $$
 nll = model.state['nll_attach']
 
 # Compute the number of free parameters
-n_individuals = data.n_individuals
-population_parameters_total = (
-        3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
-    )
-individual_parameters_per_subject = 2 + model.source_dimension
-free_parameters_total = population_parameters_total + n_individuals * individual_parameters_per_subject
+free_parameters_total = (
+    3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
+)
 
 penalty = 2 * free_parameters_total
 
@@ -57,10 +62,10 @@ AIC: -17236.7421875
 ```
 
 #### BIC
-BIC (Bayesian Information Criterion) is similar to the AIC metric, but it also integrates the number of patients. It penalizes both the number of features and the number of patients {cite}`schwarz1978estimating`.
+BIC (Bayesian Information Criterion) is similar to the AIC metric, but applies a stronger penalty that depends on the number of observations {cite}`schwarz1978estimating`. It tends to favor simpler models more strongly than AIC.
 
 $$
-\text{BIC} = \log(\text{nb}_{\text{patients}}) \cdot \text{features} - 2 \cdot \log(\text{likelihood})
+\text{BIC} = \text{nb}_{\text{parameters}} \cdot \log(\text{nb}_{\text{observations}}) - 2 \cdot \log(\text{likelihood})
 $$
 
 ```python
@@ -68,12 +73,9 @@ $$
 nll = model.state['nll_attach']
 
 # Compute the number of free parameters
-n_individuals = data.n_individuals
-population_parameters_total = (
-        3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
-    )
-individual_parameters_per_subject = 2 + model.source_dimension
-free_parameters_total = population_parameters_total + n_individuals * individual_parameters_per_subject
+free_parameters_total = (
+    3 + 2 * model.dimension + (model.dimension - 1) * (model.source_dimension)
+)
 
 n_observations = data.n_visits
 penalty = free_parameters_total * np.log(n_observations)
@@ -84,6 +86,7 @@ print(f"BIC: {bic}")
 BIC: -12671.0820312
 ```
 
+<!-- #### Corrected BIC
 The BIC with a correction for mixed effects models can also be computed, see {cite}`delattreNoteBICMixedeffects2014` for more details. 
 
 ```python
@@ -95,7 +98,7 @@ bic_corrected = penalty + 2 * nll
 print(f"Corrected BIC: {bic_corrected}")
 
 Corrected BIC: -14503.0869140625
-```
+``` -->
 
 ## Prediction metrics
 
