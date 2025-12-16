@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Leaspy version 2
 
-These are the releases of the version 2 of Leaspy. 
+These are the releases of the version 2 of Leaspy.
+
+### [2.0.0] - 2025-12-16
+
+This is the official release of Leaspy version 2.
+
+- **The new structure is a result of a global refactoring.**
+  
+  - This breaking change is the result of a major refactoring of how model parameters and variables are handled. 
+  - The new architecture is more modular and is designed to simplify the definition and extension of models compared to v1. 
+  - The codebase has been structured to closely mirror the mathematical formulation of the models. 
+  - At its core, distinct classes are implemented, following a well-defined hierarchy of dependencies and inheritance, for the model and the algorithm class, using a Directed Acyclic Graph (DAG) and a 'family' concept. 
+  - This modular and transparent architecture ensures clarity, extensibility, and consistency, while its straightforward structure greatly simplifies the development and integration of new model or algorithm variants. 
+  - A State builds on this structure: it is a DAG with an additional mapping between node names and their current values, effectively holding both the model's blueprint and the values currently loaded.
+
+- **New models are added:**
+  - `joint`: for the joint modelisation of patient outcomes and events
+  - `mixture`: for the clustering of patients with similar spatiotemporal profiles
+
+- **Documentation is updated and completed.**
+
+  The documentation page that comes with this release provides a detailed description of the mathematical intuition behind leaspy, the models and the algorithms implemented and the interpretation of the results. It also comes with an example gallery with complete notebooks fitting different models with synthetic data.
+
+```{warning}
+Leaspy v2 is not backward compatible with v1. The public API has changed, and models serialized with Leaspy v1 cannot be loaded in v2 (and vice versa).
+```
 
 ### [2.0.0rc3] - 2025-09-18
 
@@ -19,7 +44,7 @@ Please report any issues or unexpected behaviors to help us finalize the stable 
 
 ### [2.0.0rc2] - 2025-07-02
 
-This is the second and final release candidate before the official release of Leaspy version 2.
+This is the second release candidate.
 
 This version includes some improvements over 2.0.0rc1.
 

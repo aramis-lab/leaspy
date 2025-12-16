@@ -1,6 +1,6 @@
 from importlib import import_module
 
-__version__ = "2.0.0-dev"
+__version__ = "2.0.0"
 dtype = "float32"
 
 pkg_deps = [

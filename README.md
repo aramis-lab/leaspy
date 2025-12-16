@@ -34,7 +34,7 @@ pip install leaspy
 
 #### Install in development mode
 
-If you haven't done it already, create and activate a dedicated environment. 
+If you haven't done it already, create and activate a dedicated environment.
 
 **Clone the repository**
 
@@ -86,7 +86,6 @@ pre-commit install
 
 The `examples` folder contains a starting point if you want to launch your first scripts and notebook with the Leaspy package.
 
-
 ## Description
 Leaspy is a software package for the statistical analysis of **longitudinal data**, particularly **medical** data that comes in a form of **repeated observations** of patients at different time-points.
 Considering these series of short-term data, the software aims at :
@@ -103,8 +102,8 @@ This includes, for instance, clinical scores, cognitive assessments, physiologic
 
 ### Main features
 - `fit` : determine the **population parameters** that describe the disease progression at the population level
-- `personalize` : determine the **individual parameters** that characterize the individual scenario of biomarker progression
-- `estimate` : evaluate the biomarker values of a patient at any age, either for missing value imputation or future prediction
+- `personalize` : determine the **individual parameters** that characterize the individual scenario of feature progression
+- `estimate` : evaluate the feature values of a patient at any age, either for missing value imputation or future prediction
 - `simulate` : generate synthetic data from the model
 
 ### Further information
@@ -113,10 +112,9 @@ More detailed explanations about the models themselves and about the estimation 
 - **Mathematical framework**: *A Bayesian mixed-effects model to learn trajectories of changes from repeated manifold-valued observations*. Jean-Baptiste Schiratti, Stéphanie Allassonnière, Olivier Colliot, and Stanley Durrleman. The Journal of Machine Learning Research, 18:1–33, December 2017. [Open Access](https://hal.archives-ouvertes.fr/hal-01540367).
 - **Mixture Model**: *A mixture model for subtype identification: Application to CADASIL* Sofia Kaisaridi, Juliette Ortholand, Caglayan Tuna, Nicolas Gensollen, and Sophie Tezenas Du Montcel. ISCB 46-46th Annual Conference of the International Society for Clinical Biostatistics, August 2025. [Open Access](https://hal.science/hal-05266776v1)
 - **Joint Model**: *Joint model with latent disease age: overcoming the need for reference time* Juliette Ortholand, Nicolas Gensollen, Stanley Durrleman, Sophie Tezenas du Montcel. arXiv preprint arXiv:2401.17249. 2024 [Open Access](https://arxiv.org/abs/2401.17249)
-- [www.digital-brain.org](https://www.digital-brain.org): website related to the application of the model for Alzheimer's disease
 
 ## License
-The package is distributed under the GNU LESSER GENERAL PUBLIC LICENSE.
+The package is distributed under the BSD-3 license.
 
 ## Support
 The development of this software has been supported by the European Union H2020 program (project EuroPOND, grant number 666992, project HBP SGA1 grant number 720270), by the European Research Council (to Stanley Durrleman project LEASP, grant number 678304) and by the ICM Big Brain Theory Program (project DYNAMO).
