@@ -11,6 +11,7 @@
 :alt: Leaspy Front Illustration
 
 Figure 1: Illustration of the Disease Progression Model underlying Leaspy. (a) illustrates how sparse individual observations (colored dots) can be recombined into a common population trajectory (in black), while accounting for the fact that each subject may progress earlier/later or faster/slower than the average (the green individual progresses earlier, and the blue one slower than the average). (b) shows the corresponding geometric interpretation: individual data points are mapped onto a shared trajectory on a Riemannian manifold. Individual trajectories are then computed through subject-specific temporal transformations (time-shift $\tau_i$ and acceleration $\alpha_i$), and spatial transformations ($w_i$) capturing differences in the ordering and pattern of deterioration across outcomes.
+```
 
 Figure 1 provides an intuitive overview of the objective of the software. By estimating the temporal and spatial transformations, Leaspy positions each patient relative to the group-average disease timeline, enabling meaningful comparison across individuals despite heterogeneous follow-ups.
 
