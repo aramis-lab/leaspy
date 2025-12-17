@@ -1,6 +1,6 @@
 [![Tests](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml/badge.svg)](https://github.com/aramis-lab/leaspy/actions/workflows/test.yaml)
 [![documentation status](https://readthedocs.org/projects/leaspy/badge/)](https://leaspy.readthedocs.io)
-[![PyPI - license](https://img.shields.io/pypi/l/leaspy)](https://opensource.org/licenses/BSD-3-Clause)
+[![PyPI - license](https://img.shields.io/pypi/l/leaspy)](https://spdx.org/licenses/BSD-3-Clause-Clear.html)
 [![PyPI - version](https://img.shields.io/pypi/v/leaspy)](https://pypi.org/project/leaspy/)
 [![PyPI - downloads](https://img.shields.io/pypi/dm/leaspy)](https://pypi.org/project/leaspy/)
 [![PyPI - versions](https://img.shields.io/pypi/pyversions/leaspy)](https://pypi.org/project/leaspy/)
@@ -114,7 +114,7 @@ More detailed explanations about the models themselves and about the estimation 
 - **Joint Model**: *Joint model with latent disease age: overcoming the need for reference time* Juliette Ortholand, Nicolas Gensollen, Stanley Durrleman, Sophie Tezenas du Montcel. arXiv preprint arXiv:2401.17249. 2024 [Open Access](https://arxiv.org/abs/2401.17249)
 
 ## License
-The package is distributed under the BSD-3 license.
+The package is distributed under the BSD-3-Clause-Clear license.
 
 ## Support
 The development of this software has been supported by the European Union H2020 program (project EuroPOND, grant number 666992, project HBP SGA1 grant number 720270), by the European Research Council (to Stanley Durrleman project LEASP, grant number 678304) and by the ICM Big Brain Theory Program (project DYNAMO).
