@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 These are the releases of the version 2 of Leaspy.
 
+### [2.0.1] - 2025-12-17
+
+- [LICENSE] Fix license metadata and text to strictly comply with BSD-3-Clause-Clear
+
 ### [2.0.0] - 2025-12-16
 
 This is the official release of Leaspy version 2.
@@ -149,7 +153,7 @@ If you are a user of Leaspy v1, it is recommended to upgrade to v2 since the mai
   - `Plotting` class was deprecated and removed from Leaspy API
   - Some already deprecated algorithms are not supported any more (moved in `algo/_legacy` folder)
 - [BROWSER] Browser web-app was improved
-- [LICENSE] Changing GPL license to BSD 3-Clause license - active only for current and future releases
+- [LICENSE] Changing GPL license to BSD 3-Clause-Clear license - active only for current and future releases
 - [REFACT] Readers now implement more checks on input data; CSVDataReader now calls `pandas.read_csv` internally
 - [TESTS] Refactoring of tests with a new `LeaspyTestCase`, have a look at `tests/README.md` if you want to add or modify them
 
