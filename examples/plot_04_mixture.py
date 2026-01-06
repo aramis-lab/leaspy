@@ -8,21 +8,18 @@ Before implementing the model take a look at the relevant mathematical framework
 # %%
 # The following imports are required libraries for numerical computation, data manipulation, and visualization.
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-
 import leaspy
-from leaspy.io.data import Data, Dataset
+from leaspy.io.data import Data
 
 # %%
 # This toy example is part of a simulation study, carried out by Sofia Kaisaridi that will be included in
 # an article to be submitted in a biostatistics journal. The dataset contains 1000 individuals each with 6 visits and 6 scores.
 
 leaspy_root = os.path.dirname(leaspy.__file__)
-
 data_path = os.path.join(leaspy_root, "datasets/data/simulated_data_for_mixture.csv")
 
 all_data = pd.read_csv(data_path, sep=";", decimal=",")
@@ -34,7 +31,6 @@ all_data.head()
 from leaspy.models import LogisticMultivariateMixtureModel
 
 leaspy_data = Data.from_dataframe(all_data)
-leaspy_dataset = Dataset(leaspy_data)
 
 # %%
 # Then we fit a model with 3 clusters and 2 sources. Note that we have an extra argument `n_clusters` than the
@@ -48,7 +44,8 @@ model = LogisticMultivariateMixtureModel(
     obs_models="gaussian-diagonal",
 )
 
-model.fit(leaspy_dataset, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
+model.fit(leaspy_data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
+model.summary()
 
 # %%
 # First we take a look in the population parameters.
@@ -62,7 +59,6 @@ print(model.parameters)
 # We then consider that the cluster label is the cluster with the biggest probability.
 
 from torch.distributions import Normal
-
 
 def get_ip(df_leaspy, model):
     """
@@ -295,3 +291,10 @@ plt.title("scores 4-6")
 plt.suptitle("Population progression", fontsize=18)
 plt.tight_layout()
 plt.show()
+
+# %%
+# This concludes the Mixture Model example using Leaspy. We can also use these fit models to
+# simulate new data according to the estimated parameters. This can be useful for
+# validating the model, for generating synthetic datasets for further analysis or for
+# generate a trajectory for a new individual given specific parameters. Let's check this
+# in the [next example](./plot_05_simulate.py).

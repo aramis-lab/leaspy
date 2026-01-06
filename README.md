@@ -85,6 +85,10 @@ pre-commit install
 ### Examples & Tutorials
 
 The `examples` folder contains a starting point if you want to launch your first scripts and notebook with the Leaspy package.
+<<<<<<< HEAD
+
+=======
+>>>>>>> upstream/v2.1
 
 ## Description
 Leaspy is a software package for the statistical analysis of **longitudinal data**, particularly **medical** data that comes in a form of **repeated observations** of patients at different time-points.

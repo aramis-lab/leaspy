@@ -49,6 +49,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
+    "sphinx.ext.viewcode",
 ]
 
 bibtex_bibfiles = ["references.bib"]
@@ -141,7 +142,8 @@ pygments_style = "sphinx"
 
 # html_theme = 'alabaster'
 # html_theme = 'sphinx-theme'
-html_theme = "pydata_sphinx_theme"
+# html_theme = "pydata_sphinx_theme"
+html_theme = "furo"
 
 add_function_parentheses = True
 
@@ -153,6 +155,9 @@ html_css_files = [
     "custom.css",
 ]
 html_js_files = ["custom.js"]
+
+# Favicon
+html_favicon = "_static/favicon.png"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further. For a list of options available for each theme, see the
