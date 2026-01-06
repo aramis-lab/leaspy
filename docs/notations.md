@@ -46,7 +46,7 @@ $$
 
 where :
 
-- $ e^{\xi_i} $ is the [individual speed factor](#individual-speed-factor) of individual $ i $.
+- $ e^{\xi_i} $ is the [individual speed factor](#individual-log-speed-factor) of individual $ i $.
 - $ \tau_i $ is the [estimated reference time](#estimated-reference-time) of individual $ i $.
 - $ t_0 $ is the [population reference time](#population-reference-time).
 
@@ -87,7 +87,7 @@ $$
 
 where:
 
-- $ N $ is **TODO**.
-- $ \zeta_{l,m} $ is **TODO**.
-- $ s_{i,m} $ is **TODO**.
+- $ N_s $ is the number of survival sources.
+- $ \zeta_{l,m} $ is the weight for survival source $ m $ in event $ l $.
+- $ s_{i,m} $ is the contribution of survival source $ m $ for individual $ i $.
 

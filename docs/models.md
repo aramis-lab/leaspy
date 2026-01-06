@@ -3,7 +3,7 @@
 ## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
-Individual variability for patient $i$ is modeled with the [latent disease age](./notations.md#latent-disease-age) $\psi_i(t)$ :  
+Individual temporal variability for patient $i$ is modeled with the [latent disease age](./notations.md#latent-disease-age) $\psi_i(t)$ :  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
@@ -21,7 +21,7 @@ The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from
 
 ### Spatial Random Effects
 Disease presentation variability is captured by [space-shifts](./notations.md#space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
-- $\mathbf{A}$: [mixing matrix](./notations.md#mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of [space shifts](./notations.md#space-shift)).
+- $\mathbf{A}$: [mixing matrix](./notations.md#mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of outcomes).
 - $ \mathbf{s}_i$: Independent sources  
 
 For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ {cite}`schirattiBayesianMixedEffectsModel`, so that:
@@ -32,7 +32,7 @@ $$
 
 with $\beta$ the matrix of coefficients.
 
-Each event ( $l$ ) has a [space shift](./notations.md#space-shift):
+Each event ( $l$ ) has a [survival shift](./notations.md#survival-shift):
 
 $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}
@@ -41,7 +41,6 @@ $$
 *Interpretation*: Space shifts ($w_{i,k}$)  are more interpretable than sources ($s_i $), as they encapsulate total spatial variability effects.
 
 ## Logistic Model
-
 
 ### Definition
 
@@ -55,7 +54,7 @@ This model provides interpretable components:
 - Individual deviations from this curve through time reparametrization and spatial shifts,
 - The ability to simulate, estimate, and personalize trajectories for unseen individuals.
 
-
+(logistic-data)=
 ### Data
 
 A logistic model is relevant when you have:
@@ -68,7 +67,7 @@ To fit a logistic model, you need a dataframe with the following columns:
 
 - `ID`: Patient identifier  
 - `TIME`: Time of measurement  
-- One or more columns representing the longitudinal outcomes (e.g., `FEATURE_1`, `FEATURE_2`, ...)
+- One or more columns representing the longitudinal outcomes (e.g., `OUTCOME_1`, `OUTCOME_2`, ...)
 
 For the importation of dataframe:
 
@@ -76,7 +75,7 @@ For the importation of dataframe:
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
-                        FEATURE_1  FEATURE_2
+                        OUTCOME_1  OUTCOME_2
       ID    TIME
 132-S2-0  81.661          0.44444    0.04000
           82.136          0.60000    0.56000
@@ -92,7 +91,7 @@ data_logistic = Data.from_dataframe(dataset, "visit")
 The logistic trajectory for outcome $k$, and from the latent disease age $\psi_i(t)$ is defined by:
 
 $$
-\gamma_{i,k}(t) = \left[ 1 + g_k x \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
+\gamma_{i,k}(t) = \left[ 1 + g_k \times \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
 $$
 
 where:  
@@ -101,7 +100,7 @@ where:
 - $v_{0,k}$ is the speed of progression for outcome $k$ at reference time $t_0$,
 - $w_{i,k}$ is the individual space shift for outcome $k$.
 - $\frac{1}{1+g_k}$ is the value of the logistic curve at $t_0$
-- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](##) for more details.
+- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](#introduction-to-spatio-temporal-models) for more details.
 
 
 ## Joint Model
@@ -112,7 +111,7 @@ Joint models are a class of statistical models that simultaneously analyze [long
 
 In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](./models.md#Introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
-
+(joint-data)=
 ### Data
 A joint model is relevant when you have:
 - **Longitudinal measurements** as repeated biomarker readings, clinical scores
@@ -133,7 +132,7 @@ For the importation of dataframe:
 dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
-                                FEATURE_1  FEATURE_2  EVENT_TIME  EVENT_BOOL
+                                OUTCOME_1  OUTCOME_2  EVENT_TIME  EVENT_BOOL
         ID              TIME                                                           
 132-S2-0              81.661      0.44444    0.04000        84.0           1
            82.13600000000001      0.60000    0.00000        84.0           1
@@ -224,10 +223,11 @@ For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the mode
 
 ### Definition
 
-Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity in the sense that the inter-patient variability as random variations around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of MCMC-SAEM for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
+Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity, in the sense that inter-patient variability is considered as random variation around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of [MCMC-SAEM](./glossary.md#mcmc-saem) for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
 
 In Leaspy the mixture model is implemented as an adaptation of the spatio-temporal logistic model where the individual parameters (`tau`, `xi`and `sources`) come from a mixture of gaussian distributions with a number of components defined by the user.
 
+(mixture-data)=
 ### Data
 
 The same rules apply as for the standard [logistic model](#logistic-model).
@@ -258,7 +258,10 @@ leaspy_mixture = LogisticMultivariateMixtureModel(source_dimension=1, n_clusters
 leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
 ```
 
+<!--
 ## Covariate Model
+This section will be implemented later.
+-->
 
 ## References
 

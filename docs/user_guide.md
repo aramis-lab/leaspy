@@ -13,5 +13,5 @@ mathematics
 models
 algorithms
 models_evaluation
-to_go_further
+<!-- to_go_further -->
 ```

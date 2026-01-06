@@ -81,6 +81,7 @@ dl.py.method, dl.py.function {
 
 /* Remove the border from the last method to avoid double borders with the class end */
 dl.py.class > dd > dl.py.method:last-child {
+	
     border-bottom: none;
     margin-bottom: 0 !important;
     padding-bottom: 0;

@@ -2,54 +2,39 @@
 
 ## Fit
 
-In this section we describe how to fit a `leaspy` model in your data. Leaspy uses the MCMC-SAEM algorithm to fit a model by jointly estimating the fixed effects and the distribution of the random effects. It is particularly well suited to this kind of models where the likelihood involves latent variables and is not available in closed form.
+In this section we describe how to fit a `leaspy` model with your data. Leaspy uses the [MCMC-SAEM algorithm](./glossary.md#mcmc-saem) to fit a model by jointly estimating the fixed effects and the distribution of the random effects. It is particularly well suited to this kind of models where the likelihood involves latent variables and is not available in closed form.
 
 The algorithm is an adaptation of the Expectation-Maximisation (EM) algorithm that relies on an iterative procedure that alternates between the following main steps:
 
-- Expectation/Stochastic Approximation Step: the algorithm uses Markov Chain Monte Carlo (MCMC) to generate samples of the latent variables (random effects) conditional on the current parameter estimates, and compute the sufficient statistics of the complete-data log-likelihood using a stochastic approximation scheme. 
+- Expectation/Stochastic Approximation Step: the algorithm uses [Markov Chain Monte Carlo (MCMC)](./glossary.md#mcmc) to generate samples of the latent variables (random effects) conditional on the current parameter estimates. In particular, Gibbs sampling is employed, which iteratively updates each latent variable conditional on the current values of the others, allowing efficient exploration of the latent space. To avoid convergence to local maxima, a temperature scheme is applied: the sampling distribution is initially “flattened” during the burn-in phase, to allow exploration of a wider range of values, and the temperature is gradually reduced over iterations so that the chain focuses increasingly on high-likelihood regions. The sufficient statistics of the complete-data log-likelihood are then computed using a stochastic approximation scheme.
 - Maximization Step: Given the updated sufficient statistics, the fixed effects and variance components are re-estimated by maximizing the approximate complete-data log-likelihood.
 
 By iterating these steps, the MCMC-SAEM algorithm converges to the maximum likelihood estimates of the model parameters.
 
 ### Prerequisites
 
-To fit a logistic model, you need a dataframe with the following columns:
+Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](./models.md#logistic-data), [joint](./models.md#joint-data), and [mixture](./models.md#mixture-data) models).
 
-- `ID`: Patient identifier  
-- `TIME`: Time of measurement  
-- One or more columns representing the longitudinal outcomes (e.g., `FEATURE_1`, `FEATURE_2`, ...)
-
-For the importation of dataframe:
-
-```python
-dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
-print(dataset.head())
-
-                        FEATURE_1  FEATURE_2
-      ID    TIME
-132-S2-0  81.661          0.44444    0.04000
-          82.136          0.60000    0.56000
-          82.682          0.39267    0.04000
-          83.139          0.58511    0.30000
-          83.691          0.57044    0.05040
-
-data_leaspy = Data.from_dataframe(dataset, "visit")
-```
 ### Running Task
 
-Then you will need to choose one from the existing models in `leaspy.models` . Let's use th logistic model as an example.
+First, choose one of the the existing models in `leaspy.models`. The model you select determines the expected structure of your dataset (see [Prerequisites](#prerequisites)).
+
+Let's use the logistic model as an example.
 
 ```python
 from leaspy.models import LogisticModel
 ```
 
-We need to specify the arguments `name`, `dimension` (the number of features in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per feature or 'gaussian-scalar' to estimate one noise coefficient for all the features). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md####Individual-trajectory-&Spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of features ($\sqrt(dimension)$).
+We need to specify the arguments `name`, `dimension` (the number of outcomes $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per outcome or 'gaussian-scalar' to estimate one noise coefficient for all the outcomes). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md#individual-trajectory--spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of outcomes ($\sqrt{dimension}$).
+
+You can also add a `seed` or control other arguments for the output and the logs like `save_periodicity`, `path`, etc.
 
 ```python
 model = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_models='gaussian-diagonal')
-model.fit(data_leaspy, "mcmc_saem", n_iter=20000)
+model.fit(data_leaspy, "mcmc_saem", n_iter=20000, seed=42)
 ```
-You can also control add a `seed`or control other arguments for the output and the logs like `save_periodicity`, `path`, e.t.c.
+
+Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](./models.md#model-summary) and [mixture model](./models.md#id20).
 
 ### Output
 
@@ -76,9 +61,11 @@ plt.show()
 
 ## Personalize
 
-The idea of this section is to describe how the inference over new patients could be done. For this, random effects of new patients should be estimated using some follow-up visits to be able to describe their progression and make predictions about their future progression. We assume that fixed effects have already been estimated. To estimate the random effects, two main approaches exist in Leaspy. 
+After fitting the model, Leaspy provides a *personalization* step in which random effects are estimated for each subject, conditional on the previously learned fixed effects.
+This section explains how these random effects can be obtained from the available longitudinal observations of each subject. By estimating these individual parameters, Leaspy characterizes each patient’s trajectory and enables predictions of their future progression.
+Leaspy provides two main approaches to perform this personalization step.
 
-__more of a frequentist one:__ random effects are estimated using the solver [_minimise_](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html) from the package Scipy {cite}`2020SciPy_NMeth` to maximize the likelihood knowing the fixed effects.
+- __More of a frequentist one:__ random effects are estimated using the solver [_minimise_](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html) from the package Scipy {cite}`2020SciPy_NMeth` to maximize the likelihood knowing the fixed effects.
 
 ```python
 >>> personalize_settings = AlgorithmSettings("scipy_minimize", seed=0)
@@ -106,7 +93,7 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 [200 rows x 4 columns]
 ```
 
-__more a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase (see [fit description](##Fit))and temperature scheme [fit description](##Fit). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
+- __More of a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase and temperature scheme (see [fit description](##Fit)). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
 
 ```python
 >>> personalize_settings = AlgorithmSettings("mean_posterior", seed=0)
@@ -151,14 +138,14 @@ timepoints = np.linspace(60, 100, 100)
 reconstruction = model.estimate({"GS-187": timepoints}, ip)
 ```
 
-The reconstruction object contains the estimated feature values for the individual and we can plot them along with the actual observations.
+The reconstruction object contains the estimated outcome values for the individual and we can plot them along with the actual observations.
 
 ```python
 ax = leaspy_plotting.patient_trajectories(
     data_leaspy,
     ip,
     patients_idx=["GS-187"],
-    labels=["FEATURE_1", "FEATURE_2"],
+    labels=["OUTCOME_1", "OUTCOME_2"],
     alpha=1,
     linestyle="-",
     linewidth=2,
@@ -189,9 +176,7 @@ Visit times are generated based on user-specified visit parameters, such as the 
 
 **Step 3: Estimation of Observations** <br>
 The estimate function from Leaspy is used to compute the patients observation at the generated visit time $t_{i,j,k}$, based on the individual parameters:<br>
-$$
-y_{i,j,k} = \gamma_{i,k}(t_{i,j,k}) + \epsilon_{i,j,k}, \quad \epsilon_{i,j,k} \sim \mathcal{N}(0, \sigma^2_k)
-$$
+$y_{i,j,k} = \gamma_{i,k}(t_{i,j,k}) + \epsilon_{i,j,k}, \quad \epsilon_{i,j,k} \sim \mathcal{N}(0, \sigma^2_k)$
 
 To reflect variability in the observations, beta-distributed noise is added, appropriate for modeling outcomes in a logistic framework.
 
@@ -200,7 +185,7 @@ To run a simulation, the following variables are required:
 - A fitted Leaspy model (see the `fit` function), used for both parameter sampling (step 1) and the estimate function (step 3).
 - A dictionary of visit parameters, specifying the number, type, and timing of visits (used in step 2).
 - An `AlgorithmSettings` object, configured for simulation and including:
-  - The name of the features to simulate.
+  - The name of the outcomes to simulate.
   - The visit parameter dictionary.
 
 ### Running the Task
@@ -220,7 +205,7 @@ To run a simulation, the following variables are required:
     }
 >>> simulated_data = model.simulate( 
          algorithm="simulate", 
-         features=["MDS1_total", "MDS2_total", "MDS3_off_total"],
+         outcomes=["MDS1_total", "MDS2_total", "MDS3_off_total"],
          visit_parameters= visits_params
     )
 >>> print(simulated_data.data.to_dataframe().set_index(['ID', 'TIME']).head())
@@ -241,7 +226,7 @@ To run a simulation, the following variables are required:
 
 ### Output
 
-The output is a Data object with ID, TIME and simulated values of each feature. 
+The output is a Data object with ID, TIME and simulated values of each outcome. 
 
 ### Setting options
 
@@ -253,14 +238,14 @@ There are three options to simulate the visit times in Leaspy, which can be spec
 Refer to the docstring for further details.
 
 
-## Data Generalities
+<!-- ## Data Generalities
 - monotonicity
 - NaN 
 - number of visits 
 - outliers
 - not enough patients 
 - parameters don't converge 
-- score don't progress
+- score don't progress -->
 
 ## References
 
