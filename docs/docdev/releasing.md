@@ -51,7 +51,14 @@ Update `CHANGELOG.md` to reflect the new release.
 - [LICENSE] Fix license metadata and text...
 ```
 
-## 5. Branch, Commit, and Review
+## 5. Verify CI Configuration
+
+Ensure the Continuous Integration (CI) workflows (in `.github/workflows/`) are configured to run validation on your new version branches.
+
+*   Check `.github/workflows/test.yaml`.
+*   If you are creating a new Major or Minor branch (e.g., `v3`, `v2.2`), update the `branches` list to include it (e.g., add `"v3*"`).
+
+## 6. Branch, Commit, and Review
 
 Create a release branch and submit a Pull Request. **Code review is mandatory** for releases to ensure no accidental files or regressions are included.
 
@@ -74,7 +81,7 @@ git push -u origin release/vX.Y.Z
 *   [ ] Changelog is complete and date is correct.
 *   [ ] CI tests passed.
 
-## 6. Create Release on GitHub
+## 7. Create Release on GitHub
 
 Once the PR is merged into `master`/`main`:
 
@@ -99,6 +106,7 @@ This checklist must be fully completed before clicking "Publish" on GitHub.
 - [ ] **Environment**: `make check.lock` and `pytest` passed locally.
 - [ ] **Version**: `pyproject.toml` and `src/leaspy/__init__.py` match `X.Y.Z`.
 - [ ] **Changelog**: `CHANGELOG.md` updated with date and version.
+- [ ] **CI Config**: `test.yaml` triggers cover the new version branch.
 - [ ] **Review**: Release PR reviewed and approved by another maintainer.
 - [ ] **Merge**: Release PR merged into `master`.
 - [ ] **Release Github**: Create a Release in GitHub. Release tag matches `vX.Y.Z`.
