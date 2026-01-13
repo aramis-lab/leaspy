@@ -77,9 +77,9 @@ git push -u origin release/vX.Y.Z
 ```
 
 **CRITICAL**: Assign a reviewer. Do not merge until you have at least one approval. The reviewer should check:
-*   [ ] Version numbers match in all files.
-*   [ ] Changelog is complete and date is correct.
-*   [ ] CI tests passed.
+*   Version numbers match in all files.
+*   Changelog is complete and date is correct.
+*   CI tests passed.
 
 ## 7. Create Release on GitHub
 

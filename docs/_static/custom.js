@@ -20,4 +20,12 @@ document.addEventListener("DOMContentLoaded", function() {
             el.style.cursor = 'pointer';
         }
     });
+
+    // Make checklist checkboxes interactive
+    document.querySelectorAll('input.task-list-item-checkbox').forEach((cb, i) => {
+        const key = `checklist-${location.pathname}-${i}`;
+        cb.disabled = false;
+        cb.checked = localStorage.getItem(key) === 'true';
+        cb.onchange = () => localStorage.setItem(key, cb.checked);
+    });
 });
