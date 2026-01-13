@@ -72,6 +72,10 @@ sphinx-autoapi = "*"
 myst-nb = "*"
 sphinxcontrib-bibtex = "*"
 pydata-sphinx-theme = "^0.16.1"
+# Security fixes - prevent downgrades
+urllib3 = ">=2.6.3"
+requests = ">=2.32.5"
+pillow = ">=11.3.0"
 
 [tool.ruff]
 target-version = "py39"
