@@ -43,6 +43,28 @@ When a security vulnerability is identified (e.g., by Dependabot or manual audit
     pytest
     ```
 
+5.  **Verify Documentation Builds:**
+    After updating security-vulnerable packages, verify that building documentation doesn't downgrade them.
+    ```bash
+    make doc
+    ```
+    Watch the output for **downgrade warnings** like:
+    ```
+    - Downgrading urllib3 (2.6.3 -> 2.4.0)
+    - Downgrading requests (2.32.5 -> 2.32.3)
+    - Downgrading pillow (12.1.0 -> 11.2.1)
+    ```
+    
+    **If downgrades occur:**
+    *   Documentation dependencies may have incompatible version constraints
+    *   Add the fixed packages to `[tool.poetry.group.docs.dependencies]` in `pyproject.toml` with minimum version constraints:
+        ```toml
+        urllib3 = ">=2.6.3"
+        requests = ">=2.32.5"
+        pillow = ">=12.1.0"
+        ```
+    *   Run `poetry lock` and rebuild with `make doc` to confirm the issue is resolved
+
 ## Specific Package Policies
 
 ### PyTorch (`torch`)
@@ -86,3 +108,10 @@ Run the full test suite to verify changes before commiting:
 ```bash
 pytest
 ```
+
+### Building Documentation
+Verify that documentation builds successfully and that no packages are downgraded:
+```bash
+make doc
+```
+Watch for downgrade warnings in the output. If security-fixed packages are being downgraded, add them to `[tool.poetry.group.docs.dependencies]` in `pyproject.toml` with appropriate version constraints, run `poetry lock`, and rebuild.
