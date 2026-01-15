@@ -43,7 +43,7 @@ dependencies = [
     "scikit-learn (>=1.2.2,<2)",
     "scipy (>=1.13.1)",
     "statsmodels (>=0.13.5,<1)",
-    "torch (>=2.2.0)",
+    "torch (>=2.2.0,<2.8)",
 ]
 
 [project.urls]
@@ -72,6 +72,10 @@ sphinx-autoapi = "*"
 myst-nb = "*"
 sphinxcontrib-bibtex = "*"
 pydata-sphinx-theme = "^0.16.1"
+# Security fixes - prevent downgrades
+urllib3 = ">=2.6.3"
+requests = ">=2.32.5"
+pillow = ">=11.3.0"
 
 [tool.ruff]
 target-version = "py39"
