@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 These are the releases of the version 2 of Leaspy.
 
+### [2.0.2] - 2026-01-15
+
+- Adressing security issues in 6 packages
+
 ### [2.0.1] - 2025-12-17
 
 - [LICENSE] Fix license metadata and text to strictly comply with BSD-3-Clause-Clear
