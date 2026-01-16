@@ -60,6 +60,7 @@ myst_enable_extensions = [
     "amsmath",
     "dollarmath",
     "colon_fence",
+    "tasklist",
 ]
 nb_execution_timeout = 600
 autoapi_dirs = ["../src"]
