@@ -25,11 +25,11 @@ Leaspy uses a **fork-based workflow** with the following remotes:
 | Remote     | Repository                          | Purpose                        |
 |------------|-------------------------------------|--------------------------------|
 | `upstream` | `https://github.com/aramis-lab/leaspy` | Official repository (read-only for contributors) |
-| `origin`   | Your fork on GitHub (you have to [set up](#initial-setup-first-time-contributors) first )                | Your personal copy (read-write) |
+| `origin`   | Your fork on GitHub (you have to [set up](#initial-setup-first-time-contributors) first) | Your personal copy (read-write) |
 
 ### Branch Naming Convention
 
-When we will create new branches in our fork, we have to follow some naming conventions, the name of your branch will be different depending on what you are going to do.
+When we create new branches in our fork, we follow naming conventions. The name of your branch depends on what you're going to do.
 
 | Branch Type | Pattern | Example | Description |
 |-------------|---------|---------|-------------|
@@ -38,7 +38,7 @@ When we will create new branches in our fork, we have to follow some naming conv
 | Fix branches | `fix/{name}` | `fix/vulnerabilities` | Bug fixes |
 | Release branches | `release/v{X.Y.Z}` | `release/v2.0.2` | Preparing a specific release |
 
-> **Example:** if we want to fix the csv generation methods, our branch will be called: `fix/csv_generation`.
+> **Example:** If we want to fix the CSV generation methods, our branch will be called `fix/csv_generation`.
 
 ## Initial Setup (First-Time Contributors)
 
@@ -48,7 +48,9 @@ When we will create new branches in our fork, we have to follow some naming conv
 2. Click **Fork** (top-right corner)
 3. Select your account as the destination
 
-Now in your personal repo, you should have a new repository that is a copy from Leaspy, it is safer to work here because any changes you will do won't affect the original repository, so even the worst case scenario, if you overwride, delete or force remove the repo, it won't touch the original leaspy.
+You should now have a new repository in your account that is a copy of Leaspy.
+
+It is safer to work there because any changes you make will not affect the official repository. Even in the worst-case scenario (e.g., you overwrite, delete, or force-push your fork), it will not affect the upstream `aramis-lab/leaspy` repository.
 
 ### 2. Clone Your Fork
 
@@ -117,7 +119,10 @@ The `checkout -b` command does two things: creates a new branch called `my-featu
 
 ### Step 3: Make Your Changes
 
-When commiting your changes, do not forget that when you do `git add .`, you are submiting all the changes present in your local repo. Sometimes you can edit files changes by mistake, or you just forget that you did, all those files will be changed, that's why you need to check was you added with `git status`, if you made a mistake type `git reset` and add what you really need. Somethimes is safer to add manually the files we want to change, you do so adding the files or the folders with `git add filename1 foldername1`.
+When committing your changes, remember that `git add .` stages **everything** you changed in the repository.
+ Sometimes you may edit a file by mistake (or simply forget about a local change). That is why you should always check what you staged with `git status`.
+
+If you staged something by accident, you can unstage it (for example with `git restore --staged <file>` to restore files to its original state, or `git reset` that will give up your `git add`), then add only what you really intend to include. Often it is safer to add files explicitly with `git add file1 file2`.
 
 ```bash
 # Make changes, then stage and commit
@@ -129,7 +134,9 @@ git status
 git commit -m "feat: add new plotting functionality"
 ```
 
-Try to give information about what you did, commits like `git commit -m "changes"` are just useless. You can write the message in the text editor, even including various lines, and copy paste to your terminal. You could ask to chatGPT (specially if you are using copilote) what message you could put with "Help me to write a commit message, you can check the changes", then review message, fix it (it talks about not important changes often), and then commit it.
+Try to describe what you did and why. Commit messages like `git commit -m "changes"` are not helpful.
+
+You can also write a multi-line commit message in your editor. If you ask an assistant (e.g., Copilot) to propose a message, review it carefully and adjust it so it matches what actually changed.
 
 (Optional) Follow commit message conventions:
 - `feat:` for new features
@@ -172,19 +179,19 @@ git push
 
 ## Handling Upstream Changes
 
-When the official repository changes while you're working on your branch, you need to incorporate those changes. **We always use merge** (not rebase) because it's safer and easier to understand.
+When the official repository changes while you're working on your branch, you may need to incorporate those changes. In this project, we prefer **merge** (not rebase) because it preserves history and avoids force-push during reviews.
 
 When the official repository changes and you have an active branch, you can face one or more of these problems:
 
-[New release while you are working in your branch](#scenario-new-release-while-youre-working)
-[New release and your PR is pointing to the old release](#scenario-your-pr-target-branch-changed)
-[New mayor release](#scenario-major-upstream-restructuring)
+- [New release while you're working on your branch](#scenario-new-release-while-youre-working)
+- [New release and your PR is targeting the old branch](#scenario-your-pr-target-branch-changed)
+- [New major release / major upstream restructuring](#scenario-major-upstream-restructuring)
 
 ### Scenario: New Release While You're Working
 
-You're working on a feature branch, and a new version is released upstream (e.g., `v2.0.2` is released while you're working on something for `v2.0.x`). This can cause conflicts if the same files were modified.
+You're working on a feature branch, and upstream moves forward (new commits land, or a new release is cut). This can cause conflicts if the same files were modified.
 
-**Solution: Merge the upstream changes into your branch**
+**Solution: Merge the upstream target branch into your branch**
 
 ```bash
 # 1. First, create a backup branch (safety net)
@@ -193,15 +200,16 @@ git branch backup-my-feature
 # 2. Download the latest upstream commits
 git fetch upstream
 
-# 3. Merge the upstream changes into your branch
-git merge upstream/master
+# 3. Merge the upstream branch you are targeting into your branch
+# Example: if your PR targets v2.1, merge upstream/v2.1
+git merge upstream/<target-branch>
 ```
 
 If conflicts occur, resolve them (see [Resolving Conflicts](#resolving-conflicts)), then:
 
 ```bash
 git add .
-git commit -m "Merge upstream/master into my-feature"
+git commit -m "Merge upstream/<target-branch> into my-feature"
 ```
 
 After merging, push to update your PR:
@@ -209,6 +217,8 @@ After merging, push to update your PR:
 ```bash
 git push
 ```
+
+> **Important:** Your branch does not "point to" upstream. After the merge, your branch contains a merge commit that brings in upstream changes *up to that moment*. If upstream continues to move, you may need to fetch/merge again later.
 
 > **Why merge instead of rebase?** Merge preserves your commit history exactly as it happened and creates a clear "merge point" in the history. If something goes wrong, you can easily identify when the merge happened and revert if needed. Rebase rewrites history, which can cause confusion and requires force-pushing—risky if you're not experienced with Git.
 
@@ -256,8 +266,20 @@ The backup branch lets you compare what changed or restore your work if the merg
 
 ### In VS Code
 
+To show how to resolve merge conflicts in practice, we will use a simplified example. We have two branches: `original/master` and `fix/makefile`.
+
+The branch `fix/makefile` was created from `original/master`. Then both branches added commits that modify the same file (`Makefile`). When we try to merge `original/master` into `fix/makefile`, we will get merge conflicts.
+
+In this example, we want to bring all changes from `original/master` into `fix/makefile`.
+
+<div align="center"><img src="../_static/images/merge_conflict.png" alt="merge_conflicts" width="600"/></div>
+
 1. When a conflict occurs, VS Code shows affected files in the Source Control panel
+	&nbsp;
+   <div align="center"> <img src="../_static/images/source_control_fast.gif" alt="source_control_fast" width="700"/> </div>
+	&nbsp;
 2. Open a conflicted file - you'll see conflict markers:
+	&nbsp;
    ```
    <<<<<<< HEAD
    your changes
@@ -270,6 +292,9 @@ The backup branch lets you compare what changed or restore your work if the merg
    - **Accept Incoming Change**: Keep upstream's version
    - **Accept Both Changes**: Include both
    - **Compare Changes**: See side-by-side diff
+	&nbsp;
+   <div align="center"><img src="../_static/images/accept_current.gif" alt="accept_current" width="700"/> </div>
+<br>
 
 4. After resolving all conflicts in a file, stage it:
    ```bash
@@ -280,6 +305,13 @@ The backup branch lets you compare what changed or restore your work if the merg
    ```bash
    git commit -m "Merge upstream changes"
    ```
+	&nbsp;
+   <div align="center"><img src="../_static/images/add_merge.gif" alt="add_merge" width="700"/></div>
+<br>
+
+This resolves the conflicts and brings the changes from the main branch into your branch. In real projects, conflicts are often more complex than this, but the process is the same: go file by file and resolve conflicts one by one.
+
+> **TIP:** One of the worst scenarios is having many conflicts after working for a long time, because you may not remember what you changed (or why). To avoid this, sync with upstream regularly.
 
 ### Common Conflict Scenarios
 
@@ -321,7 +353,7 @@ Git won't let you merge if you have uncommitted changes. You have two options:
 ```bash
 git add .
 git commit -m "WIP: my current work"
-git merge upstream/v2.1
+git merge upstream/<target-branch>
 ```
 
 **Option 2: Stash your changes temporarily**
@@ -332,7 +364,7 @@ Stashing saves your uncommitted changes to a temporary storage, letting you work
 git stash
 
 # Now you can merge
-git merge upstream/v2.1
+git merge upstream/<target-branch>
 
 # Restore your stashed changes
 git stash pop
@@ -343,6 +375,6 @@ git stash pop
 If your PR shows commits that aren't yours, your branch has diverged from the target. Merge the target into your branch:
 ```bash
 git fetch upstream
-git merge upstream/v2.1  # Replace with your target branch
+git merge upstream/<target-branch>  # Replace with your target branch (e.g., upstream/v2.1)
 git push
 ```
