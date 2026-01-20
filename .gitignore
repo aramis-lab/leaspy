@@ -5,6 +5,9 @@
 tests/_data/_tmp/*
 !tests/_data/_tmp/*.md
 
+# Traffic monitoring - ignore generated reports
+traffic/reports/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
