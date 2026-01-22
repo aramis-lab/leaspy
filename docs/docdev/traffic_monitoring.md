@@ -14,32 +14,54 @@ The repository uses GitHub Actions to automatically collect traffic statistics e
 - **Referrers**: Where traffic comes from (search engines, other sites, etc.)
 - **Popular Content**: Most visited pages in the repository
 
+**View the live dashboard:** [Repository Traffic Dashboard](../traffic_dashboard.md)
+
 ## How It Works
 
-### Automated Collection
+### Automated Collection & Publishing (Traffic Branch Architecture)
 
 A GitHub Actions workflow (`.github/workflows/traffic.yaml`) runs every Monday at midnight UTC:
 
-1. Fetches traffic data from GitHub's API
-2. Stores it as CSV files in `traffic-data/`
-3. Commits the new data automatically
-4. Historical data accumulates over time
+1. Runs from `main` branch (to get latest scripts)
+2. Fetches traffic data from GitHub's API
+3. Switches to dedicated `traffic` branch
+4. Commits CSV files **only to traffic branch** (no binaries)
+5. `main` branch stays completely clean (zero data commits)
+6. ReadTheDocs builds from `main`, fetches CSVs from `traffic` branch, generates images on-the-fly
+
+### Why This Architecture?
+
+**Problem with old approach:** Committing images (PNGs) weekly would cause "binary bloat" - Git stores entire new files each time, growing the repository significantly over years.
+
+**Solution:** 
+- ✅ CSV files (text, small diffs) → `traffic` branch
+- ✅ PNG images (large binaries) → generated during build, never committed
+- ✅ `main` branch → zero traffic commits, clean history
+- ✅ Long-term scalability → repo size stays manageable
 
 ### Data Storage
 
-All traffic data is stored in CSV format under `traffic/data/`:
-
 ```
-traffic/
-├── data/
-│   ├── views.csv           # Daily view counts
-│   ├── clones.csv          # Daily clone counts
-│   ├── referrers.csv       # Traffic sources
-│   ├── popular_paths.csv   # Most viewed pages
-│   └── weekly_summary.csv  # Weekly aggregated stats
-├── reports/                # Generated visualizations (git-ignored)
-├── fetch_traffic.py        # Collection script
-└── visualize_traffic.py    # Visualization script
+two branches:
+
+main branch (code only):
+├── traffic/
+│   ├── fetch_traffic.py        # Collection script
+│   └── visualize_traffic.py    # Visualization script
+├── docs/
+│   ├── traffic_dashboard.md    # Dashboard page
+│   └── _static/traffic/        # Images generated at build time (not in git)
+└── .github/workflows/
+    └── traffic.yaml            # Workflow (triggers from main, commits to traffic)
+
+traffic branch (data only, orphan):
+├── README.md                    # Branch description
+└── traffic/data/                # CSV data files
+    ├── views.csv
+    ├── clones.csv
+    ├── referrers.csv
+    ├── popular_paths.csv
+    └── weekly_summary.csv
 ```
 
 ## Manual Collection
@@ -63,25 +85,31 @@ python traffic/fetch_traffic.py
 
 ## Generating Visualizations
 
-Create histograms and insights from collected data:
+The dashboard on ReadTheDocs is automatically updated during build. You can also generate visualizations locally:
 
 ```bash
-# Install dependencies (if not already installed)
+# Install dependencies
 pip install pandas matplotlib
 
-# Generate all visualizations
-python traffic/visualize_traffic.py
+# Generate from local CSV files (if you have them)
+python traffic/visualize_traffic.py --source local
+
+# Generate from GitHub traffic branch (recommended)
+python traffic/visualize_traffic.py --source github:aramis-lab/leaspy:traffic
+
+# Filter by date range
+python traffic/visualize_traffic.py --source github:aramis-lab/leaspy:traffic 01/01/2026 31/01/2026
+
+# Specify custom output directory
+python traffic/visualize_traffic.py --source github:aramis-lab/leaspy:traffic --output-dir /tmp/traffic
 ```
 
-This creates:
-
-- `traffic/reports/views_timeline.png` - Views over time
-- `traffic/reports/clones_timeline.png` - Clones over time
-- `traffic/reports/weekly_summary.png` - Weekly comparison
-- `traffic/reports/top_referrers.png` - Top traffic sources
-- `traffic/reports/popular_paths.png` - Most visited pages
-
-Plus a text summary with key insights.
+Generated charts:
+- Views and unique visitors over time (line graphs)
+- Clones and unique cloners over time (line graphs)
+- Weekly traffic summary (bar chart)
+- Top referrers (traffic sources)
+- Most popular pages
 
 ## Understanding the Data
 
@@ -143,11 +171,45 @@ print("\nTop traffic sources:")
 print(referrers.head(10))
 ```
 
-## Permissions
+## Permissions and Security
+
+### API Access
 
 **Important**: Only users with **admin** or **push** access to the repository can view traffic data via GitHub's API. 
 
 The GitHub Actions workflow uses `GITHUB_TOKEN` which automatically has the necessary permissions when the workflow runs from the default branch.
+
+### Data Protection
+
+- **CSV files** (`traffic/data/*.csv`) are stored in the `traffic` branch and only updated by GitHub Actions
+- **PNG images** are generated during ReadTheDocs build from CSVs in `traffic` branch
+- **`main` branch** has NO traffic data or images committed (stays clean)
+- Manual changes to CSV files should be made in the `traffic` branch (not recommended)
+
+### Git History and Data Commits
+
+The weekly data collection creates one commit per week **in the traffic branch only** with format: `data: update traffic stats YYYY-MM-DD`
+
+**Key benefits of this architecture:**
+- ✅ `main` branch history is completely clean (zero traffic commits)
+- ✅ No binary bloat (images never committed)
+- ✅ Data isolation (traffic branch is independent)
+- ✅ Easy to delete entire traffic history if needed (just delete branch)
+
+To view traffic branch:
+```bash
+# List branches
+git branch -a
+
+# Checkout traffic branch
+git checkout traffic
+
+# View CSV files
+ls traffic/data/
+
+# Return to main
+git checkout main
+```
 
 ## Troubleshooting
 

@@ -8,7 +8,7 @@ This script collects:
 - Top referrers
 - Popular content (paths)
 
-Data is stored in traffic-data/ directory with timestamps.
+Data is saved to traffic/data/ directory locally, but committed to traffic branch by GitHub Actions.
 """
 
 import os
@@ -17,6 +17,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 import requests
+import pandas as pd
 
 
 def get_traffic_data(repo: str, token: str, endpoint: str) -> dict:
@@ -63,24 +64,37 @@ def save_timeseries_data(data: dict, metric_name: str, output_dir: Path):
     timestamp = datetime.utcnow().isoformat()
     filename = output_dir / f"{metric_name}.csv"
     
-    # Check if file exists to determine if we need headers
-    file_exists = filename.exists()
+    # Prepare new data
+    new_rows = []
+    for entry in data[metric_name]:
+        new_rows.append({
+            'fetch_timestamp': timestamp,
+            'date': entry['timestamp'][:10],
+            'count': entry['count'],
+            'uniques': entry['uniques']
+        })
     
-    with open(filename, 'a', newline='') as f:
-        writer = csv.writer(f)
+    new_df = pd.DataFrame(new_rows)
+    
+    if filename.exists():
+        # Load existing data
+        existing_df = pd.read_csv(filename)
         
-        # Write header if new file
-        if not file_exists:
-            writer.writerow(['fetch_timestamp', 'date', 'count', 'uniques'])
+        # Combine old and new data
+        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
         
-        # Write data points
-        for entry in data[metric_name]:
-            writer.writerow([
-                timestamp,
-                entry['timestamp'][:10],  # Just the date part
-                entry['count'],
-                entry['uniques']
-            ])
+        # Deduplicate: keep only the most recent fetch_timestamp for each date
+        combined_df['fetch_timestamp'] = pd.to_datetime(combined_df['fetch_timestamp'], format='mixed')
+        combined_df = combined_df.sort_values('fetch_timestamp').groupby('date').tail(1).reset_index(drop=True)
+        
+        # Sort by date for clean output
+        combined_df = combined_df.sort_values('date').reset_index(drop=True)
+        
+        combined_df.to_csv(filename, index=False)
+    else:
+        # Sort new data by date
+        new_df = new_df.sort_values('date').reset_index(drop=True)
+        new_df.to_csv(filename, index=False)
     
     print(f"Saved {metric_name} data to {filename}")
 
@@ -163,27 +177,34 @@ def save_summary(views: dict, clones: dict, output_dir: Path):
     timestamp = datetime.utcnow().isoformat()
     filename = output_dir / "weekly_summary.csv"
     
-    file_exists = filename.exists()
+    new_row = {
+        'fetch_timestamp': timestamp,
+        'total_views': views.get('count', 0) if views else 0,
+        'unique_visitors': views.get('uniques', 0) if views else 0,
+        'total_clones': clones.get('count', 0) if clones else 0,
+        'unique_cloners': clones.get('uniques', 0) if clones else 0
+    }
     
-    with open(filename, 'a', newline='') as f:
-        writer = csv.writer(f)
+    new_df = pd.DataFrame([new_row])
+    
+    if filename.exists():
+        existing_df = pd.read_csv(filename)
+        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
         
-        if not file_exists:
-            writer.writerow([
-                'fetch_timestamp',
-                'total_views',
-                'unique_visitors',
-                'total_clones',
-                'unique_cloners'
-            ])
+        # Parse timestamps with mixed format support
+        combined_df['fetch_timestamp'] = pd.to_datetime(combined_df['fetch_timestamp'], format='mixed')
         
-        writer.writerow([
-            timestamp,
-            views.get('count', 0) if views else 0,
-            views.get('uniques', 0) if views else 0,
-            clones.get('count', 0) if clones else 0,
-            clones.get('uniques', 0) if clones else 0
-        ])
+        # Deduplicate: keep only one entry per day (most recent)
+        combined_df['date_only'] = combined_df['fetch_timestamp'].dt.date
+        combined_df = combined_df.sort_values('fetch_timestamp').groupby('date_only').tail(1).reset_index(drop=True)
+        combined_df = combined_df.drop('date_only', axis=1)
+        
+        # Sort by timestamp
+        combined_df = combined_df.sort_values('fetch_timestamp').reset_index(drop=True)
+        
+        combined_df.to_csv(filename, index=False)
+    else:
+        new_df.to_csv(filename, index=False)
     
     print(f"Saved weekly summary to {filename}")
 

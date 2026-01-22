@@ -12,11 +12,15 @@ permissions:
 jobs:
   collect-traffic:
     runs-on: ubuntu-latest
+    concurrency:
+      group: traffic-collection
+      cancel-in-progress: false
     
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       
@@ -28,25 +32,65 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pandas matplotlib
+          pip install requests pandas
       
       - name: Fetch traffic data
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
+          # Fetch data - this creates CSV files in traffic/data/
           python traffic/fetch_traffic.py
+          
+          # Move CSV files to temp location to preserve them during branch switch
+          mkdir -p /tmp/traffic_backup
+          cp -r traffic/data/*.csv /tmp/traffic_backup/ 2>/dev/null || echo "No CSV files yet"
+          ls -la /tmp/traffic_backup/
       
-      - name: Commit and push traffic data
+      - name: Switch to traffic branch
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          
+          # Fetch traffic branch or create it if it doesn't exist
+          git fetch origin traffic 2>/dev/null || true
+          
+          if git rev-parse --verify origin/traffic >/dev/null 2>&1; then
+            echo "Traffic branch exists, checking it out..."
+            git checkout traffic
+            git pull origin traffic
+          else
+            echo "Traffic branch doesn't exist, creating orphan branch..."
+            git checkout --orphan traffic
+            git rm -rf .
+            mkdir -p traffic/data
+            echo "# Traffic Data Branch" > README.md
+            echo "" >> README.md
+            echo "This branch stores historical traffic data (CSV files only)." >> README.md
+            echo "Updated automatically by GitHub Actions every Monday." >> README.md
+            touch traffic/data/.gitkeep
+            git add README.md traffic/data/.gitkeep
+            git commit -m "Initial traffic data branch"
+            git push -u origin traffic
+          fi
+      
+      - name: Update traffic data in branch
+        run: |
+          # Ensure directory exists
+          mkdir -p traffic/data
+          
+          # Copy the CSV files from temp location
+          cp /tmp/traffic_backup/*.csv traffic/data/ 2>/dev/null || echo "No CSV files to copy"
+          ls -la traffic/data/
+          
+      - name: Commit and push to traffic branch
+        run: |
           git add traffic/data/
           
           # Only commit if there are changes
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update traffic data $(date +'%Y-%m-%d')"
-            git push
+            git commit -m "data: update traffic stats $(date +'%Y-%m-%d')"
+            git push origin traffic
           fi
