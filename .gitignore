@@ -5,10 +5,6 @@
 tests/_data/_tmp/*
 !tests/_data/_tmp/*.md
 
-# Traffic monitoring - all data lives in traffic branch, ignore any local files
-traffic/data/
-docs/_static/traffic/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
