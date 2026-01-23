@@ -10,8 +10,6 @@ build:
       - poetry config virtualenvs.create false
       - . "$READTHEDOCS_VIRTUALENV_PATH/bin/activate" && poetry install --with docs
       - pip freeze
-    pre_build:
-      - python traffic/visualize_traffic.py --source github:aramis-lab/leaspy:traffic --output-dir docs/_static/traffic || echo "Warning - Traffic data not available yet"
 
 sphinx:
   configuration: docs/conf.py
