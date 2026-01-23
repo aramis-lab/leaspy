@@ -17,10 +17,10 @@ jobs:
       cancel-in-progress: false
     
     steps:
-      - name: Checkout master branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       
