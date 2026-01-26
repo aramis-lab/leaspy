@@ -2,8 +2,8 @@ name: Repository Traffic Collection
 
 on:
   schedule:
-    # Run every Monday at 13:00 UTC (14:00 Paris time)
-    - cron: '0 13 * * 1'
+    # TEMPORARY: Testing cron - runs every 2 hours at :37 (15:37, 17:37, 19:37, etc.)
+    - cron: '37 1-23/2 * * *'
   workflow_dispatch: # Allow manual trigger for testing
 
 permissions:
