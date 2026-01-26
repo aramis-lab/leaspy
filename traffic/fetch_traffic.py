@@ -226,6 +226,17 @@ def save_summary(views: dict, clones: dict, output_dir: Path):
     
     if filename.exists():
         existing_df = pd.read_csv(filename)
+        
+        # Backward compatibility: add week_id to old data if missing
+        if 'week_id' not in existing_df.columns:
+            # Parse timestamps and calculate week_id for old rows
+            existing_df['fetch_timestamp'] = pd.to_datetime(existing_df['fetch_timestamp'], format='mixed')
+            existing_df['week_id'] = existing_df['fetch_timestamp'].apply(
+                lambda x: f"{x.isocalendar()[0]}-W{x.isocalendar()[1]:02d}"
+            )
+            # Reorder columns to match new format
+            existing_df = existing_df[['week_id', 'fetch_timestamp', 'total_views', 'unique_visitors', 'total_clones', 'unique_cloners']]
+        
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
         
         # Parse timestamps with mixed format support
