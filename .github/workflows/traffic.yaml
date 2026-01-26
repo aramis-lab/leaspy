@@ -75,6 +75,9 @@ jobs:
           mkdir -p "${{ runner.temp }}/traffic_backup"
           cp -r traffic/data/*.csv "${{ runner.temp }}/traffic_backup/" 2>/dev/null || echo "No CSV files yet"
           ls -la "${{ runner.temp }}/traffic_backup/"
+          
+          # Remove CSV files to avoid "untracked files would be overwritten" error
+          rm -rf traffic/
       
       - name: Switch to traffic branch
         run: |
