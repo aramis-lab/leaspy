@@ -1,0 +1,123 @@
+name: Repository Traffic Collection
+
+on:
+  schedule:
+    # Run every Monday at 13:00 UTC (14:00 Paris time)
+    - cron: '0 13 * * 1'
+  workflow_dispatch: # Allow manual trigger for testing
+
+permissions:
+  contents: write
+
+jobs:
+  collect-traffic:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: traffic-collection
+      cancel-in-progress: false
+    
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas
+      
+      - name: Get existing data from traffic branch
+        run: |
+          # Try to get existing CSV files from traffic branch
+          git fetch origin traffic 2>/dev/null || true
+          
+          if git rev-parse --verify origin/traffic >/dev/null 2>&1; then
+            echo "Traffic branch exists, getting existing CSV files..."
+            mkdir -p traffic/data
+            git show origin/traffic:traffic/data/views.csv > traffic/data/views.csv 2>/dev/null || echo "No views.csv yet"
+            git show origin/traffic:traffic/data/clones.csv > traffic/data/clones.csv 2>/dev/null || echo "No clones.csv yet"
+            git show origin/traffic:traffic/data/referrers.csv > traffic/data/referrers.csv 2>/dev/null || echo "No referrers.csv yet"
+            git show origin/traffic:traffic/data/popular_paths.csv > traffic/data/popular_paths.csv 2>/dev/null || echo "No popular_paths.csv yet"
+            git show origin/traffic:traffic/data/weekly_summary.csv > traffic/data/weekly_summary.csv 2>/dev/null || echo "No weekly_summary.csv yet"
+            echo "Existing CSV files retrieved:"
+            ls -la traffic/data/
+          else
+            echo "No traffic branch yet, starting fresh"
+            mkdir -p traffic/data
+          fi
+      
+      - name: Fetch traffic data
+        env:
+          # Use the Admin PAT if available (TRAFFIC_TOKEN)
+          # We still pass GITHUB_TOKEN as fallback merely for the script env check,
+          # but the script now prioritizes TRAFFIC_TOKEN.
+          TRAFFIC_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          # Fetch data - this will merge with existing CSV files
+          python traffic/fetch_traffic.py
+          
+          # Move CSV files to temp location to preserve them during branch switch
+          # Using runner.temp as per best practices
+          mkdir -p "${{ runner.temp }}/traffic_backup"
+          cp -r traffic/data/*.csv "${{ runner.temp }}/traffic_backup/" 2>/dev/null || echo "No CSV files yet"
+          ls -la "${{ runner.temp }}/traffic_backup/"
+          
+          # Remove CSV files to avoid "untracked files would be overwritten" error
+          rm -rf traffic/
+      
+      - name: Switch to traffic branch
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Fetch traffic branch or create it if it doesn't exist
+          git fetch origin traffic 2>/dev/null || true
+          
+          if git rev-parse --verify origin/traffic >/dev/null 2>&1; then
+            echo "Traffic branch exists, checking it out..."
+            git checkout -B traffic origin/traffic
+          else
+            echo "Traffic branch doesn't exist, creating orphan branch..."
+            git checkout --orphan traffic
+            git rm -rf .
+            mkdir -p traffic/data
+            echo "# Traffic Data Branch" > README.md
+            echo "" >> README.md
+            echo "This branch stores historical traffic data (CSV files only)." >> README.md
+            echo "Updated automatically by GitHub Actions every Monday." >> README.md
+            touch traffic/data/.gitkeep
+            git add README.md traffic/data/.gitkeep
+            git commit -m "Initial traffic data branch"
+            git push -u origin traffic
+          fi
+      
+      - name: Update traffic data in branch
+        run: |
+          # Ensure directory exists
+          mkdir -p traffic/data
+          
+          # Copy the CSV files from temp location
+          cp "${{ runner.temp }}"/traffic_backup/*.csv traffic/data/ 2>/dev/null || echo "No CSV files to copy"
+          ls -la traffic/data/
+          
+      - name: Commit and push to traffic branch
+        run: |
+          git add traffic/data/
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "data: update traffic stats $(date +'%Y-%m-%d')"
+            git push origin traffic
+          fi
