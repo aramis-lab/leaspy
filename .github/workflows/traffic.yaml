@@ -5,10 +5,6 @@ on:
     # Run every Monday at 00:00 UTC (weekly)
     - cron: '0 0 * * 1'
   workflow_dispatch: # Allow manual trigger for testing
-  push:
-    branches:
-      - master
-      - traffic-fork-test
 
 permissions:
   contents: write
