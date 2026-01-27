@@ -29,7 +29,7 @@ def discrete_sf_from_pdf(pdf: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
 
     Returns
     -------
-    :class:`np.ndarray` :
+    np.ndarray
         The discrete survival function values.
     """
     return (1 - pdf.cumsum(-1))[..., :-1]
@@ -51,18 +51,19 @@ def compute_ordinal_pdf_from_ordinal_sf(
         Survival function values : ordinal_sf[..., l] is the proba to be superior or equal to l+1
         Dimensions are:
 
-           * 0=individual
-           * 1=visit
-           * 2=feature
-           * 3=ordinal_level [l=0..L-1]
-           * [4=individual_parameter_dim_when_gradient]
+        * 0=individual
+        * 1=visit
+        * 2=feature
+        * 3=ordinal_level [l=0..L-1]
+        * [4=individual_parameter_dim_when_gradient]
     dim_ordinal_levels : int, default = 3
         The dimension of the tensor where the ordinal levels are.
 
     Returns
     -------
-    ordinal_pdf : :class:`torch.FloatTensor` (same shape as input, except for dimension 3 which has one more element)
-        ordinal_pdf[..., l] is the proba to be equal to l (l=0..L)
+    torch.FloatTensor
+        Probability density where ordinal_pdf[..., l] is the proba to be equal to l (l=0..L).
+        Same shape as input, except for dimension 3 which has one more element.
     """
     # nota: torch.diff was introduced in v1.8 but would not highly improve performance of this routine anyway
     s = list(ordinal_sf.shape)
@@ -86,9 +87,6 @@ class MultinomialDistribution(torch.distributions.Multinomial):
     ----------
     probs : :class:`torch.Tensor`
         The pdf of the multinomial distribution.
-
-    Attributes
-    ----------
     """
 
     arg_constraints: ClassVar = {}
@@ -176,9 +174,9 @@ class MultinomialCdfDistribution(torch.distributions.Distribution):
 
         Returns
         -------
-        :class:`torch.Tensor` :
+        torch.Tensor
             Vector of integer values corresponding to the multinomial sampling.
-            Result is in [[0, L]]
+            Result is in [[0, L]].
         """
         r = torch.rand(self._sample_shape).unsqueeze(-1)
         return (r < self.cdf).int().argmax(dim=-1)
