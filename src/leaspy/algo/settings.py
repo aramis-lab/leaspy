@@ -479,11 +479,10 @@ class AlgorithmSettings:
                 Saves the values in csv files every N iterations.
             * plot_periodicity : :obj:`int`, optional, default 1000
                 Generates plots from saved values every N iterations.
-                Notes:
-                    * Must be a multiple of `save_periodicity`.
-                    * Setting this value too low may significantly slow down the fitting process.
+                Must be a multiple of `save_periodicity`.
+                Setting this value too low may significantly slow down the fitting process.
             * plot_patient_periodicity : :obj:`int`
-                 Set the frequency of the saves of the patients' reconstructions
+                Set the frequency of the saves of the patients' reconstructions
             * plot_sourcewise : :obj:`bool`, optional, default False
                 Set this to True to plot the source-based parameters sourcewise.
             * overwrite_logs_folder : :obj:`bool`, optional, default False

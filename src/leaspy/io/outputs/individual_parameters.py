@@ -56,6 +56,7 @@ class IndividualParameters:
 
         Examples
         --------
+
             * shape ``()`` becomes size ``1```
             * shape ``(1,)``becomes size ``1```
             * shape ``(2,3)``becomes size ``6```
@@ -535,6 +536,7 @@ class IndividualParameters:
             If no extension, default extension (csv) is used
         **kwargs
             Additional keyword arguments to pass to either:
+
             * :meth:`pandas.DataFrame.to_csv`
             * :func:`json.dump`
             depending on saving format requested

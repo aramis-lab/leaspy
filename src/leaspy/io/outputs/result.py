@@ -845,12 +845,14 @@ class Result:
         Notes
         -----
         If ``cofactor is None``:
+
             * If the parameter is univariate => return a list the parameter's distribution:
                 list[float]
             * If the parameter is multivariate => return a dictionary:
                 {'parameter1': distribution of parameter variable 1, 'parameter2': ...}
 
         If ``cofactor is not None``:
+
             * If the parameter is univariate => return a dictionary:
                 {'cofactor1': parameter distribution such that patient.covariate = covariate1, 'cofactor2': ...}
             * If the parameter is multivariate => return a dictionary:

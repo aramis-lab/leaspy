@@ -55,6 +55,7 @@ class LinearAttributes(AbstractManifoldModelAttributes):
         ----------
         names_of_changed_values : set[str]
             Elements of set must be either:
+
                 * ``all`` (update everything)
                 * ``g`` correspond to the attribute :attr:`positions`.
                 * ``v0`` (only for multivariate models) correspond to the attribute :attr:`velocities`.

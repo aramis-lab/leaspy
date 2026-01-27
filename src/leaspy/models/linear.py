@@ -135,7 +135,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-         :class:`torch.Tensor`
+		:class:`torch.Tensor`
             A tensor of ones with the same shape as `g`.
         """
         return torch.ones_like(g)
@@ -168,7 +168,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-         :class:`torch.Tensor`
+		:class:`torch.Tensor`
             The model output with contribution from sources.
         """
         pop_s = (None, None, ...)

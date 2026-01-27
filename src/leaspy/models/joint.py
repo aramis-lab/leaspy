@@ -43,6 +43,7 @@ class JointModel(LogisticModel):
     Raises
     ------
     :exc:`.LeaspyModelInputError`
+
         * If `name` is not one of allowed sub-type: 'univariate_linear' or 'univariate_logistic'
         * If hyperparameters are inconsistent
     """
@@ -262,6 +263,7 @@ class JointModel(LogisticModel):
         Raises
         ------
         :exc:`.LeaspyInputError` :
+
             - If the :class:`.Dataset` has a number of dimensions smaller than 2.
             - If the :class:`.Dataset` does not have the same dimensionality as the model.
             - If the :class:`.Dataset`'s headers do not match the model's.
@@ -389,11 +391,16 @@ class JointModel(LogisticModel):
     ) -> torch.Tensor:
         """
         This method computes the individual trajectory of a patient for given timepoint(s) using his/her individual parameters (random effects).
+
         For the longitudinal sub-model:
-            - Compute longitudinal values
+
+        - Compute longitudinal values
+
         For the event sub-model:
-            - only one event: return the survival rate corrected by the probability of the first time point of the prediction assuming that the patient was alive,
-            - more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
+
+        - only one event: return the survival rate corrected by the probability of the first time point of the prediction assuming that the patient was alive,
+        - more than one event: return the Cumulative Incidence function corrected by the probability of the first time point of the prediction assuming that the patient was alive.
+
         Nota: model uses its current internal state.
 
         Parameters

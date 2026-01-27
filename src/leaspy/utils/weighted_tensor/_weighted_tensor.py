@@ -49,6 +49,7 @@ class WeightedTensor(Generic[VT]):
         Raises:
         ------
         AssertionError:
+
             - If `value` is a `WeightedTensor` (disallowed for initialization).
             - If `weight` is a `WeightedTensor` (disallowed for weights).
             - If `weight` contains negative values.
@@ -265,6 +266,7 @@ class WeightedTensor(Generic[VT]):
 
         :obj:`tuple` [ :obj:`torch.Tensor`, :obj:`torch.Tensor` ]:
         Tuple containing:
+
             - weighted_sum : :obj:`torch.Tensor`
                 Weighted sum, with totally un-weighted aggregates filled with `fill_value`.
             - sum_weights : :obj:`torch.Tensor` (may be of other type than `cls.weight_dtype`)
@@ -477,8 +479,10 @@ class WeightedTensor(Generic[VT]):
         """Compute the sum of the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing:
+
         - The sum of the value tensors
         - The weight according to the following rules:
+
             - If both tensors have weights: weights must be identical
             - If only one tensor has weights: those weights are retained
             - If neither tensor has weights: result has no weights
@@ -516,6 +520,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the difference between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing:
+
             - The difference between this tensor's values and the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -552,6 +557,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the product of the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing:
+
             - The product of the value tensors
             - The weight according to the same rules as __add__
 
@@ -587,6 +593,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the division of the weighted tensor by another tensor.
 
         Returns a new weighted tensor containing:
+
             - The quotient of the value tensors
             - The weight according to the same rules as __add__
 
@@ -624,6 +631,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the less-than comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values are less than the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -643,6 +651,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the less-than-or-equal-to comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values are less than or equal to the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -662,6 +671,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the equality comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values equal the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -681,6 +691,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the not-equal-to comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values differ from the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -699,6 +710,7 @@ class WeightedTensor(Generic[VT]):
     def __gt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
         """Compute the greater-than comparison between the weighted tensor and another tensor.
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values exceed the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -718,6 +730,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the greater-than-or-equal-to comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values are greater than or equal to the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -752,6 +765,7 @@ class WeightedTensor(Generic[VT]):
         -------
         :obj:`Tuple`[:obj:`torch.Tensor`, Optional[:obj:`torch.Tensor`]]:
             Tuple containing:
+
             - value : :obj:`torch.Tensor`
                 The filled tensor.
                 If `weight` is None, the original tensor is returned.

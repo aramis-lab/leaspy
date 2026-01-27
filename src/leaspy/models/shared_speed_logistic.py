@@ -60,13 +60,13 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         Parameters
         ----------
         g_deltas_exp : :class:`torch.Tensor`
-          Product of slope and exp(-deltas).
+		Product of slope and exp(-deltas).
 
         Returns
         -------
         :class:`torch.Tensor`
-         Metric value, computed as:
-               .. math::
+		Metric value, computed as:
+			.. math::
 
                     \\frac{(g \\cdot e^{-\\delta} + 1)^2}{g \\cdot e^{-\\delta}}
         """
@@ -91,12 +91,16 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
     @staticmethod
     def pad_deltas(*, deltas: torch.Tensor) -> torch.Tensor:
         """Prepend deltas with a zero as delta_1 is set to zero in the equations.
-        .
-                Parameters:
-                    deltas (:class:`torch.Tensor`): Deltas tensor.
 
-                Returns:
-                    :class:`torch.Tensor`: Padded deltas tensor.
+        Parameters
+        ----------
+        deltas : torch.Tensor
+            Deltas tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Padded deltas tensor.
         """
         return torch.cat((torch.tensor([0.0]), deltas))
 
@@ -138,7 +142,7 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
         -------
         :class:`torch.Tensor`
             :math:`g_{metric}` value, computed as:
-               .. math::
+			.. math::
 
                     g\\_metric = \\frac{1}{(\\gamma_{t0} \\cdot (1 - \\gamma_{t0}))^2}
         """

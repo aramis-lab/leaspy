@@ -70,22 +70,26 @@ class ObservationModel:
 
         Parameters
         ----------
-        named_attached_vars ::obj:`bool`, optional
+        named_attach_vars : bool, optional
+            If True, the attachment variables are named with the observation model name.
 
         Returns
         -------
-        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`] 
-            A dictionary mapping variable name to their correspondind specifications with
-            - the primary DaraVariable
-            - any `extra_vars` defined by the model
-            - nll attachment variables :
-                - nll_attach_var_ind: a :class:`~leaspy.variables.specs.LinkedVariable` representing the individual-level
-                negative log-likelihood contributions
-                - nll_attach_var: a :class:`~leaspy.variables.specs.LinkedVariable` that sums the individual contributions
+                dict[VariableName, VariableInterface]
+                        A dictionary mapping variable name to their corresponding specifications with
+
+                        - the primary DataVariable
+                        - any ``extra_vars`` defined by the model
+                        - NLL attachment variables:
+
+                            - ``nll_attach_var_ind``: a :class:`~leaspy.variables.specs.LinkedVariable` representing the
+                                individual-level negative log-likelihood contributions
+                            - ``nll_attach_var``: a :class:`~leaspy.variables.specs.LinkedVariable` that sums the individual
+                                contributions
 
         Notes
         -----
-        The distribution object `self.dist`should provide a `get_func_nll(name)` method that
+        The distribution object `self.dist` should provide a `get_func_nll(name)` method that
         returns a callable for computing the nll
         """
         # TODO change? a bit dirty? possibility of having aliases for variables?

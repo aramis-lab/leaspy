@@ -57,6 +57,7 @@ class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
         Returns
         -------
         2-tuple:
+
             * None
             * noise scale (std-dev), scalar
         """

@@ -50,6 +50,7 @@ def compute_ordinal_pdf_from_ordinal_sf(
     ordinal_sf : :class:`torch.FloatTensor`
         Survival function values : ordinal_sf[..., l] is the proba to be superior or equal to l+1
         Dimensions are:
+
            * 0=individual
            * 1=visit
            * 2=feature

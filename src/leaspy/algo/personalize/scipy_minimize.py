@@ -389,6 +389,7 @@ class ScipyMinimizeAlgorithm(
         Returns
         -------
         2-tuple (as expected by :func:`scipy.optimize.minimize` when ``jac=True``)
+
             * objective : :obj:`float`
             * gradient : array-like[float] with same length as `x` (= all dimensions of individual latent variables, concatenated)
         """
