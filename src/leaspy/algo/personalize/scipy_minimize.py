@@ -200,7 +200,7 @@ class ScipyMinimizeAlgorithm(
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         Settings for the algorithm, including the `custom_scipy_minimize_params`
         parameter, which contains keyword arguments passed to
         :func:`scipy.optimize.minimize`.
@@ -213,7 +213,7 @@ class ScipyMinimizeAlgorithm(
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN` and
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
         Customization is possible via the `custom_scipy_minimize_params` in
-        :class:`.AlgorithmSettings`.
+        :class:`~leaspy.algo.settings.AlgorithmSettings`.
 
     format_convergence_issues : :obj:`str`
        A format string for displaying convergence issues, which can use the
@@ -228,7 +228,7 @@ class ScipyMinimizeAlgorithm(
     logger : None or callable :obj:`str` -> None
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
         By default, convergence issues are printed only if the BFGS optimization method is not used.
-        This can  be customized by setting the `logger` attribute in :class:`.AlgorithmSettings`.
+        This can  be customized by setting the `logger` attribute in :class:`~leaspy.algo.settings.AlgorithmSettings`.
     """
 
     name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE
@@ -533,7 +533,7 @@ class ScipyMinimizeAlgorithm(
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Contains the individual parameters of all patients.
         """
         individual_params_tensorized, _ = self._get_individual_parameters_patient(
@@ -572,12 +572,12 @@ class ScipyMinimizeAlgorithm(
         ----------
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             Model used to compute the group average parameters.
-        dataset : :class:`.Dataset` class object
+        dataset : :class:`~leaspy.io.data.dataset.Dataset` class object
             Contains the individual scores.
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Contains the individual parameters of all patients.
         """
         # Easier to pass a Dataset with 1 individual rather than individual times, values

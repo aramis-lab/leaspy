@@ -20,8 +20,8 @@ class AlgorithmWithSamplersMixin:
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
-        The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
+        The specifications of the algorithm as a :class:`~leaspy.algo.settings.AlgorithmSettings` instance.
 
         Please note that you can customize the number of memory-less (burn-in) iterations by setting either:
             * `n_burn_in_iter_frac`, such that duration of burn-in phase is a ratio of algorithm `n_iter` (default of 90%)
@@ -105,7 +105,7 @@ class AlgorithmWithSamplersMixin:
         Parameters
         ----------
         state : :class:`.State`
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
         """
         self.samplers = {}
         self._initialize_population_samplers(state)

@@ -254,19 +254,19 @@ class JointModel(LogisticModel):
         self, dataset: Optional[Dataset] = None
     ) -> None:
         """
-        Raise if the given :class:`.Dataset` is not compatible with the current model.
+        Raise if the given :class:`~leaspy.io.data.dataset.Dataset` is not compatible with the current model.
 
         Parameters
         ----------
-        dataset : :class:`.Dataset`, optional
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`, optional
 
         Raises
         ------
         :exc:`.LeaspyInputError` :
 
-            - If the :class:`.Dataset` has a number of dimensions smaller than 2.
-            - If the :class:`.Dataset` does not have the same dimensionality as the model.
-            - If the :class:`.Dataset`'s headers do not match the model's.
+            - If the :class:`~leaspy.io.data.dataset.Dataset` has a number of dimensions smaller than 2.
+            - If the :class:`~leaspy.io.data.dataset.Dataset` does not have the same dimensionality as the model.
+            - If the :class:`~leaspy.io.data.dataset.Dataset`'s headers do not match the model's.
         """
         super()._validate_compatibility_of_dataset(dataset)
         # Check that there is only one event stored

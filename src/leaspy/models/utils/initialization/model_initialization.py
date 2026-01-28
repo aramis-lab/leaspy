@@ -28,7 +28,7 @@ def initialize_parameters(model, dataset, method="default") -> tuple:
     ----------
     model : :class:`.AbstractModel`
         The model to initialize.
-    dataset : :class:`.Dataset`
+    dataset : :class:`~leaspy.io.data.dataset.Dataset`
         Contains the individual scores.
     method : str
         Must be one of:

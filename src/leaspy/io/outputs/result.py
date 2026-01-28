@@ -27,7 +27,7 @@ class Result:
 
     Parameters
     ----------
-    data : :class:`.Data`
+    data : :class:`~leaspy.io.data.data.Data`
         Object containing the information of the individuals, 
         in particular the time-points :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
     individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
@@ -37,7 +37,7 @@ class Result:
 
     Attributes
     ----------
-    data : :class:`.Data`
+    data : :class:`~leaspy.io.data.data.Data`
         Object containing the information of the individuals, 
         in particular the time-points :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
     individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
@@ -629,7 +629,7 @@ class Result:
 
         Parameters
         ----------
-        data : :obj:`str` or :class:`pandas.DataFrame` or :class:`.Data`
+        data : :obj:`str` or :class:`pandas.DataFrame` or :class:`~leaspy.io.data.data.Data`
             The file's path or a DataFrame containing the features' scores.
         individual_parameters : :obj:`str` or :class:`pandas.DataFrame`
             The file's path or a DataFrame containing the individual parameters.

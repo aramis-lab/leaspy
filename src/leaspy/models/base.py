@@ -588,7 +588,7 @@ class BaseModel(ModelInterface):
             )
 
     def initialize(self, dataset: Optional[Dataset] = None) -> None:
-        """Initialize the model given a :class:`.Dataset` and an initialization method.
+        """Initialize the model given a :class:`~leaspy.io.data.dataset.Dataset` and an initialization method.
 
         After calling this method :attr:`is_initialized` should be ``True`` and model
         should be ready for use.

@@ -39,8 +39,8 @@ class ObservationModel:
     ----------
     name : :obj:`str`
         The name of observed variable (to name the data variable & attachment term related to this observation).
-    getter : function :class:`.Dataset` -> :class:`.WeightedTensor`
-        The way to retrieve the observed values from the :class:`.Dataset` (as a :class:`.WeightedTensor`):
+    getter : function :class:`~leaspy.io.data.dataset.Dataset` -> :class:`.WeightedTensor`
+        The way to retrieve the observed values from the :class:`~leaspy.io.data.dataset.Dataset` (as a :class:`.WeightedTensor`):
         e.g. all values, subset of values - only x, y, z features, one-hot encoded features, ...
     dist : :class:`.SymbolicDistribution`
         The symbolic distribution, parametrized by model variables, for observed values (so to compute attachment).

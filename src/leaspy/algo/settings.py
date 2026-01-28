@@ -371,7 +371,7 @@ class AlgorithmSettings:
 
         Returns
         -------
-        :class:`.AlgorithmSettings`
+        :class:`~leaspy.algo.settings.AlgorithmSettings`
             An instanced of AlgorithmSettings with specified parameters.
 
         Raises

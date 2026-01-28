@@ -41,8 +41,8 @@ def sampler_factory(
 
     Parameters
     ----------
-    sampler : :class:`.AbstractSampler` or :obj:`str`
-        If an instance of a subclass of :class:`.AbstractSampler`, returns the instance.
+    sampler : :class:`~leaspy.samplers.base.AbstractSampler` or :obj:`str`
+        If an instance of a subclass of :class:`~leaspy.samplers.base.AbstractSampler`, returns the instance.
         If a string, returns a new instance of the appropriate class (with optional parameters `kwargs`).
 
     variable_type : :class:`.VariableType`
@@ -50,11 +50,11 @@ def sampler_factory(
 
     **kwargs
         Optional parameters for initializing the requested Sampler
-        (not used if input is a subclass of :class:`.AbstractSampler`).
+        (not used if input is a subclass of :class:`~leaspy.samplers.base.AbstractSampler`).
 
     Returns
     -------
-    :class:`.AbstractSampler` :
+    :class:`~leaspy.samplers.base.AbstractSampler` :
         The desired sampler.
 
     Raises

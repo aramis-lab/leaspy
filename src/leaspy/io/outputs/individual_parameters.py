@@ -217,7 +217,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             An instance of the IndividualParameters object with the selected list of individuals
 
         Raises
@@ -402,7 +402,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             An instance of IndividualParameters initialized from the DataFrame.
 
         Examples
@@ -458,7 +458,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             An instance of IndividualParameters initialized from the pytorch dictionary.
 
         Raises
@@ -592,7 +592,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Individual parameters object load from the file
 
         Raises
@@ -690,7 +690,7 @@ class IndividualParameters:
         
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Individual parameters object load from the file
         """
         df = pd.read_csv(path, dtype={"ID": IDType}).set_index("ID")
@@ -710,7 +710,7 @@ class IndividualParameters:
         
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Individual parameters object load from the file
         """
         with open(path, "r") as f:

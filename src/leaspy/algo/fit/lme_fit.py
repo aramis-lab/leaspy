@@ -21,7 +21,7 @@ class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         * force_independent_random_effects : :obj:`bool`
             Force independence of random intercept & random slope
         * other keyword arguments passed to :meth:`statsmodels.regression.mixed_linear_model.MixedLM.fit`
@@ -51,7 +51,7 @@ class LMEFitAlgorithm(FitAlgorithm[LMEModel, tuple]):
         model : :class:`~leaspy.models.LMEModel`
             The used model.
 
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
             Dataset object
 
         Returns

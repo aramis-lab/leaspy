@@ -562,10 +562,10 @@ class Plotting:
 
         Parameters
         ----------
-        data : :class:`.Data`
+        data : :class:`~leaspy.io.data.data.Data`
         patients_idx : 'all' (default), :obj:`str` or list[:obj:`str`]
             Patients to display (by their ID).
-        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format), optional
+        individual_parameters : :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format), optional
             If not None, observations are plotted with respect to reparametrized ages.
         """
 
@@ -608,8 +608,8 @@ class Plotting:
 
         Parameters
         ----------
-        data : :class:`.Data`
-        individual_parameters : :class:`.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format)
+        data : :class:`~leaspy.io.data.data.Data`
+        individual_parameters : :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters` or :class:`pandas.DataFrame` (as may be output by ip.to_dataframe()) or dict (Pytorch ip format)
         patients_idx : 'all' (default), :obj:`str` or list[:obj:`str`]
             Patients to display (by their ID).
         reparametrized_ages : :obj:`bool` (default False)
