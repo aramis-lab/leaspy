@@ -15,7 +15,7 @@ By iterating these steps, the MCMC-SAEM algorithm converges to the maximum likel
 (prerequisites)=
 ### Prerequisites
 
-Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](./models.md#logistic-data), [joint](./models.md#joint-data), and [mixture](./models.md#mixture-data) models).
+Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](logistic-data), [joint](joint-data), and [mixture](mixture-data) models).
 
 ### Running Task
 
@@ -27,7 +27,7 @@ Let's use the logistic model as an example.
 from leaspy.models import LogisticModel
 ```
 
-We need to specify the arguments `name`, `dimension` (the number of outcomes $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per outcome or 'gaussian-scalar' to estimate one noise coefficient for all the outcomes). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md#individual-trajectory-spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of outcomes ($\sqrt{dimension}$).
+We need to specify the arguments `name`, `dimension` (the number of outcomes $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per outcome or 'gaussian-scalar' to estimate one noise coefficient for all the outcomes). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](individual-trajectory-spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of outcomes ($\sqrt{dimension}$).
 
 You can also add a `seed` or control other arguments for the output and the logs like `save_periodicity`, `path`, etc.
 
@@ -36,7 +36,7 @@ model = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_mode
 model.fit(data_leaspy, "mcmc_saem", n_iter=20000, seed=42)
 ```
 
-Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](./models.md#model-summary) and [mixture model](./models.md#id20).
+Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](joint-model-summary) and [mixture model](mixture-model-summary).
 
 ### Output
 

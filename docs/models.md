@@ -4,16 +4,16 @@
 ## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
-Individual temporal variability for patient $i$ is modeled with the [latent disease age](./notations.md#latent-disease-age) $\psi_i(t)$ :  
+Individual temporal variability for patient $i$ is modeled with the [latent disease age](latent-disease-age) $\psi_i(t)$ :  
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
 $$
 
 where:
-- $ \xi_i $ is the [individual log speed factor](./notations.md#individual-log-speed-factor)
-- $ \tau_i $ is the [estimated reference time](./notations.md#estimated-reference-time)
-- $ t_0 $ is the [population reference time](./notations.md#population-reference-time)
+- $ \xi_i $ is the [individual log speed factor](individual-log-speed-factor)
+- $ \tau_i $ is the [estimated reference time](estimated-reference-time)
+- $ t_0 $ is the [population reference time](population-reference-time)
 
 
 The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from $ \psi_i(t) $.  
@@ -21,8 +21,8 @@ The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from
 *Key Hypothesis*: Longitudinal and survival processes are linked by a shared latent disease age.
 
 ### Spatial Random Effects
-Disease presentation variability is captured by [space-shifts](./notations.md#space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
-- $\mathbf{A}$: [mixing matrix](./notations.md#mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of outcomes).
+Disease presentation variability is captured by [space-shifts](space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
+- $\mathbf{A}$: [mixing matrix](mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of outcomes).
 - $ \mathbf{s}_i$: Independent sources  
 
 For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ {cite}`schirattiBayesianMixedEffectsModel`, so that:
@@ -33,7 +33,7 @@ $$
 
 with $\beta$ the matrix of coefficients.
 
-Each event ( $l$ ) has a [survival shift](./notations.md#survival-shift):
+Each event ( $l$ ) has a [survival shift](survival-shift):
 
 $$
 u_{i,l} = \sum_{m=1}^{N_s} \zeta_{l,m} s_{i,m}
@@ -102,16 +102,17 @@ where:
 - $v_{0,k}$ is the speed of progression for outcome $k$ at reference time $t_0$,
 - $w_{i,k}$ is the individual space shift for outcome $k$.
 - $\frac{1}{1+g_k}$ is the value of the logistic curve at $t_0$
-- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](#introduction-to-spatio-temporal-models) for more details.
+- $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](introduction-to-spatio-temporal-models) for more details.
 
 
+(joint-model)=
 ## Joint Model
 
 ### Definition
 
 Joint models are a class of statistical models that simultaneously analyze {term}`longitudinal data` and {term}`survival data` {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error {cite}`tsiatisJOINTMODELINGLONGITUDINAL`.
 
-In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](./models.md#introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
+In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
 (joint-data)=
 ### Data
@@ -200,6 +201,7 @@ $$
 = \int_0^t \rho_l e^{\xi_i} \left( \frac{e^{\xi_i (x - \tau_i)}}{\nu_l} \right)^{\rho_l - 1} \exp(u_{i,l}) S_{i,l}(x) \prod_{q=1}^L S_{i,q}(x) \, dx
 $$
 
+(joint-model-summary)=
 #### Model summary
 For patient $i$, outcome $k$, and event $l$:
 
@@ -221,6 +223,7 @@ leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 ```
 For estimation, it is the {term}`CIF` that is outputted by the model. Note that for prediction purposes, the {term}`CIF` is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
+(mixture-model)=
 ## Mixture Model
 
 ### Definition
@@ -249,6 +252,7 @@ s_{il} \sim \sum_{c=1}^{n_c} \pi^c \mathcal{N} (\overline s^c, 1)
 $$
 
 
+(mixture-model-summary)=
 ### Model summary
 
 To use the mixture model in Leaspy you need to choose the number of cluster you wish to estimate beforehand.

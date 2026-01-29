@@ -35,7 +35,7 @@ The *individual log speed factor* for a given individual $ i $ is denoted as $ \
 (individual-trajectory)=
 ### Individual trajectory
 
-The *individual trajectory* for a given individual $ i $ is denoted as $ \gamma_i(t) $ and represents the disease progression of the patient $i$. It can be indexed by $k$ when $K$ outcomes are estimated.  
+The *individual trajectory* for a given individual $ i $ is denoted as $ \gamma_i(t) $ and represents the disease progression of the patient $i$. It can be indexed by $k$ when $K$ outcomes are estimated.
 
 (latent-disease-age)=
 ### Latent disease age

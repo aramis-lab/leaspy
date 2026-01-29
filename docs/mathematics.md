@@ -47,7 +47,7 @@ A common and well-defined algorithm for the likelihood maximization, proven to c
 
 As presented in the figure, the model draws a parallel line between a clinical and a Riemannian point of view of the disease progression.
 
-The idea is to see the variability of the disease progression mapped onto a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an [individual trajectory $\gamma_i$](./notations.md#individual-trajectory) that traverses the manifold.
+The idea is to see the variability of the disease progression mapped onto a Riemannian manifold where the longitudinal observations $y_{i,j,k}$  are aligned in an [individual trajectory $\gamma_i$](individual-trajectory) that traverses the manifold.
 
 ![intuition](./_static/images/intuition.png)
 __From clinical to Riemannian point of view (extracted from {cite}`ortholand_joint_2024`)__
@@ -73,13 +73,13 @@ Any trajectory $\gamma$ (geodesic) can be defined by the two parameters of its i
 
 The average trajectory  $\gamma_0$ is thus parametrized by its initial conditions ($t_0, v_0, p_0$) with a shape imposed by the metric.
 
-From there, the [individual trajectory $\gamma_i(t)$](./notations.md#individual-trajectory) could be defined playing on the three initial conditions.
+From there, the [individual trajectory $\gamma_i(t)$](individual-trajectory) could be defined playing on the three initial conditions.
 
 #### Individual trajectory & Temporal random effects:
 
-If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, it impacts the initial condition with ([$ \tau_i $](./notations.md#estimated-reference-time), $ v_0, p_0$).
+If a patient starts to have symptoms of the disease $\tau_i - t_0$ earlier (later) than the average population, it impacts the initial condition with ([$ \tau_i $](estimated-reference-time), $ v_0, p_0$).
 
-A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](./notations.md#individual-log-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $, [$ e^{\xi_i} $](./notations.md#individual-log-speed-factor) $, p_0$). Note that the two first aspects encompass temporal variability.
+A second option, is that the patient will have a faster (slower) disease progression with a factor [$e^{\xi_i}$](individual-log-speed-factor). This time, initial conditions are impacted so that ($ t_0, v_0 $, [$ e^{\xi_i} $](individual-log-speed-factor) $, p_0$). Note that the two first aspects encompass temporal variability.
 
 From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$.
 
@@ -88,7 +88,7 @@ From a mathematical point of view these impacts could be seen as a transformatio
 
 Finally, patients may vary in terms of disease presentation, i.e. from a clinical point of view, meaning that the order of outcome progression might differ between individuals.
 
-From a geometric point of view, this means that the geometric trajectory is not overlapping through the same points. This variability is enabled by manipulating the initial position $p_0$. It is done thanks to the vectors $ w_k $ named [space-shifts](./notations.md#space-shift) in the tangent space of the manifold that modified the trajectory in the sense of the Exp-parallelisation to assure the identifiability.
+From a geometric point of view, this means that the geometric trajectory is not overlapping through the same points. This variability is enabled by manipulating the initial position $p_0$. It is done thanks to the vectors $ w_k $ named [space-shifts](space-shift) in the tangent space of the manifold that modified the trajectory in the sense of the Exp-parallelisation to assure the identifiability.
 
 ![pop_to_ind](./_static/images/pop_to_ind.png)
 __Temporal and spatial random effects: from population to individual progression (extracted from {cite}`ortholand_joint_2024`)__
