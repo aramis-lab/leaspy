@@ -74,7 +74,7 @@ class State(MutableMapping):
     """
     Dictionary of cached values corresponding to the stateless DAG instance.
 
-   Parameters
+    Parameters
     ----------
     dag : :class:`~leaspy.variables.dag.VariablesDAG`
         The stateless DAG which state will hold values for.
@@ -93,7 +93,7 @@ class State(MutableMapping):
         The exact caching strategy depends on flag (caching by reference or by copy)
         Can be manually set or via `auto_fork` context manager.
 
-    _tracked_variables : :ob:`set[:class:`~leaspy.variables.specs.VariableName`, ...]
+    _tracked_variables : :obj:`set`[:class:`~leaspy.variables.specs.VariableName`, ...]
 
     _values : :class:`~leaspy.variables.specs.VariablesLazyValuesRW`
         Private cache for values (computations are lazy thus some values may be None).
@@ -305,7 +305,7 @@ class State(MutableMapping):
 
         Raises
         ------
-       :exc:`LeaspyInputError`
+        :exc:`LeaspyInputError`
             If the variable is independent and its value cannot be computed (i.e., is None),
             indicating it is required.
         """
@@ -628,7 +628,7 @@ class State(MutableMapping):
             The method used to initialize the variables. If None, the variables will be unset (set to None).
             If provided, an initialization function will be called per variable.
             When `method` is not None, `n_individuals` must be specified.
-        n_individuals : :obl:`int`, optional
+        n_individuals : :obj:`int`, optional
             Number of individuals to initialize. Required when `method` is not None and `df` is not provided.
         df : :obj:`pandas.DataFrame`, optional
             A DataFrame from which to directly extract the individual latent variable values.
