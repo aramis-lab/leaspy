@@ -100,8 +100,3 @@ _This figure presents from two points of view (clinical and Riemannian) how the 
 - Space Shift (4.a., 4.b.): the blue curves progress before the orange curve, Clinical graph: the curves are shifted in opposite directions, Riemannian graph: most of the blue (resp. orange) score value is observed for an orange (resp. blue) value of 0 (resp. 1)
 - Individual progression (5.a., 5.b.): The modelled curves fit the observations, Riemannian graph: the black crosses are close to the observed values.
 
-## References
-
-```{bibliography}
-:filter: docname in docnames
-```

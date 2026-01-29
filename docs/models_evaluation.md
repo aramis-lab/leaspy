@@ -216,8 +216,3 @@ For more information, please see [`scikit-survival`](https://scikit-survival.rea
 #### Avoid using C-index
 The C-index or Concordance index, similarly to the cumulative AUC, is a metric assessing the discriminatory ability of a survival model. However, this metric is criticized because it is a global metric that averages performance over the entire study period, hiding time-specific weaknesses {cite}`blanche2019cindex`. It also depends on the censoring distribution. Therefore, it is more convenient to use time-dependent AUC and the Brier Score presented above.
 
-## References
-
-```{bibliography}
-:filter: docname in docnames
-```

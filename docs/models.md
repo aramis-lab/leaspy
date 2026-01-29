@@ -269,8 +269,3 @@ leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
 This section will be implemented later.
 -->
 
-## References
-
-```{bibliography}
-:filter: docname in docnames
-```
