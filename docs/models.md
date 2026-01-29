@@ -1,5 +1,6 @@
 # Models
 
+(introduction-to-spatio-temporal-models)=
 ## Introduction to Spatio-Temporal Models
 
 ### Temporal Random Effects
@@ -40,6 +41,7 @@ $$
 
 *Interpretation*: Space shifts ($w_{i,k}$)  are more interpretable than sources ($s_i $), as they encapsulate total spatial variability effects.
 
+(logistic-model)=
 ## Logistic Model
 
 ### Definition
@@ -107,9 +109,9 @@ where:
 
 ### Definition
 
-Joint models are a class of statistical models that simultaneously analyze [longitudinal data](./glossary.md#longitudinal-data) and [survival data](./glossary.md#survival-data) {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error {cite}`tsiatisJOINTMODELINGLONGITUDINAL`.
+Joint models are a class of statistical models that simultaneously analyze {term}`longitudinal data` and {term}`survival data` {cite}`alsefri_bayesian_2020, ibrahim_basic_2010`. Unlike traditional approaches that treat these processes separately, joint models integrate them into a unified framework, recognizing that they often share underlying biological mechanisms—for example, a slowly progressing biomarker may signal an increased risk of a clinical event. By linking the two submodels—typically through shared random effects {cite}`rizopoulos_bayesian_2011` or latent processes {cite}`proust-lima_joint_2014`, fraitly {cite}`rondeau_frailtypack_2012`, models account for their interdependence, reducing biases from informative dropout or measurement error {cite}`tsiatisJOINTMODELINGLONGITUDINAL`.
 
-In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](./models.md#Introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
+In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](./models.md#introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
 (joint-data)=
 ### Data
@@ -191,7 +193,7 @@ $$
 S_{i,l}(t) = \exp\left( -\left( \frac{e^{\xi_i (t - \tau_i)}}{\nu_l} \right)^{\rho_l} \exp(u_{i,l}) \right)
 $$
 
-Finally, [CIF](./glossary.md#cif) for event $l$ and subject $i$ is defined as:
+Finally, {term}`CIF` for event $l$ and subject $i$ is defined as:
 
 $$
 \text{CIF}_{i,l}(t) = \int_0^t h_{i,l}(x) \prod_{q=1}^L S_{i,q}(x) \, dx \
@@ -217,13 +219,13 @@ In practice in leaspy, to use the joint model, you need to precise "joint" in Le
 leaspy_joint = JointModel(nb_events=2, source_dimension=3)
 leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 ```
-For estimation, it is the [CIF](./glossary.md#cif) that is outputted by the model. Note that for prediction purposes, the [CIF](./glossary.md#cif) is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
+For estimation, it is the {term}`CIF` that is outputted by the model. Note that for prediction purposes, the {term}`CIF` is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
 ## Mixture Model
 
 ### Definition
 
-Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity, in the sense that inter-patient variability is considered as random variation around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of [MCMC-SAEM](./glossary.md#mcmc-saem) for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
+Mixture models are a class of statistical models that represent a population as a combination of underlying subpopulations, each described by its own probability distribution {cite}`mclachlan_finite_2000`. Standard mixed effects models assume a certain homogeneity, in the sense that inter-patient variability is considered as random variation around a fixed reference. Mixture models explicitly recognize that observed data may arise from distinct latent groups—for example, patients may cluster into different onset times, rates of disease progression or more advanced clinical scores. This formulation captures heterogeneity in the data, allowing for flexible modeling of complex, multimodal patterns. Estimation is typically carried out using an adaptation of {term}`MCMC-SAEM` for mixture models as described in {cite}`mclachlan_finite_2000`, which iteratively refine both the component parameters and the posterior probabilities of membership. By providing a probabilistic clustering framework, mixture models not only identify hidden structure but also quantify uncertainty in subgroup assignment, making them widely applicable in biomedical sciences.
 
 In Leaspy the mixture model is implemented as an adaptation of the spatio-temporal logistic model where the individual parameters (`tau`, `xi`and `sources`) come from a mixture of gaussian distributions with a number of components defined by the user.
 

@@ -83,6 +83,7 @@ A second option, is that the patient will have a faster (slower) disease progres
 
 From a mathematical point of view these impacts could be seen as a transformation of the age of the patient into a latent disease age, as the effect on the trajectory is restricted to the reparametrisation of the time by the formula $\psi_i(t) = v_0 e^{\xi_i} (t -\tau_i) + t_0$.
 
+(individual-trajectory-spatial-random-effects)=
 #### Individual trajectory & Spatial random effects
 
 Finally, patients may vary in terms of disease presentation, i.e. from a clinical point of view, meaning that the order of outcome progression might differ between individuals.

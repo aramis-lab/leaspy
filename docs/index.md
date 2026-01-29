@@ -31,8 +31,8 @@ Information to install, test, and contribute to the package are available [here]
 
 #### API Documentation
 
-The exact [API](./glossary.md#api) of all functions and classes, as given in the docstrings.
-The [API](./glossary.md#api) documents expected types and allowed features for all functions, and all parameters available for the algorithms.
+The exact {term}`API` of all functions and classes, as given in the docstrings.
+The {term}`API` documents expected types and allowed features for all functions, and all parameters available for the algorithms.
 
 #### User Guide
 

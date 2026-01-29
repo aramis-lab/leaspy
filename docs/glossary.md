@@ -13,7 +13,7 @@ API
 
 Attachment
   The attachment is a diminutive for attachment to data.
-  It is a term of the {term}`log-likelihood<likelihood>` that describes how close to the real data the model is.
+  It is a term of the {term}`log-likelihood<Likelihood>` that describes how close to the real data the model is.
 
 Biomarker
   In biomedical contexts, a [biomarker](https://en.wikipedia.org/wiki/Biomarker), or biological marker, is a measurable indicator of some biological state or condition.
@@ -21,14 +21,14 @@ Biomarker
 
 Calibration
   Is the process that computes the population parameters, the {term}`fixed effects<Fixed effects model>` of the model.
-  It is done by a {term}`likelihood` maximisation using an {term}`MCMC-SAEM` algorithm.
+  It is done by a {term}`Likelihood` maximisation using an {term}`MCMC-SAEM` algorithm.
 
 CIF
   CIF stands for [Cumulative Incidence Function](https://www.publichealth.columbia.edu/research/population-health-methods/competing-risk-analysis).
   It is a function that quantifies the cause-specific failure probability with competing risks data.
 
 Estimation
-  The estimation consists in computing the trajectory of a given patient thanks to population parameters (computed during the {term}`calibration` step) and individual parameters (computed during {term}`personalization` step).
+  The estimation consists in computing the trajectory of a given patient thanks to population parameters (computed during the {term}`Calibration` step) and individual parameters (computed during {term}`Personalization` step).
 
 Fixed effects model
   In statistics, a [fixed effects model](https://en.wikipedia.org/wiki/Fixed_effects_model) is a statistical model in which the model parameters are fixed or non-random quantities.
@@ -42,8 +42,8 @@ Likelihood
   Is the probability of the data knowing the model parameters.
   The log-likelihood could be separated into two parts:
 
-  - the data {term}`attachment` term which describes how close the model is to the data.
-  - the {term}`regularity` term which corresponds to how far from the priors the model is.
+  - the data {term}`Attachment` term which describes how close the model is to the data.
+  - the {term}`Regularity` term which corresponds to how far from the priors the model is.
 
 Longitudinal data
   Data collected from the same subjects, individuals, repeatedly over multiple time periods. This type of data often includes censored observations, where the event has not occurred by the end of the study period or the subject is lost to follow-up. It is commonly used in fields such as epidemiology, social sciences, psychology, and economics.
@@ -55,14 +55,14 @@ MCMC
   Various algorithms exist for constructing chains, including the Metropolis–Hastings algorithm.
 
 MCMC-SAEM
-  The [MCMC-SAEM](https://hal.science/hal-00189580/document) is a powerful algorithm used to estimate maximum {term}`likelihood` in the wide class of exponential non-linear mixed effects models.
+  The [MCMC-SAEM](https://hal.science/hal-00189580/document) is a powerful algorithm used to estimate maximum {term}`Likelihood` in the wide class of exponential non-linear mixed effects models.
 
 Mixed model
   A [mixed model](https://en.wikipedia.org/wiki/Mixed_model), "mixed-effects model" or "mixed error-component model" is a statistical model containing both {term}`fixed effects<Fixed effects model>` and {term}`random effects<Random effects model>`.
 
 Mixing matrix
   The matrix involved in the dimensionality reduction of the {term}`space shifts<Space shifts>` through an [Independant Component Analysis (ICA)](https://en.wikipedia.org/wiki/Independent_component_analysis).
-  This matrix is used to construct the {term}`space shifts<Space shifts>` by applying it to a vector of {term}`sources`.
+  This matrix is used to construct the {term}`space shifts<Space shifts>` by applying it to a vector of {term}`Sources`.
 
 MMSE
   The [Mini Mental State Examination](https://en.wikipedia.org/wiki/Mini–mental_state_examination) (or Folstein test) is a 30-point questionnaire that is used extensively in clinical and research settings to measure cognitive impairment.
@@ -73,19 +73,19 @@ Overfitting
   An overfitted model is a mathematical model that contains more parameters than can be justified by the data.
 
 Personalization
-  Once the population parameters ({term}`fixed effects<Fixed effects model>`) have been computed, the user might want to know the individual parameters ({term}`random effects<Random effects model>`) of a given patient that are necessary in order to compute his/her individual trajectory ({term}`estimation` step).
+  Once the population parameters ({term}`fixed effects<Fixed effects model>`) have been computed, the user might want to know the individual parameters ({term}`random effects<Random effects model>`) of a given patient that are necessary in order to compute his/her individual trajectory ({term}`Estimation` step).
 
 Random effects model
   In statistics, a [random effects model](https://en.wikipedia.org/wiki/Random_effects_model), also called a "variance components model", is a statistical model where the model parameters are random variables.
-  A random effects model is a special case of a {term}`mixed model`.
+  A random effects model is a special case of a {term}`Mixed model`.
 
 Regularity
-  Is a term of the {term}`log-likelihood<likelihood>` that describes to how far from the priors the parameters of the model are.
-  It is sort of a bayesian version of the machine learning {term}`regularization`.
+  Is a term of the {term}`log-likelihood<Likelihood>` that describes to how far from the priors the parameters of the model are.
+  It is sort of a bayesian version of the machine learning {term}`Regularization`.
 
 Regularization
   In mathematics, statistics, finance, computer science, particularly in machine learning and inverse problems, [regularization](https://en.wikipedia.org/wiki/Regularization_(mathematics)) is a process that changes the result answer to be "simpler".
-  It is often used to obtain results for ill-posed problems or to prevent {term}`overfitting`.
+  It is often used to obtain results for ill-posed problems or to prevent {term}`Overfitting`.
 
 Sources
   Vector stemming from the {term}`dimensionality reduction<Mixing matrix>` of the {term}`space shifts<Space shifts>`.
