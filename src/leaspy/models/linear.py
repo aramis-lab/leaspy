@@ -130,12 +130,12 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        g :  :class:`torch.Tensor`
+        g : :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
         -------
-		:class:`torch.Tensor`
+        :class:`torch.Tensor`
             A tensor of ones with the same shape as `g`.
         """
         return torch.ones_like(g)
@@ -155,9 +155,9 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        rt :  :class:`torch.Tensor`
+        rt : :class:`torch.Tensor`
             The reparametrized time.
-        space_shifts :  :class:`torch.Tensor`
+        space_shifts : :class:`torch.Tensor`
             The values of the space-shifts
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
@@ -168,7 +168,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-		:class:`torch.Tensor`
+        :class:`torch.Tensor`
             The model output with contribution from sources.
         """
         pop_s = (None, None, ...)

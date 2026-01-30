@@ -354,37 +354,36 @@ class ModelInterface(ABC):
         **kwargs,
     ):
         """Run the simulation pipeline using a leaspy model.
-		This method simulates longitudinal data using the given leaspy model.
-		It performs the following steps:
-		- Retrieves individual parameters (IP) from fixed effects of the model.
-		- Loads the specified Leaspy model.
-		- Generates visit ages (timepoints) for each individual (based on specifications
-		in visits_type).
-		- Simulates observations at those visit ages.
-		- Packages the result into a `Result` object, including simulated data,
-		individual parameters, and the model's noise standard deviation.
 
-		Parameters
-		----------
-		individual_parameters : :class:`~leaspy.io.IndividualParameters`
-			Individual parameters to use for the simulation.
+        This method simulates longitudinal data using the given leaspy model.
+        It performs the following steps:
 
-		data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`
-			Data object. If None, returns empty Result.
+        - Retrieves individual parameters (IP) from fixed effects of the model.
+        - Loads the specified Leaspy model.
+        - Generates visit ages (timepoints) for each individual (based on specifications
+          in visits_type).
+        - Simulates observations at those visit ages.
+        - Packages the result into a `Result` object, including simulated data,
+          individual parameters, and the model's noise standard deviation.
 
+        Parameters
+        ----------
+        individual_parameters : :class:`~leaspy.io.IndividualParameters`
+            Individual parameters to use for the simulation.
+        data : :obj:`pd.DataFrame` or :class:`~leaspy.io.Data` or :class:`~leaspy.io.Dataset`
+            Data object. If None, returns empty Result.
         **kwargs : :obj:`dict`
-		raise NotImplementedError
-        Additional arguments for algorithm settings.
+            Additional arguments for algorithm settings.
 
-		Returns
-		-------
-		simulated_data : :class:`~leaspy.io.outputs.result.Result`
-			Contains the generated individual parameters & the corresponding generated scores.
-			Returns empty Result if any required input is None.
+        Returns
+        -------
+        simulated_data : :class:`~leaspy.io.outputs.result.Result`
+            Contains the generated individual parameters & the corresponding generated scores.
+            Returns empty Result if any required input is None.
 
-		Raises
-		------
-		NotImplementedError
+        Raises
+        ------
+        NotImplementedError
         """
         raise NotImplementedError
 
@@ -1024,16 +1023,17 @@ class BaseModel(ModelInterface):
         >>> putamen_df = load_dataset("parkinson-putamen-train_and_test")
         >>> data = Data.from_dataframe(putamen_df.xs('train', level='SPLIT'))
         >>> leaspy_logistic = load_leaspy_instance("parkinson-putamen-train")
-        >>> visits_params = {'patient_number':200,
-				'visit_type': "random",
-				'first_visit_mean' : 0.,
-				'first_visit_std' : 0.4,
-				'time_follow_up_mean' : 11,
-				'time_follow_up_std' : 0.5,
-				'distance_visit_mean' : 2/12,
-				'distance_visit_std' : 0.75/12,
-				'min_spacing_between_visits': 1/365
-                }
+        >>> visits_params = {
+        ...     'patient_number': 200,
+        ...     'visit_type': "random",
+        ...     'first_visit_mean': 0.,
+        ...     'first_visit_std': 0.4,
+        ...     'time_follow_up_mean': 11,
+        ...     'time_follow_up_std': 0.5,
+        ...     'distance_visit_mean': 2/12,
+        ...     'distance_visit_std': 0.75/12,
+        ...     'min_spacing_between_visits': 1/365
+        ... }
         >>> simulated_data = model.simulate( algorithm="simulate", features=["MDS1_total", "MDS2_total", "MDS3_off_total", 'SCOPA_total','MOCA_total','REM_total','PUTAMEN_R','PUTAMEN_L','CAUDATE_R','CAUDATE_L'],visit_parameters= visits_params  )
         """
         from leaspy.exceptions import LeaspyInputError

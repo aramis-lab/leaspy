@@ -253,7 +253,7 @@ class AlgorithmSettings:
         (refer to its documentation in :mod:`leaspy.algo`).
     seed : :obj:`int`, optional, default None
         Used for stochastic algorithms.
-    parameters :  :obj:`dict`
+    parameters : :obj:`dict`
         Contains the other parameters: `n_iter`, `n_burn_in_iter`, `use_jacobian`, `n_jobs` & `progress_bar`.
     logs : :class:`.OutputsSettings`, optional
         Used to create a ``logs`` file containing convergence information during fitting the model.
@@ -366,7 +366,7 @@ class AlgorithmSettings:
 
         Parameters
         ----------
-        path_to_algorithm_settings :  :obj:`str`
+        path_to_algorithm_settings : :obj:`str`
             Path of the json file.
 
         Returns

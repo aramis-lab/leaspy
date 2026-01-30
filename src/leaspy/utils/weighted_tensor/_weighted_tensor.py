@@ -46,15 +46,14 @@ class WeightedTensor(Generic[VT]):
         """
         Post-initialization method to ensure that the value and weight tensors are properly initialized.
 
-        Raises:
+        Raises
         ------
-        AssertionError:
-
-            - If `value` is a `WeightedTensor` (disallowed for initialization).
-            - If `weight` is a `WeightedTensor` (disallowed for weights).
-            - If `weight` contains negative values.
-            - If `weight` and `value` have mismatched shapes (no implicit broadcasting allowed).
-            - If `weight` and `value` are on different devices.
+        AssertionError
+            If `value` is a `WeightedTensor` (disallowed for initialization),
+            or if `weight` is a `WeightedTensor` (disallowed for weights),
+            or if `weight` contains negative values,
+            or if `weight` and `value` have mismatched shapes (no implicit broadcasting allowed),
+            or if `weight` and `value` are on different devices.
         """
         if not isinstance(self.value, torch.Tensor):
             assert not isinstance(

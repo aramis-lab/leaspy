@@ -463,11 +463,10 @@ class ScipyMinimizeAlgorithm(
 
         Returns
         -------
-        pyt_individual_params : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [1,n_dims_param]]
+        pyt_individual_params : :obj:`dict` [:obj:`str`, :class:`torch.Tensor` [1,n_dims_param]]
             Individual parameters as a dict of tensors.
         reconstruction_loss : :class:`torch.Tensor`
             Model canonical loss (content & shape depend on noise model).
-            TODO
         """
         obj = self.obj_with_jac if with_jac else self.obj_no_jac
 

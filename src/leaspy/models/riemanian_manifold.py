@@ -190,7 +190,7 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
 
         Parameters
         ----------
-        rt :  :class:`torch.Tensor`
+        rt : :class:`torch.Tensor`
             The reparametrized time.
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
@@ -201,7 +201,7 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
 
         Returns
         -------
-		:class:`torch.Tensor`
+        :class:`torch.Tensor`
             The model output without contribution from source shifts.
 
         Notes

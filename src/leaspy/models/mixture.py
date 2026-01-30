@@ -708,7 +708,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
 
         Parameters
         ----------
-        rt :  :class:`torch.Tensor`
+        rt : :class:`torch.Tensor`
             The reparametrized time.
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
@@ -719,7 +719,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
 
         Returns
         -------
-		:class:`torch.Tensor`
+        :class:`torch.Tensor`
             The model output without contribution from source shifts.
 
         Notes
@@ -902,12 +902,12 @@ class LogisticMultivariateMixtureModel(
 
         Parameters
         ----------
-        g : t :class:`torch.Tensor`
+        g : :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
         -------
-		:class:`torch.Tensor`
+        :class:`torch.Tensor`
             The computed metric tensor, same shape as g(number of features)
         """
         return (g + 1) ** 2 / g
@@ -927,20 +927,20 @@ class LogisticMultivariateMixtureModel(
 
         Parameters
         ----------
-        rt : :class:`~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        rt : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the reparametrized time.
-        space_shifts : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        space_shifts : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the values of the space-shifts
-        metric :`~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        metric : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the metric tensor used for computing the spatial/temporal influence.
-        v0 : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        v0 : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the values of the population parameter `v0` for each feature.
-        g : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        g : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the values of the population parameter `g` for each feature.
 
         Returns
         -------
-		:class:`torch.Tensor`
+        :class:`torch.Tensor`
             Weighted value tensor after applying sigmoid transformation,
             representing the model output with sources.
         """

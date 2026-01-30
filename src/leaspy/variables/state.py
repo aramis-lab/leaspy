@@ -123,7 +123,7 @@ class State(MutableMapping):
 
         Returns
         -------
-        ;obj:`set`[:class:`~leaspy.variables.specs.VariableName`, ...]
+        :obj:`set` [:class:`~leaspy.variables.specs.VariableName`, ...]
             A set containing the names of the tracked variables.
         """
         return self._tracked_variables
@@ -221,7 +221,7 @@ class State(MutableMapping):
         
         Parameters
         ----------
-        type :  :class:`~leaspy.variables.state.StateForkType` or None, optional
+        type : :class:`~leaspy.variables.state.StateForkType` or None, optional
             The temporary auto-forking strategy to use within the context.
             Defaults to `StateForkType.REF`.
 
