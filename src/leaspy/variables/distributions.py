@@ -50,9 +50,6 @@ class StatelessDistributionFamily(ABC):
     -----
     - Subclasses must define the `parameters` class variable, listing parameter names in order.
     - Each method operates solely on the passed tensors; no state or caching is assumed.
-
-    Todo
-    ----
     - Consider supporting `WeightedTensor` for distribution parameters,
       e.g., to mask latent variables like `batched_deltas` at the input level
       or directly at model parameter level (e.g., `batched_deltas_mean`).

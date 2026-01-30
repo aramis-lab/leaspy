@@ -75,17 +75,14 @@ class ObservationModel:
 
         Returns
         -------
-                dict[VariableName, VariableInterface]
-                        A dictionary mapping variable name to their corresponding specifications with
+        dict[VariableName, VariableInterface]
+                        Mapping of variable names to specifications. It includes:
 
-                        - the primary DataVariable
-                        - any ``extra_vars`` defined by the model
-                        - NLL attachment variables:
-
-                            - ``nll_attach_var_ind``: a :class:`~leaspy.variables.specs.LinkedVariable` representing the
-                                individual-level negative log-likelihood contributions
-                            - ``nll_attach_var``: a :class:`~leaspy.variables.specs.LinkedVariable` that sums the individual
-                                contributions
+                        * the primary ``DataVariable`` for the observation
+                        * any ``extra_vars`` defined by the model
+                        * negative log-likelihood attachment variables:
+                            * ``nll_attach_var_ind``: a :class:`~leaspy.variables.specs.LinkedVariable` for individual contributions
+                            * ``nll_attach_var``: a :class:`~leaspy.variables.specs.LinkedVariable` summing individual contributions
 
         Notes
         -----

@@ -128,9 +128,9 @@ class FullGaussianObservationModel(GaussianObservationModel):
         -------
         :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`]
             A dictionary containing the sufficient statistics:
-        
-            - `"y_x_model"`: Product of the observed values (`"y"`) and the model predictions (`"model"`).
-            - `"model_x_model"`: Squared values of the model predictions (`"model"`).
+
+            * `"y_x_model"`: Product of the observed values (`"y"`) and the model predictions (`"model"`).
+            * `"model_x_model"`: Squared values of the model predictions (`"model"`).
         """
         return dict(
             y_x_model=LinkedVariable(Prod("y", "model")),
@@ -153,16 +153,16 @@ class FullGaussianObservationModel(GaussianObservationModel):
 
         Parameters
         ----------
-        state: :class:`State`
-            A state dictionary containing precomputed values
-         y_x_model : WeightedTensor[float]
+        state : :class:`State`
+            A state dictionary containing precomputed values.
+        y_x_model : WeightedTensor[float]
             The weighted inner product between the observations and the model predictions.
         model_x_model : WeightedTensor[float]
             The weighted inner product of the model predictions with themselves.
 
         Returns
         -------
-       :class:`torch.Tensor`
+        :class:`torch.Tensor`
             The updated scalar value of the `noise_std`.
         """
         y_l2 = state["y_L2"]

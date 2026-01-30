@@ -17,7 +17,6 @@ from leaspy.models.obs_models import (
 )
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul, OrthoBasis, Sqr
-from leaspy.utils.typing import KwargsType
 from leaspy.utils.typing import DictParams, KwargsType
 
 from leaspy.utils.weighted_tensor import (
@@ -56,7 +55,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     ----------
     name : :obj:`str`
         Name of the model.
-    source_dimension : Optional[:obj:`int`]
+    source_dimension : :obj:`int`, optional
         Number of sources. Dimension of spatial components (default is None).
     **kwargs: :obj:`dict`
         Additional hyperparameters for the model. Must include:
@@ -274,7 +273,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
         Parameters
         ----------
-        dataset : Optional[:class:`~leaspy.io.data.Data.Dataset`], optional
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`, optional
             The dataset to validate against, by default None.
 
         Raises

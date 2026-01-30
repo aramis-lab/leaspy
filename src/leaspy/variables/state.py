@@ -528,12 +528,14 @@ class State(MutableMapping):
         ----------
         subset : :class:`~leaspy.variables.specs.VariableValue` or None
             If not None, the reversion is only partial:
+
             * subset = True <=> revert previous state for those indices
             * subset = False <=> keep current state for those indices
+
             <!> User is responsible for having tensor values that are consistent with
             `subset` shape (i.e. valid broadcasting) for the forked node and all of its children.
-           <!> When the current OR forked state is not set (value = None) on a particular node of forked DAG,
-           then the reverted result is always None.
+            <!> When the current OR forked state is not set (value = None) on a particular node of forked DAG,
+            then the reverted result is always None.
         right_broadcasting : :obj:`bool`, optional
             If True and if `subset` is not None, then the subset of indices to revert uses right-broadcasting,
             instead of the standard left-broadcasting.

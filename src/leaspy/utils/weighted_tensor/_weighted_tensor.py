@@ -196,7 +196,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        func : Callable[[ :obj`torch.Tensor` ], :obj:`torch.Tensor` ]
+        func : Callable[[ :obj:`torch.Tensor` ], :obj:`torch.Tensor` ]
             The function to be applied to both values and weights.
         *args :
             Positional arguments to be passed to the function.
@@ -343,7 +343,7 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]
             A new `WeightedTensor` with the same weights but with the new device provided.
         """
         return self.map_both(torch.Tensor.to, device=device)
@@ -373,7 +373,7 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]
             A new `WeightedTensor` with the same weights but with the new exponent applied.
         """
         return self.valued(self.value**exponent)
@@ -598,7 +598,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to divide the weighted tensor by.
 
         Returns
@@ -616,7 +616,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to be divided by the weighted tensor.
 
         Returns
@@ -636,7 +636,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against
 
         Returns
@@ -656,7 +656,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -676,7 +676,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -797,7 +797,7 @@ def _apply_operation(
     ----------
     a : :class:`WeightedTensor`
         The first tensor, which is a `WeightedTensor`.
-    b : class:`TensorOrWeightedTensor`
+    b : :class:`TensorOrWeightedTensor`
         The second tensor, which can be a `WeightedTensor` or a regular tensor.
     operator_name : :obj:`str`
         The name of the binary operation to be applied.

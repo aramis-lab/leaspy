@@ -214,17 +214,17 @@ class ScipyMinimizeAlgorithm(
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
         Customization is possible via the `custom_scipy_minimize_params` in
         :class:`~leaspy.algo.settings.AlgorithmSettings`.
-
     format_convergence_issues : :obj:`str`
         A format string for displaying convergence issues, which can use the
         following variables:
-            - `patient_id`: :obj:`str`
-            - `optimization_result_pformat`: :obj:`str`
-            - `optimization_result_obj`: dict-like
+
+        * `patient_id`: :obj:`str`
+        * `optimization_result_pformat`: :obj:`str`
+        * `optimization_result_obj`: dict-like
+
         The default format is defined in
         `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES`, but it can be
         customized via the `custom_format_convergence_issues` parameter.
-
     logger : callable, optional
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
         It must accept a string as input and return None.
