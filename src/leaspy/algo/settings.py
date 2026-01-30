@@ -27,24 +27,16 @@ class OutputsSettings:
 
     Parameters
     ----------
-    settings : :obj:`dict` [:obj:`str`, Any]
-            * path : :obj:`str` or None
-                Path to store logs. If None, default path "./_outputs/" will be used.
-            * print_periodicity : :obj:`int` >= 1 or None
-                Print information every N iterations
-            * save_periodicity : :obj:`int` >= 1, optional
-                Save convergence data every N iterations
-                Default=50.
-            * plot_periodicity : :obj:`int` >= 1 or None
-                Plot convergence data every N iterations.
-                If None, no plots will be saved.
-                Note that plotting requires saving to be realized and can not be more than saves.
-            * plot_sourcewise : :obj:`bool`
-                Flag to plot source based multidimensional parameters such as mixing_matrix for each source.
-                Otherwise, they will be plotted according to the other dimension such as feature.
-                Default=False
-            * overwrite_logs_folder : :obj:`bool`
-                Flag to remove all previous logs if existing (default False)
+    settings : dict[str, Any]
+        Configuration mapping. Supported keys:
+
+        - ``path`` (str | None): destination folder for logs. If None, defaults to ``"./_outputs/"`` when saving.
+        - ``print_periodicity`` (int | None): print information every N iterations.
+        - ``save_periodicity`` (int | None): save convergence data every N iterations (default 50).
+        - ``plot_periodicity`` (int | None): plot convergence data every N iterations; must not be more frequent than saves.
+        - ``plot_sourcewise`` (bool): plot source-based parameters per source instead of per feature (default False).
+        - ``overwrite_logs_folder`` (bool): remove any existing logs folder before writing (default False).
+        - ``nb_of_patients_to_plot`` (int): number of patients plotted when enabled (default 5).
 
     Raises
     ------
@@ -208,41 +200,23 @@ class AlgorithmSettings:
     Parameters
     ----------
     name : str
-        The algorithm's name. Must be one of:
-            * For `fit` algorithms:
-                * ``'mcmc_saem'``
-                * ``'lme_fit'`` (for LME model only)
-            * For `personalize` algorithms:
-                * ``'scipy_minimize'``
-                * ``'mean_real'``
-                * ``'mode_real'``
-                * ``'constant_prediction'`` (for constant model only)
-                * ``'lme_personalize'`` (for LME model only)
-            * For `simulate` algorithms:
-                * ``'simulation'``
+        Algorithm name. Accepted values:
+        - fit: ``"mcmc_saem"`` or ``"lme_fit"`` (LME only)
+        - personalize: ``"scipy_minimize"``, ``"mean_real"``, ``"mode_real"``, ``"constant_prediction"`` (constant model only), ``"lme_personalize"`` (LME only)
+        - simulate: ``"simulation"``
 
-    **kwargs : any
-        Depending on the algorithm, various parameters are possible:
-            * seed : :obj:`int`, optional, default None
-                Used for stochastic algorithms.
-            * algorithm_initialization_method : :obj:`str`, optional
-                Personalize the algorithm initialization method, according to those possible for the given algorithm
-                (refer to its documentation in :mod:`leaspy.algo`).
-            * n_iter : :obj:`int`, optional
-                Number of iteration. Note that there is no stopping criteria for MCMC SAEM algorithms.
-            * n_burn_in_iter : :obj:`int`, optional
-                Number of iteration during burning phase, used for the MCMC SAEM algorithms.
-            * use_jacobian : :obj:`bool`, optional, default True
-                Used in ``scipy_minimize`` algorithm to perform a `L-BFGS` instead of a `Powell` algorithm.
-            * n_jobs : :obj:`bool`, optional, default 1
-                Used in ``scipy_minimize`` algorithm to accelerate calculation with parallel derivation using joblib.
-            * progress_bar : :obj:`bool`, optional, default True
-                Used to display a progress bar during computation.
-            * device : :obj:`int` or torch.device, optional
-                Specifies on which device the algorithm will run. Only 'cpu' and 'cuda' are supported for this argument.
-                Only ``'mcmc_saem'``, ``'mean_real'`` and ``'mode_real'`` algorithms support this setting.
+    **kwargs
+        Optional algorithm-specific settings. Common keys:
+        - ``seed`` (int | None): seed for stochastic algorithms.
+        - ``algorithm_initialization_method`` (str | None): strategy name accepted by the target algorithm.
+        - ``n_iter`` (int | None): number of iterations (no auto stopping for MCMC SAEM).
+        - ``n_burn_in_iter`` (int | None): burn-in iterations for MCMC SAEM.
+        - ``use_jacobian`` (bool): use Jacobian in ``scipy_minimize`` to switch to L-BFGS (default True).
+        - ``n_jobs`` (int): joblib parallelism for ``scipy_minimize`` (default 1).
+        - ``progress_bar`` (bool): show a progress bar (default True).
+        - ``device`` (int | torch.device | str): computation device for algorithms that support it.
 
-        For the complete list of the available parameters for a given algorithm, please directly refer to its documentation.
+        Refer to each algorithm documentation in :mod:`leaspy.algo` for the full list of supported parameters.
 
     Attributes
     ----------
@@ -253,7 +227,7 @@ class AlgorithmSettings:
         (refer to its documentation in :mod:`leaspy.algo`).
     seed : :obj:`int`, optional, default None
         Used for stochastic algorithms.
-    parameters :  :obj:`dict`
+    parameters : :obj:`dict`
         Contains the other parameters: `n_iter`, `n_burn_in_iter`, `use_jacobian`, `n_jobs` & `progress_bar`.
     logs : :class:`.OutputsSettings`, optional
         Used to create a ``logs`` file containing convergence information during fitting the model.
@@ -366,12 +340,12 @@ class AlgorithmSettings:
 
         Parameters
         ----------
-        path_to_algorithm_settings :  :obj:`str`
+        path_to_algorithm_settings : :obj:`str`
             Path of the json file.
 
         Returns
         -------
-        :class:`.AlgorithmSettings`
+        :class:`~leaspy.algo.settings.AlgorithmSettings`
             An instanced of AlgorithmSettings with specified parameters.
 
         Raises
@@ -431,7 +405,7 @@ class AlgorithmSettings:
         ----------
         path : :obj:`str`
             Path to store the AlgorithmSettings.
-        **kwargs
+        kwargs : dict
             Keyword arguments for json.dump method.
             Default: dict(indent=2)
 
@@ -470,26 +444,15 @@ class AlgorithmSettings:
         Parameters
         ----------
         **kwargs
-            path : :obj:`str`, optional
-               The path of the folder where graphs and csv files will be saved.
-               If None, DEFAULT_LOGS_DIR will be used.
-            * print_periodicity : :obj:`int`, optional, default 100
-                Prints every N iterations.
-            * save_periodicity : :obj:`int`, optional, default 50
-                Saves the values in csv files every N iterations.
-            * plot_periodicity : :obj:`int`, optional, default 1000
-                Generates plots from saved values every N iterations.
-                Notes:
-                    * Must be a multiple of `save_periodicity`.
-                    * Setting this value too low may significantly slow down the fitting process.
-            * plot_patient_periodicity : :obj:`int`
-                 Set the frequency of the saves of the patients' reconstructions
-            * plot_sourcewise : :obj:`bool`, optional, default False
-                Set this to True to plot the source-based parameters sourcewise.
-            * overwrite_logs_folder : :obj:`bool`, optional, default False
-                Set it to ``True`` to overwrite the content of the folder in ``path``.
-            * nb_of_patients_to_plot : :obj:`int`, optional default 5
-                number of patients to plot
+            Supported keys:
+            - ``path`` (str | None): folder where graphs and CSV files will be saved. If None, ``DEFAULT_LOGS_DIR`` is used.
+            - ``print_periodicity`` (int | None): print every N iterations (default 100 when provided).
+            - ``save_periodicity`` (int | None): save CSV values every N iterations (default 50 when provided).
+            - ``plot_periodicity`` (int | None): generate plots every N iterations; must be a multiple of ``save_periodicity`` (default 1000).
+            - ``plot_patient_periodicity`` (int | None): frequency for saving patient reconstructions.
+            - ``plot_sourcewise`` (bool): plot source-based parameters per source (default False).
+            - ``overwrite_logs_folder`` (bool): overwrite existing content in ``path`` (default False).
+            - ``nb_of_patients_to_plot`` (int): number of patients to plot when plotting is enabled (default 5).
 
         Raises
         ------

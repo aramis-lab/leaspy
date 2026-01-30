@@ -44,14 +44,14 @@ def _prod_args(
 
     Parameters
     ----------
-    args : :class:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor` [:class:`.S`]
+    args : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:class:`.S`]
         A variable number of tensors or weighted tensors to multiply.
     start_kw : :obj:`dict`
         Additional keyword arguments to pass to the product function.
 
     Returns
     -------
-    :obj:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor` [:class:`.S`]
+    :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:class:`.S`]
         The product of all tensors in `args`, starting from the value specified in `start_kw`.
     """
     return _prod(args, **start_kw)
@@ -199,14 +199,14 @@ def _sum_args(*args: TensorOrWeightedTensor, **start_kw) -> TensorOrWeightedTens
 
     Parameters
     ----------
-    args : :class:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor`
+    args : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor`
         A variable number of tensors or weighted tensors to sum.
     start_kw : :obj:`dict`
         Additional keyword arguments to pass to the sum function.
 
     Returns
     -------
-    :obj:`~leaspy.utils.weighted_tensor._weighted_tensors.TensorOrWeightedTensor`
+    :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor`
         The sum of all tensors in `args`, starting from the value specified in `start_kw`.
     """
     summation = sum(args, **start_kw)

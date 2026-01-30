@@ -447,7 +447,7 @@ class Data(Iterable):
         data_type : :obj:`str`
             Type of data to read. Can be 'visit', 'event', 'joint'
         factory_kws : :class:`~leaspy.utils.typing.Dict`
-            Keyword arguments that are sent to :func:`.dataframe_data_reader_factory`
+            Keyword arguments that are sent to :func:`~leaspy.io.data.factory.dataframe_data_reader_factory`
         **kws
             Keyword arguments that are sent to :class:`~leaspy.utils.typing.DataframeDataReader`
 

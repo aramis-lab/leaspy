@@ -46,14 +46,14 @@ class WeightedTensor(Generic[VT]):
         """
         Post-initialization method to ensure that the value and weight tensors are properly initialized.
 
-        Raises:
+        Raises
         ------
-        AssertionError:
-            - If `value` is a `WeightedTensor` (disallowed for initialization).
-            - If `weight` is a `WeightedTensor` (disallowed for weights).
-            - If `weight` contains negative values.
-            - If `weight` and `value` have mismatched shapes (no implicit broadcasting allowed).
-            - If `weight` and `value` are on different devices.
+        AssertionError
+            If `value` is a `WeightedTensor` (disallowed for initialization),
+            or if `weight` is a `WeightedTensor` (disallowed for weights),
+            or if `weight` contains negative values,
+            or if `weight` and `value` have mismatched shapes (no implicit broadcasting allowed),
+            or if `weight` and `value` are on different devices.
         """
         if not isinstance(self.value, torch.Tensor):
             assert not isinstance(
@@ -196,7 +196,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        func : Callable[[ :obj`torch.Tensor` ], :obj:`torch.Tensor` ]
+        func : Callable[[ :obj:`torch.Tensor` ], :obj:`torch.Tensor` ]
             The function to be applied to both values and weights.
         *args :
             Positional arguments to be passed to the function.
@@ -265,6 +265,7 @@ class WeightedTensor(Generic[VT]):
 
         :obj:`tuple` [ :obj:`torch.Tensor`, :obj:`torch.Tensor` ]:
         Tuple containing:
+
             - weighted_sum : :obj:`torch.Tensor`
                 Weighted sum, with totally un-weighted aggregates filled with `fill_value`.
             - sum_weights : :obj:`torch.Tensor` (may be of other type than `cls.weight_dtype`)
@@ -342,7 +343,7 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]
             A new `WeightedTensor` with the same weights but with the new device provided.
         """
         return self.map_both(torch.Tensor.to, device=device)
@@ -372,7 +373,7 @@ class WeightedTensor(Generic[VT]):
 
         Returns
         -------
-        :obj:`WeightedTensor`[:obj:`VT]:
+        :class:`~leaspy.utils.weighted_tensor.WeightedTensor` [ :obj:`VT` ]
             A new `WeightedTensor` with the same weights but with the new exponent applied.
         """
         return self.valued(self.value**exponent)
@@ -477,8 +478,10 @@ class WeightedTensor(Generic[VT]):
         """Compute the sum of the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing:
+
         - The sum of the value tensors
         - The weight according to the following rules:
+
             - If both tensors have weights: weights must be identical
             - If only one tensor has weights: those weights are retained
             - If neither tensor has weights: result has no weights
@@ -516,6 +519,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the difference between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing:
+
             - The difference between this tensor's values and the other tensor's values
             - The weight according to the same rules as __add__
 
@@ -552,6 +556,7 @@ class WeightedTensor(Generic[VT]):
         """Compute the product of the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing:
+
             - The product of the value tensors
             - The weight according to the same rules as __add__
 
@@ -587,12 +592,13 @@ class WeightedTensor(Generic[VT]):
         """Compute the division of the weighted tensor by another tensor.
 
         Returns a new weighted tensor containing:
+
             - The quotient of the value tensors
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to divide the weighted tensor by.
 
         Returns
@@ -610,7 +616,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to be divided by the weighted tensor.
 
         Returns
@@ -624,12 +630,13 @@ class WeightedTensor(Generic[VT]):
         """Compute the less-than comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values are less than the other tensor's values
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against
 
         Returns
@@ -643,12 +650,13 @@ class WeightedTensor(Generic[VT]):
         """Compute the less-than-or-equal-to comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values are less than or equal to the other tensor's values
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -662,12 +670,13 @@ class WeightedTensor(Generic[VT]):
         """Compute the equality comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values equal the other tensor's values
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -681,12 +690,13 @@ class WeightedTensor(Generic[VT]):
         """Compute the not-equal-to comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values differ from the other tensor's values
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -699,12 +709,13 @@ class WeightedTensor(Generic[VT]):
     def __gt__(self, other: TensorOrWeightedTensor) -> WeightedTensor:
         """Compute the greater-than comparison between the weighted tensor and another tensor.
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values exceed the other tensor's values
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -718,12 +729,13 @@ class WeightedTensor(Generic[VT]):
         """Compute the greater-than-or-equal-to comparison between the weighted tensor and another tensor.
 
         Returns a new weighted tensor containing boolean values indicating where:
+
             - This tensor's values are greater than or equal to the other tensor's values
             - The weight according to the same rules as __add__
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -742,7 +754,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        t : class:`TensorOrWeightedTensor`
+        t : :class:`TensorOrWeightedTensor`
             The tensor to be converted.
         fill_value : :obj:`VT`, optional
             The value to fill the tensor with for aggregates where weights were all zero.
@@ -752,6 +764,7 @@ class WeightedTensor(Generic[VT]):
         -------
         :obj:`Tuple`[:obj:`torch.Tensor`, Optional[:obj:`torch.Tensor`]]:
             Tuple containing:
+
             - value : :obj:`torch.Tensor`
                 The filled tensor.
                 If `weight` is None, the original tensor is returned.
@@ -784,7 +797,7 @@ def _apply_operation(
     ----------
     a : :class:`WeightedTensor`
         The first tensor, which is a `WeightedTensor`.
-    b : class:`TensorOrWeightedTensor`
+    b : :class:`TensorOrWeightedTensor`
         The second tensor, which can be a `WeightedTensor` or a regular tensor.
     operator_name : :obj:`str`
         The name of the binary operation to be applied.

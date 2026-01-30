@@ -55,7 +55,7 @@ class StatefulModel(BaseModel):
         """Track a variable by its name.
 
         Parameters
-        -------
+        ----------
         variable : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable to track. This variable will be monitored for changes or updates.
         """
@@ -80,7 +80,7 @@ class StatefulModel(BaseModel):
         """Untrack a variable by its name.
 
         Parameters
-        -------
+        ----------
         variable : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable to untrack. This variable will no longer be monitored for changes or updates.
         """

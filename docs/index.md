@@ -1,8 +1,8 @@
 ![leaspy logo](./_static/images/leaspy_logo.png)
 
-## LEArning Spatiotemporal Patterns in Python
+# LEArning Spatiotemporal Patterns in Python
 
-### Description
+## Description
 
 **Leaspy** is a software package for the statistical analysis of **longitudinal data**, particularly **medical** data that comes in a form of **repeated observations** of patients at different time-points.
 
@@ -25,24 +25,24 @@ The software package can be used with scalar multivariate data whose progression
 The simplest type of data handled by the software are scalar data: they correspond to one (univariate) or multiple (multivariate) measurement(s) per patient observation.
 This includes, for instance, clinical scores, cognitive assessments, physiological measurements (e.g. blood markers, radioactive markers) but also imaging-derived data that are rescaled, for instance, between 0 and 1 to describe a logistic progression.
 
-#### Getting started
+### Getting started
 
 Information to install, test, and contribute to the package are available [here](./install.md).
 
-#### API Documentation
+### API Documentation
 
-The exact [API](./glossary.md#api) of all functions and classes, as given in the docstrings.
-The [API](./glossary.md#api) documents expected types and allowed features for all functions, and all parameters available for the algorithms.
+The exact {term}`API` of all functions and classes, as given in the docstrings.
+The {term}`API` documents expected types and allowed features for all functions, and all parameters available for the algorithms.
 
-#### User Guide
+### User Guide
 
 The main documentation. This contains an in-depth description of all algorithms and how to apply them.
 
-#### License
+### License
 
 The package is distributed under the BSD-3-Clause-Clear license.
 
-### Further information
+## Further information
 
 More detailed explanations about the models themselves and about the estimation procedure can be found in the following articles :
 
@@ -69,14 +69,15 @@ auto_examples/index
 ```
 
 ```{toctree}
-:hidden:
-:caption: Documentation
-:maxdepth: 3
+ :hidden:
+ :caption: Documentation
+ :maxdepth: 3
 
 user_guide
 glossary
 notations
 references
 changelog
+to_go_further
 license
 ```

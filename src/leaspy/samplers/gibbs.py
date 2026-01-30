@@ -40,8 +40,10 @@ class GibbsSamplerMixin:
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
         An extra factor will be applied on top of this scale :
+
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
         Whether to randomize the order of dimensions during the sampling loop.
@@ -230,8 +232,10 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
         An extra factor will be applied on top of this scale :
+
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
         Whether to randomize the order of dimensions during the sampling loop.
@@ -399,8 +403,10 @@ class PopulationGibbsSampler(AbstractPopulationGibbsSampler):
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
         An extra factor will be applied on top of this scale :
+
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
         Whether to randomize the order of dimensions during the sampling loop.
@@ -496,8 +502,10 @@ class PopulationFastGibbsSampler(AbstractPopulationGibbsSampler):
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
         An extra factor will be applied on top of this scale :
+
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
         Whether to randomize the order of dimensions during the sampling loop.
@@ -541,8 +549,10 @@ class PopulationMetropolisHastingsSampler(AbstractPopulationGibbsSampler):
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
         An extra factor will be applied on top of this scale :
+
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
         Whether to randomize the order of dimensions during the sampling loop.
@@ -585,8 +595,10 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         An approximate scale for the variable.
         It will be used to scale the initial adaptive std-dev used in sampler.
         An extra factor will be applied on top of this scale :
+
             * 1% for population parameters (:attr:`.AbstractPopulationGibbsSampler.STD_SCALE_FACTOR`)
             * 50% for individual parameters (:attr:`.IndividualGibbsSampler.STD_SCALE_FACTOR`)
+
         Note: If a :class:`torch.Tensor` is passed, its shape must be compatible with the shape of the variable.
     random_order_dimension : :obj:`bool` (default True)
         Whether to randomize the order of dimensions during the sampling loop.

@@ -51,14 +51,15 @@ class IndividualParameters:
 
         Returns
         -------
-       :obj:`dict` of ParamType to :obj:`int`
+        :obj:`dict` of ParamType to :obj:`int`
             A dictionary mapping each parameter type to its total number of scalar values.
 
         Examples
         --------
-            * shape ``()`` becomes size ``1```
-            * shape ``(1,)``becomes size ``1```
-            * shape ``(2,3)``becomes size ``6```
+
+        * shape ``()`` becomes size ``1``
+        * shape ``(1,)`` becomes size ``1``
+        * shape ``(2,3)`` becomes size ``6``
 
         """
         shape_to_size = lambda shape: functools.reduce(operator.mul, shape, 1)
@@ -73,7 +74,7 @@ class IndividualParameters:
 
         Parameters
         ----------
-        index : :class::class:`~leaspy..utils.typing.IDType`
+        index : :class:`~leaspy.utils.typing.IDType`
             Index of the individual
         individual_parameters : :class:`~leaspy.utils.typing.DictParams`
             Individual parameters of the individual
@@ -216,7 +217,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             An instance of the IndividualParameters object with the selected list of individuals
 
         Raises
@@ -401,7 +402,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             An instance of IndividualParameters initialized from the DataFrame.
 
         Examples
@@ -457,7 +458,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             An instance of IndividualParameters initialized from the pytorch dictionary.
 
         Raises
@@ -533,10 +534,12 @@ class IndividualParameters:
         path : :obj:`str`
             Path and file name of the individual parameters. The extension can be json or csv.
             If no extension, default extension (csv) is used
-        **kwargs
+        kwargs : dict
             Additional keyword arguments to pass to either:
+
             * :meth:`pandas.DataFrame.to_csv`
             * :func:`json.dump`
+
             depending on saving format requested
 
         Raises
@@ -590,7 +593,7 @@ class IndividualParameters:
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Individual parameters object load from the file
 
         Raises
@@ -688,7 +691,7 @@ class IndividualParameters:
         
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Individual parameters object load from the file
         """
         df = pd.read_csv(path, dtype={"ID": IDType}).set_index("ID")
@@ -708,7 +711,7 @@ class IndividualParameters:
         
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Individual parameters object load from the file
         """
         with open(path, "r") as f:

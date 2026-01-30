@@ -63,10 +63,10 @@ class VariablesDAG(Mapping):
 
     Finally, we do not store children nor ancestors in a specific node class to avoid cross-references in such nodes.
 
-    To Do
-    -----
-    - pre-compute roots (no ancestors) and leaves (no children) as well?
-    - stratify variables dictionary per variable class?
+    Future improvements:
+
+    - Pre-compute roots (no ancestors) and leaves (no children) as well?
+    - Stratify variables dictionary per variable class?
 
     References
     ----------

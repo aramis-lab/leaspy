@@ -141,12 +141,12 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        g : t :class:`torch.Tensor`
+        g : :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             The computed metric tensor, same shape as g(number of features)
         """
         return (g + 1) ** 2 / g
@@ -179,7 +179,7 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             Weighted value tensor after applying sigmoid transformation,
             representing the model output with sources.
         """

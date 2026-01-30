@@ -100,15 +100,15 @@ class _AffineScalings1D:
         x : Dict[VarName, torch.Tensor]
             Mapping to stack.
 
-        Return
-        ------
+        Returns
+        -------
         np.ndarray :
             Stacked array of values.
         """
         return torch.cat([x[n].float() for n, _ in self.scalings.items()])
 
     def unstack(self, x: torch.Tensor) -> dict[VariableName, torch.Tensor]:
-        """ "
+        """
         Unstack the provided concatenated array.
 
         Parameters
@@ -116,8 +116,8 @@ class _AffineScalings1D:
         x : np.ndarray
             Concatenated array to unstack.
 
-        Return
-        ------
+        Returns
+        -------
         dict :
             Mapping from variable names to their tensor values.
         """
@@ -157,8 +157,8 @@ class _AffineScalings1D:
         x : :obj:`dict`[VarName, torch.Tensor]
             The mapping to unscale.
 
-        Return
-        ------
+        Returns
+        -------
         np.ndarray :
             Concatenated array of scaled values.
         """
@@ -200,7 +200,7 @@ class ScipyMinimizeAlgorithm(
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         Settings for the algorithm, including the `custom_scipy_minimize_params`
         parameter, which contains keyword arguments passed to
         :func:`scipy.optimize.minimize`.
@@ -213,22 +213,23 @@ class ScipyMinimizeAlgorithm(
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN` and
         `ScipyMinimize.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN`).
         Customization is possible via the `custom_scipy_minimize_params` in
-        :class:`.AlgorithmSettings`.
-
+        :class:`~leaspy.algo.settings.AlgorithmSettings`.
     format_convergence_issues : :obj:`str`
-       A format string for displaying convergence issues, which can use the
+        A format string for displaying convergence issues, which can use the
         following variables:
-            - `patient_id`: :obj:`str`
-            - `optimization_result_pformat`: :obj:`str`
-            - `optimization_result_obj`: dict-like
+
+        * `patient_id`: :obj:`str`
+        * `optimization_result_pformat`: :obj:`str`
+        * `optimization_result_obj`: dict-like
+
         The default format is defined in
         `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES`, but it can be
         customized via the `custom_format_convergence_issues` parameter.
-
-    logger : None or callable :obj:`str` -> None
+    logger : callable, optional
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
+        It must accept a string as input and return None.
         By default, convergence issues are printed only if the BFGS optimization method is not used.
-        This can  be customized by setting the `logger` attribute in :class:`.AlgorithmSettings`.
+        This can  be customized by setting the `logger` attribute in :class:`~leaspy.algo.settings.AlgorithmSettings`.
     """
 
     name: AlgorithmName = AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE
@@ -389,6 +390,7 @@ class ScipyMinimizeAlgorithm(
         Returns
         -------
         2-tuple (as expected by :func:`scipy.optimize.minimize` when ``jac=True``)
+
             * objective : :obj:`float`
             * gradient : array-like[float] with same length as `x` (= all dimensions of individual latent variables, concatenated)
         """
@@ -461,11 +463,10 @@ class ScipyMinimizeAlgorithm(
 
         Returns
         -------
-        pyt_individual_params : :obj:`dict`[:obj:`str`, :class:`torch.Tensor` [1,n_dims_param]]
+        pyt_individual_params : :obj:`dict` [:obj:`str`, :class:`torch.Tensor` [1,n_dims_param]]
             Individual parameters as a dict of tensors.
         reconstruction_loss : :class:`torch.Tensor`
             Model canonical loss (content & shape depend on noise model).
-            TODO
         """
         obj = self.obj_with_jac if with_jac else self.obj_no_jac
 
@@ -532,7 +533,7 @@ class ScipyMinimizeAlgorithm(
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Contains the individual parameters of all patients.
         """
         individual_params_tensorized, _ = self._get_individual_parameters_patient(
@@ -571,12 +572,12 @@ class ScipyMinimizeAlgorithm(
         ----------
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             Model used to compute the group average parameters.
-        dataset : :class:`.Dataset` class object
+        dataset : :class:`~leaspy.io.data.dataset.Dataset` class object
             Contains the individual scores.
 
         Returns
         -------
-        :class:`.IndividualParameters`
+        :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Contains the individual parameters of all patients.
         """
         # Easier to pass a Dataset with 1 individual rather than individual times, values

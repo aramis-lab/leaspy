@@ -17,7 +17,6 @@ from leaspy.models.obs_models import (
 )
 from leaspy.utils.docs import doc_with_super
 from leaspy.utils.functional import Exp, MatMul, OrthoBasis, Sqr
-from leaspy.utils.typing import KwargsType
 from leaspy.utils.typing import DictParams, KwargsType
 
 from leaspy.utils.weighted_tensor import (
@@ -56,10 +55,10 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     ----------
     name : :obj:`str`
         Name of the model.
-    source_dimension : Optional[:obj:`int`]
+    source_dimension : :obj:`int`, optional
         Number of sources. Dimension of spatial components (default is None).
     **kwargs: :obj:`dict`
-       Additional hyperparameters for the model. Must include:
+        Additional hyperparameters for the model. Must include:
             - 'n_clusters': int
                 Number of mixture components (must be ≥ 2).
             - 'dimension' or 'features': int or list
@@ -104,7 +103,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     def sources_mean(self) -> torch.Tensor:
         """Return the mean of the sources as a tensor."""
         return torch.tensor([[1 if (i + j) % 2 == 0 else -1 for j in range(self.n_clusters)]
-                             for i in range(self.source_dimension)])
+							for i in range(self.source_dimension)])
 
     @property
     def sources_std(self) -> torch.Tensor:
@@ -183,7 +182,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
             xi=IndividualLatentVariable(MixtureNormal("xi_mean", "xi_std", "probs"),
                                         sampling_kws={"scale": 10},),
             tau=IndividualLatentVariable(MixtureNormal("tau_mean", "tau_std", "probs"),
-                                         sampling_kws={"scale": 10},),
+										sampling_kws={"scale": 10},),
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
         )
@@ -207,7 +206,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
                     sampling_kws={"scale": 0.5},
                 ),
                 sources=IndividualLatentVariable(MixtureNormal("sources_mean", "sources_std", "probs"),
-                                                 sampling_kws={"scale": 10}),
+												sampling_kws={"scale": 10}),
                 # DERIVED VARS
                 mixing_matrix=LinkedVariable(
                     MatMul("orthonormal_basis", "betas").then(torch.t)
@@ -274,7 +273,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
 
         Parameters
         ----------
-        dataset : Optional[:class:`~leaspy.io.data.Data.Dataset`], optional
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`, optional
             The dataset to validate against, by default None.
 
         Raises
@@ -556,6 +555,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
     Raises
     ------
     :exc:`.LeaspyModelInputError`
+
         * If hyperparameters are inconsistent      
     """
 
@@ -707,7 +707,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
 
         Parameters
         ----------
-        rt :  :class:`torch.Tensor`
+        rt : :class:`torch.Tensor`
             The reparametrized time.
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
@@ -718,7 +718,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             The model output without contribution from source shifts.
 
         Notes
@@ -901,12 +901,12 @@ class LogisticMultivariateMixtureModel(
 
         Parameters
         ----------
-        g : t :class:`torch.Tensor`
+        g : :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             The computed metric tensor, same shape as g(number of features)
         """
         return (g + 1) ** 2 / g
@@ -926,20 +926,20 @@ class LogisticMultivariateMixtureModel(
 
         Parameters
         ----------
-        rt : :class:`~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        rt : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the reparametrized time.
-        space_shifts : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        space_shifts : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the values of the space-shifts
-        metric :`~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        metric : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the metric tensor used for computing the spatial/temporal influence.
-        v0 : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        v0 : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the values of the population parameter `v0` for each feature.
-        g : `~leaspy.uitls.weighted_tensor._weighted_tensor.TensorOrWeightedTensor`[:obj:`float`]
+        g : :class:`~leaspy.utils.weighted_tensor.TensorOrWeightedTensor` [:obj:`float`]
             Tensor containing the values of the population parameter `g` for each feature.
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             Weighted value tensor after applying sigmoid transformation,
             representing the model output with sources.
         """

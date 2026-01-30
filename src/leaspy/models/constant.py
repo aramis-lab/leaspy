@@ -15,6 +15,7 @@ class ConstantModel(StatelessModel):
     provided during :term:`calibration`.
 
     It could predict:
+
         * ``last``: last value seen during calibration (even if ``NaN``).
         * ``last_known``: last non ``NaN`` value seen during :term:`calibration`.
         * ``max``: maximum (=worst) value seen during :term:`calibration`.

@@ -17,8 +17,8 @@ class AlgorithmWithAnnealingMixin:
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
-        The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
+        The specifications of the algorithm as a :class:`~leaspy.algo.settings.AlgorithmSettings` instance.
 
         Please note that you can customize the number of iterations with annealing by setting:
              * `annealing.n_iter_frac`, such that iterations with annealing is a ratio of algorithm `n_iter` (default = 50%)

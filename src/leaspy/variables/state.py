@@ -57,7 +57,7 @@ class StateForkType(Enum):
     - Use `REF` for efficiency when you're certain the original values will not be mutated after caching.
     - Use `COPY` to ensure isolation between the cached values and any subsequent modifications.
     - If using `REF` beware that values will NOT be copied (it only keeps references of values),
-    so do NOT mutate them directly or the behavior will be unexpected.
+      so do NOT mutate them directly or the behavior will be unexpected.
     """
 
     REF = auto()
@@ -74,7 +74,7 @@ class State(MutableMapping):
     """
     Dictionary of cached values corresponding to the stateless DAG instance.
 
-   Parameters
+    Parameters
     ----------
     dag : :class:`~leaspy.variables.dag.VariablesDAG`
         The stateless DAG which state will hold values for.
@@ -93,7 +93,7 @@ class State(MutableMapping):
         The exact caching strategy depends on flag (caching by reference or by copy)
         Can be manually set or via `auto_fork` context manager.
 
-    _tracked_variables : :ob:`set[:class:`~leaspy.variables.specs.VariableName`, ...]
+    _tracked_variables : :obj:`set`[:class:`~leaspy.variables.specs.VariableName`, ...]
 
     _values : :class:`~leaspy.variables.specs.VariablesLazyValuesRW`
         Private cache for values (computations are lazy thus some values may be None).
@@ -123,7 +123,7 @@ class State(MutableMapping):
 
         Returns
         -------
-        ;obj:`set`[:class:`~leaspy.variables.specs.VariableName`, ...]
+        :obj:`set` [:class:`~leaspy.variables.specs.VariableName`, ...]
             A set containing the names of the tracked variables.
         """
         return self._tracked_variables
@@ -221,7 +221,7 @@ class State(MutableMapping):
         
         Parameters
         ----------
-        type :  :class:`~leaspy.variables.state.StateForkType` or None, optional
+        type : :class:`~leaspy.variables.state.StateForkType` or None, optional
             The temporary auto-forking strategy to use within the context.
             Defaults to `StateForkType.REF`.
 
@@ -305,7 +305,7 @@ class State(MutableMapping):
 
         Raises
         ------
-       :exc:`LeaspyInputError`
+        :exc:`LeaspyInputError`
             If the variable is independent and its value cannot be computed (i.e., is None),
             indicating it is required.
         """
@@ -528,12 +528,14 @@ class State(MutableMapping):
         ----------
         subset : :class:`~leaspy.variables.specs.VariableValue` or None
             If not None, the reversion is only partial:
+
             * subset = True <=> revert previous state for those indices
             * subset = False <=> keep current state for those indices
+
             <!> User is responsible for having tensor values that are consistent with
             `subset` shape (i.e. valid broadcasting) for the forked node and all of its children.
-           <!> When the current OR forked state is not set (value = None) on a particular node of forked DAG,
-           then the reverted result is always None.
+            <!> When the current OR forked state is not set (value = None) on a particular node of forked DAG,
+            then the reverted result is always None.
         right_broadcasting : :obj:`bool`, optional
             If True and if `subset` is not None, then the subset of indices to revert uses right-broadcasting,
             instead of the standard left-broadcasting.
@@ -628,7 +630,7 @@ class State(MutableMapping):
             The method used to initialize the variables. If None, the variables will be unset (set to None).
             If provided, an initialization function will be called per variable.
             When `method` is not None, `n_individuals` must be specified.
-        n_individuals : :obl:`int`, optional
+        n_individuals : :obj:`int`, optional
             Number of individuals to initialize. Required when `method` is not None and `df` is not provided.
         df : :obj:`pandas.DataFrame`, optional
             A DataFrame from which to directly extract the individual latent variable values.

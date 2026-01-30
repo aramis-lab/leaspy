@@ -1,19 +1,21 @@
 # Algorithms
 
+(fit)=
 ## Fit
 
-In this section we describe how to fit a `leaspy` model with your data. Leaspy uses the [MCMC-SAEM algorithm](./glossary.md#mcmc-saem) to fit a model by jointly estimating the fixed effects and the distribution of the random effects. It is particularly well suited to this kind of models where the likelihood involves latent variables and is not available in closed form.
+In this section we describe how to fit a `leaspy` model with your data. Leaspy uses the {term}`MCMC-SAEM algorithm <MCMC-SAEM>` to fit a model by jointly estimating the fixed effects and the distribution of the random effects. It is particularly well suited to this kind of models where the likelihood involves latent variables and is not available in closed form.
 
 The algorithm is an adaptation of the Expectation-Maximisation (EM) algorithm that relies on an iterative procedure that alternates between the following main steps:
 
-- Expectation/Stochastic Approximation Step: the algorithm uses [Markov Chain Monte Carlo (MCMC)](./glossary.md#mcmc) to generate samples of the latent variables (random effects) conditional on the current parameter estimates. In particular, Gibbs sampling is employed, which iteratively updates each latent variable conditional on the current values of the others, allowing efficient exploration of the latent space. To avoid convergence to local maxima, a temperature scheme is applied: the sampling distribution is initially “flattened” during the burn-in phase, to allow exploration of a wider range of values, and the temperature is gradually reduced over iterations so that the chain focuses increasingly on high-likelihood regions. The sufficient statistics of the complete-data log-likelihood are then computed using a stochastic approximation scheme.
+- Expectation/Stochastic Approximation Step: the algorithm uses {term}`Markov Chain Monte Carlo (MCMC) <MCMC>` to generate samples of the latent variables (random effects) conditional on the current parameter estimates. In particular, Gibbs sampling is employed, which iteratively updates each latent variable conditional on the current values of the others, allowing efficient exploration of the latent space. To avoid convergence to local maxima, a temperature scheme is applied: the sampling distribution is initially “flattened” during the burn-in phase, to allow exploration of a wider range of values, and the temperature is gradually reduced over iterations so that the chain focuses increasingly on high-likelihood regions. The sufficient statistics of the complete-data log-likelihood are then computed using a stochastic approximation scheme.
 - Maximization Step: Given the updated sufficient statistics, the fixed effects and variance components are re-estimated by maximizing the approximate complete-data log-likelihood.
 
 By iterating these steps, the MCMC-SAEM algorithm converges to the maximum likelihood estimates of the model parameters.
 
+(prerequisites)=
 ### Prerequisites
 
-Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](./models.md#logistic-data), [joint](./models.md#joint-data), and [mixture](./models.md#mixture-data) models).
+Depending on the model you want to fit, you need a dataframe with a specific structure (see [logistic](logistic-data), [joint](joint-data), and [mixture](mixture-data) models).
 
 ### Running Task
 
@@ -25,7 +27,7 @@ Let's use the logistic model as an example.
 from leaspy.models import LogisticModel
 ```
 
-We need to specify the arguments `name`, `dimension` (the number of outcomes $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per outcome or 'gaussian-scalar' to estimate one noise coefficient for all the outcomes). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](./mathematics.md#individual-trajectory--spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of outcomes ($\sqrt{dimension}$).
+We need to specify the arguments `name`, `dimension` (the number of outcomes $K$ in your dataset) and the `obs_models` (valid choices for the logistic model are 'gaussian-diagonal' to estimate one noise coefficient per outcome or 'gaussian-scalar' to estimate one noise coefficient for all the outcomes). When we fit a multivariate model we also need to specify `source_dimension` that corresponds to the degrees of freedom of intermarker spacing parameters. We refer you to the [mathematical background section](individual-trajectory-spatial-random-effects) for more details. We generally suggest a number of sources close to the square root of the number of outcomes ($\sqrt{dimension}$).
 
 You can also add a `seed` or control other arguments for the output and the logs like `save_periodicity`, `path`, etc.
 
@@ -34,7 +36,7 @@ model = LogisticModel(name="my-model", source_dimension=1, dimension=2, obs_mode
 model.fit(data_leaspy, "mcmc_saem", n_iter=20000, seed=42)
 ```
 
-Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](./models.md#model-summary) and [mixture model](./models.md#id20).
+Note that the joint and mixture models require additional model-specific arguments. Please refer to their respective documentation for details: [joint model](joint-model-summary) and [mixture model](mixture-model-summary).
 
 ### Output
 
@@ -93,7 +95,7 @@ GS-200   1.152407  -0.171888  76.504517  0.770118
 [200 rows x 4 columns]
 ```
 
-- __More of a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase and temperature scheme (see [fit description](##Fit)). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag. 
+- __More of a bayesian one:__ random effects are estimated using a Gibbs sampler with an option on the burn-in phase and temperature scheme (see [fit description](#fit)). Currently, the package enables to extract the mean or the mode of the posterior distribution. They can be used with the same procedure using `mean_posterior` or `mode_posterior` flag.
 
 ```python
 >>> personalize_settings = AlgorithmSettings("mean_posterior", seed=0)
@@ -246,9 +248,3 @@ Refer to the docstring for further details.
 - not enough patients 
 - parameters don't converge 
 - score don't progress -->
-
-## References
-
-```{bibliography}
-:filter: docname in docnames
-```

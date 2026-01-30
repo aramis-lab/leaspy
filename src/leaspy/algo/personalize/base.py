@@ -19,7 +19,7 @@ class PersonalizeAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         Settings of the algorithm.
 
     Attributes
@@ -53,12 +53,12 @@ class PersonalizeAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             A subclass object of leaspy `McmcSaemCompatibleModel`.
 
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
             Dataset object build with leaspy class objects Data, algo & model
 
         Returns
         -------
-        individual_parameters : :class:`.IndividualParameters`
+        individual_parameters : :class:`~leaspy.io.outputs.individual_parameters.IndividualParameters`
             Contains individual parameters.
         """
         return self._compute_individual_parameters(model, dataset, **kwargs)
