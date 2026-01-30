@@ -111,7 +111,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        :class:`~leaspy.variables.specs.NamedVariables :
+        :class:`~leaspy.variables.specs.NamedVariables` :
             A dictionary-like object mapping variable names to their specifications.
         """
         d = super().get_variables_specs()

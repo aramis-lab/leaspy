@@ -335,7 +335,7 @@ class Dataset:
         Convert dataset to a `DataFrame` with ['ID', 'TIME'] index, with all covariates, events and repeated measures if
         apply_headers is False, and only the repeated measures otherwise.
 
-         Parameters
+        Parameters
         ----------
         apply_headers : :obj:`bool`
             Enable to select only the columns that are needed for leaspy fit (headers attribute)

@@ -59,7 +59,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     source_dimension : Optional[:obj:`int`]
         Number of sources. Dimension of spatial components (default is None).
     **kwargs: :obj:`dict`
-		Additional hyperparameters for the model. Must include:
+        Additional hyperparameters for the model. Must include:
             - 'n_clusters': int
                 Number of mixture components (must be ≥ 2).
             - 'dimension' or 'features': int or list

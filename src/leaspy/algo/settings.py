@@ -431,7 +431,7 @@ class AlgorithmSettings:
         ----------
         path : :obj:`str`
             Path to store the AlgorithmSettings.
-        **kwargs
+        kwargs : dict
             Keyword arguments for json.dump method.
             Default: dict(indent=2)
 

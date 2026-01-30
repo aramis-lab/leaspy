@@ -57,7 +57,7 @@ class StateForkType(Enum):
     - Use `REF` for efficiency when you're certain the original values will not be mutated after caching.
     - Use `COPY` to ensure isolation between the cached values and any subsequent modifications.
     - If using `REF` beware that values will NOT be copied (it only keeps references of values),
-    so do NOT mutate them directly or the behavior will be unexpected.
+      so do NOT mutate them directly or the behavior will be unexpected.
     """
 
     REF = auto()

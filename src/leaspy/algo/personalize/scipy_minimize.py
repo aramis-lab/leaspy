@@ -100,15 +100,15 @@ class _AffineScalings1D:
         x : Dict[VarName, torch.Tensor]
             Mapping to stack.
 
-        Return
-        ------
+        Returns
+        -------
         np.ndarray :
             Stacked array of values.
         """
         return torch.cat([x[n].float() for n, _ in self.scalings.items()])
 
     def unstack(self, x: torch.Tensor) -> dict[VariableName, torch.Tensor]:
-        """ "
+        """
         Unstack the provided concatenated array.
 
         Parameters
@@ -116,8 +116,8 @@ class _AffineScalings1D:
         x : np.ndarray
             Concatenated array to unstack.
 
-        Return
-        ------
+        Returns
+        -------
         dict :
             Mapping from variable names to their tensor values.
         """
@@ -157,8 +157,8 @@ class _AffineScalings1D:
         x : :obj:`dict`[VarName, torch.Tensor]
             The mapping to unscale.
 
-        Return
-        ------
+        Returns
+        -------
         np.ndarray :
             Concatenated array of scaled values.
         """
@@ -216,7 +216,7 @@ class ScipyMinimizeAlgorithm(
         :class:`~leaspy.algo.settings.AlgorithmSettings`.
 
     format_convergence_issues : :obj:`str`
-       A format string for displaying convergence issues, which can use the
+        A format string for displaying convergence issues, which can use the
         following variables:
             - `patient_id`: :obj:`str`
             - `optimization_result_pformat`: :obj:`str`
@@ -225,8 +225,9 @@ class ScipyMinimizeAlgorithm(
         `ScipyMinimize.DEFAULT_FORMAT_CONVERGENCE_ISSUES`, but it can be
         customized via the `custom_format_convergence_issues` parameter.
 
-    logger : None or callable :obj:`str` -> None
+    logger : callable, optional
         The function used to display convergence issues returned by :func:`scipy.optimize.minimize`.
+        It must accept a string as input and return None.
         By default, convergence issues are printed only if the BFGS optimization method is not used.
         This can  be customized by setting the `logger` attribute in :class:`~leaspy.algo.settings.AlgorithmSettings`.
     """

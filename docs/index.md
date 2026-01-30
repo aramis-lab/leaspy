@@ -1,6 +1,6 @@
 ![leaspy logo](./_static/images/leaspy_logo.png)
 
-## LEArning Spatiotemporal Patterns in Python
+# LEArning Spatiotemporal Patterns in Python
 
 ### Description
 

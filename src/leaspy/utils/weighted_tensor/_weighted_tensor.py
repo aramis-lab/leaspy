@@ -697,7 +697,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -716,7 +716,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -736,7 +736,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        other : class:`TensorOrWeightedTensor`
+        other : :class:`TensorOrWeightedTensor`
             The tensor to compare against.
 
         Returns
@@ -755,7 +755,7 @@ class WeightedTensor(Generic[VT]):
 
         Parameters
         ----------
-        t : class:`TensorOrWeightedTensor`
+        t : :class:`TensorOrWeightedTensor`
             The tensor to be converted.
         fill_value : :obj:`VT`, optional
             The value to fill the tensor with for aggregates where weights were all zero.
