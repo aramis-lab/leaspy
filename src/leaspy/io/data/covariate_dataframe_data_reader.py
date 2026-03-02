@@ -143,6 +143,7 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         if len(df_covariate) == 0:
             raise LeaspyDataInputError("Dataframe should have at least 1 covariate")
 
+        # Identifiability conditions
         # Assert at least 2 different values per covariate
         for covariate in self.covariate_names:
             if (n_value := df_covariate[covariate].nunique(dropna=False)) < 2:
@@ -150,6 +151,21 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     f"The covariate '{covariate}' has only {n_value} unique value."
                     "Each covariate must have at least two distinct values across patients"
                 )
+
+        # Assert that covariates are not collinear
+        C = df_covariate[self.covariate_names].values
+        names = self.covariate_names
+        U, S, Vt = np.linalg.svd(C)
+        rank = np.sum(S > 1e-12)
+        if rank < C.shape[1]:
+            null_vec = Vt[-1, :]
+            involved = [
+                names[i] for i, coeff in enumerate(null_vec) if abs(coeff) > 1e-8
+            ]
+            raise LeaspyDataInputError(
+                "Covariates are linearly dependent. "
+                f"The following covariates are collinear: {involved}."
+            )
 
         return df_covariate
 
