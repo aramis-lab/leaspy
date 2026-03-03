@@ -214,3 +214,22 @@ def _sum_args(*args: TensorOrWeightedTensor, **start_kw) -> TensorOrWeightedTens
         # If args is empty, sum returns a float 0 that needs to be converted to a tensor
         return torch.tensor(summation)
     return summation
+
+
+def _outer_product(x: torch.Tensor, *, dim=None, **kws) -> torch.Tensor:
+    """
+    Compute the outer product x x^T along the population dimension.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Tensor of shape (N, d) for N samples, d-dimensional.
+    dim : int, optional
+        Dimension corresponding to the population level.
+    """
+    # si dim est None, on suppose que x est déjà de forme (d,) ou (1, d)
+    if dim is not None:
+        x = x.transpose(0, dim)
+    if x.ndim == 1:
+        x = x[:, None]  # shape (d, 1)
+    return x @ x.T  # shape (d, d)

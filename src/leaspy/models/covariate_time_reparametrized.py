@@ -246,7 +246,7 @@ class CovariateTimeReparametrizedModelSchiratti(McmcSaemCompatibleModel):
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             delta_t0_mean=ModelParameter.for_pop_mean("delta_t0", shape=(self.nb_cov)),
-            delta_t0_sigma=ModelParameter.for_pop_cov_matrice(
+            delta_t0_sigma=ModelParameter.for_pop_cov_matrix(
                 "delta_t0", shape=(self.nb_cov, self.nb_cov)
             ),
             # LATENT VARS

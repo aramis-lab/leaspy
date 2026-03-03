@@ -7,7 +7,7 @@ import torch
 from ..linalg import compute_orthonormal_basis
 from ..weighted_tensor import factory_weighted_tensor_unary_operator, sum_dim
 from ._named_input_function import NamedInputFunction
-from ._utils import _arguments_checker, _identity, _prod_args, _sum_args
+from ._utils import _arguments_checker, _identity, _outer_product, _prod_args, _sum_args
 
 __all__ = [
     "Prod",
@@ -20,6 +20,7 @@ __all__ = [
     "Std",
     "SumDim",
     "Sum",
+    "OuterProduct",
 ]
 
 
@@ -108,6 +109,15 @@ Sum = NamedInputFunction.bound_to(
     _sum_args,
     _arguments_checker(
         possible_kws={"start"},
+    ),
+)
+
+
+OuterProduct = NamedInputFunction.bound_to(
+    _outer_product,
+    _arguments_checker(
+        nb_arguments=1,
+        possible_kws={"dim"},
     ),
 )
 

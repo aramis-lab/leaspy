@@ -37,6 +37,7 @@ from leaspy.utils.functional import (
     Sum,
     SumDim,
     get_named_parameters,
+    OuterProduct,
 )
 from leaspy.utils.typing import KwargsType
 from leaspy.utils.weighted_tensor import (
@@ -47,7 +48,7 @@ from leaspy.utils.weighted_tensor import (
 )
 
 from .distributions import SymbolicDistribution
-from .utilities import compute_individual_parameter_std_from_sufficient_statistics
+from .utilities import compute_individual_parameter_std_from_sufficient_statistics, compute_population_covariance_from_sufficient_statistics
 
 __all__ = [
     "VariableName",
@@ -284,7 +285,7 @@ class ModelParameter(IndepVariable):
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
     """
     The symbolic update functions will take variadic `suff_stats` values,
-    in order to re-use NamedInputFunction logic: e.g. update_rule=Std('xi')
+    in order to reuse NamedInputFunction logic: e.g. update_rule=Std('xi')
 
     <!> ISSUE: for `tau_std` and `xi_std` we also need `state` values in addition to
     `suff_stats` values (only after burn-in) since we can NOT use the variadic form
@@ -412,6 +413,45 @@ class ModelParameter(IndepVariable):
             shape,
             suff_stats=Collect(population_variable_name),
             update_rule=Identity(population_variable_name),
+        )
+    
+    @classmethod
+    def for_pop_cov_matrix(
+        cls, population_variable_name: VariableName, shape: tuple[int, ...], **tol_kw
+    ):
+        """
+        Smart automatic definition of a covariance matrix for
+        a population latent variable.
+        """
+
+        outer_name = f"{population_variable_name}_outer"
+        
+        update_rule_normal = NamedInputFunction(
+            compute_population_covariance_from_sufficient_statistics,
+            parameters=(
+                "state",
+                population_variable_name,
+                outer_name,
+            ),
+            kws=dict(
+                population_parameter_name=population_variable_name,
+                dim=0,
+                **tol_kw,
+            ),
+        )
+
+        return cls(
+            shape,
+            suff_stats=Collect(
+                population_variable_name,
+                **{
+                    outer_name: LinkedVariable(
+                        OuterProduct(population_variable_name)
+                    )
+                },
+            ),
+            update_rule_burn_in=None,  # généralement pas nécessaire ici
+            update_rule=update_rule_normal,
         )
     
     @classmethod

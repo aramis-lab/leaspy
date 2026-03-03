@@ -4,6 +4,7 @@ from ._functions import (
     MatMul,
     Mean,
     OrthoBasis,
+    OuterProduct,
     Prod,
     Sqr,
     Std,
@@ -26,4 +27,5 @@ __all__ = [
     "Std",
     "Sum",
     "SumDim",
+    "OuterProduct",
 ]
