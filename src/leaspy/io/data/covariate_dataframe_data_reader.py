@@ -163,8 +163,10 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                 names[i] for i, coeff in enumerate(null_vec) if abs(coeff) > 1e-8
             ]
             raise LeaspyDataInputError(
-                "Covariates are linearly dependent. "
-                f"The following covariates are collinear: {involved}."
+                "Linear dependence detected among the covariates.\n"
+                f"The following covariates are involved in a linear dependence relation: {involved}.\n"
+                "Note that additional linear dependence relations may exist among other covariates.\n"
+                "Please ensure that the covariates are linearly independent.\n"
             )
 
         return df_covariate
