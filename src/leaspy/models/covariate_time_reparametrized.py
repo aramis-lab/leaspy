@@ -5,10 +5,10 @@ import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import Exp, MatMul
+from leaspy.utils.functional import Affine, Exp, MatMul
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
-from leaspy.variables.distributions import Normal
+from leaspy.variables.distributions import MultivariateNormal, Normal
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,

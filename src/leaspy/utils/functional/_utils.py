@@ -233,3 +233,28 @@ def _outer_product(x: torch.Tensor, *, dim=None, **kws) -> torch.Tensor:
     if x.ndim == 1:
         x = x[:, None]  # shape (d, 1)
     return x @ x.T  # shape (d, d)
+
+
+def _affine(
+    t0: torch.Tensor,
+    delta: torch.Tensor,
+    covariates: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute patient-specific intercept: t0 + c @ delta
+
+    Parameters
+    ----------
+    t0 : torch.Tensor, shape (1,)
+        Population-level intercept
+    delta : torch.Tensor, shape (N_c,)
+        Covariate effect vector
+    covariates : torch.Tensor, shape (N, N_c)
+        Covariate matrix, one row per patient
+
+    Returns
+    -------
+    torch.Tensor, shape (N, 1)
+        Patient-specific intercept
+    """
+    return t0 + (covariates @ delta).unsqueeze(-1)  # (N, N_c) @ (N_c,) -> (N,) -> (N, 1)
