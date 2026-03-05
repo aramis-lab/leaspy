@@ -19,7 +19,7 @@ from leaspy.variables.specs import (
 
 from .base import InitializationMethod
 from .obs_models import FullGaussianObservationModel
-from .riemanian_manifold import RiemanianManifoldModel
+from .riemannian_manifold import RiemannianManifoldModel
 
 __all__ = [
     "LogisticInitializationMixin",
@@ -107,7 +107,7 @@ class LogisticInitializationMixin:
         return rounded_parameters
 
 
-class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
+class LogisticModel(LogisticInitializationMixin, RiemannianManifoldModel):
     """Manifold model for multiple variables of interest (logistic formulation)."""
 
     def __init__(self, name: str, **kwargs):

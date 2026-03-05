@@ -1,5 +1,8 @@
 from .base import BaseModel, ModelInterface
 from .constant import ConstantModel
+from .covariate_logistic import CovariateLogisticModel
+from .covariate_riemannian_manifold import CovariateRiemannianManifoldModel
+from .covariate_time_reparametrized import CovariateTimeReparametrizedModel
 from .factory import ModelName, model_factory
 from .joint import JointModel
 from .linear import LinearModel
@@ -8,8 +11,8 @@ from .logistic import LogisticModel
 from .logistic_Schiratti import LogisticModelSchiratti
 from .mcmc_saem_compatible import McmcSaemCompatibleModel
 from .mixture import LogisticMultivariateMixtureModel
-from .riemanian_manifold import RiemanianManifoldModel
-from .riemanian_manifold_Schiratti import RiemanianManifoldModelSchiratti
+from .riemannian_manifold import RiemannianManifoldModel
+from .riemannian_manifold_Schiratti import RiemannianManifoldModelSchiratti
 from .settings import ModelSettings
 from .shared_speed_logistic import SharedSpeedLogisticModel
 from .stateful import StatefulModel
@@ -23,6 +26,7 @@ __all__ = [
     "McmcSaemCompatibleModel",
     "TimeReparametrizedModel",
     "TimeReparametrizedModelSchiratti",
+    "CovariateTimeReparametrizedModel",
     "BaseModel",
     "ConstantModel",
     "StatelessModel",
@@ -30,10 +34,12 @@ __all__ = [
     "LMEModel",
     "model_factory",
     "ModelSettings",
-    "RiemanianManifoldModel",
-    "RiemanianManifoldModelSchiratti",
+    "RiemannianManifoldModel",
+    "RiemannianManifoldModelSchiratti",
+    "CovariateRiemannianManifoldModel",
     "LogisticModel",
     "LogisticModelSchiratti",
+    "CovariateLogisticModel",
     "LinearModel",
     "SharedSpeedLogisticModel",
     "JointModel",

@@ -19,7 +19,7 @@ from leaspy.variables.specs import (
 
 from .base import InitializationMethod
 from .obs_models import FullGaussianObservationModel
-from .riemanian_manifold_Schiratti import RiemanianManifoldModelSchiratti
+from .riemannian_manifold_Schiratti import RiemannianManifoldModelSchiratti
 
 __all__ = [
     "LogisticInitializationMixinSchiratti",
@@ -108,7 +108,7 @@ class LogisticInitializationMixinSchiratti:
 
 
 class LogisticModelSchiratti(
-    LogisticInitializationMixinSchiratti, RiemanianManifoldModelSchiratti
+    LogisticInitializationMixinSchiratti, RiemannianManifoldModelSchiratti
 ):
     """Manifold model for multiple variables of interest (logistic formulation)."""
 

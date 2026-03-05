@@ -27,11 +27,11 @@ from .covariate_time_reparametrized import CovariateTimeReparametrizedModel
 
 
 __all__ = [
-    "CovariateRiemanianManifoldModel",
+    "CovariateRiemannianManifoldModel",
 ]
 
 
-class CovariateRiemanianManifoldModel(CovariateTimeReparametrizedModel):
+class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
     """Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters

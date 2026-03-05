@@ -18,7 +18,7 @@ from leaspy.variables.specs import (
 )
 
 from .base import InitializationMethod
-from .covariate_riemanian_manifold import CovariateRiemanianManifoldModel
+from .covariate_riemannian_manifold import CovariateRiemannianManifoldModel
 from .obs_models import FullGaussianObservationModel
 
 __all__ = [
@@ -114,7 +114,7 @@ class CovariateLogisticInitializationMixin:
 
 
 class CovariateLogisticModel(
-    CovariateLogisticInitializationMixin, CovariateRiemanianManifoldModel
+    CovariateLogisticInitializationMixin, CovariateRiemannianManifoldModel
 ):
     """Manifold model for multiple variables of interest (logistic formulation)."""
 

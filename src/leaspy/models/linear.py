@@ -16,7 +16,7 @@ from leaspy.variables.specs import (
 )
 
 from .obs_models import FullGaussianObservationModel
-from .riemanian_manifold import RiemanianManifoldModel
+from .riemannian_manifold import RiemanianManifoldModel
 
 __all__ = [
     "LinearInitializationMixin",

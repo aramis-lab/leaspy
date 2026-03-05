@@ -27,11 +27,11 @@ from .time_reparametrized_Schiratti import TimeReparametrizedModelSchiratti
 
 
 __all__ = [
-    "RiemanianManifoldModelSchiratti",
+    "RiemannianManifoldModelSchiratti",
 ]
 
 
-class RiemanianManifoldModelSchiratti(TimeReparametrizedModelSchiratti):
+class RiemannianManifoldModelSchiratti(TimeReparametrizedModelSchiratti):
     """Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters

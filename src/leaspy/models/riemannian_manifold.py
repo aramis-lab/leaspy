@@ -27,13 +27,13 @@ from .time_reparametrized import TimeReparametrizedModel
 
 
 __all__ = [
-    "RiemanianManifoldModel",
+    "RiemannianManifoldModel",
     "LinearInitializationMixin",
     "LinearModel",
 ]
 
 
-class RiemanianManifoldModel(TimeReparametrizedModel):
+class RiemannianManifoldModel(TimeReparametrizedModel):
     """Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters
