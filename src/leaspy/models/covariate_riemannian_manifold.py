@@ -178,7 +178,7 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 "delta_v0", shape=(self.dimension, self.nb_cov)
             ),
             delta_v0_sigma=ModelParameter.for_pop_cov_matrix(
-                "delta_v0", shape=(self.dimension, self.nb_cov, self.nb_cov)
+                "delta_v0", shape=(self.nb_cov, self.nb_cov)
             ),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
@@ -186,7 +186,8 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 Normal("log_v0_mean", "log_v0_std"),
             ),
             delta_v0=PopulationLatentVariable(
-                MultivariateNormal("delta_v0_mean", "delta_v0_sigma")
+                MultivariateNormal("delta_v0_mean", "delta_v0_sigma"),
+                sampling_kws={"scale": 0.1},
             ),
             # DERIVED VARS
             v0=LinkedVariable(

@@ -61,9 +61,16 @@ def compute_population_covariance_from_sufficient_statistics(
     dim: int,
     **kws,
 ):
-    # Sigma = S_16 - S_17 @ S_17^T
-    # mais S_17 est E[delta_t0], pas overline{delta_t0}
-    cov = population_parameter_outer_values - torch.outer(
-        population_parameter_values, population_parameter_values
+    # # Sigma = S_16 - S_17 @ S_17^T
+    # # mais S_17 est E[delta_t0], pas overline{delta_t0}
+    # cov = population_parameter_outer_values - torch.outer(
+    #     population_parameter_values, population_parameter_values
+    # )
+
+    # outer product par feature : (K, N_c) -> (K, N_c, N_c)
+    means_outer = torch.einsum(
+        "ki,kj->kij", population_parameter_values, population_parameter_values
     )
+    # moyenne sur les K features
+    cov = (population_parameter_outer_values - means_outer).mean(dim=0)  # (N_c, N_c)
     return cov

@@ -252,7 +252,8 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             # LATENT VARS
             t0=PopulationLatentVariable(Normal("t0_mean", "t0_std")),
             delta_t0=PopulationLatentVariable(
-                MultivariateNormal("delta_t0_mean", "delta_t0_sigma")
+                MultivariateNormal("delta_t0_mean", "delta_t0_sigma"),
+                sampling_kws={"scale": 0.1},
             ),
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             tau=IndividualLatentVariable(Normal("tau_mean", "tau_std")),
