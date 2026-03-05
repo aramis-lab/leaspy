@@ -258,3 +258,12 @@ def _affine(
         Patient-specific intercept
     """
     return t0 + (covariates @ delta).unsqueeze(-1)  # (N, N_c) @ (N_c,) -> (N,) -> (N, 1)
+
+
+def _affine_matrix(
+    base: torch.Tensor,  # (K,)
+    delta: torch.Tensor,  # (K, N_c)
+    covariates: torch.Tensor,  # (N, N_c)
+) -> torch.Tensor:
+    # covariates @ delta.T : (N, N_c) @ (N_c, K) -> (N, K)
+    return base + covariates @ delta.T  # (N, K)

@@ -11,8 +11,8 @@ import torch
 from torch import Tensor
 from torch.autograd import grad
 from torch.distributions.mixture_same_family import MixtureSameFamily
-
 # from torch.distributions.multivariate_normal import MultivariateNormal
+
 from leaspy.constants import constants
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import MultinomialDistribution

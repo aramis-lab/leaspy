@@ -27,7 +27,7 @@ from .obs_models import observation_model_factory
 __all__ = ["CovariateTimeReparametrizedModelSchiratti"]
 
 
-class CovariateTimeReparametrizedModelSchiratti(McmcSaemCompatibleModel):
+class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
     """
     Contains the common attributes & methods of the multivariate time-reparametrized models.
 

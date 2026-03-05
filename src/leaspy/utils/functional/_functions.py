@@ -9,6 +9,7 @@ from ..weighted_tensor import factory_weighted_tensor_unary_operator, sum_dim
 from ._named_input_function import NamedInputFunction
 from ._utils import (
     _affine,
+    _affine_matrix,
     _arguments_checker,
     _identity,
     _outer_product,
@@ -29,6 +30,7 @@ __all__ = [
     "Sum",
     "OuterProduct",
     "Affine",
+    "AffineMatrix",
 ]
 
 
@@ -131,6 +133,14 @@ OuterProduct = NamedInputFunction.bound_to(
 
 Affine = NamedInputFunction.bound_to(
     _affine,
+    _arguments_checker(
+        nb_arguments=3,
+        possible_kws={"dim"},
+    ),
+)
+
+AffineMatrix = NamedInputFunction.bound_to(
+    _affine_matrix,
     _arguments_checker(
         nb_arguments=3,
         possible_kws={"dim"},
