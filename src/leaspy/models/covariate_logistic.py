@@ -145,17 +145,20 @@ class CovariateLogisticModel(
             ),
             delta_g=PopulationLatentVariable(
                 MultivariateNormal("delta_g_mean", "delta_g_sigma"),
-                sampling_kws={"scale": 0.1},
+                sampling_kws={"scale": 0.01},
+            ),
+            log_g_patient=LinkedVariable(
+                AffineMatrix("log_g", "delta_g", "covariates"),
             ),
             g_patient=LinkedVariable(
-                AffineMatrix("g", "delta_g", "covariates"),
+                Exp("log_g_patient"),
             ),
         )
 
         return d
 
     @staticmethod
-    def metric(*, g_patient: torch.Tensor) -> torch.Tensor:
+    def metric(*, g: torch.Tensor) -> torch.Tensor:
         r"""
         Compute the metric tensor from input tensor `g`.
         This function calculates the metric as \((g + 1)^2 / g\) element-wise.
@@ -170,6 +173,10 @@ class CovariateLogisticModel(
         :class:`torch.Tensor`
             The computed metric tensor, same shape as g(number of features)
         """
+        return (g + 1) ** 2 / g
+
+    @staticmethod
+    def metric_patient(*, g_patient: torch.Tensor) -> torch.Tensor:
         return (g_patient + 1) ** 2 / g_patient
 
     @classmethod
@@ -178,7 +185,7 @@ class CovariateLogisticModel(
         *,
         rt: TensorOrWeightedTensor[float],
         space_shifts: TensorOrWeightedTensor[float],
-        metric: TensorOrWeightedTensor[float],
+        metric_patient: TensorOrWeightedTensor[float],
         v0_patient: TensorOrWeightedTensor[float],
         g_patient: TensorOrWeightedTensor[float],
     ) -> torch.Tensor:
@@ -207,7 +214,7 @@ class CovariateLogisticModel(
         rt = unsqueeze_right(rt, ndim=1)  # (N, N_i, 1)
 
         # v0_patient et g_patient : (N, K) -> unsqueeze pour broadcaster sur N_i
-        w_model_logit = metric[:, None, :] * (
+        w_model_logit = metric_patient[:, None, :] * (
             v0_patient[:, None, :] * rt + space_shifts[:, None, :]
         ) - torch.log(g_patient[:, None, :])
 

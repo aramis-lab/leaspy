@@ -58,19 +58,32 @@ def compute_population_covariance_from_sufficient_statistics(
     population_parameter_outer_values: torch.Tensor,
     *,
     population_parameter_name: str,
-    dim: int,
     **kws,
 ):
-    # # Sigma = S_16 - S_17 @ S_17^T
-    # # mais S_17 est E[delta_t0], pas overline{delta_t0}
-    # cov = population_parameter_outer_values - torch.outer(
-    #     population_parameter_values, population_parameter_values
-    # )
+    if population_parameter_values.ndim == 1:
+        # cas delta_t0 : une seule observation
+        cov = population_parameter_outer_values - torch.outer(
+            population_parameter_values, population_parameter_values
+        )
+    else:
+        # cas delta_g/delta_v0 : K observations, on moyenne
+        means_outer = torch.einsum(
+            "ki,kj->kij", population_parameter_values, population_parameter_values
+        )
+        # moyenne sur les K features
+        cov = (population_parameter_outer_values - means_outer).mean(
+            dim=0
+        )  # (N_c, N_c)
+    return _make_spd(cov)
 
-    # outer product par feature : (K, N_c) -> (K, N_c, N_c)
-    means_outer = torch.einsum(
-        "ki,kj->kij", population_parameter_values, population_parameter_values
-    )
-    # moyenne sur les K features
-    cov = (population_parameter_outer_values - means_outer).mean(dim=0)  # (N_c, N_c)
-    return cov
+
+def _make_spd(matrix: torch.Tensor, epsilon: float = 1e-6) -> torch.Tensor:
+    """Project matrix onto the cone of symmetric positive definite matrices."""
+    # Symmetrize
+    matrix = (matrix + matrix.T) / 2
+    # Eigendecomposition
+    eigenvalues, eigenvectors = torch.linalg.eigh(matrix)
+    # Clip negative eigenvalues
+    eigenvalues = eigenvalues.clamp(min=epsilon)
+    # Reconstruct
+    return eigenvectors @ torch.diag(eigenvalues) @ eigenvectors.T

@@ -7,7 +7,7 @@ from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInput
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.functional import Affine, Exp, MatMul
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
-from leaspy.utils.weighted_tensor import TensorOrWeightedTensor
+from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.distributions import MultivariateNormal, Normal
 from leaspy.variables.specs import (
     DataVariable,
@@ -245,7 +245,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             tau_mean=Hyperparameter(0.0),
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
-            delta_t0_mean=ModelParameter.for_pop_mean("delta_t0", shape=(self.nb_cov)),
+            delta_t0_mean=ModelParameter.for_pop_mean("delta_t0", shape=(self.nb_cov,)),
             delta_t0_sigma=ModelParameter.for_pop_cov_matrix(
                 "delta_t0", shape=(self.nb_cov, self.nb_cov)
             ),
@@ -253,7 +253,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             t0=PopulationLatentVariable(Normal("t0_mean", "t0_std")),
             delta_t0=PopulationLatentVariable(
                 MultivariateNormal("delta_t0_mean", "delta_t0_sigma"),
-                sampling_kws={"scale": 0.1},
+                sampling_kws={"scale": 0.01},
             ),
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             tau=IndividualLatentVariable(Normal("tau_mean", "tau_std")),
@@ -474,6 +474,11 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
                     LatentVariableInitType.PRIOR_SAMPLES,
                     n_individuals=dataset.n_individuals,
                 )
+
+    def put_data_variables(self, state: State, dataset: Dataset) -> None:
+        super().put_data_variables(state, dataset)
+        covariates_tensor = dataset.covariates.clone().detach().to(torch.int)
+        state["covariates"] = WeightedTensor(covariates_tensor)
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
         """

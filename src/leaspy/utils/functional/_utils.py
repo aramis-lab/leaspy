@@ -227,12 +227,15 @@ def _outer_product(x: torch.Tensor, *, dim=None, **kws) -> torch.Tensor:
     dim : int, optional
         Dimension corresponding to the population level.
     """
-    # si dim est None, on suppose que x est déjà de forme (d,) ou (1, d)
-    if dim is not None:
-        x = x.transpose(0, dim)
     if x.ndim == 1:
-        x = x[:, None]  # shape (d, 1)
-    return x @ x.T  # shape (d, d)
+        # cas (N_c,) -> outer product -> (N_c, N_c)
+        x = x[:, None]
+        return x @ x.T
+    elif x.ndim == 2:
+        # cas (K, N_c) -> outer product par feature -> (K, N_c, N_c)
+        return torch.einsum("ki,kj->kij", x, x)
+    else:
+        raise ValueError(f"Unexpected shape {x.shape}")
 
 
 def _affine(
@@ -257,7 +260,12 @@ def _affine(
     torch.Tensor, shape (N, 1)
         Patient-specific intercept
     """
-    return t0 + (covariates @ delta).unsqueeze(-1)  # (N, N_c) @ (N_c,) -> (N,) -> (N, 1)
+    if isinstance(covariates, WeightedTensor):
+        covariates = covariates.value
+    covariates = covariates.float()
+    delta_flat = delta.reshape(-1)
+    result = covariates @ delta_flat
+    return t0 + result.unsqueeze(-1)
 
 
 def _affine_matrix(
@@ -266,4 +274,7 @@ def _affine_matrix(
     covariates: torch.Tensor,  # (N, N_c)
 ) -> torch.Tensor:
     # covariates @ delta.T : (N, N_c) @ (N_c, K) -> (N, K)
+    if isinstance(covariates, WeightedTensor):
+        covariates = covariates.value
+    covariates = covariates.float()
     return base + covariates @ delta.T  # (N, K)

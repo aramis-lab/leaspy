@@ -187,16 +187,20 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
             ),
             delta_v0=PopulationLatentVariable(
                 MultivariateNormal("delta_v0_mean", "delta_v0_sigma"),
-                sampling_kws={"scale": 0.1},
+                sampling_kws={"scale": 0.01},
             ),
             # DERIVED VARS
             v0=LinkedVariable(
                 Exp("log_v0"),
             ),
-            v0_patient=LinkedVariable(AffineMatrix("v0", "delta_v0", "covariates")),
+            log_v0_patient=LinkedVariable(
+                AffineMatrix("log_v0", "delta_v0", "covariates")
+            ),
+            v0_patient=LinkedVariable(Exp("log_v0_patient")),
             metric=LinkedVariable(
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
+            metric_patient=LinkedVariable(self.metric_patient),
         )
         if self.source_dimension >= 1:
             d.update(
@@ -216,6 +220,11 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
     @staticmethod
     @abstractmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def metric_patient(*, g: torch.Tensor) -> torch.Tensor:
         pass
 
     @classmethod
@@ -259,8 +268,8 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
         *,
         rt: torch.Tensor,
         space_shifts: torch.Tensor,
-        metric,
-        v0,
-        g,
+        metric_patient,
+        v0_patient,
+        g_patient,
     ) -> torch.Tensor:
         pass

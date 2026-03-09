@@ -11,8 +11,8 @@ import torch
 from torch import Tensor
 from torch.autograd import grad
 from torch.distributions.mixture_same_family import MixtureSameFamily
-# from torch.distributions.multivariate_normal import MultivariateNormal
 
+# from torch.distributions.multivariate_normal import MultivariateNormal
 from leaspy.constants import constants
 from leaspy.exceptions import LeaspyInputError
 from leaspy.utils.distributions import MultinomialDistribution
@@ -615,6 +615,11 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
     # """
 
     @classmethod
+    def shape(cls, loc: tuple[int, ...], scale: tuple[int, ...]) -> tuple[int, ...]:
+        # shape of a sample = shape of loc
+        return loc
+
+    @classmethod
     def mode(cls, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
         return loc  # mode = mean for Gaussian
 
@@ -630,13 +635,26 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
     def _nll(
         cls, x: WeightedTensor, loc: torch.Tensor, sigma: torch.Tensor
     ) -> WeightedTensor:
-        diff = x.value - loc
+        x_val = x.value
+        diff = x_val - loc
         L = torch.linalg.cholesky(sigma)
-        sigma_inv_delta = torch.cholesky_solve(diff.unsqueeze(-1), L).squeeze(-1)
-        prod = (diff * sigma_inv_delta).sum(-1)
+
+        if diff.ndim == 1:
+            # cas simple (N_c,)
+            sigma_inv_delta = torch.cholesky_solve(diff.unsqueeze(-1), L).squeeze(-1)
+            prod = (diff * sigma_inv_delta).sum(-1)
+        else:
+            # cas batché (K, N_c) ou (1, N_c)
+            # diff.unsqueeze(-1) : (K, N_c, 1)
+            # L doit être étendu à (K, N_c, N_c)
+            L_expanded = L.unsqueeze(0).expand(diff.shape[0], -1, -1)
+            sigma_inv_delta = torch.cholesky_solve(
+                diff.unsqueeze(-1), L_expanded
+            ).squeeze(-1)
+            prod = (diff * sigma_inv_delta).sum(-1).sum(-1)
+
         log_det = torch.logdet(sigma)
-        Nc = loc.shape[-1]
-        print("[DEBUG] Nc =", Nc)
+        Nc = sigma.shape[-1]
 
         nll = Nc * cls.nll_constant_standard + 0.5 * (log_det + prod)
 
@@ -660,15 +678,27 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
     ) -> tuple[WeightedTensor, WeightedTensor]:
         diff = x.value - loc
         L = torch.linalg.cholesky(sigma)
-        grad = torch.cholesky_solve(diff.unsqueeze(-1), L).squeeze(-1)
 
-        prod = (diff * grad).sum(-1)
+        if diff.ndim == 1:
+            # cas simple (N_c,)
+            sigma_inv_delta = torch.cholesky_solve(diff.unsqueeze(-1), L).squeeze(-1)
+            prod = (diff * sigma_inv_delta).sum(-1)
+        else:
+            # cas batché (K, N_c) ou (1, N_c)
+            # diff.unsqueeze(-1) : (K, N_c, 1)
+            # L doit être étendu à (K, N_c, N_c)
+            L_expanded = L.unsqueeze(0).expand(diff.shape[0], -1, -1)
+            sigma_inv_delta = torch.cholesky_solve(
+                diff.unsqueeze(-1), L_expanded
+            ).squeeze(-1)
+            prod = (diff * sigma_inv_delta).sum(-1).sum(-1)
+
         log_det = torch.logdet(sigma)
-        Nc = loc.shape[-1]
+        Nc = sigma.shape[-1]
 
         nll = Nc * cls.nll_constant_standard + 0.5 * (log_det + prod)
 
-        return WeightedTensor(nll, x.weight), WeightedTensor(grad, x.weight)
+        return WeightedTensor(nll, x.weight), WeightedTensor(sigma_inv_delta, x.weight)
 
 
 # class CategoricalFamily(StatelessDistributionFamilyFromTorchDistribution):
