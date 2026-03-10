@@ -421,6 +421,7 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
             for k in ["xi", "tau"]:
                 if state[k].ndim != 2:
                     state[k] = state[k].reshape(-1, 1)
+                    
             df_ind = pd.DataFrame(
                 torch.concat([state["xi"], state["tau"]], axis=1).detach().numpy(),
                 columns=["xi", "tau"],
