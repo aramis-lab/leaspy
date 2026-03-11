@@ -651,7 +651,7 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
             sigma_inv_delta = torch.cholesky_solve(
                 diff.unsqueeze(-1), L_expanded
             ).squeeze(-1)
-            prod = (diff * sigma_inv_delta).sum(-1).sum(-1)
+            prod = (diff * sigma_inv_delta).sum(-1)
 
         log_det = torch.logdet(sigma)
         Nc = sigma.shape[-1]
@@ -691,7 +691,7 @@ class MultivariateNormalFamily(StatelessDistributionFamily):
             sigma_inv_delta = torch.cholesky_solve(
                 diff.unsqueeze(-1), L_expanded
             ).squeeze(-1)
-            prod = (diff * sigma_inv_delta).sum(-1).sum(-1)
+            prod = (diff * sigma_inv_delta).sum(-1)
 
         log_det = torch.logdet(sigma)
         Nc = sigma.shape[-1]

@@ -5,7 +5,7 @@ import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import Affine, Exp, MatMul
+from leaspy.utils.functional import Affine, Exp, MatMul, Unique
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.distributions import MultivariateNormal, Normal
@@ -246,9 +246,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             tau_std=ModelParameter.for_ind_std("tau", shape=(1,)),
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             delta_t0_mean=ModelParameter.for_pop_mean("delta_t0", shape=(self.nb_cov,)),
-            delta_t0_sigma=ModelParameter.for_pop_cov_matrix(
-                "delta_t0", shape=(self.nb_cov, self.nb_cov)
-            ),
+            delta_t0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 1.0),
             # LATENT VARS
             t0=PopulationLatentVariable(Normal("t0_mean", "t0_std")),
             delta_t0=PopulationLatentVariable(
@@ -260,6 +258,8 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
             t0_patient=LinkedVariable(Affine("t0", "delta_t0", "covariates")),
+            unique_covariates=LinkedVariable(Unique("covariates")),
+            t0_cov=LinkedVariable(Affine("t0", "delta_t0", "unique_covariates")),
         )
         if self.source_dimension >= 1:
             specifications.update(

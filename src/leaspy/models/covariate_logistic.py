@@ -96,9 +96,6 @@ class CovariateLogisticInitializationMixin:
             "delta_t0_mean": torch.zeros((self.nb_cov,)),
             "delta_v0_mean": torch.zeros((self.dimension, self.nb_cov)),
             "delta_g_mean": torch.zeros((self.dimension, self.nb_cov)),
-            "delta_t0_sigma": torch.eye(self.nb_cov),  # matrice identité
-            "delta_v0_sigma": torch.eye(self.nb_cov),
-            "delta_g_sigma": torch.eye(self.nb_cov),
         }
         if self.source_dimension >= 1:
             parameters["betas_mean"] = betas
@@ -140,9 +137,7 @@ class CovariateLogisticModel(
             delta_g_mean=ModelParameter.for_pop_mean(
                 "delta_g", shape=(self.dimension, self.nb_cov)
             ),
-            delta_g_sigma=ModelParameter.for_pop_cov_matrix(
-                "delta_g", shape=(self.nb_cov, self.nb_cov)
-            ),
+            delta_g_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
             delta_g=PopulationLatentVariable(
                 MultivariateNormal("delta_g_mean", "delta_g_sigma"),
                 sampling_kws={"scale": 0.01},
@@ -153,6 +148,10 @@ class CovariateLogisticModel(
             g_patient=LinkedVariable(
                 Exp("log_g_patient"),
             ),
+            log_g_cov=LinkedVariable(
+                AffineMatrix("log_g", "delta_g", "unique_covariates")
+            ),
+            g_cov=LinkedVariable(Exp("log_g_cov")),
         )
 
         return d

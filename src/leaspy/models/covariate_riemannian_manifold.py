@@ -56,12 +56,19 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
     ):
         super().__init__(name, **kwargs)
         default_variables_to_track = [
-            "t0",
-            "g",
-            "v0",
+            "t0_cov",
+            "g_cov",
+            "v0_cov",
+            "delta_t0_sigma",
+            "delta_v0_sigma",
+            "delta_g_sigma",
+            "delta_t0_mean",
+            "delta_v0_mean",
+            "delta_g_mean",
             "delta_t0",
             "delta_g",
             "delta_v0",
+            "t0_mean",
             "noise_std",
             "tau_std",
             "xi_mean",
@@ -177,9 +184,7 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
             delta_v0_mean=ModelParameter.for_pop_mean(
                 "delta_v0", shape=(self.dimension, self.nb_cov)
             ),
-            delta_v0_sigma=ModelParameter.for_pop_cov_matrix(
-                "delta_v0", shape=(self.nb_cov, self.nb_cov)
-            ),
+            delta_v0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             log_v0=PopulationLatentVariable(
@@ -201,6 +206,10 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
             metric_patient=LinkedVariable(self.metric_patient),
+            log_v0_cov=LinkedVariable(
+                AffineMatrix("log_v0", "delta_v0", "unique_covariates")
+            ),
+            v0_cov=LinkedVariable(Exp("log_v0_cov")),
         )
         if self.source_dimension >= 1:
             d.update(

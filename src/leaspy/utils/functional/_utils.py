@@ -278,3 +278,9 @@ def _affine_matrix(
         covariates = covariates.value
     covariates = covariates.float()
     return base + covariates @ delta.T  # (N, K)
+
+
+def _unique_wrapper(x) -> torch.Tensor:
+    if isinstance(x, WeightedTensor):
+        x = x.weighted_value
+    return torch.unique(x, dim=0)  # lignes uniques, shape (n_unique, nb_cov)

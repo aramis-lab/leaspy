@@ -12,6 +12,7 @@ from ._functions import (
     Std,
     Sum,
     SumDim,
+    Unique,
 )
 from ._named_input_function import NamedInputFunction
 from ._utils import get_named_parameters
@@ -32,4 +33,5 @@ __all__ = [
     "OuterProduct",
     "Affine",
     "AffineMatrix",
+    "Unique",
 ]
