@@ -1,13 +1,6 @@
 # Architecture & Data Flow
 
-This section provides a simplified explanation of Leaspy's internal architecture from a code perspective. Even if this guide could seem long and tedious, we simplified the work for over 200 files and dousents of functions in just some modules. You have two ways to read it: taking a look to the simplified versions here, or take a look to the modules you want to have a deeper inderstanding about how works leaspy inside. If you are not going to developpe new features/methods, the overview is enough.
-
-Key steps include:
-1.  **Data Preparation**: Adapting raw data and putting it into the `Data` format.
-2.  **Model Fitting**: Creating a model (e.g. `model = LogisticModel(...)`) and fitting it (`model.fit(...)`).
-3.  **Personalization** (Optional): Estimating individual trajectories for each patient (`model.personalize(...)`).
-
-This guide offers two levels of depth: a global explanation and a detailed deep-dive. Feel free to explore according to your needs.
+This section provides a simplified explanation of Leaspy's internal architecture from a code perspective. Even if this guide may seem long and tedious, we have simplified the work for over 200 files and dozens of functions into just a few modules. You have two ways to read it: taking a look at the simplified versions here, or taking a look at the modules you want to have a deeper understanding of regarding how Leaspy works inside. If you are not going to develop new features or methods, the overview should be enough.
 
 ## High-Level Overview
 
@@ -17,12 +10,14 @@ When you run a method, a lot happens under the hood. Here is a simplified code s
 from leaspy.io.data import Data
 from leaspy.models import LogisticModel
 
-data = Data.from_dataframe(alzheimer_df)		# Data part
+data = Data.from_dataframe(alzheimer_df)	# Data part
 model = LogisticModel(name="test-model", 
 	source_dimension=2)			# Model creation
 model.fit(data, "mcmc_saem", seed=42,
     n_iter=100,progress_bar=False)		# Fitting
 ```
+
+When you execute this code, python will go to a series of files that contain these classes and will execute a lot of functions, these classes have a given structure that could seem complex but it help the development and themantainability. Now we will understand how these files are organize, how is the structure and how it works.
 
 Inside the `leaspy` library, most of the code you interact with is organized into **modules**, which contain **classes**. A class bundles **methods** (functions attached to the class) and **attributes** (data stored on the object). For example, the `LogisticModel.py` module defines two classes, each providing its own methods and attributes.
 
@@ -43,23 +38,23 @@ flowchart TD
     classDef micro fill:transparent,stroke:transparent,color:transparent,font-size:1px;
 
     %% Module Subgraph
-    subgraph Module["__Module: logistic(.py)__"]
+    subgraph Module["**Module: logistic.py**"]
         direction TB
 
         %% tiny spacer so the subgraph title doesn't get overlapped
         ModuleMicro["."]:::micro
 
         %% Class 1: Mixin (no pad inside -> less empty space)
-        subgraph ClassMixin["__Class: LogisticInitializationMixin__"]
+        subgraph ClassMixin["**Class: LogisticInitializationMixin**"]
             direction TB
             Method1("Method: _compute_initial_values_for_model_parameters"):::method
         end
 
         %% Class 2: Model
-        subgraph ClassModel["__Class: LogisticModel__"]
+        subgraph ClassModel["**Class: LogisticModel**"]
             direction TB
             Attr1("Attribute: name"):::attr
-            Method2("Method: \__init__"):::method
+            Method2("Method: __init__"):::method
             Method3("Method: get_variables_specs"):::method
             Method4("Method: metric"):::method
             Method5("Method: model_with_sources"):::method
@@ -88,28 +83,28 @@ This example allows us to see how is structured a module, we will go deeper in t
 
 ## Simplified workflow structure
 
-When you create your model and you fit it a lot happens under the hood. For instance `LogisticModel` inherits methods and attributes from other classes in a chain. `LogisticModel` inherits from `RiemanianManifoldModel`, which inherits from other classes, and so on. 
+When you create your model and you fit it a lot happens under the hood. For instance `LogisticModel` inherits methods and attributes from other classes in a chain. `LogisticModel` inherits from `RiemanianManifoldModel`, which inherits from other classes, and so on. It is an inheritance chain that starts in `LogisticModel` and ends with `ModelInterface`.
 
-Here is the inheritance chain for the Logistic model. You can click on the nodes to see the details of each class. The diagram in the "Simplified version" tab highlights the essential modules for a standard logistic regression execution, offering a cleaner starting point. The "Complete version" shows the full inheritance hierarchy.
 
-`````{tabs}
-````{tab} Simplified version
-```{image} ../../_static/images/arch1.png
-:alt: Simplified Inheritance Diagram
-:align: center
-:width: 50%
+```{mermaid}
+%%{init: {"flowchart": {"rankSpacing": 30, "nodeSpacing": 20}} }%%
+flowchart TD
+    classDef iface  fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px,color:#1F2A5A,rx:8,ry:8;
+    classDef cls    fill:#F3E8FF,stroke:#7C3AED,stroke-width:2px,color:#3B0764,rx:8,ry:8;
+    classDef mixin  fill:#FFF7ED,stroke:#C2410C,stroke-width:1px,color:#7C2D12,rx:8,ry:8;
+
+    MI("ModelInterface"):::iface
+    BM("BaseModel"):::cls
+    SM("StatefulModel"):::cls
+    MC("McmcSaemCompatibleModel"):::cls
+    TR("TimeReparametrizedModel"):::cls
+    RM("RiemanianManifoldModel"):::cls
+    LM("LogisticModel"):::cls
+    MX("LogisticInitializationMixin"):::mixin
+
+    MI --> BM --> SM --> MC --> TR --> RM --> LM
+    MX --> LM
 ```
-````
-
-````{tab} Complete version
-```{image} ../../_static/images/arch2.png
-:alt: Complete Inheritance Diagram
-:align: center
-:width: 80%
-```
-````
-`````
-
 
 
 ## Why This Architecture?

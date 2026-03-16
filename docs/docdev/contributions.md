@@ -201,6 +201,8 @@ git branch backup-my-feature
 
 # 2. Download the latest upstream commits
 git fetch upstream
+# or if upstream is not yet linked
+git remote add upstream https://github.com/aramis-lab/leaspy.git
 
 # 3. Merge the upstream branch you are targeting into your branch
 # Example: if your PR targets v2.1, merge upstream/v2.1

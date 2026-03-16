@@ -4,7 +4,14 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
-  commands:
-    - pip install poetry
-    - poetry install --with docs
-    - poetry run sphinx-build -b html docs $READTHEDOCS_OUTPUT/html
+  jobs:
+    post_create_environment:
+      - pip install poetry
+      - poetry config virtualenvs.create false
+      - . "$READTHEDOCS_VIRTUALENV_PATH/bin/activate" && poetry install --with docs
+      - pip freeze
+    post_install:
+      - pip install "sphinx<9" "setuptools<82"
+
+sphinx:
+  configuration: docs/conf.py
