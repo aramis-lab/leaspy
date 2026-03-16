@@ -111,7 +111,7 @@ flowchart TD
 
 While you could theoretically write a `LogisticModel` as one massive 5000-line class, Leaspy breaks it down into a **compositional inheritance chain**. Each class in the diagram above adds a specific layer of capability:
 
-*   **Reusability**: `LinearModel` and `JointModel` reuse 90% of the same code as `LogisticModel` (parameter storage, algorithm compatibility). They only override the final mathematical formulas.
+*   **Reusability**: `JointModel` and `LogisticModel` reuse around 90% of their code from parent classes (parameter storage, algorithm compatibility). They only override the final mathematical formulas.
 *   **Extensibility**: If you want to create a model with a different time behavior, you don't start from scratch. You might branch off after `McmcSaemCompatibleModel` and implement your own time reparameterization, while keeping all the algorithm compatibility for free.
 
 
@@ -125,11 +125,11 @@ You can read the **Simplified Overview** below for a quick summary of how all th
 
 To perform a logistic regression, Leaspy coordinates a stack of specialized modules that transform raw data into a mathematical trajectory.
 
-**The Mathematical Core**
-It begins with the **Observation Model**, which links your noisy measurements to the theoretical curves. Underlying this is the **Logistic Model**, which imposes the specific S-shape of the progression, supported by the **Riemannian Manifold Model** which handles the geometric mixing of multiple biomarkers. The **Time Reparametrized Model** personalizes this process by warping the timeline for each subject.
-
 **The Software Infrastructure**
-Supporting this math is a robust backend. **ModelInterface** and **BaseModel** define the standard blueprint and orchestration logic (like `.fit()`). **StatefulModel** acts as the model's memory, holding the actual values of parameters during execution. Finally, **McmcSaemCompatibleModel** acts as a translator, ensuring the model provides the specific statistics needed by the generic MCMC-SAEM optimization algorithm.
+At the base, **ModelInterface** defines the abstract public interface that all models must implement. **BaseModel** builds on it with common functionality like `.fit()`, saving and loading. **StatefulModel** adds an internal state that manages parameters and hyperparameters through a directed acyclic graph (DAG). **McmcSaemCompatibleModel** adds observation model support and ensures the model provides the sufficient statistics needed by the MCMC-SAEM optimization algorithm.
+
+**The Mathematical Core**
+**TimeReparametrizedModel** introduces individual-level time shifts and acceleration factors, mapping each subject's timeline to a global one, along with spatial components (sources) through a mixing matrix. **RiemanianManifoldModel** provides a Riemannian metric framework for multivariate modeling. Finally, **LogisticModel** defines the specific S-shaped logistic curve formulation.
 ```
 
 If you want more details about a specific module, you can click on its corresponding node in the index. For now, let's start with the base of the inheritance chain: [`ModelInterface`](logistic/ModelInterface.md).

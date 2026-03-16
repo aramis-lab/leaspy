@@ -38,9 +38,7 @@ In Leaspy, we organize models into a hierarchy to separate the "rules" from the 
     This is the strict rulebook. It defines *what* a model must do (like `fit` or `personalize`) but contains **no logic**. It ensures that every Leaspy model looks the same to the outside world.
 
 2.  **The Foundation (Intermediate classes)**:
-    These classes (`BaseModel`, `TimeReparametrizedModel`, `RiemanianManifoldModel`) sit between the interface and the final model. They are a **mix of implementation and definition**:
-    *   **They implement key logic**: They handle file storage, input validation, and the core algorithms like time reparametrization ($ \alpha(t - \tau) $).
-    *   **They leave specific "holes"**: They define *abstract methods* for the parts that vary, such as the shape of the manifold or the specific reaction to time. This forces the final model to provide just these missing pieces.
+    These classes (`BaseModel`, `StatefulModel`, `McmcSaemCompatibleModel`, `TimeReparametrizedModel`, `RiemanianManifoldModel`) sit between the interface and the final model. They are a **mix of implementation and definition**. Some methods are fully implemented and shared across all models (e.g., parameter management in `StatefulModel`), while others are left abstract for the concrete model to fill in.
 
 3.  **The Concrete Model (`LogisticModel`)**:
     This is the final, usable model. It inherits all the structural logic from the foundation and fills in the specific mathematical "holes" — for example, defining the logistic sigmoid function $ \frac{1}{1 + e^{-x}} $ as the shape of the manifold.
@@ -51,6 +49,4 @@ The algorithms in Leaspy (like MCMC-SAEM) are designed to be generic. They don't
 
 ## Moving to Implementation: BaseModel
 
-`ModelInterface` tells us *what* to do, but it doesn't do anything itself. Implementing all these methods from scratch for every new model would be tedious and error-prone.
-
-To solve this, we have **[`BaseModel`](BaseModel.md)**. It takes this contract and provides the standard "plumbing" — the shared code that orchestrates how these methods work together.
+`ModelInterface` tells us *what* to do, but it doesn't do anything itself. Implementing all these methods from scratch for every new model would be tedious and error-prone. To solve this, we have intermediate classes as **[`BaseModel`](BaseModel.md)**. It takes this contract and provides the standard "plumbing" — the shared code that orchestrates how these methods work together.
