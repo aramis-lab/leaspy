@@ -1,24 +1,63 @@
 # LogisticInitializationMixin
 
 **Module:** `leaspy.models.logistic`
+**Used by:** [`LogisticModel`](LogisticModel.md)
 
-> **Note:** This is a helper component for [`LogisticModel`](LogisticModel.md). You rarely need to interact with it directly unless you are customizing how the model estimates its starting parameters.
+> This is a helper mixin for `LogisticModel`. You rarely interact with it directly unless you are customizing how the model estimates its starting parameters.
 
-The `LogisticInitializationMixin` class is responsible for the "cold start" problem. Before we can run complex optimization algorithms (like MCMC-SAEM), we need a reasonable starting point for our parameters ($g, v_0, \tau, \xi$). Random initialization often leads to poor convergence in non-linear models, so this class provides smart heuristics.
+Before running MCMC-SAEM, we need reasonable starting values for the model parameters. Random initialization often leads to poor convergence in non-linear models. This mixin provides data-driven heuristics to compute good initial values.
 
-## Why Separate Initialization?
+## Why a Separate Mixin?
 
-We separate this logic from the main `LogisticModel` class for two reasons:
-1.  **Code Organization**: Keeps the mathematical definition of the model separate from the estimation heuristics.
-2.  **Modularity**: Different initialization strategies (Default vs. Random) can be swapped or extended without changing the core model physics.
+Initialization logic is kept separate from the model definition for two reasons:
+1. **Separation of concerns**: The model class defines the mathematics; the mixin handles the estimation heuristics.
+2. **Reusability**: Other models (e.g., `SharedSpeedLogisticModel`) can reuse or override the initialization without duplicating model code.
 
-## Key Methods
+## The Method: `_compute_initial_values_for_model_parameters`
 
-*   **`_compute_initial_values_for_model_parameters(self, dataset)`**:
-    This is the workhorse method. It performs a lightweight analysis of your dataset to guess likely parameter values, each calculation is made thanks to some functions in `src/leaspy/models/utilities.py`, which are a set of loose functions:
-    1.  **Slopes $\to$ Velocity ($v_0$)**: It computes linear regression slopes for each patient to estimate the average progression speed.
-    2.  **Values $\to$ Shift ($g$)**: It looks at the value distribution to estimate where the curve sits (the $g$ parameter).
-    3.  **Times $\to$ Time Shift ($\tau$)**: It uses the mean age of patients to center the time shifts.
-    4.  **Variability $\to$ Sources**: If sources are enabled, it initializes the mixing matrix (betas) accordingly.
+This is the only method in the mixin. It is called during `StatefulModel.initialize()` → `_initialize_model_parameters()`, after the State and DAG are built but before the algorithm starts.
 
-This heuristic step is crucial: a good initialization can reduce convergence time by orders of magnitude.
+### Step 1: Extract Patient Statistics
+
+The dataset is converted to a pandas DataFrame, then three distributions are computed using helper functions from `leaspy.models.utilities`:
+
+- **`compute_patient_slopes_distribution(df)`**: For each feature, runs a linear regression per patient (time vs value) and returns the mean and std of slopes across patients.
+- **`compute_patient_values_distribution(df)`**: Returns mean and std of each feature's values across the dataset.
+- **`compute_patient_time_distribution(df)`**: Returns mean and std of visit ages.
+
+### Step 2: Choose Initialization Mode
+
+The `initialization_method` attribute (set at model creation, default `"default"`) controls how statistics are used:
+
+- **`DEFAULT`**: Uses patient means directly (slopes_mu, values_mu, time_mu). Betas initialized to zeros.
+- **`RANDOM`**: Samples from normal distributions centered on patient means with estimated standard deviations.
+
+### Step 3: Transform into Model Parameters
+
+| Statistic | Transformation | Parameter |
+|---|---|---|
+| Feature values | $\ln(1/\bar{y} - 1)$ (log-odds) | `log_g_mean` |
+| Slopes | `get_log_velocities()` — clamps to $\geq 0.01$, then takes $\ln$ | `log_v0_mean` |
+| Mean age | Used directly | `tau_mean` |
+| — | Model defaults (5.0, 0.5) | `tau_std`, `xi_std` |
+| — | Zeros, shape `(dimension-1, source_dimension)` | `betas_mean` (if sources) |
+
+Feature values are clamped to $[0.01, 0.99]$ before the log-odds transform to avoid numerical issues at the boundaries.
+
+All parameters are rounded to ~$10^{-5}$ precision via `torch_round()` and converted to `float32`.
+
+### Step 4: Observation Model Adjustment
+
+If the observation model is a `FullGaussianObservationModel`, the `noise_std` parameter is expanded to match the shape expected by the observation model (scalar or per-feature diagonal).
+
+## Utility Functions
+
+The helper functions used in Step 1 live in `leaspy.models.utilities`:
+
+| Function | What it does |
+|---|---|
+| `compute_patient_slopes_distribution(df)` | Linear regression per patient per feature → mean/std of slopes |
+| `compute_patient_values_distribution(df)` | Mean/std of feature values across dataset |
+| `compute_patient_time_distribution(df)` | Mean/std of visit ages |
+| `get_log_velocities(velocities, features)` | Clamps negative velocities (with warning), returns $\ln(\text{velocities})$ |
+| `torch_round(t, tol)` | Rounds tensor to precision `1/tol` (default ~$10^{-5}$) |

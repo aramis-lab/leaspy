@@ -20,12 +20,12 @@ VariableInterface          (abstract base)
 └── LinkedVariable         — deterministically computed from parents
 ```
 
-All types share two boolean class attributes that the DAG and the algorithm use:
+All types share two boolean class attributes that the DAG and the State use:
 
-| Attribute | Meaning |
-|---|---|
-| `is_settable` | Can the `State` accept an external assignment for this variable? |
-| `fixed_shape` | Is the variable's tensor shape known from hyperparameters alone (independent of `n_individuals`)? |
+| Attribute | Meaning | Practical effect |
+|---|---|---|
+| `is_settable` | Can the State accept a direct assignment (`state[name] = value`) for this variable? | If `False`, writing to this variable raises `LeaspyInputError`. This protects constants (`Hyperparameter`) and computed values (`LinkedVariable`) from accidental modification. |
+| `fixed_shape` | Is the tensor shape known at model definition time (independent of the dataset)? | If `False`, the variable cannot be used as a prior distribution parameter for latent variables — because the prior shape must be known before data is loaded. |
 
 | Class | `is_settable` | `fixed_shape` |
 |---|---|---|

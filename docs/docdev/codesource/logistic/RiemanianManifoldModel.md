@@ -3,39 +3,55 @@
 **Module:** `leaspy.models.riemanian_manifold`
 **Inherits from:** [`TimeReparametrizedModel`](TimeReparametrizedModel.md)
 
-The `RiemanianManifoldModel` adds a layer of geometric consistency to the time-reparametrized framework. While [`TimeReparametrizedModel`](TimeReparametrizedModel.md) handles *when* changes happen (timing), `RiemanianManifoldModel` handles *how* multiple variables evolve together (direction and shape).
+While [`TimeReparametrizedModel`](TimeReparametrizedModel.md) defines *when* each patient progresses (time shifts and acceleration), `RiemanianManifoldModel` defines the geometric structure that governs *how* multiple biomarkers evolve together. It ensures that the progression curve is a geodesic (shortest path) on a Riemannian manifold, so that multivariate trajectories remain geometrically consistent.
 
-It provides the mathematical "skeleton" that supports multivariate progression, ensuring that different biomarkers evolve in a coordinated way as a geodesic (shortest path) on a Riemannian manifold.
+This class is **largely abstract** — it sets up the geometric framework but delegates the actual curve shape to concrete subclasses like `LogisticModel` or `JointModel`.
 
-## Core Geometric Enforcements
+## Abstract Methods: What Subclasses Must Provide
 
-This class is largely abstract. Its primary job is to enforce the rules of the manifold on its subclasses (like `LogisticModel` or `LinearModel`) and maintain geometric stability during estimation.
+`RiemanianManifoldModel` does not know what the progression curve looks like. It forces subclasses to define two things:
 
-### 1. Forcing the Shape (`metric` & `model_with_sources`)
-The class does not know what the final curve will look like. Instead, it uses abstract methods to force subclasses later in the workflow to provide the exact geometric equations:
+- **`metric(*, g)`** (abstract, staticmethod): The Riemannian metric tensor, computed from the parameter $g$. This is what determines the geometry of the space. For example, `LogisticModel` returns $(g + 1)^2 / g$, while `LinearModel` returns a constant metric of 1 (Euclidean space).
 
-*   **`metric` (Abstract)**: Subclasses *must* define the Riemannian metric tensor. The metric is the fundamental property that defines the intrinsic geometry of the manifold, which in turn dictates the shape of the curve (the geodesic).
-*   **`model_with_sources` (Abstract)**: Subclasses *must* define the actual mathematical formula that computes the biomarker values given the time, the metric, the velocity, and the spatial shifts.
-*   *Note*: `model_no_sources` is automatically derived by calling `model_with_sources` with zeroed-out spatial shifts.
+- **`model_with_sources(*, rt, space_shifts, metric, v0, g)`** (abstract, classmethod): The actual equation that computes biomarker values from reparametrized time, spatial shifts, and population parameters.
 
-### 2. Preserving Geometric Hypotheses (`_center_xi_realizations`)
-In a mixed-effects model on a manifold, there is a risk of redundancy (non-identifiability). If the population velocity ($v_0$) changes, and the individual velocity variations ($\xi$) change in the exact opposite way, the resulting trajectories are identical.
+- **`model_no_sources(*, rt, metric, v0, g)`** (concrete): Delegates to `model_with_sources` with `space_shifts=torch.zeros((1, 1))`, effectively removing spatial effects.
 
-To prevent the estimation from drifting and to **ensure the geometric hypotheses of the manifold**, the model intercepts the state during the MCMC-SAEM sufficient statistics computation:
-1.  It calculates the mean of all individual $\xi$ realizations.
-2.  It centers $\xi$ by subtracting this mean (forcing the average individual variation to be 0).
-3.  It absorbs this mean into the population parameter `log_v0`.
+## Centering $\xi$ (Speed Factor): Identifiability Fix
 
-This internal gauge-fixing stabilizes the inference and ensures that the orthonormal basis (which is built dynamically from $v_0$ to project spatial sources) remains geometrically valid and collinear to the true direction of progression.
+In a mixed-effects model on a manifold, there's a non-identifiability problem: if the population velocity $v_0$ increases while individual accelerations $\xi_i$ decrease by the same amount, the resulting trajectories are identical — the model can't distinguish between the two.
 
-## Key Variables Introduced
+To fix this, `RiemanianManifoldModel` overrides `compute_sufficient_statistics()` to center $\xi$ before each M-step:
 
-This class adds specific geometric variables to the model's computational graph (`get_variables_specs`):
+1. Compute $\bar{\xi} = \text{mean}(\xi_i)$
+2. Center: $\xi_i \leftarrow \xi_i - \bar{\xi}$
+3. Compensate: $\log v_0 \leftarrow \log v_0 + \bar{\xi}$
 
-*   **`v0` / `log_v0`**: The initial velocity vector (tangent vector at the reference time). `log_v0` is the unconstrained parameter estimated by the algorithm, while `v0 = exp(log_v0)` is the strictly positive physical velocity.
-*   **`metric`**: The Riemannian metric at the current point, linked to the abstract `metric` method.
-*   **`orthonormal_basis`**: (Only if `source_dimension > 0`). A basis constructed orthogonally to $v_0$. It is used to mix the independent spatial sources (inter-subject variability) correctly onto the manifold without altering the main direction of progression.
+**Why this works**: The mean $\bar{\xi}$ removed from individuals is transferred to $\log v_0$, so the overall model output doesn't change — it's just a redistribution between population and individual parameters. After this operation, the average $\xi_i$ is exactly 0, which means the "typical" patient progresses at exactly the population speed $v_0$.
 
-## Next Step
+This operation is safe because it only changes the *magnitude* of $v_0$, not its *direction* — so the orthonormal basis (which depends on the direction of $v_0$) doesn't need to be recomputed.
 
-The [LogisticModel](LogisticModel.md) (or `LinearModel`) inherits from this class and implements the `metric` and `model_with_sources`, defining effectively *what* the manifold looks like (e.g., a sigmoid surface).
+## Variables Defined
+
+`get_variables_specs()` extends the parent's specs with the geometric variables:
+
+| Variable | Type | Description |
+|---|---|---|
+| `xi_mean` | `Hyperparameter` | Fixed at 0.0 (prior mean of $\xi$, because average acceleration = $e^0 = 1$) |
+| `log_v0_mean` | `ModelParameter` | Prior mean of log-velocities, shape `(dimension,)`, learned by M-step |
+| `log_v0_std` | `Hyperparameter` | Fixed at 0.01 (tight prior on `log_v0`) |
+| `log_v0` | `PopulationLatentVariable` | Log-velocity vector, sampled from a Normal prior with mean `log_v0_mean` and std `log_v0_std` |
+| `v0` | `LinkedVariable` | Velocity vector, $v_0 = e^{\log v_0}$ via `Exp("log_v0")` |
+| `metric` | `LinkedVariable` | Riemannian metric, delegates to the abstract `metric` method |
+| `model` | `LinkedVariable` | Model output — delegates to `model_with_sources` or `model_no_sources` depending on `source_dimension` |
+
+### Additional variables when `source_dimension >= 1`
+
+| Variable | Type | Description |
+|---|---|---|
+| `metric_sqr` | `LinkedVariable` | Squared metric via `Sqr("metric")`, used to build the orthonormal basis |
+| `orthonormal_basis` | `LinkedVariable` | Basis orthogonal to $v_0$ w.r.t. the metric, shape `(dimension, dimension-1)`, built via Householder decomposition from `v0` and `metric_sqr` |
+
+## What Comes Next
+
+`RiemanianManifoldModel` defines the geometric rules but leaves the curve equation abstract. The [LogisticModel](LogisticModel.md) (or `LinearModel`) implements `metric` and `model_with_sources`, giving the manifold its concrete shape — e.g., a sigmoid surface for the logistic case.
