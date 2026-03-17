@@ -24,8 +24,8 @@ All types share two boolean class attributes that the DAG and the State use:
 
 | Attribute | Meaning | Practical effect |
 |---|---|---|
-| `is_settable` | Can the State accept a direct assignment (`state[name] = value`) for this variable? | If `False`, writing to this variable raises `LeaspyInputError`. This protects constants (`Hyperparameter`) and computed values (`LinkedVariable`) from accidental modification. |
-| `fixed_shape` | Is the tensor shape known at model definition time (independent of the dataset)? | If `False`, the variable cannot be used as a prior distribution parameter for latent variables — because the prior shape must be known before data is loaded. |
+| `is_settable` | Can the State accept a direct assignment (`state[name] = value`) for this variable? | If `True`, `state[name] = value` works normally. If `False`, writing raises `LeaspyInputError` — prevents accidental modification of constants and computed values. |
+| `fixed_shape` | Is the tensor shape determined by the model alone, without needing the dataset? | If `True`, the variable can be referenced inside a `Normal(...)` prior (e.g. `Normal("xi_mean", "xi_std")` works because both have known shapes). If `False` (shape depends on cohort size), it cannot be used as a prior parameter (e.g. a `DataVariable` or `IndividualLatentVariable` cannot appear inside `Normal(...)`). |
 
 | Class | `is_settable` | `fixed_shape` |
 |---|---|---|
@@ -50,7 +50,7 @@ The colors in the DAG diagrams map directly to Python classes:
 | <span style="background:#add8e6;padding:2px 8px;border-radius:3px;">blue</span> | `IndividualLatentVariable` | Per-patient random effect — sampled per individual in the E-step |
 | <span style="background:#90ee90;padding:2px 8px;border-radius:3px;">green</span> | `LinkedVariable` | Deterministic function of other variables — no independent value |
 | <span style="background:#f8f8f8;padding:2px 8px;border-radius:3px;border:1px solid #bbb;">white</span> | `DataVariable` | Observed input — injected from the dataset at runtime |
-| <span style="background:#f5deb3;padding:2px 8px;border-radius:3px;">wheat</span> | Observation model | Likelihood / NLL — built by `ObservationModel`, not declared manually |
+| <span style="background:#f5deb3;padding:2px 8px;border-radius:3px;">wheat</span> | *(visual convention)* | Observation model (likelihood / NLL) — built by `ObservationModel`, not a variable type |
 
 ---
 
@@ -66,11 +66,11 @@ This sub-graph governs *when* each patient is positioned on the disease timeline
 
 **Reading this diagram:**
 
-- **<span style="background:#ffb6c1;padding:1px 6px;border-radius:3px;">Pink</span> roots** (`xi_mean`): a constant baked into the model definition. `xi_mean = 0` means the prior acceleration is 1 on average ($e^0 = 1$). You declare it as `Hyperparameter(0.0)` — no learning ever touches it.
-- **<span style="background:#f4a460;padding:1px 6px;border-radius:3px;">Orange</span> roots** (`xi_std`, `tau_mean`, `tau_std`): estimated by the M-step. You declare them with a factory like `ModelParameter.for_ind_std("xi", shape=(1,))`. The SAEM algorithm updates their value each iteration.
-- **<span style="background:#add8e6;padding:1px 6px;border-radius:3px;">Blue</span> intermediate nodes** (`xi`, `tau`): per-patient random effects. Declared as `IndividualLatentVariable(Normal("xi_mean", "xi_std"))`. Their prior is *symbolic* — `Normal("xi_mean", ...)` does not fix the distribution at construction time; it reads the current values of `xi_mean` and `xi_std` from the State at each E-step.
-- **<span style="background:#f8f8f8;padding:1px 6px;border-radius:3px;border:1px solid #bbb;">White</span> root** (`t`): observed visit ages, fed by the dataset. Declared as `DataVariable()` — no arguments.
-- **<span style="background:#90ee90;padding:1px 6px;border-radius:3px;">Green</span> leaves** (`alpha`, `rt`): pure deterministic transforms. `alpha = exp(xi)` is declared as `LinkedVariable(Exp("xi"))`. The function's keyword argument name (`xi`) is how the DAG learns that this node depends on `xi`. `rt` depends on `t`, `alpha`, and `tau` — the function signature `time_reparametrization(*, t, alpha, tau)` wires all three edges automatically.
+- **<span style="background:#ffb6c1;padding:1px 6px;border-radius:3px;">Pink</span> roots** (`xi_mean`): a constant baked into the model definition. `xi_mean = 0` sets the prior mean acceleration to $e^0 = 1$. Declared as `Hyperparameter(0.0)`.
+- **<span style="background:#f4a460;padding:1px 6px;border-radius:3px;">Orange</span> roots** (`xi_std`, `tau_mean`, `tau_std`): estimated by the M-step. Declared with factories like `ModelParameter.for_ind_std("xi", shape=(1,))`.
+- **<span style="background:#add8e6;padding:1px 6px;border-radius:3px;">Blue</span> intermediate nodes** (`xi`, `tau`): per-patient random effects. Declared as `IndividualLatentVariable(Normal("xi_mean", "xi_std"))`. The prior is *symbolic* — it reads current values from the State at each E-step rather than fixing them at construction.
+- **<span style="background:#f8f8f8;padding:1px 6px;border-radius:3px;border:1px solid #bbb;">White</span> root** (`t`): observed visit ages. Declared as `DataVariable()`.
+- **<span style="background:#90ee90;padding:1px 6px;border-radius:3px;">Green</span> leaves** (`alpha`, `rt`): pure deterministic transforms. `alpha = exp(xi)` is declared as `LinkedVariable(Exp("xi"))` — the keyword argument name `xi` wires the edge automatically. `rt` uses `time_reparametrization(*, t, alpha, tau)`, which wires all three edges.
 
 ---
 
@@ -172,6 +172,8 @@ betas  = PopulationLatentVariable(Normal("betas_mean", "betas_std"),
                                   sampling_kws={"scale": 0.5})
 ```
 
+`scale` sets the approximate variable magnitude, used to initialize the Gibbs proposal standard deviation.
+
 **When to use vs `ModelParameter`:** use `PopulationLatentVariable` when the quantity benefits from MCMC uncertainty quantification and a proper prior, rather than a closed-form M-step update.
 
 ````
@@ -213,7 +215,7 @@ You have two ways to define `f`:
 
 **Option 1 — `NamedInputFunction` helpers** (for simple transforms):
 ```python
-from leaspy.utils.functional import Exp, Sqr, MatMul
+from leaspy.utils.functional import Exp, Sqr, MatMul, OrthoBasis
 
 # In TimeReparametrizedModel.get_variables_specs()
 alpha         = LinkedVariable(Exp("xi"))                                     # exp(xi)
@@ -223,10 +225,11 @@ g             = LinkedVariable(Exp("log_g"))                                  # 
 
 # In RiemanianManifoldModel.get_variables_specs()
 metric_sqr    = LinkedVariable(Sqr("metric"))                                 # metric²
+orthonormal_basis = LinkedVariable(OrthoBasis("v0", "metric_sqr"))            # orthonormal basis
 mixing_matrix = LinkedVariable(MatMul("orthonormal_basis", "betas").then(torch.t))
 ```
 
-**Option 2 — any static method** with keyword-only arguments:
+**Option 2 — any callable** with keyword-only arguments (static method, class method, or function):
 ```python
 # In TimeReparametrizedModel.get_variables_specs()
 rt    = LinkedVariable(self.time_reparametrization)

@@ -18,6 +18,7 @@ logistic/LogisticInitializationMixin
 logistic/ObservationModel
 logistic/DAG
 logistic/VariableTypes
+logistic/get_variables_specs
 io/Data
 vocabulary
 ```
