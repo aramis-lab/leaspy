@@ -391,10 +391,17 @@ class Plotting:
                     "You want to plot reparametrized ages (`reparametrized_ages=True`) but you did not provide any individual parameters "
                     "to do so (please use `individual_parameters` argument)."
                 )
-            t0 = self.model.parameters["tau_mean"].item()
             df = df.join(ip_df)
-            # reparametrized ages
-            df["TIME_reparam"] = np.exp(df["xi"]) * (df["TIME"] - df["tau"]) + t0
+            if self.model.parameters['tau_mean'].size(0) == 1:
+                t0 = self.model.parameters["tau_mean"].item()
+                # reparametrized ages
+                df["TIME_reparam"] = np.exp(df["xi"]) * (df["TIME"] - df["tau"]) + t0
+            else:
+                tau_means_per_cluster = {
+                    c:  self.model.parameters['tau_mean'][c].item() for c in range(self.model.n_clusters)
+                    }
+                df["tau_mean_cluster"] = df["cluster_label"].map(tau_means_per_cluster)
+                df["TIME_reparam"] = np.exp(df["xi"]) * (df["TIME"] - df["tau"]) + df["tau_mean_cluster"]
 
         # ---- Plot
 
