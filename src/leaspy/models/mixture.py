@@ -42,6 +42,8 @@ from leaspy.variables.specs import (
 from leaspy.variables.state import State
 from .mcmc_saem_compatible import McmcSaemCompatibleModel
 
+from torch.distributions import Normal as TorchNormal
+
 
 @doc_with_super()
 class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
@@ -957,4 +959,78 @@ class LogisticMultivariateMixtureModel(
         )
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
 
+    def get_individual_probabilities(self, *, ip_dataframe: pd.DataFrame):
+        """
+        Return the dataframe of individual parameters with the probabilities 
+        for each individual belonging to each cluster and the cluster labels.
 
+        Parameters
+        ----------
+        ip_dataframe : :class:`pandas.DataFrame`
+            The dataframe of the individual parameters that comes as an output of personalize.
+
+        Returns
+        -------
+        :class:`pandas.DataFrame`
+            The input dataframe with additional columns for the probabilities of each cluster.
+        """
+
+        params = self.parameters
+        probs = params["probs"]
+
+        n = len(ip_dataframe)
+        c = self.n_clusters
+        d = self.source_dimension
+
+        means = {
+            "tau": params["tau_mean"], 
+            "xi": params["xi_mean"],
+        }
+    
+        for s in range(d):
+            means[f"sources_{s}"] = params["sources_mean"][s, :]
+
+        stds = {
+            "tau": params["tau_std"],
+            "xi": params["xi_std"],
+        }
+
+        for s in range(d):
+            stds[f"sources_{s}"] = torch.ones(c)
+
+        values = {
+            "tau": torch.tensor(ip_dataframe["tau"].values),
+            "xi": torch.tensor(ip_dataframe["xi"].values),
+        }
+    
+        for s in range(d):
+            values[f"sources_{s}"] = torch.tensor(ip_dataframe[f"sources_{s}"].values)
+
+        # Compute log-likelihoods for each variable
+        log_likelihoods = torch.zeros((n, c))
+
+        for var in means.keys():
+            x = values[var]
+
+            for cluster in range(c):
+                dist = TorchNormal(means[var][cluster], stds[var][cluster])
+                log_likelihoods[:, cluster] += dist.log_prob(x)
+
+        # Add log-priors
+        log_priors = torch.log(probs)
+        log_posteriors = log_likelihoods + log_priors
+
+        # Normalize using logsumexp
+        log_sum = torch.logsumexp(log_posteriors, dim=1, keepdim=True)
+        responsibilities = torch.exp(log_posteriors - log_sum)
+
+        for i in range(responsibilities.shape[1]):
+            ip_dataframe[f"prob_cluster_{i}"] = responsibilities[:, i].numpy()
+
+        # Automatically find all probability columns
+        prob_cols = [col for col in ip_dataframe.columns if col.startswith("prob_cluster_")]
+
+        # Assign the most likely cluster
+        ip_dataframe["cluster_label"] = ip_dataframe[prob_cols].values.argmax(axis=1)
+
+        return ip_dataframe
