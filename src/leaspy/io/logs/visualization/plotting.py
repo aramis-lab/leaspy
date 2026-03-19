@@ -17,6 +17,8 @@ from leaspy.exceptions import (
 )
 
 from ...outputs import IndividualParameters
+from leaspy.models import LogisticMultivariateMixtureModel
+
 
 __all__ = ["Plotting"]
 
@@ -545,8 +547,18 @@ class Plotting:
                 kwargs.get("n_tpts", 100),
             )
             t = torch.tensor(timepoints, dtype=torch.float32).unsqueeze(0)
-
-            trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
+            
+            if isinstance(model, LogisticMultivariateMixtureModel):
+                # for the mixture model make sure we remove the probabilities and the cluster labels from the dictionary
+                valid_keys = set(model.individual_variables_names)
+                ind_ip = {
+                    pn: pv[ind_ix]
+                    for pn, pv in ip_torch.items()
+                    if pn in valid_keys
+                    }
+                trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
+            else:
+                trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
 
             # times to plot if reparametrized ages are wanted
             if reparametrized_ages:
