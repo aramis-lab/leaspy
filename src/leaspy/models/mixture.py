@@ -959,7 +959,7 @@ class LogisticMultivariateMixtureModel(
         )
         return WeightedTensor(torch.sigmoid(model_logit), weights).weighted_value
 
-    def get_individual_probabilities(self, *, ip_dataframe: pd.DataFrame):
+    def get_individual_probabilities(self, ip_dataframe: pd.DataFrame):
         """
         Return the dataframe of individual parameters with the probabilities 
         for each individual belonging to each cluster and the cluster labels.
