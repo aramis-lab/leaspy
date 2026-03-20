@@ -115,7 +115,7 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
             np.random.seed(seed)
             torch.manual_seed(seed)
             # TODO: use logger instead (level=INFO)
-            # print(f" ==> Setting seed to sdfsdf {seed}") # Silenced to reduce verbosity
+            # print(f" ==> Setting seed to {seed}") # Silenced to reduce verbosity
 
     def run(
         self, model: ModelType, dataset: Optional[Dataset] = None, **kwargs

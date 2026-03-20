@@ -231,6 +231,116 @@ def compute_bic(
 
 
 # ---------------------------------------------------------------------------
+# Parameter display registry
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class _ModelDisplayMeta:
+    """Display metadata for a model class (used by Summary).
+
+    Registered in ``_DISPLAY_REGISTRY`` keyed by class name.
+    ``_get_display_meta`` walks the model's MRO to find the closest entry.
+    """
+
+    individual_prior_params: tuple[str, ...]
+    noise_params: tuple[str, ...]
+    param_axes: dict[str, tuple[str, ...]]
+
+
+_BASE_PARAM_AXES: dict[str, tuple[str, ...]] = {
+    "log_g_mean": ("feature",),
+    "log_g_std": ("feature",),
+    "log_v0_mean": ("feature",),
+    "betas_mean": ("basis", "source"),
+    "mixing_matrix": ("source", "feature"),
+    "noise_std": ("feature",),
+}
+
+_DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
+    "McmcSaemCompatibleModel": _ModelDisplayMeta(
+        individual_prior_params=(
+            "tau_mean", "tau_std", "xi_mean", "xi_std",
+            "sources_mean", "sources_std", "zeta_mean",
+        ),
+        noise_params=("noise_std",),
+        param_axes=_BASE_PARAM_AXES,
+    ),
+    "TimeReparametrizedMixtureModel": _ModelDisplayMeta(
+        individual_prior_params=(
+            "tau_std", "xi_std", "sources_std", "tau_mean", "xi_mean",
+        ),
+        noise_params=("noise_std",),
+        param_axes={
+            **_BASE_PARAM_AXES,
+            "tau_mean": ("cluster",),
+            "tau_std": ("cluster",),
+            "xi_mean": ("cluster",),
+            "xi_std": ("cluster",),
+            "sources_mean": ("source", "cluster"),
+            "sources_std": ("source", "cluster"),
+            "probs": ("cluster",),
+        },
+    ),
+    "JointModel": _ModelDisplayMeta(
+        individual_prior_params=(
+            "tau_mean", "tau_std", "xi_mean", "xi_std",
+            "sources_mean", "sources_std", "zeta_mean",
+        ),
+        noise_params=("noise_std",),
+        param_axes={
+            **_BASE_PARAM_AXES,
+            "n_log_nu_mean": ("event",),
+            "log_rho_mean": ("event",),
+            "zeta_mean": ("source", "event"),
+        },
+    ),
+}
+
+
+def _get_display_meta(model) -> Optional[_ModelDisplayMeta]:
+    """Return display metadata for *model* by walking its MRO.
+
+    Returns the entry for the most specific registered class, or ``None``
+    if the model's class hierarchy has no entry in ``_DISPLAY_REGISTRY``.
+    """
+    for cls in type(model).__mro__:
+        if cls.__name__ in _DISPLAY_REGISTRY:
+            return _DISPLAY_REGISTRY[cls.__name__]
+    return None
+
+
+def _build_param_categories(
+    model, meta: _ModelDisplayMeta
+) -> dict[str, list[str]]:
+    """Categorize model parameters into display groups using *meta*."""
+    ind_priors = set(meta.individual_prior_params)
+    noise = set(meta.noise_params)
+    all_params = set(model.parameters.keys()) if model.parameters else set()
+    pop = all_params - ind_priors - noise
+
+    def sort_key(name: str) -> tuple[int, str, str]:
+        val = model.parameters[name]
+        axes = meta.param_axes.get(name, ())
+        primary_axis = axes[0] if axes else ""
+        n_cols = 1
+        if val.ndim == 1 and axes:
+            if get_axis_labels(primary_axis, len(val), model.features) is not None:
+                n_cols = len(val)
+        elif val.ndim == 2:
+            n_cols = val.shape[1]
+        return (n_cols, primary_axis, name)
+
+    return {
+        "population": sorted((k for k in pop if k in all_params), key=sort_key),
+        "individual_priors": sorted(
+            (k for k in ind_priors if k in all_params), key=sort_key
+        ),
+        "noise": sorted((k for k in noise if k in all_params), key=sort_key),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Info
 # ---------------------------------------------------------------------------
 
@@ -588,9 +698,10 @@ class Summary(AutoPrintMixin):
             version = None
 
         # Group parameters by category
+        _meta = _get_display_meta(model)
         params_by_category = {}
-        if hasattr(model, "_param_categories"):
-            cats = model._param_categories
+        if _meta is not None:
+            cats = _build_param_categories(model, _meta)
             cat_names = {
                 "population": "Population Parameters",
                 "individual_priors": "Individual Parameters",
@@ -622,7 +733,7 @@ class Summary(AutoPrintMixin):
             dataset_info=dict(model.dataset_info),
             parameters=params_by_category,
             leaspy_version=version,
-            _param_axes=getattr(model, "_param_axes", {}),
+            _param_axes=_meta.param_axes if _meta is not None else {},
             _feature_names=model.features,
         )
 
