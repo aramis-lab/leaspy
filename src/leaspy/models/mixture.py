@@ -585,6 +585,7 @@ class RiemanianManifoldMixtureModel(TimeReparametrizedMixtureModel):
             "nll_regul_pop_sum",
             "nll_regul_all_sum",
             "nll_tot",
+            "probs"
         ]
 
         if self.source_dimension:
