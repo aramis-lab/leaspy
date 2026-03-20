@@ -657,11 +657,12 @@ class Plotting:
             **kwargs,
         )
 
-    def average_trajectory_cluster(self, colors=None, n_features_per_plot=3, **kwargs):
+    def average_trajectory_cluster(self, colors=None, n_features_per_plot=3, clusters=None, **kwargs):
         """
         Plot the population average trajectories for each cluster. They are parametrized by the population parameters derived
-        from the fit. Each cluster is plotted in a different color, and each feature in a different linestyle. 
+        from the fit. Each cluster is plotted in a different linestyle, and each feature in a different color. 
         Default is to plot 3 features per figure, so if there are more features they will be plotted in several plots.
+        We can choose which clusters to plot, default is all.
 
         Parameters
         ----------
@@ -669,6 +670,8 @@ class Plotting:
             List of matplotlib-compatible colors for clusters. Cycles if fewer than number of clusters.
         n_features_per_plot : int, default 3
             Number of features to plot in each figure.
+        clusters : list of int, default None
+            List of cluster indices to plot. If None, all clusters are plotted.
         **kwargs
             * alpha: :obj:`float`, default 0.6
                 Matplotlib's transparency option. Must be in [0, 1].
@@ -722,6 +725,13 @@ class Plotting:
         parameters = self.model.parameters
         n_clusters = self.model.n_clusters
         n_features = self.model.dimension
+        
+        if clusters is None:
+            clusters_to_plot = list(range(n_clusters))  # all clusters
+        elif isinstance(clusters, int):
+            clusters_to_plot = [clusters]               # single cluster
+        else:
+            clusters_to_plot = list(clusters)           # list of clusters
 
         cluster_dict = {}
         cluster_estimates = {}
@@ -737,8 +747,18 @@ class Plotting:
             ip.add_individual_parameters("average", cluster_dict[c])
             cluster_estimates[c] = self.model.estimate({"average": timepoints}, ip)
         
-        lines = ["-", "--", ":", "-.", (0, (3, 1, 1, 1)), (0, (5, 5))]  # extendable
+        lines = [
+            "-", "--", ":", "-.",
+            (0, (1, 1)),            # densely dotted
+            (0, (5, 1)),            # long dash, short gap
+            (0, (3, 1, 1, 1)),      # dash-dot-dotted
+            (0, (5, 5)),            # evenly spaced dashes
+            (0, (5, 2, 1, 2)),      # long dash, dot, gap
+            (0, (2, 2, 8, 2)),      # dot + long dash
+            (0, (10, 3)),           # very long dash
+            ]
         n_lines = len(lines)
+        colors_cycle = itertools.cycle(colors)
     
         # Loop over feature chunks
         for start in range(0, n_features, n_features_per_plot):
@@ -749,22 +769,32 @@ class Plotting:
             plt.ylim(0, 1)
         
             # Plot each cluster
-            colors_cycle = itertools.cycle(colors)
-            for c, color in zip(range(n_clusters), colors_cycle):
-                values = cluster_estimates[c]["average"][:, start:end].T  # shape: features x timepoints
-                for i, (ls, name, val) in enumerate(zip(lines, feature_names, values)):
-                    plt.plot(timepoints, val, label=f"cluster_{c}_{name}", c=color, ls=ls, **plot_kws["model"])
+            feature_colors = {name: next(colors_cycle) for name in feature_names}
+            
+            for c in clusters_to_plot:
+                ls = lines[c % len(lines)]  # linestyle per cluster
+                values = cluster_estimates[c]["average"][:, start:end].T
+                
+                for name, val in zip(feature_names, values):
+                    plt.plot(
+                        timepoints,
+                        val,
+                        label=f"cluster_{c}_{name}",
+                        c=feature_colors[name],
+                        ls=ls,
+                        **plot_kws["model"]
+                        )
         
             # Cluster legend
             cluster_legend = [
-                Line2D([0], [0], color=colors[c], linewidth=3, label=f"cluster_{c}")
-                for c in range(n_clusters)
+                Line2D([0], [0], linestyle=lines[c % len(lines)],  linewidth=3, color="black", label=f"cluster_{c}")
+                for c in clusters_to_plot
             ]
             legend1 = plt.legend(handles=cluster_legend, loc="upper left", prop={"size": 12})
         
             # Feature/line style legend
             feature_legend = [
-                Line2D([0], [0], linestyle=lines[i], color="black", linewidth=3, label=f"{name}")
+                Line2D([0], [0], linestyle="-", color=feature_colors[name], linewidth=3, label=f"{name}")
                 for i, name in enumerate(feature_names)
             ]
             legend2 = plt.legend(handles=feature_legend, loc="lower right", title="Feature", prop={"size": 12})
