@@ -180,6 +180,7 @@ class FitOutputManager:
         params_with_feature_labels = ["g", "v0"]
         params_with_sources = ["mixing_matrix"]
         params_with_events = []
+        params_with_cluster_labels = []
         if model.name == "joint":
             to_skip.add("survival_shifts")
             params_with_sources.append("zeta")
