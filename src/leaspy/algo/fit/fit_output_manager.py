@@ -436,8 +436,11 @@ class FitOutputManager:
         """
         if parameter_name == "mixing_matrix":
             ax[i].set_title(parameter_name + " " + model.features[index])
-        elif parameter_name == "zeta":
-            ax[i].set_title(parameter_name + " " + "event" + " " + str(index + 1))
+        #elif parameter_name == "zeta":
+        #    ax[i].set_title(parameter_name + " " + "event" + " " + str(index + 1))
+        elif parameter_name == "zeta": 
+            idx_str = str(index + 1) if index is not None else "unknown" 
+            ax[i].set_title(f"{parameter_name} event {idx_str}")
         elif parameter_name.startswith("sourcewise"):
             ax[i].set_title(
                 parameter_name.replace("sourcewise_", "")
