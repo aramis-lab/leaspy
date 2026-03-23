@@ -34,7 +34,7 @@ __all__ = [
     "WeibullRightCensoredWithSources",
     # "CategoricalFamily",
     "MixtureNormalFamily",
-    "MultivariateNormalFamily",
+    "MultivariateNormalFamily"
 ]
 
 
@@ -50,9 +50,6 @@ class StatelessDistributionFamily(ABC):
     -----
     - Subclasses must define the `parameters` class variable, listing parameter names in order.
     - Each method operates solely on the passed tensors; no state or caching is assumed.
-
-    TODO
-    ----
     - Consider supporting `WeightedTensor` for distribution parameters,
       e.g., to mask latent variables like `batched_deltas` at the input level
       or directly at model parameter level (e.g., `batched_deltas_mean`).
@@ -173,7 +170,7 @@ class StatelessDistributionFamily(ABC):
     ) -> WeightedTensor[float]:
         """Negative log-likelihood of value, given distribution parameters."""
 
-        if isinstance(x, Tensor):
+        if isinstance (x, Tensor):
             regul = cls._nll(WeightedTensor(x), *params)
         else:
             regul = cls._nll(x, *params)
@@ -201,11 +198,11 @@ class StatelessDistributionFamily(ABC):
 class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFamily):
     """
     Wrapper to build a `StatelessDistributionFamily` class from an existing torch distribution class.
-
+    
     Attributes
     ----------
     dist_factory : :obj:`Callable` [...,  :class:`torch.distributions.Distribution`]
-        A class variable that points to a factory function or class used to instantiate
+        A class variable that points to a factory function or class used to instantiate 
         the corresponding PyTorch distribution.
     """
 
@@ -261,7 +258,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 
         This method should be overridden in subclasses that wrap torch distributions which
         explicitly define a mode.
-
+  
         Parameters
         ----------
         params : :class:`torch.Tensor`
@@ -368,7 +365,7 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
     def _nll_jacobian(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
         """
         Compute the Jacobian (gradient) of the negative log-likelihood (NLL) with respect to input `x`.
-
+        
         Parameters
         ----------
         x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
@@ -388,13 +385,13 @@ class StatelessDistributionFamilyFromTorchDistribution(StatelessDistributionFami
 class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
     Bernoulli family (stateless).
-
+    
     Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
 
-    Class Attributes
-    ----------------
+    Attributes
+    ----------
     parameters : :obj:`tuple` of :obj:`str`
-        The names of the parameters for the distribution. Here, it is `("loc",)`, where `loc`
+        The names of the parameters for the distribution. Here, it is `("loc",)`, where `loc` 
         represents the probability of success.
     dist_factory : :obj:`Callable`
         Reference to the torch distribution class, `torch.distributions.Bernoulli`.
@@ -424,11 +421,11 @@ class OrdinalFamily(StatelessDistributionFamilyFromTorchDistribution):
 class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """
     Normal / Gaussian family (stateless).
-
+    
     Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
 
-    Class Attributes
-    ----------------
+    Attributes
+    ----------
     parameters : :obj:`tuple` of :obj:`str`
         The names of the distribution parameters: `("loc", "scale")`.
     dist_factory : :obj:`Callable`
@@ -510,7 +507,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     ) -> WeightedTensor:
         """
         Compute the negative log-likelihood (NLL) of a Normal distribution in a stateless manner.
-
+      
         Parameters
         ----------
         x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
@@ -575,7 +572,7 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
         """
         Compute both the negative log-likelihood (NLL) and its Jacobian (gradient) with respect to
         the observed values `x` for a Normal distribution, using an efficient hardcoded formula.
-
+        
         Parameters
         ----------
         x : :class:`~leaspy.utils.weighted_tensor._weighted_tensor.WeightedTensor`
@@ -1406,7 +1403,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         """
         Compute the log survival function for the Weibull distribution
         given observations and parameters.
-
+        
         Parameters
         ----------
         x : :class:`torch.Tensor`
@@ -1442,7 +1439,7 @@ class AbstractWeibullRightCensoredFamily(StatelessDistributionFamily):
         """
         Compute predicted survival or cumulative incidence probabilities for time-to-event data
         using a reparametrized Weibull model.
-
+        
         Parameters
         ----------
         x : :class:`torch.Tensor`
@@ -1798,7 +1795,7 @@ class SymbolicDistribution:
         """
         Factory method to return a symbolic function computing the negative log-likelihood
         (NLL) from a given value.
-
+        
         Parameters
         ----------
         value_name : :obj:`str`

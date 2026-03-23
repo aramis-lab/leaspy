@@ -30,7 +30,7 @@ class ConstantPredictionAlgorithm(
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         The settings of constant prediction algorithm. It supports the following  `prediction_type` values (str)::
             * ``'last'``: last value even if NaN,
             * ``'last_known'``: last non NaN value,

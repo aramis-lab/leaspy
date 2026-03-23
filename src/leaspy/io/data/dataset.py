@@ -295,8 +295,10 @@ class Dataset:
         adapt_for_model : None, default or :class:`~leaspy.models.mcmc_saem_compatible.McmcSaemCompatibleModel`
             The values returned are suited for this model.
             In particular:
-                * For model with `noise_model='ordinal'` will return one-hot-encoded values [P(X = l), l=0..ordinal_max_level]
-                * For model with `noise_model='ordinal_ranking'` will return survival function values [P(X > l), l=0..ordinal_max_level-1]
+
+            * For model with `noise_model='ordinal'` will return one-hot-encoded values [P(X = l), l=0..ordinal_max_level]
+            * For model with `noise_model='ordinal_ranking'` will return survival function values [P(X > l), l=0..ordinal_max_level-1]
+
             If None, we return the raw values, whatever the model is.
 
         Returns
@@ -334,7 +336,7 @@ class Dataset:
         Convert dataset to a `DataFrame` with ['ID', 'TIME'] index, with all covariates, events and repeated measures if
         apply_headers is False, and only the repeated measures otherwise.
 
-         Parameters
+        Parameters
         ----------
         apply_headers : :obj:`bool`
             Enable to select only the columns that are needed for leaspy fit (headers attribute)
@@ -431,22 +433,30 @@ class Dataset:
             ],
         )
 
-    def get_one_hot_encoding(self, *, sf: bool):
+    def get_one_hot_encoding(
+        self, *, sf: bool, ordinal_infos: KwargsType
+    ) -> torch.LongTensor:
         """
         Builds the one-hot encoding of ordinal data once and for all and returns it.
 
         Parameters
         ----------
-        sf : bool
+        sf : :obj:`bool`
             Whether the vector should be the survival function [1(X > l), l=0..max_level-1]
             instead of the probability density function [1(X=l), l=0..max_level]
 
-        ordinal_infos : dict[str, Any]
+        ordinal_infos : :class:`~leaspy.utils.typing.KwargsType`
             All the hyperparameters concerning ordinal modelling (in particular maximum level per features)
 
         Returns
         -------
-        One-hot encoding of data values.
+        :obj:`torch.LongTensor`
+            One-hot encoding of data values.
+
+        Raises
+        ------
+        :exc:`.LeaspyInputError`
+            If the values are not non-negative integers or if the features in `ordinal_infos` are not consistent with the dataset headers.
         """
         if self._one_hot_encoding is not None:
             return self._one_hot_encoding[sf]

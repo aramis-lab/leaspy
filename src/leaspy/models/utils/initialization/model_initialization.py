@@ -17,6 +17,7 @@ def initialize_parameters(model, dataset, method="default") -> tuple:
     Initialize the model's group parameters given its name & the scores of all subjects.
 
     Under-the-hood it calls an initialization function dedicated for the `model`:
+
         * :func:`.initialize_linear` (including when `univariate`)
         * :func:`.initialize_logistic` (including when `univariate`)
         * :func:`.initialize_logistic_parallel`
@@ -27,10 +28,11 @@ def initialize_parameters(model, dataset, method="default") -> tuple:
     ----------
     model : :class:`.AbstractModel`
         The model to initialize.
-    dataset : :class:`.Dataset`
+    dataset : :class:`~leaspy.io.data.dataset.Dataset`
         Contains the individual scores.
     method : str
         Must be one of:
+
             * ``'default'``: initialize at mean.
             * ``'random'``:  initialize with a gaussian realization with same mean and variance.
 

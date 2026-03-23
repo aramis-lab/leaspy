@@ -19,7 +19,7 @@ class FilteredMappingProxy(Mapping, Generic[KT, VT]):
     ----------
     mapping : TMapping[KT, VT]
     subset : Tuple[KT, ...]
-    check_keys : bool
+    check_keys : :obj:`bool`
     """
 
     mapping: TMapping[KT, VT]

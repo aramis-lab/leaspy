@@ -169,6 +169,7 @@ def doc_with_super(
     ----------
     if_other_signature : str
         Behavior if a documented method was found in parent but it has another signature:
+
             * ``'force'``: patch the method with the found docstring anyway (default)
             * ``'warn'``: patch the method but with a warning regarding signature mismatch
             * ``'skip'``: don't patch the method with the found docstring

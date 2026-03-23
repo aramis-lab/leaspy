@@ -415,7 +415,9 @@ def compute_patient_slopes_distribution(
     Returns
     -------
     :obj:`Tuple`[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
+
         Tuple with :
+
         - [0] : torch.Tensor of shape (n_features,) - Regression slopes
         - [1] : torch.Tensor of shape (n_features,) - Standard deviation of the slopes
     """
@@ -448,9 +450,12 @@ def compute_linear_regression_subjects(
     Returns
     -------
     :obj: `Dict`[:obj:`str`, :obj:`pd.DataFrame`]:
+
         Dictionary with :
+
         - keys : feature names
         - values : DataFrame with :
+
             - index : Individual IDs
             - columns : 'intercept', 'slope'
 
@@ -484,7 +489,9 @@ def _linear_regression_against_time(data: pd.Series) -> Dict[str, float]:
     Returns
     -------
     :obj: `Dict`[:obj:`str`, :obj: `float`]:
+
         Dictionary with:
+
         - keys : 'intercept', 'slope'
         - values : intercept & slope of the linear regression
     """
@@ -510,7 +517,9 @@ def compute_patient_values_distribution(
     Returns
     -------
     :obj: Tuple[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
+
         Tuple with:
+
         - [0] : torch.Tensor of shape (n_features,) - Means of the features
         - [1] : torch.Tensor of shape (n_features,) - Standard deviations of the features
     """
@@ -531,7 +540,9 @@ def compute_patient_time_distribution(
     Returns
     -------
     :obj:`Tuple`[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
+
         Tuple with:
+
         - [0] : torch.Tensor - Mean of the times
         - [1] : torch.Tensor - Standard deviation of the times
     """
