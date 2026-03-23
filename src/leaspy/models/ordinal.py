@@ -45,9 +45,18 @@ class OrdinalModel(LogisticModel):
     """
 
     def __init__(self, name: str, **kwargs):
+        max_levels = kwargs.pop("max_levels", None)
         super().__init__(name, **kwargs)
-
+        if max_levels is not None:
+            self.max_levels = {k: int(v) for k, v in max_levels.items()}
+            self.max_level = max(self.max_levels.values())
         self.tracked_variables.add("deltas")
+
+    def to_dict(self, **kwargs) -> dict:
+        d = super().to_dict(**kwargs)
+        if hasattr(self, "max_levels"):
+            d["max_levels"] = self.max_levels
+        return d
 
     def initialize(self, dataset: Optional[Dataset] = None) -> None:
         """Overloads base model initialization (in particular to handle internal model State).
