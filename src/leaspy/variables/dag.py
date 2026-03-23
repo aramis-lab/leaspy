@@ -28,8 +28,6 @@ __all__ = ["VariablesDAG"]
 class VariablesDAG(Mapping):
     """
     Directed acyclic graph of symbolic variables used in a leaspy model with efficient topologically sorted bidirectional access.
-    """
-    Directed acyclic graph of symbolic variables used in a leaspy model with efficient topologically sorted bidirectional access.
 
     Parameters
     ----------
