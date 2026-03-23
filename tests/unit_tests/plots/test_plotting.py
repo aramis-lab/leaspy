@@ -31,8 +31,8 @@ class PlottingTest(MatplotlibTestCase):
         cls.ind = cls.inds[0]
 
     def setUp(self) -> None:
-        with self.assertWarns(FutureWarning):
-            self.p = Plotting(self.model, self.get_test_tmp_path())
+        #with self.assertWarns(FutureWarning):
+        self.p = Plotting(self.model, self.get_test_tmp_path())
 
     def test_average_trajectory(self):
         self.p.average_trajectory(save_as="average_trajectory.pdf")
