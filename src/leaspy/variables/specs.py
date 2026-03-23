@@ -20,7 +20,7 @@ from typing import (
 import torch
 
 from leaspy.exceptions import LeaspyModelInputError
-from leaspy.models.utilities import (
+from leaspy.utils.suff_stats import (
     compute_ind_param_std_from_suff_stats,
     compute_ind_param_mean_from_suff_stats_mixture,
     compute_ind_param_std_from_suff_stats_mixture,
