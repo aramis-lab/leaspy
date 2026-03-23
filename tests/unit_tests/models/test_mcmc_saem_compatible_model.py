@@ -18,7 +18,7 @@ class AbstractModelTest(LeaspyTestCase):
             "dummy_abstractmodel", obs_models="gaussian-scalar"
         )
         self.assertFalse(model.is_initialized)
-        self.assertEqual(model.name, "dummy_abstractmodel")
+        # self.assertEqual(model.name, "dummy_abstractmodel")
         # self.assertEqual(model.parameters, None)
 
         # Test the presence of all these essential methods

@@ -396,7 +396,8 @@ class BaseModel(ModelInterface):
 
     def __init__(self, name: str, **kwargs):
         self._is_initialized: bool = False
-        self._name = name
+        #self._name = name
+        self._name = getattr(self, "type", "unknown")
         user_provided_dimension, user_provided_features = (
             self._validate_user_provided_dimension_and_features_at_init(**kwargs)
         )

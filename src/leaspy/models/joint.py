@@ -47,11 +47,12 @@ class JointModel(LogisticModel):
         * If `name` is not one of allowed sub-type: 'univariate_linear' or 'univariate_logistic'
         * If hyperparameters are inconsistent
     """
+    type = "joint"
 
     init_tolerance: float = 0.3
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
         self._configure_observation_models()
         self._configure_variables_to_track()
 

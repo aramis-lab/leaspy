@@ -20,6 +20,8 @@ from leaspy.variables.specs import (
 from .logistic import LogisticInitializationMixin
 from .time_reparametrized import TimeReparametrizedModel
 
+from typing import Optional
+
 __all__ = ["SharedSpeedLogisticModel"]
 
 
@@ -35,9 +37,10 @@ class SharedSpeedLogisticModel(LogisticInitializationMixin, TimeReparametrizedMo
     **kwargs
         Hyperparameters of the model.
     """
+    type = "shared_speed_logistic"
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def _compute_initial_values_for_model_parameters(
         self,
