@@ -44,10 +44,6 @@ class Plotting:
     """
 
     def __init__(self, model, output_path=".", palette="tab10", max_colors=10):
-        warnings.warn(
-            "Plotting will soon be removed from Leaspy, please use Plotter instead.",
-            FutureWarning,
-        )
 
         self.model = model
 
