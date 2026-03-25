@@ -169,5 +169,5 @@ class AlgorithmWithSamplersMixin:
             # TODO: mask logic?
 
             self.samplers[var_name] = sampler_factory(
-                sampler, PopulationLatentVariable, **var_kws, **sampler_kws
+                sampler, PopulationLatentVariable, **{**sampler_kws, **var_kws}
             )

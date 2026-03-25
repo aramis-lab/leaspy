@@ -28,6 +28,10 @@ __all__ = [
 
 
 class CovariateLogisticInitializationMixin:
+    def __init__(self, *args, init_from_model=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_from_model = init_from_model
+
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
@@ -57,57 +61,85 @@ class CovariateLogisticInitializationMixin:
         - If the observation model is a `FullGaussianObservationModel`,
         the noise standard deviation parameter is expanded to the correct shape.
         """
-        from leaspy.models.utilities import (
-            compute_patient_slopes_distribution,
-            compute_patient_time_distribution,
-            compute_patient_values_distribution,
-            get_log_velocities,
-            torch_round,
-        )
+        if self.init_from_model is not None:
+            # Initialiser depuis un modèle logistique classique pré-fitté
+            parameters = {
+                "t0_mean": self.init_from_model.parameters["t0_mean"],
+                "log_g_mean": self.init_from_model.parameters["log_g_mean"],
+                "log_v0_mean": self.init_from_model.parameters["log_v0_mean"],
+                "betas_mean": self.init_from_model.parameters["betas_mean"],
+                "tau_std": self.init_from_model.parameters["tau_std"],
+                "xi_std": self.init_from_model.parameters["xi_std"],
+                "noise_std": self.init_from_model.parameters["noise_std"],
+                "delta_t0_mean": torch.zeros((self.nb_cov,)),
+                "delta_g_mean": torch.zeros((self.dimension, self.nb_cov)),
+                "delta_v0_mean": torch.zeros((self.dimension, self.nb_cov)),
+            }
 
-        df = dataset.to_pandas(apply_headers=True)
-        slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
-        values_mu, values_sigma = compute_patient_values_distribution(df)
-        time_mu, time_sigma = compute_patient_time_distribution(df)
+            from leaspy.models.utilities import torch_round
 
-        if self.initialization_method == InitializationMethod.DEFAULT:
-            slopes = slopes_mu
-            values = values_mu
-            t0 = time_mu
-            betas = torch.zeros((self.dimension - 1, self.source_dimension))
+            rounded_parameters = {
+                str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
+            }
+            obs_model = next(iter(self.obs_models))
+            if isinstance(obs_model, FullGaussianObservationModel):
+                rounded_parameters["noise_std"] = self.noise_std.expand(
+                    obs_model.extra_vars["noise_std"].shape
+                )
+            return rounded_parameters
 
-        if self.initialization_method == InitializationMethod.RANDOM:
-            slopes = torch.normal(slopes_mu, slopes_sigma)
-            values = torch.normal(values_mu, values_sigma)
-            t0 = torch.normal(time_mu, time_sigma)
-            betas = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample(
-                sample_shape=(self.dimension - 1, self.source_dimension)
+        else:
+            from leaspy.models.utilities import (
+                compute_patient_slopes_distribution,
+                compute_patient_time_distribution,
+                compute_patient_values_distribution,
+                get_log_velocities,
+                torch_round,
             )
 
-        # Enforce values are between 0 and 1
-        values = values.clamp(min=1e-2, max=1 - 1e-2)
+            df = dataset.to_pandas(apply_headers=True)
+            slopes_mu, slopes_sigma = compute_patient_slopes_distribution(df)
+            values_mu, values_sigma = compute_patient_values_distribution(df)
+            time_mu, time_sigma = compute_patient_time_distribution(df)
 
-        parameters = {
-            "log_g_mean": torch.log(1.0 / values - 1.0),
-            "log_v0_mean": get_log_velocities(slopes, self.features),
-            "t0_mean": t0,
-            "tau_std": self.tau_std,
-            "xi_std": self.xi_std,
-            "delta_t0_mean": torch.zeros((self.nb_cov,)),
-            "delta_v0_mean": torch.zeros((self.dimension, self.nb_cov)),
-            "delta_g_mean": torch.zeros((self.dimension, self.nb_cov)),
-        }
-        if self.source_dimension >= 1:
-            parameters["betas_mean"] = betas
-        rounded_parameters = {
-            str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
-        }
-        obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
-        if isinstance(obs_model, FullGaussianObservationModel):
-            rounded_parameters["noise_std"] = self.noise_std.expand(
-                obs_model.extra_vars["noise_std"].shape
-            )
-        return rounded_parameters
+            if self.initialization_method == InitializationMethod.DEFAULT:
+                slopes = slopes_mu
+                values = values_mu
+                t0 = time_mu
+                betas = torch.zeros((self.dimension - 1, self.source_dimension))
+
+            if self.initialization_method == InitializationMethod.RANDOM:
+                slopes = torch.normal(slopes_mu, slopes_sigma)
+                values = torch.normal(values_mu, values_sigma)
+                t0 = torch.normal(time_mu, time_sigma)
+                betas = torch.distributions.normal.Normal(loc=0.0, scale=1.0).sample(
+                    sample_shape=(self.dimension - 1, self.source_dimension)
+                )
+
+            # Enforce values are between 0 and 1
+            values = values.clamp(min=1e-2, max=1 - 1e-2)
+
+            parameters = {
+                "log_g_mean": torch.log(1.0 / values - 1.0),
+                "log_v0_mean": get_log_velocities(slopes, self.features),
+                "t0_mean": t0,
+                "tau_std": self.tau_std,
+                "xi_std": self.xi_std,
+                "delta_t0_mean": torch.zeros((self.nb_cov,)),
+                "delta_v0_mean": torch.zeros((self.dimension, self.nb_cov)),
+                "delta_g_mean": torch.zeros((self.dimension, self.nb_cov)),
+            }
+            if self.source_dimension >= 1:
+                parameters["betas_mean"] = betas
+            rounded_parameters = {
+                str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
+            }
+            obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
+            if isinstance(obs_model, FullGaussianObservationModel):
+                rounded_parameters["noise_std"] = self.noise_std.expand(
+                    obs_model.extra_vars["noise_std"].shape
+                )
+            return rounded_parameters
 
 
 class CovariateLogisticModel(
