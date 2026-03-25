@@ -51,7 +51,7 @@ dataset = Dataset(data)
 
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2)
+model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
 model.fit(
     dataset,
     "mcmc_saem",

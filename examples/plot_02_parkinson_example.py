@@ -39,7 +39,7 @@ data_test = Data.from_dataframe(df_test)
 # A two-dimensional source space is chosen to represent disease progression trajectories.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2)
+model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
 
 # %%
 # Visualization utilities from Leaspy and Matplotlib are imported.
