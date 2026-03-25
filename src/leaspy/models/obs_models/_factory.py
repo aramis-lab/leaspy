@@ -87,8 +87,9 @@ def observation_model_factory(
         if model == ObservationModelNames.GAUSSIAN_DIAGONAL:
             if dimension is None:
                 raise NotImplementedError(
-                    "WIP: dimension / features should be provided to "
-                    f"init the obs_model = {ObservationModelNames.GAUSSIAN_DIAGONAL}."
+                    "The chosen obs_model is 'gaussian-diagonal' (default). " 
+                    f"To continue, dimension / features should be provided.\n"
+                    f"If your model is univariate or you wish to estimate one global noise_std consider using 'gaussian-scalar'."
                 )
             return FullGaussianObservationModel.with_noise_std_as_model_parameter(
                 dimension

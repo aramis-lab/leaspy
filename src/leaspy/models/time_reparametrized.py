@@ -73,7 +73,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
             observation_models = (
-                "gaussian-scalar" if dimension is None else "gaussian-diagonal"
+                "gaussian-scalar" if dimension==1 else "gaussian-diagonal"
             )
         if isinstance(observation_models, (list, tuple)):
             kwargs["obs_models"] = tuple(
