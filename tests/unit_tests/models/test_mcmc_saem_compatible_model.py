@@ -63,7 +63,7 @@ class AbstractModelTest(LeaspyTestCase):
 
         for model_name in (ModelName.LINEAR, ModelName.LOGISTIC):
             with self.subTest(model_name=model_name):
-                model = model_factory(model_name, source_dimension=2)
+                model = model_factory(model_name, source_dimension=2, obs_models="gaussian-scalar")
                 data = self.get_suited_test_data_for_model(model_name)
                 model.fit(data, "mcmc_saem", n_iter=200, seed=0)
                 for method in ("mode_posterior", "mean_posterior", "scipy_minimize"):
@@ -167,8 +167,8 @@ class AbstractModelTest(LeaspyTestCase):
         ]
 
         for src_compat, m in [
-            (lambda src_dim: src_dim <= 0, model_factory("logistic")),
-            (lambda src_dim: src_dim >= 0, model_factory("logistic")),
+            (lambda src_dim: src_dim <= 0, model_factory("logistic", obs_models="gaussian-scalar")),
+            (lambda src_dim: src_dim >= 0, model_factory("logistic", obs_models="gaussian-scalar")),
         ]:
             for (valid, n_inds, src_dim), ips in all_ips:
                 if src_dim >= 0:
@@ -221,7 +221,7 @@ class AbstractModelTest(LeaspyTestCase):
                             )
 
     def test_model_device_management_cpu_only(self):
-        model = model_factory("logistic", source_dimension=1)
+        model = model_factory("logistic", source_dimension=1, obs_models="gaussian-scalar")
         data = self.get_suited_test_data_for_model("logistic")
         model.fit(data, "mcmc_saem", n_iter=100, seed=0)
 

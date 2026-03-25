@@ -277,7 +277,8 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     def test_fit_joint_no_sources(self):
         self.generic_fit(
-            "joint", "joint_no_sources", check_kws=DEFAULT_CHECK_KWS, check_model=True
+            "joint", "joint_no_sources", check_kws=DEFAULT_CHECK_KWS, check_model=True, 
+            obs_models=observation_model_factory("gaussian-scalar"),
         )
 
     def test_fit_joint_diagonal(self):
@@ -296,6 +297,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "joint_scalar",
             check_kws=DEFAULT_CHECK_KWS,
             check_model=True,
+            obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=0,
         )
 
