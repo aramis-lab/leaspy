@@ -46,6 +46,7 @@ class OrdinalModel(LogisticModel):
 
     def __init__(self, name: str, **kwargs):
         max_levels = kwargs.pop("max_levels", None)
+        kwargs.setdefault("obs_models", "ordinal")
         super().__init__(name, **kwargs)
         if max_levels is not None:
             self.max_levels = {k: int(v) for k, v in max_levels.items()}
