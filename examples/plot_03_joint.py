@@ -50,7 +50,7 @@ model = JointModel(name="test_model", nb_events=1)
 #
 # Once the model is initialized, we can fit it to the data.
 
-model.fit(data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
+model.fit(data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False, obs_models="gaussian-scalar")
 
 
 # %%
