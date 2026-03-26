@@ -71,7 +71,7 @@ class JointModel(LogisticModel):
             )
 
     def _configure_observation_models(self):
-        if (self.dimension == 1) or (self.source_dimension == 0):
+        if (self.dimension == 1) or (self.source_dimension == 0) or (self.dimension is None):
             self._configure_univariate_observation_models()
         else:
             self._configure_multivariate_observation_models()
