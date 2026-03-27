@@ -8,11 +8,12 @@ Quick example of how to use the OrdinalModel in Leaspy.
 # %%
 # Let's start by importing the Data class from the leaspy library and loading the csv into a Data object.
 
-from leaspy.datasets import load_dataset
+from pathlib import Path
+import leaspy.datasets as _leaspy_datasets
 from leaspy.io.data import Data
 
-df = load_dataset("ordinal")
-data = Data.from_dataframe(df)
+data_path = Path(_leaspy_datasets.__file__).parent / "data" / "ordinal.csv"
+data = Data.from_csv_file(data_path)
 print(data.to_dataframe().head())
 
 # %%
@@ -20,9 +21,9 @@ print(data.to_dataframe().head())
 
 import pandas as pd
 
-df = data.to_dataframe()
+raw_df = data.to_dataframe()
 table = pd.DataFrame(
-    {col: df[col].value_counts(dropna=False).sort_index() for col in ["Y0", "Y1", "Y2", "Y3"]}
+    {col: raw_df[col].value_counts(dropna=False).sort_index() for col in ["Y0", "Y1", "Y2", "Y3"]}
 ).fillna(0).astype(int)
 table
 

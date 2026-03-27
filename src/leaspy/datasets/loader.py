@@ -25,7 +25,6 @@ class DatasetName(str, Enum):
     """
 
     ALZHEIMER = "alzheimer"
-    ORDINAL = "ordinal"
     PARKINSON = "parkinson"
     PARKINSON_PUTAMEN = "parkinson-putamen"
     PARKINSON_PUTAMEN_TRAIN_TEST = "parkinson-putamen-train_and_test"
