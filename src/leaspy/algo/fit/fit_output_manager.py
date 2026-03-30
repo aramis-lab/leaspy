@@ -186,7 +186,7 @@ class FitOutputManager:
             params_with_sources.append("zeta")
             params_with_events += ["nu", "rho"]
         if isinstance(model, LogisticMultivariateMixtureModel):
-            to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "mixing_matrix","sources_mean",  "nll_regul_pop_sum"}
+            to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "mixing_matrix","sources_mean"}
             params_with_feature_labels = ["g", "v0", "noise_std"]
             params_with_cluster_labels = ["probs", "tau_mean", "tau_std", "xi_mean", "xi_std"]
             params_with_sources = []
