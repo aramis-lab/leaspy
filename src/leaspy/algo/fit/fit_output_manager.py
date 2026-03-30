@@ -89,7 +89,7 @@ class FitOutputManager:
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model used by the computation.
 
-        data : :class:`.Dataset`
+        data : :class:`~leaspy.io.data.dataset.Dataset`
             The data used by the computation
         """
         # <!> only `current_iteration` defined for AbstractFitAlgorithm... TODO -> generalize where possible?

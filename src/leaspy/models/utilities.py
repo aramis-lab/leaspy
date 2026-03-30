@@ -7,6 +7,14 @@ import pandas as pd
 import torch
 
 from leaspy.exceptions import LeaspyConvergenceError
+from leaspy.utils.suff_stats import (
+    compute_std_from_variance,
+    compute_ind_param_std_from_suff_stats,
+    compute_ind_param_mean_from_suff_stats_mixture,
+    compute_ind_param_std_from_suff_stats_mixture,
+    compute_ind_param_std_from_suff_stats_mixture_burn_in,
+    compute_probs_from_state,
+)
 from leaspy.utils.functional import (
     Identity,
     MatMul,
@@ -132,97 +140,6 @@ def is_array_like(v: Any) -> bool:
         return False
 
 
-def tensorize_2D(x, unsqueeze_dim: int, dtype=torch.float32) -> torch.Tensor:
-    """Convert a scalar or array_like into an, at least 2D, dtype tensor.
-
-    Parameters
-    ----------
-    x : scalar or array_like
-        Element to be tensorized.
-
-    unsqueeze_dim : :obj:`int`
-        Dimension to be unsqueezed (0 or -1).
-        Meaningful for 1D array-like only (for scalar or vector
-        of length 1 it has no matter).
-
-    Returns
-    -------
-    :class:`torch.Tensor`, at least 2D
-
-    Examples
-    --------
-    >>> tensorize_2D([1, 2], 0) == tensor([[1, 2]])
-    >>> tensorize_2D([1, 2], -1) == tensor([[1], [2])
-    """
-    # convert to torch.Tensor if not the case
-    if not isinstance(x, torch.Tensor):
-        x = torch.tensor(x, dtype=dtype)
-    # convert dtype if needed
-    if x.dtype != dtype:
-        x = x.to(dtype)
-    # if tensor is less than 2-dimensional add dimensions
-    while x.dim() < 2:
-        x = x.unsqueeze(dim=unsqueeze_dim)
-    # postcondition: x.dim() >= 2
-    return x
-
-
-def val_to_tensor(val, shape: Optional[tuple] = None):
-    if not isinstance(val, (torch.Tensor, WeightedTensor)):
-        val = torch.tensor(val)
-    if shape is not None:
-        val = val.view(shape)  # no expansion here
-    return val
-
-
-def serialize_tensor(v, *, indent: str = "", sub_indent: str = "") -> str:
-    """Nice serialization of floats, torch tensors (or numpy arrays)."""
-    from torch._tensor_str import PRINT_OPTS as torch_print_opts
-
-    if isinstance(v, (str, bool, int)):
-        return str(v)
-    if isinstance(v, np.ndarray):
-        return str(v.tolist())
-    if isinstance(v, float) or getattr(v, "ndim", -1) == 0:
-        # for 0D tensors / arrays the default behavior is to print all digits...
-        # change this!
-        return f"{v:.{1 + torch_print_opts.precision}g}"
-    if isinstance(v, (list, frozenset, set, tuple)):
-        try:
-            return serialize_tensor(
-                torch.tensor(list(v)), indent=indent, sub_indent=sub_indent
-            )
-        except Exception:
-            return str(v)
-    if isinstance(v, dict):
-        if not len(v):
-            return ""
-        subs = [
-            f"{p} : "
-            + serialize_tensor(vp, indent="  ", sub_indent=" " * len(f"{p} : ["))
-            for p, vp in v.items()
-        ]
-        lines = [indent + _ for _ in "\n".join(subs).split("\n")]
-        return "\n" + "\n".join(lines)
-    # torch.tensor, np.array, ...
-    # in particular you may use `torch.set_printoptions` and `np.set_printoptions` globally
-    # to tune the number of decimals when printing tensors / arrays
-    v_repr = str(v)
-    # remove tensor prefix & possible device/size/dtype suffixes
-    v_repr = re.sub(r"^[^\(]+\(", "", v_repr)
-    v_repr = re.sub(r"(?:, device=.+)?(?:, size=.+)?(?:, dtype=.+)?\)$", "", v_repr)
-    # adjust justification
-    return re.sub(r"\n[ ]+([^ ])", rf"\n{sub_indent}\1", v_repr)
-
-
-def is_array_like(v: Any) -> bool:
-    try:
-        len(v)  # exclude np.array(scalar) or torch.tensor(scalar)
-        return hasattr(v, "__getitem__")  # exclude set
-    except Exception:
-        return False
-
-
 def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
     """
     Convert input tensor to list.
@@ -249,153 +166,6 @@ def tensor_to_list(x: Union[list, torch.Tensor]) -> list:
     return x
 
 
-def compute_std_from_variance(
-    variance: torch.Tensor,
-    varname: str,
-    tol: float = 1e-5,
-) -> torch.Tensor:
-    """
-    Check that variance is strictly positive and return its square root, otherwise fail with a convergence error.
-    If variance is multivariate check that all components are strictly positive.
-    TODO? a full Bayesian setting with good priors on all variables should prevent such convergence issues.
-
-    Parameters
-    ----------
-    variance : :obj:`torch.Tensor`
-        The variance we would like to convert to a std-dev.
-    varname : :obj:`str`
-        The name of the variable.
-    tol : :obj:`float`, optional
-        The lower bound on variance, under which the converge error is raised.
-        Default=1e-5.
-
-    Returns
-    -------
-    :obj: `torch.Tensor` :
-        The standard deviation from the variance.
-
-    Raises
-    ------
-    :exc:`.LeaspyConvergenceError`
-        If the variance is less than the specified tolerance, indicating a convergence issue.
-    """
-
-    if (variance < tol).any():
-        raise LeaspyConvergenceError(
-            f"The parameter '{varname}' collapsed to zero, which indicates a convergence issue.\n"
-            "Start by investigating what happened in the logs of your calibration and try to double check:"
-            "\n- your training dataset (not enough subjects and/or visits? too much missing data?)"
-            "\n- the hyperparameters of your Leaspy model (`source_dimension` too low or too high? "
-            "observation model not suited to your data?)"
-            "\n- the hyperparameters of your calibration algorithm"
-        )
-
-    return variance.sqrt()
-
-
-def compute_ind_param_std_from_suff_stats(
-    state: Dict[str, torch.Tensor],
-    ip_values: torch.Tensor,
-    ip_sqr_values: torch.Tensor,
-    *,
-    ip_name: str,
-    dim: int,
-    **kws,
-):
-    """
-    Maximization rule, from the sufficient statistics, of the standard-deviation
-    of Gaussian prior for individual latent variables.
-
-    Parameters
-    ----------
-    state : Dict[str, torch.Tensor]
-    ip_values : torch.Tensor
-    ip_sqr_values : torch.Tensor
-    ip_name : str
-    dim : int
-    """
-    ip_old_mean = state[f"{ip_name}_mean"]
-    ip_cur_mean = torch.mean(ip_values, dim=dim)
-    ip_var_update = torch.mean(ip_sqr_values, dim=dim) - 2 * ip_old_mean * ip_cur_mean
-    ip_var = ip_var_update + ip_old_mean**2
-    return compute_std_from_variance(ip_var, varname=f"{ip_name}_std", **kws)
-
-
-def compute_ind_param_mean_from_suff_stats_mixture(
-    state: Dict[str, torch.Tensor],
-    *,
-    ip_name: str,
-) -> torch.Tensor:
-    ind_var = state[f"{ip_name}"]
-    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    nll_cluster = -nll_regul_ind_sum_ind
-
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
-
-    if ip_name == "sources":  # special treatment due to the extra dimension
-        ind_var_expanded = ind_var.unsqueeze(-1)
-        probs_expanded = probs_ind.unsqueeze(1)
-        result = ind_var_expanded * probs_expanded
-    else:
-        result = probs_ind * ind_var
-
-    result = result.sum(dim=0) / probs_ind.sum(dim=0)
-
-    return result
-
-
-def compute_ind_param_std_from_suff_stats_mixture(
-    state: Dict[str, torch.Tensor],
-    ip_values: torch.Tensor,
-    ip_sqr_values: torch.Tensor,
-    *,
-    ip_name: str,
-    dim: int,
-    **kws,
-):
-    ip_old_mean = state[f"{ip_name}_mean"]
-    ip_cur_mean = torch.mean(ip_values, dim=0)
-    ip_var_update = torch.mean(ip_sqr_values, dim=0) - 2 * ip_old_mean * ip_cur_mean
-    ip_var = ip_var_update + ip_old_mean**2
-    std = ip_var.sqrt()
-
-    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    nll_cluster = -nll_regul_ind_sum_ind
-
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
-
-    result = (probs_ind * std).sum(dim=0) / probs_ind.sum(dim=0)
-
-    return result
-
-
-def compute_ind_param_std_from_suff_stats_mixture_burn_in(
-    state: Dict[str, torch.Tensor],
-    *,
-    ip_name: str,
-) -> torch.Tensor:
-    ind_var = state[f"{ip_name}"].std(dim=0)
-    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    nll_cluster = -nll_regul_ind_sum_ind
-
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
-
-    result = (probs_ind * ind_var).sum(dim=0) / probs_ind.sum(dim=0)
-
-    return result
-
-
-def compute_probs_from_state(
-    state: Dict[str, torch.Tensor],
-) -> torch.Tensor:
-    nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
-    n_inds = nll_regul_ind_sum_ind.shape[0]
-    nll_cluster = -nll_regul_ind_sum_ind
-    probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
-
-    return probs_ind.sum(dim=0) / n_inds
-
-
 def compute_patient_slopes_distribution(
     df: pd.DataFrame,
     *,
@@ -415,7 +185,9 @@ def compute_patient_slopes_distribution(
     Returns
     -------
     :obj:`Tuple`[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
+
         Tuple with :
+
         - [0] : torch.Tensor of shape (n_features,) - Regression slopes
         - [1] : torch.Tensor of shape (n_features,) - Standard deviation of the slopes
     """
@@ -448,9 +220,12 @@ def compute_linear_regression_subjects(
     Returns
     -------
     :obj: `Dict`[:obj:`str`, :obj:`pd.DataFrame`]:
+
         Dictionary with :
+
         - keys : feature names
         - values : DataFrame with :
+
             - index : Individual IDs
             - columns : 'intercept', 'slope'
 
@@ -484,7 +259,9 @@ def _linear_regression_against_time(data: pd.Series) -> Dict[str, float]:
     Returns
     -------
     :obj: `Dict`[:obj:`str`, :obj: `float`]:
+
         Dictionary with:
+
         - keys : 'intercept', 'slope'
         - values : intercept & slope of the linear regression
     """
@@ -510,7 +287,9 @@ def compute_patient_values_distribution(
     Returns
     -------
     :obj: Tuple[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
+
         Tuple with:
+
         - [0] : torch.Tensor of shape (n_features,) - Means of the features
         - [1] : torch.Tensor of shape (n_features,) - Standard deviations of the features
     """
@@ -531,7 +310,9 @@ def compute_patient_time_distribution(
     Returns
     -------
     :obj:`Tuple`[:obj:`torch.Tensor`, :obj:`torch.Tensor`]:
+
         Tuple with:
+
         - [0] : torch.Tensor - Mean of the times
         - [1] : torch.Tensor - Standard deviation of the times
     """

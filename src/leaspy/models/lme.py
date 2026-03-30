@@ -20,6 +20,7 @@ class LMEModel(StatelessModel):
     .. math:: y_{ij} = fixed_{intercept} + random_{intercept_i} + (fixed_{slopeAge} + random_{slopeAge_i}) * age_{ij} + \epsilon_{ij}
 
     with:
+
         * :math:`y_{ij}`: value of the feature of the i-th subject at his j-th visit,
         * :math:`age_{ij}`: age of the i-th subject at his j-th visit.
         * :math:`\epsilon_{ij}`: residual Gaussian noise (independent between visits)
@@ -35,6 +36,7 @@ class LMEModel(StatelessModel):
         The model's name.
     **kwargs
         Model hyperparameters:
+
             * with_random_slope_age : :obj:`bool` (default ``True``).
 
     Attributes
@@ -56,6 +58,7 @@ class LMEModel(StatelessModel):
         Will always be 1 (univariate).
     parameters : :obj:`dict`
         Contains the model parameters. In particular:
+
             * ``ages_mean`` : :obj:`float`
                 Mean of ages (for normalization).
             * ``ages_std`` : :obj:`float`
@@ -104,6 +107,7 @@ class LMEModel(StatelessModel):
 
         individual_parameters : :obj:`dict`
             Individual parameters:
+
                 * random_intercept
                 * random_slope_age (if ``with_random_slope_age == True``)
 

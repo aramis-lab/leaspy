@@ -125,5 +125,11 @@
     "nll_regul_ind_sum": 119.37311553955078,
     "nll_tot": 1191.6436767578125
   },
-  "source_dimension": 2
+  "source_dimension": 2,
+  "max_levels": {
+    "Y0": 3,
+    "Y1": 4,
+    "Y2": 6,
+    "Y3": 10
+  }
 }

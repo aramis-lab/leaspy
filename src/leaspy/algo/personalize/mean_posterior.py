@@ -15,7 +15,7 @@ class MeanPosteriorAlgorithm(McmcPersonalizeAlgorithm):
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         Settings of the algorithm.
     """
 

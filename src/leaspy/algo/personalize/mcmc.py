@@ -32,7 +32,7 @@ class McmcPersonalizeAlgorithm(
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         Settings of the algorithm.
     """
 
@@ -123,7 +123,7 @@ class McmcPersonalizeAlgorithm(
         Parameters
         ----------
         model : :class:`.McmcSaemCompatibleModel`
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
 
         Returns
         -------

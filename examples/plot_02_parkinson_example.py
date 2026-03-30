@@ -33,22 +33,13 @@ df_test = df.loc["GS-161":][["MDS1_total", "MDS2_total", "MDS3_off_total"]]
 data_train = Data.from_dataframe(df_train)
 data_test = Data.from_dataframe(df_test)
 
+
 # %%
 # The logistic model is imported and initialized.
 # A two-dimensional source space is chosen to represent disease progression trajectories.
 from leaspy.models import LogisticModel
 
 model = LogisticModel(name="test-model", source_dimension=2)
-
-# %%
-# The model is fitted to the training data using the MCMC-SAEM algorithm.
-# A fixed seed is used for reproducibility and 100 iterations are performed.
-model.fit(
-    data_train,
-    "mcmc_saem",
-    n_iter=100,
-    progress_bar=False,
-)
 
 # %%
 # Visualization utilities from Leaspy and Matplotlib are imported.
@@ -59,14 +50,28 @@ from leaspy.io.logs.visualization.plotting import Plotting
 leaspy_plotting = Plotting(model)
 
 # %%
-# An illustration of individual patient observations on the learned disease progression space is created.
+# Data that will be used to fit the model can be illustrated as follows:
+
 ax = leaspy_plotting.patient_observations(data_train, alpha=0.7, figsize=(14, 6))
 ax.set_ylim(0, 0.8)  # The y-axis is adjusted for better visibility.
 plt.show()
 
+
+# %%
+# The model is fitted to the training data using the MCMC-SAEM algorithm.
+# A fixed seed is used for reproducibility and 100 iterations are performed.
+model.fit(
+    data_train,
+    "mcmc_saem",
+    seed=0,
+    n_iter=100,
+    progress_bar=False,
+)
+
+
 # %%
 # The average trajectory estimated by the model is displayed.
-# This figure shows the mean disease progression curve together with variability bands.
+# This figure shows the mean disease progression curves for all features.
 ax = leaspy_plotting.average_trajectory(
     alpha=1, figsize=(14, 6), n_std_left=2, n_std_right=8
 )
@@ -89,7 +94,6 @@ ax = leaspy_plotting.patient_observations(
     data_test,
     alpha=0.7,
     linestyle="-",
-    # patients_idx=list(data_test.individuals.keys())[:4],
     figsize=(14, 6),
 )
 plt.show()
@@ -110,7 +114,7 @@ reconstruction = model.estimate({"GS-187": timepoints}, ip)
 ax = leaspy_plotting.patient_trajectories(
     data_test,
     ip,
-    patients_idx=["GS-187", "GS-180"],
+    patients_idx=["GS-187"],
     labels=["MDS1", "MDS2", "MDS3 (off)"],
     alpha=1,
     linestyle="-",

@@ -15,8 +15,8 @@ class AlgorithmWithDeviceMixin:
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
-        The specifications of the algorithm as a :class:`.AlgorithmSettings` instance.
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
+        The specifications of the algorithm as a :class:`~leaspy.algo.settings.AlgorithmSettings` instance.
 
     Attributes
     ----------
@@ -44,7 +44,7 @@ class AlgorithmWithDeviceMixin:
         ----------
         model : :class:`~.models.abstract_model.McmcSaemCompatibleModel`
             The used model.
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
             Contains the subjects' observations in torch format to speed up computation.
         """
         algorithm_tensor_type = self._default_algorithm_tensor_type

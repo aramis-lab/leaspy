@@ -25,7 +25,9 @@ class OrdinalObservationModel(ObservationModel):
                 "Provided dataset is not valid. "
                 "Both values and mask should be not None."
             )
-        pdf = dataset.get_one_hot_encoding(sf=False)
+        max_levels = dataset.get_max_levels()
+        ordinal_infos = {"max_levels": max_levels, "max_level": max(max_levels.values())}
+        pdf = dataset.get_one_hot_encoding(sf=False, ordinal_infos=ordinal_infos)
         mask_ = torch.ones_like(pdf)
         mask_[..., 1:] = dataset.get_mask()  # Add +1 on last dimension for level 0
         return WeightedTensor(
