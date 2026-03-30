@@ -608,8 +608,8 @@ class LatentVariableInitType(str, Enum):
     """
     Type of initialization for latent variables.
 
-    Members
-    -------
+    Attributes
+    ----------
     PRIOR_MODE : :obj:`str`
         Initialize latent variables using the mode of their prior distribution.
     PRIOR_MEAN : :obj:`str`
@@ -634,11 +634,8 @@ class LatentVariable(IndepVariable):
         The symbolic prior distribution for the latent variable (e.g. `Normal('xi_mean', 'xi_std')`).
     sampling_kws : :obj:`dict`, optional
         Optional keyword arguments to customize the sampling process (e.g. number of samples, random seed).
-    
-    Class Attributes
-    ----------------
     is_settable : :obj:`bool`
-        Indicates that this variable can be explicitly set in the model (default: True).    
+        Indicates that this variable can be explicitly set in the model (default: True).
     """
 
     # TODO/WIP? optional mask derive from optional masks of prior distribution parameters?
@@ -773,7 +770,7 @@ class PopulationLatentVariable(LatentVariable):
 
         Returns
         -------
-        :class:`~leaspy.utils.functional._named_imput_function.NamedInputFunction`[:class:`torch.Tensor`] :
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction` [:class:`torch.Tensor`]
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=())
@@ -839,7 +836,7 @@ class IndividualLatentVariable(LatentVariable):
 
         Returns
         -------
-        :class:`~leaspy.utils.functional._named_imput_function.NamedInputFunction`[:class:`torch.Tensor`] :
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction` [:class:`torch.Tensor`]
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=(n_individuals,))

@@ -179,23 +179,22 @@ plt.show()
 ![qq plot](./_static/images/qq-plot.png)
 
 
-#### Coefficient of Determination (R²)
-R² indicates how well the model explains the variance in the observed data. Higher values (closer to 1) suggest better performance.
+#### Coefficient of Determination (R^2)
+R^2 indicates how well the model explains the variance in the observed data. Higher values (closer to 1) suggest better performance.
 
 $$
 R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
 $$
 
-In mixed-effects models, multiple R² variants exist (e.g., marginal vs. conditional R²) to account for fixed and random effects {cite}`nakagawa2012method`.
+In mixed-effects models, multiple R^2 variants exist (e.g., marginal vs. conditional R^2) to account for fixed and random effects {cite}`nakagawa2012method`.
 
 For more information, please see [`sklearn.metrics`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html).
 
 ```python
 from sklearn.metrics import r2_score
 r2 = r2_score(alzheimer_df_to_pred["MMSE"], df_pred["MMSE_model1"])
-print(f"R² Score: {r2}")
-
-R² Score: 0.9442675319358963
+print(f"R^2 Score: {r2}")
+R^2 Score: 0.9442675319358963
 ```
 
 ### Events
@@ -216,8 +215,3 @@ For more information, please see [`scikit-survival`](https://scikit-survival.rea
 #### Avoid using C-index
 The C-index or Concordance index, similarly to the cumulative AUC, is a metric assessing the discriminatory ability of a survival model. However, this metric is criticized because it is a global metric that averages performance over the entire study period, hiding time-specific weaknesses {cite}`blanche2019cindex`. It also depends on the censoring distribution. Therefore, it is more convenient to use time-dependent AUC and the Brier Score presented above.
 
-## References
-
-```{bibliography}
-:filter: docname in docnames
-```

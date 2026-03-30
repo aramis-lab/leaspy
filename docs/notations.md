@@ -22,18 +22,22 @@ The following table displays the relationships between a variable mathematical n
 
 This section explains each mathematical concept and provides mathematical definitions when needed.
 
+(estimated-reference-time)=
 ### Estimated reference time
 
 The *estimated reference time* for a given individual $ i $ is denoted as $ \tau_i $. It follows $\tau_i \sim \mathcal{N}(t_0, \sigma^2_{\tau})$.
 
+(individual-log-speed-factor)=
 ### Individual log speed factor
 
 The *individual log speed factor* for a given individual $ i $ is denoted as $ \xi_i $ . It follows $\xi_i \sim \mathcal{N}(0, \sigma^2_{\xi})$.
 
+(individual-trajectory)=
 ### Individual trajectory
 
-The *individual trajectory* for a given individual $ i $ is denoted as $ \gamma_i(t) $ and represents the disease progression of the patient $i$. It can be indexed by $k$ when $K$ outcomes are estimated.  
+The *individual trajectory* for a given individual $ i $ is denoted as $ \gamma_i(t) $ and represents the disease progression of the patient $i$. It can be indexed by $k$ when $K$ outcomes are estimated.
 
+(latent-disease-age)=
 ### Latent disease age
 
 The *latent disease age*, for a given individual $ i $, is denoted as $ \psi_i(t) $.
@@ -50,18 +54,22 @@ where :
 - $ \tau_i $ is the [estimated reference time](#estimated-reference-time) of individual $ i $.
 - $ t_0 $ is the [population reference time](#population-reference-time).
 
+(mixing-matrix)=
 ### Mixing matrix
 
 The *mixing matrix* is denoted as $ \mathbf{A} $ and is defined as a matrix that describes the mixing of different sources in the model.
 
+(population-reference-time)=
 ### Population reference time
 
 The *population reference time* is denoted as $ t_0 $ and is defined as *the reference time for the entire population*.
 
+(sources)=
 ### Sources
 
 The *sources*, for a given individual $ i $, are denoted as $ \mathbf{s}_i$ and defined as the different origins of information or data that contribute to the individual's disease progression model.
 
+(space-shift)=
 ### Space shift
 
 The *space shift*, are more interpretable than sources $\mathbf{s}_i$, as they encapsulate total spatial variability effects.
@@ -77,6 +85,7 @@ where:
 - $ \eta_{k,j} $ is the weight for spatial source $ j $ in outcome $ k $.
 - $ s_{i,j} $ is the contribution of spatial source $ j $ for individual $ i $.
 
+(survival-shift)=
 ### Survival shift
 
 The *survival shift*, for a given individual $ i $ and a given event $ l $ is denoted as $ u_{i,l} $ and defined as:

@@ -226,10 +226,10 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
         'mean_acceptation_rate_target_bounds': [0.2, 0.4],
         'adaptive_std_factor': 0.1},
         'annealing': {'do_annealing': False,
-         'initial_temperature': 10,
-         'n_plateau': 10,
-         'n_iter': None,
-         'n_iter_frac': 0.5}}
+        'initial_temperature': 10,
+        'n_plateau': 10,
+        'n_iter': None,
+        'n_iter_frac': 0.5}}
         >>> parameters = {'n_iter': 5000, 'n_burn_in_iter': 4000}
         >>> my_algo.load_parameters(parameters)
         >>> my_algo.algo_parameters
@@ -249,10 +249,10 @@ class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
         'mean_acceptation_rate_target_bounds': [0.2, 0.4],
         'adaptive_std_factor': 0.1},
         'annealing': {'do_annealing': False,
-         'initial_temperature': 10,
-         'n_plateau': 10,
-         'n_iter': None,
-         'n_iter_frac': 0.5}}
+        'initial_temperature': 10,
+        'n_plateau': 10,
+        'n_iter': None,
+        'n_iter_frac': 0.5}}
         """
         for k, v in parameters.items():
             if k in self.algo_parameters.keys():

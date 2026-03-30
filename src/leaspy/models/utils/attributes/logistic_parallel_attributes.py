@@ -83,6 +83,7 @@ class LogisticParallelAttributes(AbstractManifoldModelAttributes):
         ----------
         names_of_changed_values : set[str]
             Elements of set must be either:
+
                 * ``all`` (update everything)
                 * ``g`` correspond to the attribute :attr:`positions`.
                 * ``deltas`` correspond to the attribute :attr:`deltas`.
@@ -157,12 +158,14 @@ class LogisticParallelAttributes(AbstractManifoldModelAttributes):
     def _compute_gamma_t0_collin_dgamma_t0(self):
         """
         Computes both gamma:
+
             * value at t0
             * a vector collinear to derivative w.r.t. time at time t0
 
         Returns
         -------
         2-tuple:
+
             * gamma_t0 : :class:`torch.Tensor` 1D
             * dgamma_t0 : :class:`torch.Tensor` 1D
         """

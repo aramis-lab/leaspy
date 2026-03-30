@@ -13,5 +13,4 @@ mathematics
 models
 algorithms
 models_evaluation
-<!-- to_go_further -->
 ```
