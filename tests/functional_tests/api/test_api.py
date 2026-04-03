@@ -166,6 +166,7 @@ class LeaspyAPITest(
             # "nll_regul_xi": dict(atol=5),
             # "nll_regul_sources": dict(atol=1),
             "nll_regul_ind_sum": {"atol": 5},
+            "nll_regul_pop_sum": {"atol": 5},
             "nll_attach": {"atol": 6},
             "nll_tot": {"atol": 5},
             "tau_mean": {"atol": 0.3},

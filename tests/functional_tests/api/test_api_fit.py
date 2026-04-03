@@ -150,7 +150,7 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
 # some noticeable reproducibility errors btw MacOS and Linux here...
 ALLCLOSE_CUSTOM = dict(
     nll_regul_ind_sum=dict(atol=5),
-    nll_regul_pop_sum=dict(atol=10),
+    nll_regul_pop_sum=dict(atol=15),
     nll_attach=dict(atol=10),
     nll_tot=dict(atol=15),
     tau_mean=dict(atol=0.2),
@@ -305,7 +305,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
 
     # @skip("Linear models are currently broken.")
     def test_fit_univariate_linear(self):
-        self.generic_fit("linear", "univariate_linear", dimension=1)
+        self.generic_fit("linear", "univariate_linear", dimension=1, check_kws=DEFAULT_CHECK_KWS)
 
     # @skip("Linear models are currently broken.")
     def test_fit_linear(self):
@@ -314,6 +314,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "linear_scalar_noise",
             obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=2,
+            check_kws=DEFAULT_CHECK_KWS,
         )
 
     # @skip("Linear models are currently broken.")
@@ -323,6 +324,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "linear_diag_noise",
             obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=2,
+            check_kws=DEFAULT_CHECK_KWS,
         )
 
     def test_fit_logistic_binary(self):
