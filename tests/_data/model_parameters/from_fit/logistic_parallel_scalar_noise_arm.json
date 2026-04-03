@@ -1,5 +1,5 @@
 {
-  "leaspy_version": "2.0.0-dev",
+  "leaspy_version": "2.0.2",
   "name": "shared_speed_logistic",
   "features": [
     "Y0",
@@ -41,7 +41,7 @@
     "log_g_mean": [
       1.7281461954116821
     ],
-    "noise_std": 0.10322542488574982,
+    "noise_std": 0.10322557389736176,
     "tau_mean": [
       79.01427459716797
     ],
@@ -73,9 +73,10 @@
     "y": "gaussian-scalar"
   },
   "fit_metrics": {
-    "nll_attach": -534.9681396484375,
+    "nll_attach": -534.9682006835938,
     "nll_regul_ind_sum": 153.65789794921875,
-    "nll_tot": -416.56
+    "nll_regul_pop_sum": -35.24514389038086,
+    "nll_tot": -416.5553894042969
   },
   "source_dimension": 2
 }

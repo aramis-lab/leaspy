@@ -1,5 +1,5 @@
 {
-  "leaspy_version": "2.0.0-dev",
+  "leaspy_version": "2.0.2",
   "name": "joint",
   "features": [
     "Y0",
@@ -8,10 +8,6 @@
     "Y3"
   ],
   "dimension": 4,
-  "obs_models": {
-    "y": "gaussian-scalar",
-    "event": "weibull-right-censored-with-sources"
-  },
   "hyperparameters": {
     "betas_std": 0.009999999776482582,
     "log_g_std": 0.009999999776482582,
@@ -59,7 +55,7 @@
     "n_log_nu_mean": [
       -1.8490482568740845
     ],
-    "noise_std": 0.09508559135543687,
+    "noise_std": 0.09508559133790735,
     "tau_mean": [
       78.5895702712116
     ],
@@ -67,7 +63,7 @@
       5.888448736480136
     ],
     "xi_std": [
-      0.3636860481195304
+      0.36368604811953037
     ],
     "zeta_mean": [
       [
@@ -92,10 +88,15 @@
       ]
     ]
   },
+  "obs_models": {
+    "y": "gaussian-scalar",
+    "event": "weibull-right-censored-with-sources"
+  },
   "fit_metrics": {
-    "nll_attach": -528.2452939722874,
+    "nll_attach": -528.2452940885227,
     "nll_regul_ind_sum": 115.31763048915371,
-    "nll_tot": -460.79
+    "nll_regul_pop_sum": -47.859703063964844,
+    "nll_tot": -460.78736938239433
   },
   "source_dimension": 2,
   "nb_events": 1

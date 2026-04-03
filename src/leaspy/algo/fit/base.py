@@ -81,7 +81,7 @@ class FitAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
         # TODO: finalize metrics handling, a bit dirty to place them in sufficient stats, only with a prefix...
         if self.sufficient_statistics is None:
             return None
-        excluded_metrics = {"nll_regul_pop_sum", "nll_regul_all_sum",}
+        excluded_metrics = {"nll_regul_all_sum",}
         return {
             # (scalars only)
             k: v.item()
