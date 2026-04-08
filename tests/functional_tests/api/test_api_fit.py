@@ -150,7 +150,7 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
 # some noticeable reproducibility errors btw MacOS and Linux here...
 ALLCLOSE_CUSTOM = dict(
     nll_regul_ind_sum=dict(atol=5),
-    nll_regul_pop_sum=dict(atol=15),
+    nll_regul_pop_sum=dict(atol=5),
     nll_attach=dict(atol=10),
     nll_tot=dict(atol=15),
     tau_mean=dict(atol=0.2),
