@@ -1,5 +1,5 @@
 {
-  "leaspy_version": "2.0.0-dev",
+  "leaspy_version": "2.0.2",
   "name": "linear",
   "features": [
     "Y0",
@@ -8,9 +8,6 @@
     "Y3"
   ],
   "dimension": 4,
-  "obs_models": {
-    "y": "gaussian-diagonal"
-  },
   "hyperparameters": {
     "betas_std": 0.009999999776482582,
     "g_std": 0.009999999776482582,
@@ -79,11 +76,14 @@
       ]
     ]
   },
+  "obs_models": {
+    "y": "gaussian-diagonal"
+  },
   "fit_metrics": {
-    "nll_attach": -647.8688354492188,
+    "nll_attach": -647.868896484375,
     "nll_regul_ind_sum": 129.605712890625,
-    "nll_regul_pop_sum": -18.196877441406286,
-    "nll_tot": -536.46
+    "nll_regul_pop_sum": -18.199542999267578,
+    "nll_tot": -536.4627075195312
   },
   "source_dimension": 2
 }

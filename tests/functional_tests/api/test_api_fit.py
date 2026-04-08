@@ -372,7 +372,7 @@ class LeaspyFitGPUTest(LeaspyFitTestMixin):
 
     def test_fit_logistic_parallel(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_scalar_noise_gpu",
             obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=2,
@@ -383,22 +383,24 @@ class LeaspyFitGPUTest(LeaspyFitTestMixin):
         self.generic_fit(
             "shared_speed_logistic",
             "logistic_parallel_diag_noise_gpu",
-            obs_models=observation_model_factory("gaussian-diagonal"),
+            obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=2,
             algo_params={"n_iter": 100, "seed": 0, "device": "cuda"},
         )
 
     def test_fit_univariate_logistic(self):
         self.generic_fit(
-            "univariate_logistic",
+            "logistic",
             "univariate_logistic_gpu",
+            dimension=1,
             algo_params={"n_iter": 100, "seed": 0, "device": "cuda"},
         )
 
     def test_fit_univariate_linear(self):
         self.generic_fit(
-            "univariate_linear",
+            "linear",
             "univariate_linear_gpu",
+            dimension=1,
             algo_params={"n_iter": 100, "seed": 0, "device": "cuda"},
         )
 
