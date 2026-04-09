@@ -11,8 +11,6 @@ build:
       - . "$READTHEDOCS_VIRTUALENV_PATH/bin/activate" && poetry install --with docs
       - pip freeze
     post_install:
-      # RTD auto-upgrades sphinx (breaks myst-parser <9) and setuptools
-      # (82+ removes pkg_resources, breaking pybtex). Re-pin to safe versions.
       - pip install "sphinx<9" "setuptools<82"
 
 sphinx:
