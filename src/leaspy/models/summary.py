@@ -65,6 +65,7 @@ class TrainingInfo(TypedDict, total=False):
     algorithm: str
     seed: int
     n_iter: int
+    n_burn_in_iter: int
     converged: bool
     duration: str
 
@@ -435,6 +436,11 @@ class Info(AutoPrintMixin):
         return self.training_info.get("n_iter")
 
     @property
+    def n_burn_in_iter(self) -> Optional[int]:
+        """Number of burn-in (memory-less) iterations."""
+        return self.training_info.get("n_burn_in_iter")
+
+    @property
     def converged(self) -> Optional[bool]:
         """Whether training converged."""
         return self.training_info.get("converged")
@@ -547,6 +553,11 @@ class Info(AutoPrintMixin):
             if "seed" in ti:
                 lines.append(f"Seed: {ti['seed']}")
             lines.append(f"Iterations: {ti.get('n_iter', 'N/A')}")
+            if "n_burn_in_iter" in ti:
+                n_b = ti['n_burn_in_iter']
+                n_t = ti.get('n_iter') or 1
+                lines.append(f"  Burn-in: {n_b}/{n_t} ({100*n_b/n_t:.0f}%)")
+                lines.append(f"  Burn-out: {n_t - n_b}")
             if ti.get("converged") is not None:
                 lines.append(f"Converged: {ti['converged']}")
             if "duration" in ti:
@@ -589,6 +600,7 @@ Available Attributes:
     algorithm         Algorithm name (str)
     seed              Random seed (int)
     n_iter            Number of iterations (int)
+    n_burn_in_iter    Number of burn-in iterations (int)
     converged         Whether training converged (bool or None)
     duration          Training duration (str)
 

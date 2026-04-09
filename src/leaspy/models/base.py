@@ -800,6 +800,7 @@ class BaseModel(ModelInterface):
             "algorithm": algorithm.name,
             "seed": algorithm.seed,
             "n_iter": algorithm.algo_parameters.get("n_iter"),
+            "n_burn_in_iter": algorithm.algo_parameters.get("n_burn_in_iter"),
         }
 
         t0 = time.perf_counter()

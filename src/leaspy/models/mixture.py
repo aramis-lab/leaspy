@@ -77,7 +77,6 @@ class TimeReparametrizedMixtureModel(McmcSaemCompatibleModel):
     _tau_std = 5.0
     _noise_std = 0.1
     _sources_mean = 0
-
     _sources_std = 1.0
 
     @property
