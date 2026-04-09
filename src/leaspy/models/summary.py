@@ -56,6 +56,7 @@ class DatasetInfo(TypedDict, total=False):
     visits_per_subject: VisitsPerSubject
     n_missing: int
     pct_missing: float
+    missing_per__feature: dict[str, int]
     n_events: int
 
 
@@ -372,6 +373,7 @@ class Info(AutoPrintMixin):
     n_total_params: Optional[int] = None
     bic: Optional[float] = None
     training_info: TrainingInfo = field(default_factory=dict)
+    hyperparameters: dict = field(default_factory=dict)
     dataset_info: DatasetInfo = field(default_factory=dict)
     leaspy_version: Optional[str] = None
     _printed: bool = field(default=False, repr=False)
@@ -415,6 +417,7 @@ class Info(AutoPrintMixin):
             bic=bic,
             training_info=dict(model.training_info),
             dataset_info=dict(model.dataset_info),
+            hyperparameters=dict(getattr(model, "hyperparameters", {})),
             leaspy_version=version,
         )
 
@@ -449,6 +452,11 @@ class Info(AutoPrintMixin):
     def duration(self) -> Optional[str]:
         """Training duration."""
         return self.training_info.get("duration")
+    
+    @property
+    def hyperparameter(self) -> dict:
+        """Model hyperparameters (e.g. source_dimension, obs_model)."""
+        return self.hyperparameters
 
     # -- Convenience properties: dataset -------------------------------------
 
@@ -481,6 +489,12 @@ class Info(AutoPrintMixin):
     def n_missing(self) -> Optional[int]:
         """Number of missing observations."""
         return self.dataset_info.get("n_missing")
+    
+    @property
+    def missing_per_feature(self) -> Optional[dict]:
+        """Per-feature missing data count and percentage."""
+        return self.dataset_info.get("missing_per_feature")
+
 
     @property
     def visits_per_subject(self) -> Optional[VisitsPerSubject]:
@@ -537,9 +551,12 @@ class Info(AutoPrintMixin):
                 )
             if "n_missing" in di:
                 lines.append(
-                    f"Missing Data: {di['n_missing']} "
-                    f"({di.get('pct_missing', 0):.2f}%)"
+                    f"Missing Data: {di['n_missing']} ({di.get('pct_missing', 0):.2f}%)"
                 )
+                if "missing_per_feature" in di:
+                    for feat, vals in di["missing_per_feature"].items():
+                        lines.append(f"  {feat:<20} {vals['n_missing']:>5}  ({vals['pct_missing']:.2f}%)")
+
             if "n_events" in di:
                 lines.append(f"Events Observed: {di['n_events']}")
 
@@ -562,6 +579,19 @@ class Info(AutoPrintMixin):
                 lines.append(f"Converged: {ti['converged']}")
             if "duration" in ti:
                 lines.append(f"Duration: {ti['duration']}")
+        
+        # Hyperparameters
+        if self.hyperparameters:
+            lines.append("")
+            lines.append("Hyperparameters")
+            lines.append("-" * _WIDTH)
+            for k, v in self.hyperparameters.items():
+                if isinstance(v, torch.Tensor):
+                    val: float = v.item() if v.ndim == 0 else v.tolist()
+                else:
+                    val: float = v
+                lines.append(f"  {k}: {val.__round__(4) if isinstance(val, float) else val}")
+
 
         # Leaspy Version
         if self.leaspy_version:
@@ -595,6 +625,7 @@ Available Attributes:
     obs_models        Observation model names (list[str] or None)
     n_total_params    Number of free parameters (int)
     bic               Bayesian Information Criterion (float or None)
+    hyperparameters   Model hyperparameters dict (e.g. source_dimension)
 
   Training:
     algorithm         Algorithm name (str)

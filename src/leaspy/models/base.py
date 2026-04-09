@@ -412,6 +412,14 @@ class ModelInterface(ABC):
         total_possible = stats["n_visits"] * stats["n_scores"]
         stats["n_missing"] = total_possible - stats["n_observations"]
         stats["pct_missing"] = (stats["n_missing"] / total_possible) * 100 if total_possible > 0 else 0.0
+        # Per-feature missing data
+        missing_per_feature = {}
+        for i, feature_name in enumerate(dataset.headers):
+            n_obs_ft = int(dataset.n_observations_per_ft[i].item())
+            n_miss_ft = stats["n_visits"] - n_obs_ft
+            pct_miss_ft = (n_miss_ft / stats["n_visits"]) * 100 if stats["n_visits"] > 0 else 0.0
+            missing_per_feature[feature_name] = {"n_missing": n_miss_ft, "pct_missing": round(pct_miss_ft, 2)}
+        stats["missing_per_feature"] = missing_per_feature
 
         # Joint model specific
         if getattr(dataset, "event_bool", None) is not None:
