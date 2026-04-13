@@ -27,6 +27,7 @@ __all__ = [
     "TrainingInfo",
     "VisitsPerSubject",
     "compute_bic",
+    "compute_aic",
     "get_axis_labels",
     "get_number_of_parameters",
 ]
@@ -231,6 +232,32 @@ def compute_bic(
         return None
     return 2 * nll + num_params * np.log(n_subjects)
 
+def compute_aic(
+    nll: float,
+    num_params: int,
+    n_subjects: int,
+) -> Optional[float]:
+    """Calculate the Akaike Information Criterion (AIC).
+
+    ``AIC = 2 * nll + 2 * P``
+
+    Parameters
+    ----------
+    nll : float
+        Negative log-likelihood (``nll_attach``).
+    num_params : int
+        Number of free parameters.
+    n_subjects : int
+        Number of subjects used for model fitting (not used in AIC but included for consistency).
+
+    Returns
+    -------
+    float or None
+        The computed AIC, or ``None`` if inputs are invalid.
+    """
+    if n_subjects <= 0:
+        return None
+    return 2 * nll + 2 * num_params
 
 # ---------------------------------------------------------------------------
 # Parameter display registry
@@ -372,6 +399,7 @@ class Info(AutoPrintMixin):
     obs_models: Optional[list[str]] = None
     n_total_params: Optional[int] = None
     bic: Optional[float] = None
+    aic: Optional[float] = None
     latent_variables: dict = field(default_factory=dict)
     training_info: TrainingInfo = field(default_factory=dict)
     hyperparameters: dict = field(default_factory=dict)
@@ -389,9 +417,10 @@ class Info(AutoPrintMixin):
         if hasattr(model, "obs_models"):
             obs_model_names = [om.to_string() for om in model.obs_models]
 
-        # Parameter count & BIC
+        # Parameter count, BIC, AIC
         n_total_params = None
         bic = None
+        aic = None
         if getattr(model, "parameters", None):
             n_total_params = get_number_of_parameters(model)
             fm = getattr(model, "fit_metrics", None) or {}
@@ -399,6 +428,7 @@ class Info(AutoPrintMixin):
             n_subjects = model.dataset_info.get("n_subjects")
             if nll_val is not None and n_subjects is not None:
                 bic = compute_bic(float(nll_val), n_total_params, n_subjects)
+                aic = compute_aic(float(nll_val), n_total_params, n_subjects)
 
         # Leaspy version
         try:
@@ -566,6 +596,8 @@ class Info(AutoPrintMixin):
             lines.append(f"Parameters: {self.n_total_params}")
         if self.bic is not None:
             lines.append(f"BIC: {self.bic:.2f}")
+        if self.aic is not None:
+            lines.append(f"AIC: {self.aic:.2f}")
         if self.n_clusters is not None:
             lines.append(f"Clusters: {self.n_clusters}")
 
@@ -661,6 +693,7 @@ Available Attributes:
     obs_models        Observation model names (list[str] or None)
     n_total_params    Number of free parameters (int)
     bic               Bayesian Information Criterion (float or None)
+    aic               Akaike Information Criterion (float or None)
     hyperparameters   Model hyperparameters dict (e.g. source_dimension)
 
   Training:
@@ -727,6 +760,7 @@ class Summary(AutoPrintMixin):
     n_total_params: Optional[int] = None
     nll: Optional[float] = None
     bic: Optional[float] = None
+    aic: Optional[float] = None
     training_info: TrainingInfo = field(default_factory=dict)
     dataset_info: DatasetInfo = field(default_factory=dict)
     parameters: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -764,6 +798,10 @@ class Summary(AutoPrintMixin):
         n_subjects = model.dataset_info.get("n_subjects")
         if nll_bic is not None and n_subjects is not None:
             bic = compute_bic(float(nll_bic), n_total_params, n_subjects)
+
+        aic = None
+        if nll_bic is not None and n_subjects is not None:
+            aic = compute_aic(float(nll_bic), n_total_params, n_subjects)
 
         # Observation model names
         obs_model_names = None
@@ -808,6 +846,7 @@ class Summary(AutoPrintMixin):
             n_total_params=n_total_params,
             nll=nll,
             bic=bic,
+            aic=aic,
             training_info=dict(model.training_info),
             dataset_info=dict(model.dataset_info),
             parameters=params_by_category,
@@ -933,6 +972,8 @@ class Summary(AutoPrintMixin):
             lines.append(f"Parameters: {self.n_total_params}")
         if self.bic is not None:
             lines.append(f"BIC: {self.bic:.2f}")
+        if self.aic is not None:
+            lines.append(f"AIC: {self.aic:.2f}")
 
         # Training Metadata
         if self.training_info:
@@ -1008,6 +1049,8 @@ Available Attributes:
     nll               Negative log-likelihood (float or None)
     n_total_params    Number of free parameters (int)
     bic               Bayesian Information Criterion (float or None)
+    aic               Akaike Information Criterion (float or None)
+
 
   Dataset:
     n_subjects        Number of subjects in training data (int)
