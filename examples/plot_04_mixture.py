@@ -52,7 +52,7 @@ model.summary()
 # With the mixture model we obtain separate values for the `tau_mean`, `xi_mean` and the `sources_mean` for each cluster,
 # as well as the cluster probabilities (`probs`).
 
-print(model.parameters)
+model.info()
 
 # %%
 # Then we can also retrieve the individual parameters and the posteriors probabilities of cluster membership.

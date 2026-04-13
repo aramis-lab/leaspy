@@ -270,7 +270,7 @@ _DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
     ),
     "TimeReparametrizedMixtureModel": _ModelDisplayMeta(
         individual_prior_params=(
-            "tau_std", "xi_std", "sources_std", "tau_mean", "xi_mean",
+            "tau_std", "xi_std", "sources_std", "tau_mean", "xi_mean", "sources_mean", 
         ),
         noise_params=("noise_std",),
         param_axes={
@@ -372,6 +372,7 @@ class Info(AutoPrintMixin):
     obs_models: Optional[list[str]] = None
     n_total_params: Optional[int] = None
     bic: Optional[float] = None
+    latent_variables: dict = field(default_factory=dict)
     training_info: TrainingInfo = field(default_factory=dict)
     hyperparameters: dict = field(default_factory=dict)
     dataset_info: DatasetInfo = field(default_factory=dict)
@@ -405,6 +406,24 @@ class Info(AutoPrintMixin):
         except ImportError:
             version = None
 
+        # Latent variable distributions
+        from leaspy.variables.specs import PopulationLatentVariable, IndividualLatentVariable
+
+        latent_variables = {}
+        dag = getattr(model, "dag", None)
+        if dag is not None:
+            for kind, lv_type in [("population", PopulationLatentVariable), ("individual", IndividualLatentVariable)]:
+                group = {}
+                for var_name, var in dag.sorted_variables_by_type[lv_type].items():
+                    dist_name = var.prior.dist_family.__name__.replace("Family", "")  # "Normal", "MixtureNormal"
+                    group[var_name] = {
+                        "distribution": dist_name,
+                        "parameters": list(var.prior.parameters_names),
+                    }
+                if group:
+                    latent_variables[kind] = group
+
+
         return cls(
             name=model.name,
             model_type=model.__class__.__name__,
@@ -419,6 +438,7 @@ class Info(AutoPrintMixin):
             dataset_info=dict(model.dataset_info),
             hyperparameters=dict(getattr(model, "hyperparameters", {})),
             leaspy_version=version,
+            latent_variables=latent_variables,
         )
 
     # -- Convenience properties: training ------------------------------------
@@ -457,6 +477,12 @@ class Info(AutoPrintMixin):
     def hyperparameter(self) -> dict:
         """Model hyperparameters (e.g. source_dimension, obs_model)."""
         return self.hyperparameters
+    
+    @property
+    def latent_variable_distributions(self) -> dict:
+        """Latent variable prior distributions, grouped by population/individual."""
+        return self.latent_variables
+
 
     # -- Convenience properties: dataset -------------------------------------
 
@@ -518,6 +544,16 @@ class Info(AutoPrintMixin):
 
         # Statistical Model
         lines.append("Statistical Model")
+        if self.latent_variables:
+            lines.append("")
+            lines.append("Latent Variables")
+            lines.append("-" * _WIDTH)
+            for kind, group in self.latent_variables.items():
+                lines.append(f"  {kind.capitalize()}:")
+                for var_name, info in group.items():
+                    params = ", ".join(info["parameters"])
+                    lines.append(f"    {var_name:<20} {info['distribution']}({params})")
+
         lines.append("-" * _WIDTH)
         lines.append(f"Type: {self.model_type}")
         lines.append(f"Name: {self.name}")
