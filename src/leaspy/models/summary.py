@@ -55,9 +55,6 @@ class DatasetInfo(TypedDict, total=False):
     n_visits: int
     n_observations: int
     visits_per_subject: VisitsPerSubject
-    n_missing: int
-    pct_missing: float
-    missing_per__feature: dict[str, int]
     n_events: int
 
 
@@ -386,7 +383,6 @@ class Info(AutoPrintMixin):
     >>> model.info()              # prints info
     >>> i = model.info()          # store for programmatic access
     >>> i.n_subjects              # 150
-    >>> i.pct_missing             # 2.5
     >>> i.help()                  # list available attributes
     """
 
@@ -537,22 +533,6 @@ class Info(AutoPrintMixin):
         return self.dataset_info.get("n_observations")
 
     @property
-    def pct_missing(self) -> Optional[float]:
-        """Percentage of missing observations."""
-        return self.dataset_info.get("pct_missing")
-
-    @property
-    def n_missing(self) -> Optional[int]:
-        """Number of missing observations."""
-        return self.dataset_info.get("n_missing")
-    
-    @property
-    def missing_per_feature(self) -> Optional[dict]:
-        """Per-feature missing data count and percentage."""
-        return self.dataset_info.get("missing_per_feature")
-
-
-    @property
     def visits_per_subject(self) -> Optional[VisitsPerSubject]:
         """Per-subject visit distribution statistics."""
         return self.dataset_info.get("visits_per_subject")
@@ -617,13 +597,6 @@ class Info(AutoPrintMixin):
                     f"Visits per Subject: Median {vps['median']:.1f} "
                     f"[Min {vps['min']}, Max {vps['max']}, IQR {vps['iqr']:.1f}]"
                 )
-            if "n_missing" in di:
-                lines.append(
-                    f"Missing Data: {di['n_missing']} ({di.get('pct_missing', 0):.2f}%)"
-                )
-                if "missing_per_feature" in di:
-                    for feat, vals in di["missing_per_feature"].items():
-                        lines.append(f"  {feat:<20} {vals['n_missing']:>5}  ({vals['pct_missing']:.2f}%)")
 
             if "n_events" in di:
                 lines.append(f"Events Observed: {di['n_events']}")
@@ -651,7 +624,7 @@ class Info(AutoPrintMixin):
         # Hyperparameters
         if self.hyperparameters:
             lines.append("")
-            lines.append("Hyperparameters")
+            lines.append("Hyperparameters (fixed values from the source code)")
             lines.append("-" * _WIDTH)
             for k, v in self.hyperparameters.items():
                 if isinstance(v, torch.Tensor):
@@ -709,8 +682,6 @@ Available Attributes:
     n_visits          Total visits (int)
     n_scores          Number of scored features (int)
     n_observations    Total observations (int)
-    pct_missing       Percent missing data (float)
-    n_missing         Count of missing observations (int)
     visits_per_subject  Visit distribution stats (dict)
     n_events          Observed events, joint models only (int or None)
 
@@ -723,7 +694,6 @@ Examples:
     >>> i = model.info()
     >>> i.algorithm              # 'mcmc_saem'
     >>> i.n_subjects             # 150
-    >>> i.pct_missing            # 2.5
 """
         print(help_text)
         object.__setattr__(self, "_printed", True)
