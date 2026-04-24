@@ -1,0 +1,9 @@
+{
+  "name": "joint_simulate",
+  "seed": null,
+  "algorithm_initialization_method": null,
+  "parameters": {
+    "features": null,
+    "visit_parameters": null
+  }
+}

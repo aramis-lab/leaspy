@@ -52,6 +52,7 @@ class AlgorithmName(str, Enum):
     PERSONALIZE_CONSTANT = "constant_prediction"
     PERSONALIZE_LME = "lme_personalize"
     SIMULATE = "simulate"
+    JOINT_SIMULATE = "joint_simulate"
 
 
 class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
@@ -375,7 +376,7 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
     name = AlgorithmName(name)
     if name in (AlgorithmName.FIT_LME, AlgorithmName.FIT_MCMC_SAEM):
         return AlgorithmType.FIT
-    if name == AlgorithmName.SIMULATE:
+    if name in (AlgorithmName.SIMULATE, AlgorithmName.JOINT_SIMULATE):
         return AlgorithmType.SIMULATE
     if name in (
         AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE,
@@ -432,6 +433,10 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
         from .simulate import SimulationAlgorithm
 
         return SimulationAlgorithm
+    if name == AlgorithmName.JOINT_SIMULATE:
+        from .simulate import JointSimulationAlgorithm
+
+        return JointSimulationAlgorithm
 
 
 def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgorithm:
