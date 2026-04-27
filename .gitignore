@@ -149,4 +149,5 @@ dmypy.json
 reflexion
 
 # Personal files for the branch 
-notes/
+notes/*
+!notes/*procedure*.md
