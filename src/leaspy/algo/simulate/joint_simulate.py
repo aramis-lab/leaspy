@@ -216,6 +216,55 @@ class JointSimulationAlgorithm(BaseSimulationAlgorithm):
     #     with open(f"{path_save}params_simulated.json", "w") as outfile:
     #         json.dump(total_params, outfile)
 
+    @staticmethod
+    def _estimate_visit_params_from_data(df: pd.DataFrame) -> dict:
+        """Estimate visit parameters from a training DataFrame.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Training DataFrame with at minimum ``'ID'`` and ``'TIME'`` columns.
+
+        Returns
+        -------
+        dict
+            Dictionary of estimated visit parameters (all keys from the ``'random'``
+            visit type, including ``'min_spacing_between_visits'``).
+        """
+        grouped = df.groupby("ID")
+        first_visit = grouped["TIME"].min()
+        last_visit = grouped["TIME"].max()
+
+        first_visit_mean = float((first_visit - first_visit.mean()).mean())
+        first_visit_std = float(first_visit.std())
+
+        follow_up = last_visit - first_visit
+        time_follow_up_mean = float(follow_up.mean())
+        time_follow_up_std = float(follow_up.std())
+
+        all_gaps = (
+            df.sort_values(["ID", "TIME"])
+            .groupby("ID")["TIME"]
+            .apply(lambda t: t.diff().dropna())
+            .reset_index(drop=True)
+        )
+        distance_visit_mean = float(all_gaps.mean())
+        distance_visit_std = float(all_gaps.std())
+        min_spacing_between_visits = float(all_gaps.min())
+
+        patient_number = int(df["ID"].nunique())
+
+        return {
+            "patient_number": patient_number,
+            "first_visit_mean": round(first_visit_mean, 4),
+            "first_visit_std": round(first_visit_std, 4),
+            "time_follow_up_mean": round(time_follow_up_mean, 4),
+            "time_follow_up_std": round(time_follow_up_std, 4),
+            "distance_visit_mean": round(distance_visit_mean, 4),
+            "distance_visit_std": round(distance_visit_std, 4),
+            "min_spacing_between_visits": round(min_spacing_between_visits, 4),
+        }
+
     def _set_param_study(self, dict_param: dict) -> None:
         """Set parameters related to the study based on visit type.
 
@@ -258,6 +307,14 @@ class JointSimulationAlgorithm(BaseSimulationAlgorithm):
                     If two visits are closer than this value, the second visit will be removed from the dataset.
                     This is used to avoid too close visits in the simulated dataset.
                     Default is 1/365 (1 day).
+                - 'data' : :obj:`pandas.DataFrame` or :class:`~leaspy.io.data.data.Data`, optional
+                    Training data (must contain ``'ID'`` and ``'TIME'`` columns / individuals).
+                    A leaspy :class:`~leaspy.io.data.data.Data` object is also accepted and
+                    will be converted via ``.to_dataframe()`` automatically.
+                    When provided, any of the parameters above that are absent from
+                    ``dict_param`` will be estimated automatically from this data
+                    using empirical statistics (mean, std, min of the observed visit
+                    process).  A message is printed for each auto-estimated parameter.
 
         Returns
         -------
@@ -274,21 +331,56 @@ class JointSimulationAlgorithm(BaseSimulationAlgorithm):
             }
 
         elif self.visit_type == VisitType.RANDOM:
-            self.param_study = {
-                "patient_number": dict_param["patient_number"],
-                "first_visit_mean": dict_param["first_visit_mean"],
-                "first_visit_std": dict_param["first_visit_std"],
-                "time_follow_up_mean": dict_param["time_follow_up_mean"],
-                "time_follow_up_std": dict_param["time_follow_up_std"],
-                "distance_visit_mean": dict_param["distance_visit_mean"],
-                "distance_visit_std": dict_param["distance_visit_std"],
-            }
+            # Estimate missing parameters from data if a DataFrame or Data object is provided
+            data_df = dict_param.get("data", None)
+            estimated: dict = {}
+            if data_df is not None:
+                from leaspy.io.data.data import Data as LeaspyData
 
-            # Add optional spacing param if provided
+                if isinstance(data_df, LeaspyData):
+                    data_df = data_df.to_dataframe()
+                if not isinstance(data_df, pd.DataFrame):
+                    raise LeaspyAlgoInputError(
+                        "The 'data' key in visit_parameters must be a pd.DataFrame or a leaspy Data object "
+                        f"(got {type(data_df).__name__})."
+                    )
+                estimated = self._estimate_visit_params_from_data(data_df)
+
+            _random_keys = [
+                "patient_number",
+                "first_visit_mean",
+                "first_visit_std",
+                "time_follow_up_mean",
+                "time_follow_up_std",
+                "distance_visit_mean",
+                "distance_visit_std",
+            ]
+
+            self.param_study = {}
+            for key in _random_keys:
+                if key in dict_param:
+                    self.param_study[key] = dict_param[key]
+                elif key in estimated:
+                    val = estimated[key]
+                    print(
+                        f"  [joint_simulate] Parameter '{key}' not provided, "
+                        f"estimated from data: {val}"
+                    )
+                    self.param_study[key] = val
+                # else: missing — will be reported by _check_params
+
+            # min_spacing_between_visits: optional, with fallback to data estimate
             if "min_spacing_between_visits" in dict_param:
                 self.param_study["min_spacing_between_visits"] = dict_param[
                     "min_spacing_between_visits"
                 ]
+            elif "min_spacing_between_visits" in estimated:
+                val = estimated["min_spacing_between_visits"]
+                print(
+                    f"  [joint_simulate] Parameter 'min_spacing_between_visits' not provided, "
+                    f"estimated from data: {val}"
+                )
+                self.param_study["min_spacing_between_visits"] = val
 
     def _sample_individual_parameters_from_model_parameters(
         self, model: McmcSaemCompatibleModel
