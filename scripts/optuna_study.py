@@ -5,12 +5,13 @@ Objective: find visit_params that produce simulated data whose
 statistical properties best match the real dataset.
 
 Metric (minimised):
-    A weighted composite of Wasserstein-1 distances and KS statistics
+    A weighted composite of Wasserstein-1 distances and scalar
+    absolute differences
     computed on key summary statistics derived per-patient from both
     real and simulated data.
 
 Usage:
-    python optuna_sim_search.py
+    python optuna_study.py
 """
 
 import warnings
@@ -27,7 +28,7 @@ from leaspy.models import JointModel
 from leaspy.datasets import load_dataset
 
 # =============================================================================
-# 1.  Load real data and fit (or load a cached) model
+# 1.  Load real data and fit model
 # =============================================================================
 FEATURES = ["Y0", "Y1", "Y2", "Y3"]
 EVENT_COL = "EVENT_BOOL"    
@@ -39,7 +40,7 @@ data = Data.from_dataframe(load_dataset("simulated_data_for_joint"), "joint")
 real_df = data.to_dataframe()
 
 model = JointModel(name="test_model", nb_events=1)
-model.fit(data, "mcmc_saem", seed=1312, n_iter=500, progress_bar=False)
+model.fit(data, "mcmc_saem", seed=1312, n_iter=10000, progress_bar=False)
 
 # =============================================================================
 # 2.  Summary statistics computed from a dataframe
@@ -48,7 +49,8 @@ model.fit(data, "mcmc_saem", seed=1312, n_iter=500, progress_bar=False)
 def per_patient_stats(df: pd.DataFrame) -> dict[str, np.ndarray]:
     """
     Returns arrays of per-patient statistics used as 1-D distributions
-    for Wasserstein / KS comparison between real and simulated data.
+    for Wasserstein comparison between real and simulated data.
+    Scalar statistics are compared with absolute differences.
     """
     stats = {}
 
@@ -106,9 +108,9 @@ real_stats = per_patient_stats(real_df)
 # Weights per statistic group (tune if needed)
 WEIGHTS = {
     "event_time":    3.0,   # survival is the primary target
-    "follow_up":     1.5,
-    "n_visits":      1.0,
-    "visit_gap":     1.0,
+    "follow_up":     1.5,  
+    "n_visits":      1.0,  
+    "visit_gap":     1.0,   
     # per-feature contributions are added dynamically below
 }
 FEAT_WEIGHTS = {
