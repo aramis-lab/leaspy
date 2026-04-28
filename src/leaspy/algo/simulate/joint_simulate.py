@@ -17,140 +17,12 @@ from leaspy.io.outputs import IndividualParameters
 from leaspy.io.outputs.result import Result
 from leaspy.models import BaseModel, McmcSaemCompatibleModel
 
+from .simulate import SimulationAlgorithm, VisitType
 
-class VisitType(str, Enum):
-    """Enum for different types of visit simulations.
-
-    Attributes
-    ----------
-    DATAFRAME : :obj:`str`
-        Represents visits defined by a DataFrame containing visit times.
-    RANDOM : :obj:`str`
-        Represents visits generated randomly based on specified parameters.
-    """
-
-    DATAFRAME = "dataframe"  # Dataframe of visits
-    RANDOM = "random"  # Random spaced visits
-
-
-class JointSimulationAlgorithm(BaseSimulationAlgorithm):
+class JointSimulationAlgorithm(SimulationAlgorithm):
 
     name: str = "joint_simulate"
     family: AlgorithmType = AlgorithmType.SIMULATE
-
-    _PARAM_REQUIREMENTS = {
-        "dataframe": [
-            ("df_visits", pd.DataFrame),
-        ],
-        "random": [
-            ("patient_number", int),
-            ("first_visit_mean", (int, float)),
-            ("first_visit_std", (int, float)),
-            ("time_follow_up_mean", (int, float)),
-            ("time_follow_up_std", (int, float)),
-            ("distance_visit_mean", (int, float)),
-            ("distance_visit_std", (int, float)),
-        ],
-    }
-
-    def __init__(self, settings: AlgorithmSettings):
-        super().__init__(settings)
-        self.features = settings.parameters["features"]
-        self.visit_type = settings.parameters["visit_parameters"]["visit_type"]
-        self._set_param_study(settings.parameters["visit_parameters"])
-        self._validate_algo_parameters()
-
-    def _check_features(self):
-        """Check if the features are valid.
-
-        This method checks if the features are provided as a list of strings.
-
-        Raises
-        ------
-        LeaspyAlgoInputError
-            If the features are not a list or if any of the features is not a string.
-        """
-
-        if not isinstance(self.features, list):
-            raise LeaspyAlgoInputError(
-                f"Features need to a be a list and not : {type(self.features).__name__}"
-            )
-        if len(self.features) == 0:
-            raise LeaspyAlgoInputError("Features can't be empty")
-
-        for i, feature in enumerate(self.features):
-            if not isinstance(feature, str):
-                raise LeaspyAlgoInputError(
-                    f"Invalid feature at position {i}: need to be a string. "
-                    f"And not : {type(feature).__name__}"
-                )
-            if not feature.strip():
-                raise LeaspyAlgoInputError(f"Empty feature at the position {i}")
-
-    def _check_params(self, requirements):
-        """Check if the parameters are valid.
-
-        This method checks if the parameters in the `param_study` dictionary match the expected types
-        and constraints defined in the `requirements` list.
-
-        Parameters
-        ----------
-        requirements :obj:`list`
-            A list of tuples, where each tuple contains a parameter name and its expected type(s).
-
-        Raises
-        ------
-        LeaspyAlgoInputError
-            If any parameter is missing, has an invalid type, or has an invalid value.
-        """
-
-        missing_params = []
-        type_errors = []
-        value_errors = []
-
-        for param, expected_types in requirements:
-            if param not in self.param_study:
-                missing_params.append(param)
-                continue
-            value = self.param_study[param]
-            if not isinstance(value, expected_types):
-                type_names = (
-                    [t.__name__ for t in expected_types]
-                    if isinstance(expected_types, tuple)
-                    else expected_types.__name__
-                )
-                type_errors.append(
-                    f"Parameter '{param}': Expected type {type_names}, given {type(value).__name__}"
-                )
-            if param == "patient_number" and value <= 0:
-                value_errors.append(
-                    "Patient number (patient_number) need to be a positive integer"
-                )
-
-            if param.endswith("_std") and value < 0:
-                value_errors.append(f"Standard deviation ({param}) can't be negative")
-
-        if "min_spacing_between_visits" in self.param_study:
-            value = self.param_study["min_spacing_between_visits"]
-            if not isinstance(value, (int, float)):
-                type_errors.append(
-                    "Parameter 'min_spacing_between_visits': Expected type int or float, "
-                    f"given {type(value).__name__}"
-                )
-            if value < 0:
-                value_errors.append(
-                    "Parameter 'min_spacing_between_visits' cannot be negative"
-                )
-
-        errors = []
-        if missing_params:
-            errors.append(f"Missing parameters : {', '.join(missing_params)}")
-        if type_errors:
-            errors.append("Type problems :\n- " + "\n- ".join(type_errors))
-        if value_errors:
-            errors.append("Invalid value :\n- " + "\n- ".join(value_errors))
-        if errors:
-            raise LeaspyAlgoInputError("\n".join(errors))
 
     def _check_joint_model(self, model: McmcSaemCompatibleModel):
         """Check if the model is a joint model.
@@ -169,52 +41,6 @@ class JointSimulationAlgorithm(BaseSimulationAlgorithm):
             raise LeaspyAlgoInputError(
                 "The model type should be 'joint' (JointModel) for simulation."
             )
-
-    def _validate_algo_parameters(self):
-        """Validate the algorithm parameters.
-
-        This method checks the visit type, features, and parameters of the algorithm.
-
-        Raises
-        ------
-        LeaspyAlgoInputError
-            If the visit type is invalid, if the features are not a list of strings,
-            or if the parameters do not meet the expected requirements.
-        """
-        self._check_features()
-
-        requirements = self._PARAM_REQUIREMENTS.get(self.visit_type)
-        if not requirements:
-            raise LeaspyAlgoInputError(
-                f"No configuration for this type of visit '{self.visit_type}'"
-            )
-
-        self._check_params(requirements)
-
-        if self.visit_type == VisitType.DATAFRAME:
-            df = self.param_study["df_visits"]
-            if "ID" not in df.columns or "TIME" not in df.columns:
-                raise LeaspyAlgoInputError(
-                    "Dataframe needs to have columns 'ID' and 'TIME'"
-                )
-
-            if df["TIME"].isnull().any():
-                raise LeaspyAlgoInputError("Dataframe has null value in column TIME")
-
-        if self.visit_type == VisitType.RANDOM:
-            if (
-                self.param_study["distance_visit_mean"] <= 0
-                and self.param_study["distance_visit_std"] <= 0
-            ):
-                raise LeaspyAlgoInputError(
-                    "Distance visit mean (distance_visit_mean) and distance visit std need to be positive"
-                )
-
-    ## --- SET PARAMETERS ---
-    # def _save_parameters(self, model, path_save):  # TODO
-    #     total_params = {"study": self.param_study, "model": model.parameters}
-    #     with open(f"{path_save}params_simulated.json", "w") as outfile:
-    #         json.dump(total_params, outfile)
 
     @staticmethod
     def _estimate_visit_params_from_data(df: pd.DataFrame) -> dict:
@@ -446,94 +272,24 @@ class JointSimulationAlgorithm(BaseSimulationAlgorithm):
 
     def _get_leaspy_model(self, model: McmcSaemCompatibleModel) -> None:
         """
-        Initialize and store a Leaspy model instance.
+        Validate and store the Leaspy model instance.
 
-        This method creates a new Leaspy object with the 'joint' model type.
-        The resulting instance is stored as an attribute of the class.
+        Checks that ``model`` is a :class:`~leaspy.models.joint.JointModel`
+        and stores it as ``self.model`` for use in ``_generate_dataset``.
 
         Parameters
         ----------
         model : :class:~.models.abstract_model.McmcSaemCompatibleModel
-            A pre-trained Leaspy model to be used for simulation (compute observations).
+            A pre-trained JointModel to be used for simulation.
 
         Returns
         -------
         None
-            This method updates the `leaspy` attribute in-place.
+            This method updates the ``self.model`` attribute in-place.
         """
 
         self._check_joint_model(model)
         self.model = model
-
-    def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
-        """
-        Generate visit ages for each individual based on the visit type.
-
-        If the visit type is "dataframe", the visit timepoints are directly extracted
-        from the provided DataFrame. Otherwise, synthetic visit ages are generated for
-        each individual based on baseline and follow-up ages, with time intervals
-        defined by the visit mode "random".
-
-        Parameters
-        ----------
-        df : pd.DataFrame
-            DataFrame of individual parameters including 'tau' (used as disease onset reference).
-
-        Returns
-        -------
-        dict
-            Dictionary mapping individual IDs to a list of visit ages (floats).
-        """
-
-        df_ind = df.copy()
-
-        if self.visit_type == VisitType.DATAFRAME:
-            return (
-                self.param_study["df_visits"]
-                .groupby("ID")["TIME"]
-                .apply(list)
-                .to_dict()
-            )
-
-        # Age at first visit: tau_i + delta_{f_i}, delta_{f_i} ~ N(first_visit_mean, first_visit_std)
-        df_ind["AGE_AT_BASELINE"] = (
-            df_ind["tau"].apply(lambda x: x.numpy())
-            + pd.DataFrame(
-                np.random.normal(
-                    self.param_study["first_visit_mean"],
-                    self.param_study["first_visit_std"],
-                    self.param_study["patient_number"],
-                ),
-                index=df_ind.index,
-            )[0]
-        )
-
-        # Follow-up duration: T_{f_i} ~ N(time_follow_up_mean, time_follow_up_std)
-        df_ind["AGE_FOLLOW_UP"] = df_ind["AGE_AT_BASELINE"] + np.abs(
-            np.random.normal(
-                self.param_study["time_follow_up_mean"],
-                self.param_study["time_follow_up_std"],
-                self.param_study["patient_number"],
-            )
-        )
-
-        dict_timepoints = {}
-
-        for id_ in df_ind.index.values:
-            time = df_ind.loc[id_, "AGE_AT_BASELINE"]
-            age_visits = [time]
-
-            while time < df_ind.loc[id_, "AGE_FOLLOW_UP"]:
-                # Inter-visit spacing: delta_v ~ N(distance_visit_mean, distance_visit_std)
-                time += np.random.normal(
-                    self.param_study["distance_visit_mean"],
-                    self.param_study["distance_visit_std"],
-                )
-                age_visits.append(time)
-
-            dict_timepoints[id_] = list(age_visits)
-
-        return dict_timepoints
 
     def _generate_dataset(
         self,
@@ -761,48 +517,3 @@ class JointSimulationAlgorithm(BaseSimulationAlgorithm):
         df_sim = df_sim.set_index(["ID", "TIME"])
 
         return df_sim
-
-    def _run(self, model: McmcSaemCompatibleModel) -> Result:
-        """Run the joint simulation pipeline.
-
-        Overrides the base class implementation to use ``data_type='joint'``
-        when constructing the :class:`~leaspy.io.data.data.Data` object, so that
-        event columns (``EVENT_TIME`` and ``EVENT_BOOL``) are correctly parsed.
-
-        Parameters
-        ----------
-        model : McmcSaemCompatibleModel
-            A fitted JointModel.
-
-        Returns
-        -------
-        Result
-            Contains the simulated longitudinal data (with event columns), the
-            individual parameters used for simulation, and the noise standard deviation.
-        """
-        individual_parameters = (
-            self._sample_individual_parameters_from_model_parameters(model)
-        )
-
-        self._get_leaspy_model(model)
-
-        dict_timepoints = self._generate_visit_ages(individual_parameters)
-
-        min_spacing = self.param_study.get("min_spacing_between_visits", 1 / 365)
-
-        df_sim = self._generate_dataset(
-            model,
-            dict_timepoints,
-            individual_parameters,
-            min_spacing_between_visits=min_spacing,
-        )
-
-        simulated_data = Data.from_dataframe(
-            df_sim, data_type="joint", factory_kws={"nb_events": model.nb_events}
-        )
-        result_obj = Result(
-            data=simulated_data,
-            individual_parameters=individual_parameters,
-            noise_std=model.parameters["noise_std"].numpy() * 100,
-        )
-        return result_obj
