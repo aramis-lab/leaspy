@@ -77,6 +77,6 @@ class BaseSimulationAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
         result_obj = Result(
             data=simulated_data,
             individual_parameters=individual_parameters_from_model_parameters,
-            noise_std=model.parameters["noise_std"].numpy() * 100,
+            noise_std=None,
         )
         return result_obj

@@ -23,7 +23,7 @@ __all__ = ["Result"]
 class Result:
     """
     Result object class.
-    Used as logs by personalize algorithms & simulation algorithm.
+    Used as logs by simulation algorithm.
 
     Parameters
     ----------
