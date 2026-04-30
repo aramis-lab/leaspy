@@ -153,3 +153,5 @@ notes/*
 !notes/*procedure*.md
 output/
 notebooks/tutorials/
+_outputs/
+models/

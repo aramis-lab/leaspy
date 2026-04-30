@@ -360,10 +360,10 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         for i, feat in enumerate(self.features):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
-                var = model.parameters["noise_std"].numpy() ** 2
+                var = float(model.parameters["noise_std"].numpy() ** 2)
             else:
                 mu = df_long[feat + "_no_noise"]
-                var = model.parameters["noise_std"][i].numpy() ** 2
+                var = float(model.parameters["noise_std"][i].numpy() ** 2)
 
             max_var = mu * (1 - mu)
             adj_var = np.minimum(var, 0.99 * max_var)
