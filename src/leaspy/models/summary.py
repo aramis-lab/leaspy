@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional, TypedDict
 
 import numpy as np
+import pandas as pd
 import torch
 
 if TYPE_CHECKING:
@@ -28,6 +29,7 @@ __all__ = [
     "VisitsPerSubject",
     "compute_bic",
     "compute_aic",
+    "compute_icl",
     "get_axis_labels",
     "get_number_of_parameters",
 ]
@@ -255,6 +257,58 @@ def compute_aic(
     if n_subjects <= 0:
         return None
     return 2 * nll + 2 * num_params
+
+def compute_icl(
+    bic: Optional[float],
+    model: "BaseModel",
+) -> Optional[float]:
+    """Calculate the Integrated Completed Likelihood (ICL) for a mixture model.
+
+    ``ICL = BIC - sum_i sum_k  pi_ik * log(pi_ik)``
+
+    where ``pi_ik`` is the posterior probability that individual *i* belongs to
+    cluster *k* (classification responsibility). The entropy term penalises
+    poorly-separated clusters on top of the BIC complexity penalty, so models
+    with crisp cluster assignments are preferred.
+
+    Returns ``None`` for non-mixture models (i.e. when ``model.n_clusters`` is
+    not set), or when ``bic`` itself is ``None``.
+
+    Parameters
+    ----------
+    bic : float or None
+        Pre-computed BIC value for this model.
+    model : BaseModel
+        A fitted Leaspy model. Mixture-specific fields are read from
+        ``model.state`` (per-individual ``tau``, ``xi``, ``sources``) and from
+        ``model.parameters`` (cluster priors ``tau_mean``, ``tau_std``,
+        ``xi_mean``, ``xi_std``, ``sources_mean``, ``probs``).
+
+    Returns
+    -------
+    float or None
+        The computed ICL, or ``None`` if not applicable.
+    """
+
+    if bic is None or not getattr(model, "n_clusters", None):
+        return None
+
+    # Build the per-individual parameter frame from the fitted state and
+    # delegate the responsibility math to the model's own method.
+    state = model.state
+    n_sources = getattr(model, "source_dimension", 0) or 0
+    ip = pd.DataFrame({
+        "tau": state["tau"][:, 0].cpu().numpy(),
+        "xi":  state["xi"][:, 0].cpu().numpy(),
+        **{f"sources_{s}": state["sources"][:, s].cpu().numpy() for s in range(n_sources)},
+    })
+    ip = model.get_individual_probabilities(ip)
+
+    prob_cols = [c for c in ip.columns if c.startswith("prob_cluster_")]
+    entropy_value = (
+        ip[prob_cols] * np.log(ip[prob_cols].replace(0, np.nan))
+    ).to_numpy().sum()
+    return bic - entropy_value
 
 # ---------------------------------------------------------------------------
 # Parameter display registry
@@ -740,6 +794,7 @@ class Summary(AutoPrintMixin):
     nll: Optional[float] = None
     bic: Optional[float] = None
     aic: Optional[float] = None
+    icl: Optional[float] = None
     training_info: TrainingInfo = field(default_factory=dict)
     dataset_info: DatasetInfo = field(default_factory=dict)
     parameters: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -783,6 +838,8 @@ class Summary(AutoPrintMixin):
         aic = None
         if nll_bic is not None and n_subjects is not None:
             aic = compute_aic(float(nll_bic), n_total_params, n_subjects)
+
+        icl = compute_icl(bic, model)
 
         # Observation model names
         obs_model_names = None
@@ -831,6 +888,7 @@ class Summary(AutoPrintMixin):
             nll=nll,
             bic=bic,
             aic=aic,
+            icl=icl,
             training_info=dict(model.training_info),
             dataset_info=dict(model.dataset_info),
             parameters=params_by_category,
@@ -963,6 +1021,8 @@ class Summary(AutoPrintMixin):
             lines.append(f"BIC: {self.bic:.2f}")
         if self.aic is not None:
             lines.append(f"AIC: {self.aic:.2f}")
+        if self.icl is not None:
+            lines.append(f"ICL: {self.icl:.2f}")
 
         # Training Metadata
         if self.training_info:
@@ -1047,6 +1107,8 @@ Available Attributes:
     n_total_params    Number of free parameters (int)
     bic               Bayesian Information Criterion (float or None)
     aic               Akaike Information Criterion (float or None)
+    icl               Integrated Completed Likelihood, mixture models only
+                      (float or None)
 
 
   Dataset:
