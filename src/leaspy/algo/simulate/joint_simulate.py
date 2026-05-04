@@ -32,6 +32,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         ----------
         model : :class:~.models.abstract_model.McmcSaemCompatibleModel
             A Leaspy model object previously trained on longitudinal data.
+
         Raises
         ------
         LeaspyAlgoInputError
@@ -194,9 +195,10 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
                     self.param_study[key] = dict_param[key]
                 elif key in estimated:
                     val = estimated[key]
-                    print(
-                        f"  [joint_simulate] Parameter '{key}' not provided, "
-                        f"estimated from data: {val}"
+                    warnings.warn(
+                        f"Parameter '{key}' not provided, estimated from data: {val}",
+                        UserWarning,
+                        stacklevel=3,
                     )
                     self.param_study[key] = val
                     if key == "first_visit_mean":
@@ -204,7 +206,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
                         # first-visit age; _get_leaspy_model will subtract tau_mean
                         # to convert it to a per-patient offset from disease onset.
                         self._first_visit_mean_is_absolute_age = True
-                # else: missing — will be reported by _check_params
+                # else: missing: will be reported by _check_params
 
             # min_spacing_between_visits: optional, with fallback to data estimate
             if "min_spacing_between_visits" in dict_param:
@@ -213,17 +215,17 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
                 ]
             elif "min_spacing_between_visits" in estimated:
                 val = estimated["min_spacing_between_visits"]
-                print(
-                    f"  [joint_simulate] Parameter 'min_spacing_between_visits' not provided, "
-                    f"estimated from data: {val}"
+                warnings.warn(
+                    f"Parameter 'min_spacing_between_visits' not provided, estimated from data: {val}",
+                    UserWarning,
+                    stacklevel=3,
                 )
                 self.param_study["min_spacing_between_visits"] = val
 
     def _sample_individual_parameters_from_model_parameters(
         self, model: McmcSaemCompatibleModel
     ) -> pd.DataFrame:
-        """
-        Generate individual parameters for joint model simulation, from the model parameters.
+        """Generate individual parameters for joint model simulation, from the model parameters.
 
         Samples xi ~ N(0, sigma_xi) and tau ~ N(tau_mean, sigma_tau), and sources ~ N(0, 1)
         (standardized) for each source dimension.
@@ -282,8 +284,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         return individual_parameters
 
     def _get_leaspy_model(self, model: McmcSaemCompatibleModel) -> None:
-        """
-        Validate and store the Leaspy model instance.
+        """Validate and store the Leaspy model instance.
 
         Checks that ``model`` is a :class:`~leaspy.models.joint.JointModel`
         and stores it as ``self.model`` for use in ``_generate_dataset``.
@@ -302,44 +303,46 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         self._check_joint_model(model)
         self.model = model
 
-        # Fix A: convert auto-estimated first_visit_mean from absolute age to an
-        # offset relative to tau_mean (E[first_visit_age - tau_i] ≈ mean_age - tau_mean).
+        # Convert auto-estimated first_visit_mean from absolute age to an
+        # offset relative to tau_mean (E[first_visit_age - tau_i] = mean_age - tau_mean).
         if getattr(self, "_first_visit_mean_is_absolute_age", False):
             tau_mean = float(model.parameters["tau_mean"])
             self.param_study["first_visit_mean"] -= tau_mean
             self._first_visit_mean_is_absolute_age = False
-            print(
-                f"  [joint_simulate] first_visit_mean corrected to offset from tau_mean "
-                f"({tau_mean:.4f}): {self.param_study['first_visit_mean']:.4f}"
-            )
 
     def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
-        """Generate visit ages anchored to each patient's event / study-end time.
+        """Generate visit ages for each simulated patient, anchored to their event or study-end time.
 
-        Fix B: instead of scheduling visits from ``[tau_i + offset, tau_i + offset + follow_up]``
-        and then discarding those after the event, the visit window is anchored *to* the
-        event time (or study-end for censored patients):
+        Behaviour depends on ``self.visit_type``:
 
-        * For uncensored patients  (T_e ≤ study_end): visits in ``[T_e - follow_up, T_e]``.
-        * For censored patients    (T_e > study_end): visits in ``[study_end - follow_up, study_end]``.
+        - ``VisitType.DATAFRAME``: visit ages are read directly from
+          ``self.param_study['df_visits']``.  ``self._pre_sampled_events`` is set to
+          ``None`` so that :meth:`_generate_dataset` falls back to its own event-sampling
+          path.
 
-        This guarantees every simulated patient has a full follow-up window worth of visits,
-        regardless of how early their Weibull event time falls.
-
-        Pre-sampled event records are stored in ``self._pre_sampled_events`` for use in
-        ``_generate_dataset`` (which skips redundant Weibull re-sampling when this attribute is set).
+        - ``VisitType.RANDOM``: for each patient a Weibull competing-event time is drawn
+          using the model's ``n_log_nu_mean``, ``log_rho_mean``, and (optionally)
+          ``zeta_mean`` parameters together with the patient's individual parameters.
+          A follow-up window is then sampled from the study parameters and the visit
+          schedule is built by stepping forward in time from ``anchor - follow_up`` with
+          inter-visit gaps drawn from ``N(distance_visit_mean, distance_visit_std)``.
+          The anchor is the event time if the event occurs within the study window,
+          otherwise the study-end time (censored).  The resulting event metadata
+          (``EVENT_TIME``, ``EVENT_BOOL``) are stored in ``self._pre_sampled_events``
+          so that :meth:`_generate_dataset` can reuse them without re-sampling.
 
         Parameters
         ----------
         df : pd.DataFrame
-            Individual-parameters DataFrame (``xi``, ``tau``, ``sources_k`` columns),
-            indexed by patient ID strings.  Produced by
-            ``_sample_individual_parameters_from_model_parameters``.
+            Individual-parameters DataFrame with ``xi``, ``tau``, and optional
+            ``sources_k`` columns, indexed by patient ID strings.  Typically produced
+            by :meth:`_sample_individual_parameters_from_model_parameters`.
 
         Returns
         -------
         dict
-            Mapping from patient-ID string to sorted list of visit ages.
+            Mapping from patient-ID string to a list of visit ages (floats) in
+            ascending order.
         """
         if self.visit_type == VisitType.DATAFRAME:
             self._pre_sampled_events = None
@@ -366,7 +369,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             xi_i = torch.tensor(float(df.loc[id_, "xi"]))
             tau_i = float(df.loc[id_, "tau"])
 
-            # --- Sample Weibull event time (one draw per competing-event type) ---
+            # Sample Weibull event time (one draw per competing-event type)
             event_times_per_type = []
             for k in range(self.model.nb_events):
                 if zeta is not None:
@@ -394,7 +397,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
                 T_e = event_times_per_type[min_k]
                 evt_idx = min_k + 1  # 1-indexed EVENT_BOOL
 
-            # --- Sample follow-up window (independent of event) ---
+            # Sample follow-up window (independent of event)
             follow_up = float(np.abs(np.random.normal(
                 self.param_study["time_follow_up_mean"],
                 self.param_study["time_follow_up_std"],
@@ -406,7 +409,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             # Study-end: where the follow-up window would naturally close
             study_end = tau_i + first_visit_offset + follow_up
 
-            # --- Anchor: end of the visit window ---
+            # Anchor: end of the visit window
             if T_e <= study_end:
                 # Event occurs within the study window → observed
                 anchor = T_e
@@ -418,7 +421,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
                 event_time_final = study_end
                 evt_idx_final = 0
 
-            # --- Generate visits backward from anchor ---
+            # Generate visits backward from anchor
             age_start = anchor - follow_up
             visits = [age_start]
             t = age_start
@@ -449,8 +452,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         individual_parameters_from_model_parameters: pd.DataFrame,
         min_spacing_between_visits: float,
     ) -> pd.DataFrame:
-        """
-        Generate a simulated joint dataset with longitudinal outcomes and time-to-event data.
+        """Generate a simulated joint dataset with longitudinal outcomes and time-to-event data.
 
         Steps:
         1. Estimate longitudinal trajectories for all visit timepoints.
@@ -482,7 +484,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             f"sources_{i}" for i in range(model.source_dimension)
         ]
 
-        # --- Step 1: estimate longitudinal trajectories (output has n_features + nb_events columns) ---
+        # Step 1: estimate longitudinal trajectories (output has n_features + nb_events columns)
         values = self.model.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
@@ -507,7 +509,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             ]
         )
 
-        # --- Step 2: add beta-distributed noise ---
+        # Step 2: add beta-distributed noise
         for i, feat in enumerate(self.features):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
@@ -531,11 +533,11 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             beta_param = (1 - mu) * ((mu * (1 - mu) / adj_var) - 1)
             df_long.loc[:, feat] = beta.rvs(alpha_param, beta_param)
 
-        # --- Steps 3-5: event times and censoring ---
+        # Steps 3-5: event times and censoring
         if getattr(self, "_pre_sampled_events", None) is not None:
-            # Fix B: events were pre-sampled in _generate_visit_ages and the visit
-            # window was already anchored to each patient's event/study-end time.
-            # No visits need to be dropped here.
+            # Events were pre-sampled in _generate_visit_ages and the visit window
+            # was already anchored to each patient's event/study-end time.
+            # No further visit filtering is required here.
             event_records = [
                 {"ID": id_, **self._pre_sampled_events[id_]}
                 for id_ in individual_parameters_from_model_parameters.index
@@ -646,7 +648,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             drop_idx = pd.MultiIndex.from_tuples(ids_to_drop, names=["ID", "TIME"])
             df_long = df_long.drop(index=drop_idx, errors="ignore")
 
-        # --- Step 6: apply minimum visit spacing filter ---
+        # Step 6: apply minimum visit spacing filter
         rounding_options = {
             0: 1,
             1: 0.1,
@@ -664,11 +666,11 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         df_sim.set_index(["ID", "TIME"], inplace=True)
         df_sim = df_sim[~df_sim.index.duplicated()]
 
-        # --- Step 7: attach event data ---
+        # Step 7: attach event data
         df_events = pd.DataFrame(event_records).set_index("ID")
         df_sim = df_sim.join(df_events, on="ID")
 
-        # --- Step 8: drop visits whose rounded TIME exceeds EVENT_TIME ---
+        # Step 8: drop visits whose rounded TIME exceeds EVENT_TIME
         # Rounding can push a visit time above the event time, violating the
         # constraint that all visits must occur before or at the event.
         df_sim = df_sim.reset_index()
