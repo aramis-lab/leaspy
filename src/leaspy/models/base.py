@@ -132,6 +132,16 @@ class ModelInterface(ABC):
         """
         raise NotImplementedError
 
+    def compute_derived_parameters(self) -> DictParamsTorch:
+        """Compute interpretable-scale parameters derived from fitted values.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.DictParamsTorch`
+            Mapping of derived parameter names to their tensor values.
+        """
+        return {}
+
     @abstractmethod
     def save(self, path: Union[str, Path], **kwargs) -> None:
         """Save model as json model parameter file.

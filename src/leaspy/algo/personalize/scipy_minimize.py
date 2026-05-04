@@ -589,6 +589,8 @@ class ScipyMinimizeAlgorithm(
             df.index.dtypes["ID"]
         ), "Individuals ID should be strings"
 
+		#from leaspy.models.joint import JointModel
+        #if isinstance(model, JointModel):
         if "joint" in model.name:
             data_type = "joint"
             factory_kws = {"nb_events": model.nb_events}

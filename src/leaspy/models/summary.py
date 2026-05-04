@@ -272,6 +272,7 @@ class _ModelDisplayMeta:
     individual_prior_params: tuple[str, ...]
     noise_params: tuple[str, ...]
     param_axes: dict[str, tuple[str, ...]]
+    derived_param_axes: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 _BASE_PARAM_AXES: dict[str, tuple[str, ...]] = {
@@ -283,6 +284,11 @@ _BASE_PARAM_AXES: dict[str, tuple[str, ...]] = {
     "noise_std": ("feature",),
 }
 
+_BASE_DERIVED_PARAM_AXES: dict[str, tuple[str, ...]] = {
+    "v0": ("feature",),
+    "p0": ("feature",),
+}
+
 _DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
     "McmcSaemCompatibleModel": _ModelDisplayMeta(
         individual_prior_params=(
@@ -291,10 +297,11 @@ _DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
         ),
         noise_params=("noise_std",),
         param_axes=_BASE_PARAM_AXES,
+        derived_param_axes=_BASE_DERIVED_PARAM_AXES,
     ),
     "TimeReparametrizedMixtureModel": _ModelDisplayMeta(
         individual_prior_params=(
-            "tau_std", "xi_std", "sources_std", "tau_mean", "xi_mean", "sources_mean", 
+            "tau_std", "xi_std", "sources_std", "tau_mean", "xi_mean", "sources_mean",
         ),
         noise_params=("noise_std",),
         param_axes={
@@ -307,6 +314,7 @@ _DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
             "sources_std": ("source", "cluster"),
             "probs": ("cluster",),
         },
+        derived_param_axes=_BASE_DERIVED_PARAM_AXES,
     ),
     "JointModel": _ModelDisplayMeta(
         individual_prior_params=(
@@ -320,6 +328,7 @@ _DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
             "log_rho_mean": ("event",),
             "zeta_mean": ("source", "event"),
         },
+        derived_param_axes=_BASE_DERIVED_PARAM_AXES,
     ),
 }
 
@@ -734,8 +743,10 @@ class Summary(AutoPrintMixin):
     training_info: TrainingInfo = field(default_factory=dict)
     dataset_info: DatasetInfo = field(default_factory=dict)
     parameters: dict[str, dict[str, Any]] = field(default_factory=dict)
+    derived_parameters: dict[str, Any] = field(default_factory=dict)
     leaspy_version: Optional[str] = None
     _param_axes: dict = field(default_factory=dict, repr=False)
+    _derived_param_axes: dict = field(default_factory=dict, repr=False)
     _feature_names: Optional[list[str]] = field(default=None, repr=False)
     _printed: bool = field(default=False, repr=False)
 
@@ -805,6 +816,9 @@ class Summary(AutoPrintMixin):
         else:
             params_by_category["Parameters"] = dict(model.parameters)
 
+        # Derived parameters (v0, p0, ...) from model-side transform
+        derived = model.compute_derived_parameters()
+
         return cls(
             name=model.name,
             model_type=model.__class__.__name__,
@@ -820,8 +834,10 @@ class Summary(AutoPrintMixin):
             training_info=dict(model.training_info),
             dataset_info=dict(model.dataset_info),
             parameters=params_by_category,
+            derived_parameters=derived,
             leaspy_version=version,
             _param_axes=_meta.param_axes if _meta is not None else {},
+            _derived_param_axes=_meta.derived_param_axes if _meta is not None else {},
             _feature_names=model.features,
         )
 
@@ -877,12 +893,12 @@ class Summary(AutoPrintMixin):
         return self.dataset_info.get("n_observations")
 
     def get_param(self, name: str) -> Optional[Any]:
-        """Get a parameter value by name, searching across all categories.
+        """Get a parameter value by name, searching fitted and derived parameters.
 
         Parameters
         ----------
         name : str
-            Parameter name (e.g. ``'betas_mean'``, ``'tau_std'``).
+            Parameter name (e.g. ``'betas_mean'``, ``'tau_std'``, ``'v0'``, ``'p0'``).
 
         Returns
         -------
@@ -892,6 +908,9 @@ class Summary(AutoPrintMixin):
         for category_params in self.parameters.values():
             if name in category_params:
                 return category_params[name]
+        derived = object.__getattribute__(self, "derived_parameters")
+        if name in derived:
+            return derived[name]
         return None
 
     # -- Display -------------------------------------------------------------
@@ -983,6 +1002,14 @@ class Summary(AutoPrintMixin):
                 lines.append("-" * _WIDTH)
                 lines.extend(self._format_parameter_group(params))
 
+        # Derived parameters (interpretable scale)
+        derived = object.__getattribute__(self, "derived_parameters")
+        if derived:
+            lines.append("")
+            lines.append("Derived Parameters (interpretable scale)")
+            lines.append("-" * _WIDTH)
+            lines.extend(self._format_derived_group(derived))
+
         lines.append(sep)
         return "\n".join(lines)
 
@@ -1029,7 +1056,12 @@ Available Attributes:
 
   Parameters:
     parameters        All parameters grouped by category (dict)
-    get_param(name)   Get a specific parameter by name
+    derived_parameters  Derived parameters in interpretable scale (dict)
+    get_param(name)   Get a parameter by name (searches fitted + derived)
+
+  Derived Parameters (interpretable scale):
+    v0                Velocities: exp(log_v0_mean), per feature
+    p0                Positions: sigmoid(-log_g_mean) or g_mean, per feature
 
   Other:
     training_info     Full training metadata (TrainingInfo)
@@ -1058,9 +1090,24 @@ Examples:
                 lines.append(f"  {name:<18} {value}")
         return lines
 
-    def _format_tensor(self, name: str, value: torch.Tensor) -> str:
+    def _format_derived_group(self, params: dict[str, Any]) -> list[str]:
+        """Format derived parameters using derived_param_axes."""
+        lines = []
+        for name, value in params.items():
+            if isinstance(value, torch.Tensor):
+                lines.append(self._format_tensor(name, value, derived=True))
+            else:
+                lines.append(f"  {name:<18} {value}")
+        return lines
+
+    def _format_tensor(
+        self, name: str, value: torch.Tensor, *, derived: bool = False
+    ) -> str:
         """Format a tensor parameter with axis labels."""
-        param_axes = object.__getattribute__(self, "_param_axes")
+        if derived:
+            param_axes = object.__getattribute__(self, "_derived_param_axes")
+        else:
+            param_axes = object.__getattribute__(self, "_param_axes")
         feature_names = object.__getattribute__(self, "_feature_names")
         axes = param_axes.get(name, ())
 
