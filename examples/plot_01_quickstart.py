@@ -36,7 +36,7 @@ print(alzheimer_df.head())
 # .. warning::
 #
 #    - Leaspy supports *linear* and *logistic* models.
-#    - The features **MUST** be increasing over time.
+#    - Features should follow an overall increasing trend over time. Individual observations may decrease due to noise or measurement variability — what matters is that the general progression goes upward.
 #    - For logistic models, data must be rescaled between 0 and 1.
 
 from leaspy.io.data import Data

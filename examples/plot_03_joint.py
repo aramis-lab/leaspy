@@ -39,6 +39,12 @@ data = Data.from_dataframe(df, "joint")
 model = JointModel(name="test_model", nb_events=1, source_dimension=2)
 
 # %%
+# .. warning::
+#
+#    For Joint models you **MUST** include "joint" as the second argument of the ``Data.from_dataframe`` method.
+#    This is necessary to ensure that the data is correctly processed and that the model can be fitted without errors.
+
+# %%
 # The parameter `nb_events` should match the number of distinct event types
 # present in the `EVENT_BOOL` column:
 #
@@ -60,5 +66,5 @@ model.info()
 print(model.parameters)
 
 # %%
-# We have seend how to fit a Joint Model using Leaspy. It also provides other models as the
-# [Mixture Model](./plot_04_mixture) that can be explored in the next examples.
+# We have seen how to fit a Joint Model using Leaspy. It also provides other models such as the
+# :doc:`Mixture Model <plot_04_mixture>` that can be explored in the next example.
