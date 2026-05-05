@@ -400,6 +400,29 @@ class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     parameters: ClassVar = ("loc",)
     dist_factory: ClassVar = torch.distributions.Bernoulli
 
+    @classmethod
+    def mode(cls, loc: torch.Tensor) -> torch.Tensor:
+        # Mode de Bernoulli : 1 si p >= 0.5, 0 sinon
+        return (loc >= 0.5).float()
+
+    @classmethod
+    def _nll(cls, x: WeightedTensor, loc: torch.Tensor) -> WeightedTensor:
+        # log p(gamma=x) = x*log(pi) + (1-x)*log(1-pi)
+        # nll = -log p = -(x*log(pi) + (1-x)*log(1-pi))
+        loc_clamped = torch.clamp(loc, min=1e-8, max=1 - 1e-8)
+        nll = -(
+            x.value * torch.log(loc_clamped)
+            + (1 - x.value) * torch.log(1 - loc_clamped)
+        )
+        return WeightedTensor(nll, x.weight)
+
+    @classmethod
+    def _nll_jacobian(cls, x: WeightedTensor, loc: torch.Tensor) -> WeightedTensor:
+        # d/dx [-x*log(pi) - (1-x)*log(1-pi)] = -log(pi) + log(1-pi)
+        loc_clamped = torch.clamp(loc, min=1e-8, max=1 - 1e-8)
+        jacobian = -torch.log(loc_clamped) + torch.log(1 - loc_clamped)
+        return WeightedTensor(jacobian * torch.ones_like(x.value), x.weight)
+
 
 class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     """

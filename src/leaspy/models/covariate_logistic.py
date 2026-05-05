@@ -1,13 +1,13 @@
 import torch
 
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import AffineMatrix, Exp
+from leaspy.utils.functional import AffineMatrix, Exp, Prod
 from leaspy.utils.weighted_tensor import (
     TensorOrWeightedTensor,
     WeightedTensor,
     unsqueeze_right,
 )
-from leaspy.variables.distributions import MultivariateNormal, Normal
+from leaspy.variables.distributions import Bernoulli, MultivariateNormal, Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     LinkedVariable,
@@ -128,6 +128,9 @@ class CovariateLogisticInitializationMixin:
                 "delta_t0_mean": torch.zeros((self.nb_cov,)),
                 "delta_v0_mean": torch.zeros((self.dimension, self.nb_cov)),
                 "delta_g_mean": torch.zeros((self.dimension, self.nb_cov)),
+                "gamma_t0": torch.ones((self.nb_cov)),
+                "gamma_g": torch.ones((self.dimension, self.nb_cov)),
+                "gamma_v0": torch.ones((self.dimension, self.nb_cov)),
             }
             if self.source_dimension >= 1:
                 parameters["betas_mean"] = betas
@@ -170,12 +173,15 @@ class CovariateLogisticModel(
                 "delta_g", shape=(self.dimension, self.nb_cov)
             ),
             delta_g_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
+            pi_g=Hyperparameter(0.5 * torch.ones(self.dimension, self.nb_cov)),
             delta_g=PopulationLatentVariable(
                 MultivariateNormal("delta_g_mean", "delta_g_sigma"),
                 sampling_kws={"scale": 0.01},
             ),
+            gamma_g=PopulationLatentVariable(Bernoulli("pi_g")),
+            delta_g_masked=LinkedVariable(Prod("gamma_g", "delta_g")),
             log_g_patient=LinkedVariable(
-                AffineMatrix("log_g", "delta_g", "covariates"),
+                AffineMatrix("log_g", "delta_g_masked", "covariates"),
             ),
             g_patient=LinkedVariable(
                 Exp("log_g_patient"),

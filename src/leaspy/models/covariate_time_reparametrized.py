@@ -5,10 +5,10 @@ import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import Affine, Exp, MatMul, Unique
+from leaspy.utils.functional import Affine, Exp, MatMul, Prod, Unique
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
-from leaspy.variables.distributions import MultivariateNormal, Normal
+from leaspy.variables.distributions import Bernoulli, MultivariateNormal, Normal
 from leaspy.variables.specs import (
     DataVariable,
     Hyperparameter,
@@ -247,17 +247,20 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             xi_std=ModelParameter.for_ind_std("xi", shape=(1,)),
             delta_t0_mean=ModelParameter.for_pop_mean("delta_t0", shape=(self.nb_cov,)),
             delta_t0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 1.0),
+            pi_t0=Hyperparameter(0.5 * torch.ones(self.nb_cov)),
             # LATENT VARS
             t0=PopulationLatentVariable(Normal("t0_mean", "t0_std")),
             delta_t0=PopulationLatentVariable(
                 MultivariateNormal("delta_t0_mean", "delta_t0_sigma"),
-                sampling_kws={"scale": 0.1},
+                sampling_kws={"scale": 1},
             ),
+            gamma_t0=PopulationLatentVariable(Bernoulli("pi_t0")),
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             tau=IndividualLatentVariable(Normal("tau_mean", "tau_std")),
             # DERIVED VARS
             alpha=LinkedVariable(Exp("xi")),
-            t0_patient=LinkedVariable(Affine("t0", "delta_t0", "covariates")),
+            delta_t0_masked=LinkedVariable(Prod("gamma_t0", "delta_t0")),
+            t0_patient=LinkedVariable(Affine("t0", "delta_t0_masked", "covariates")),
             unique_covariates=LinkedVariable(Unique("covariates")),
             t0_cov=LinkedVariable(Affine("t0", "delta_t0", "unique_covariates")),
         )

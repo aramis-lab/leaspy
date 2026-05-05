@@ -3,8 +3,8 @@ from typing import Iterable, Optional
 
 import torch
 
-from leaspy.utils.functional import AffineMatrix, Exp, OrthoBasis, Sqr
-from leaspy.variables.distributions import MultivariateNormal, Normal
+from leaspy.utils.functional import AffineMatrix, Exp, OrthoBasis, Prod, Sqr
+from leaspy.variables.distributions import Bernoulli, MultivariateNormal, Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     LinkedVariable,
@@ -59,6 +59,9 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
             "delta_t0",
             "delta_g",
             "delta_v0",
+            "gamma_t0",
+            "gamma_g",
+            "gamma_v0",
             "t0",
             "g",
             "v0",
@@ -177,6 +180,7 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 "delta_v0", shape=(self.dimension, self.nb_cov)
             ),
             delta_v0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
+            pi_v0=Hyperparameter(0.5 * torch.ones(self.dimension, self.nb_cov)),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             log_v0=PopulationLatentVariable(
@@ -186,12 +190,14 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 MultivariateNormal("delta_v0_mean", "delta_v0_sigma"),
                 sampling_kws={"scale": 0.01},
             ),
+            gamma_v0=PopulationLatentVariable(Bernoulli("pi_v0")),
             # DERIVED VARS
             v0=LinkedVariable(
                 Exp("log_v0"),
             ),
+            delta_v0_masked=LinkedVariable(Prod("gamma_v0", "delta_v0")),
             log_v0_patient=LinkedVariable(
-                AffineMatrix("log_v0", "delta_v0", "covariates")
+                AffineMatrix("log_v0", "delta_v0_masked", "covariates")
             ),
             v0_patient=LinkedVariable(Exp("log_v0_patient")),
             metric=LinkedVariable(
