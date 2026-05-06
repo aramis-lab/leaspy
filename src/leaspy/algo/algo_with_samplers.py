@@ -3,7 +3,7 @@ from typing import Optional
 
 from leaspy.exceptions import LeaspyAlgoInputError
 from leaspy.io.data import Dataset
-from leaspy.samplers import AbstractSampler, sampler_factory
+from leaspy.samplers import AbstractSampler, BernoulliDiscreteSampler, sampler_factory
 from leaspy.variables.specs import IndividualLatentVariable, PopulationLatentVariable
 from leaspy.variables.state import State
 
@@ -168,6 +168,18 @@ class AlgorithmWithSamplersMixin:
 
             # TODO: mask logic?
 
-            self.samplers[var_name] = sampler_factory(
-                sampler, PopulationLatentVariable, **{**sampler_kws, **var_kws}
+            # Bernoulli variables require an exact discrete Gibbs step, not a
+            # continuous Gaussian random walk — auto-route them to BernoulliDiscreteSampler.
+            from leaspy.variables.distributions import (
+                BernoulliFamily,  # lazy import avoids circular dep
             )
+
+            if var.prior.dist_family is BernoulliFamily:
+                self.samplers[var_name] = BernoulliDiscreteSampler(
+                    name=var_name,
+                    shape=var.get_prior_shape(state.dag),
+                )
+            else:
+                self.samplers[var_name] = sampler_factory(
+                    sampler, PopulationLatentVariable, **{**sampler_kws, **var_kws}
+                )
