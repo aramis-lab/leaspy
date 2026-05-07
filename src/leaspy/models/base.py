@@ -802,7 +802,7 @@ class BaseModel(ModelInterface):
 
         # Store training metadata (converged captured after run)
         self.training_info = {
-            "algorithm": algorithm.name,
+            "algorithm": algorithm.name.value,
             "seed": algorithm.seed,
             "n_iter": algorithm.algo_parameters.get("n_iter"),
             "n_burn_in_iter": algorithm.algo_parameters.get("n_burn_in_iter"),

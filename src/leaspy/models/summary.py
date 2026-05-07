@@ -535,7 +535,8 @@ class Info(AutoPrintMixin):
     @property
     def algorithm(self) -> Optional[str]:
         """Algorithm name used for training."""
-        return self.training_info.get("algorithm")
+        val = self.training_info.get("algorithm")
+        return val.value if hasattr(val, "value") else val
 
     @property
     def seed(self) -> Optional[int]:
@@ -617,17 +618,7 @@ class Info(AutoPrintMixin):
 
         # Statistical Model
         lines.append("Statistical Model")
-        if self.latent_variables:
-            lines.append("")
-            lines.append("Latent Variables")
-            lines.append("-" * _WIDTH)
-            for kind, group in self.latent_variables.items():
-                lines.append(f"  {kind.capitalize()}:")
-                for var_name, info in group.items():
-                    params = ", ".join(info["parameters"])
-                    lines.append(f"    {var_name:<20} {info['distribution']}({params})")
-
-        lines.append("-" * _WIDTH)
+        
         lines.append(f"Type: {self.model_type}")
         lines.append(f"Name: {self.name}")
         lines.append(f"Dimension: {self.dimension}")
@@ -643,6 +634,17 @@ class Info(AutoPrintMixin):
             lines.append(f"AIC: {self.aic:.2f}")
         if self.n_clusters is not None:
             lines.append(f"Clusters: {self.n_clusters}")
+        if self.latent_variables:
+            lines.append("")
+            lines.append("Latent Variables")
+            lines.append("-" * _WIDTH)
+            for kind, group in self.latent_variables.items():
+                lines.append(f"  {kind.capitalize()}:")
+                for var_name, info in group.items():
+                    params = ", ".join(info["parameters"])
+                    lines.append(f"    {var_name:<20} {info['distribution']}({params})")
+
+        lines.append("-" * _WIDTH)
 
         # Training Dataset
         if self.dataset_info:
@@ -670,7 +672,7 @@ class Info(AutoPrintMixin):
             lines.append("Training Details")
             lines.append("-" * _WIDTH)
             ti = self.training_info
-            lines.append(f"Algorithm: {ti.get('algorithm', 'N/A')}")
+            lines.append(f"Algorithm: {self.algorithm or 'N/A'}")
             if "seed" in ti:
                 lines.append(f"Seed: {ti['seed']}")
             lines.append(f"Iterations: {ti.get('n_iter', 'N/A')}")
@@ -918,7 +920,8 @@ class Summary(AutoPrintMixin):
     @property
     def algorithm(self) -> Optional[str]:
         """Algorithm name used for training."""
-        return self.training_info.get("algorithm")
+        val = self.training_info.get("algorithm")
+        return val.value if hasattr(val, "value") else val
 
     @property
     def seed(self) -> Optional[int]:
@@ -1030,7 +1033,7 @@ class Summary(AutoPrintMixin):
             lines.append("Training Metadata")
             lines.append("-" * _WIDTH)
             ti = self.training_info
-            lines.append(f"Algorithm: {ti.get('algorithm', 'N/A')}")
+            lines.append(f"Algorithm: {self.algorithm or 'N/A'}")
             if "seed" in ti:
                 lines.append(f"Seed: {ti['seed']}")
             lines.append(f"Iterations: {ti.get('n_iter', 'N/A')}")
@@ -1049,15 +1052,17 @@ class Summary(AutoPrintMixin):
 
         # Leaspy Version
         if self.leaspy_version:
-            lines.append("")
             lines.append(f"Leaspy Version: {self.leaspy_version}")
 
         lines.append(sep)
 
         # Parameters by category
-        for category, params in self.parameters.items():
-            if params:
+        for i, (category, params) in enumerate(self.parameters.items()):
+            if i == 0:
                 lines.append("")
+            if params:
+                if i > 0:
+                    lines.append("")
                 lines.append(category)
                 lines.append("-" * _WIDTH)
                 lines.extend(self._format_parameter_group(params))
