@@ -411,12 +411,12 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
 
             # Anchor: end of the visit window
             if T_e <= study_end:
-                # Event occurs within the study window → observed
+                # Event occurs within the study window -> observed
                 anchor = T_e
                 event_time_final = T_e
                 evt_idx_final = evt_idx
             else:
-                # Event occurs after the study window → censored at study_end
+                # Event occurs after the study window -> censored at study_end
                 anchor = study_end
                 event_time_final = study_end
                 evt_idx_final = 0
@@ -484,7 +484,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             f"sources_{i}" for i in range(model.source_dimension)
         ]
 
-        # Step 1: estimate longitudinal trajectories (output has n_features + nb_events columns)
+        # Estimate longitudinal trajectories (output has n_features + nb_events columns)
         values = self.model.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
@@ -509,7 +509,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             ]
         )
 
-        # Step 2: add beta-distributed noise
+        # Add beta-distributed noise
         for i, feat in enumerate(self.features):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
@@ -533,11 +533,10 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             beta_param = (1 - mu) * ((mu * (1 - mu) / adj_var) - 1)
             df_long.loc[:, feat] = beta.rvs(alpha_param, beta_param)
 
-        # Steps 3-5: event times and censoring
+        # Event times and censoring
         if getattr(self, "_pre_sampled_events", None) is not None:
             # Events were pre-sampled in _generate_visit_ages and the visit window
             # was already anchored to each patient's event/study-end time.
-            # No further visit filtering is required here.
             event_records = [
                 {"ID": id_, **self._pre_sampled_events[id_]}
                 for id_ in individual_parameters_from_model_parameters.index
@@ -648,7 +647,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             drop_idx = pd.MultiIndex.from_tuples(ids_to_drop, names=["ID", "TIME"])
             df_long = df_long.drop(index=drop_idx, errors="ignore")
 
-        # Step 6: apply minimum visit spacing filter
+        # Apply minimum visit spacing filter
         rounding_options = {
             0: 1,
             1: 0.1,
@@ -666,11 +665,11 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         df_sim.set_index(["ID", "TIME"], inplace=True)
         df_sim = df_sim[~df_sim.index.duplicated()]
 
-        # Step 7: attach event data
+        # Attach event data
         df_events = pd.DataFrame(event_records).set_index("ID")
         df_sim = df_sim.join(df_events, on="ID")
 
-        # Step 8: drop visits whose rounded TIME exceeds EVENT_TIME
+        # Drop visits whose rounded TIME exceeds EVENT_TIME
         # Rounding can push a visit time above the event time, violating the
         # constraint that all visits must occur before or at the event.
         df_sim = df_sim.reset_index()
