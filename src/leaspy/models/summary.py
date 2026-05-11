@@ -293,15 +293,18 @@ def compute_icl(
     if bic is None or not getattr(model, "n_clusters", None):
         return None
 
-    # Build the per-individual parameter frame from the fitted state and
-    # delegate the responsibility math to the model's own method.
-    state = model.state
-    n_sources = getattr(model, "source_dimension", 0) or 0
-    ip = pd.DataFrame({
-        "tau": state["tau"][:, 0].cpu().numpy(),
-        "xi":  state["xi"][:, 0].cpu().numpy(),
-        **{f"sources_{s}": state["sources"][:, s].cpu().numpy() for s in range(n_sources)},
-    })
+    # Individual variables (tau, xi, sources) are only in state after fitting,
+    # not after loading from file — return None gracefully in that case.
+    try:
+        state = model.state
+        n_sources = getattr(model, "source_dimension", 0) or 0
+        ip = pd.DataFrame({
+            "tau": state["tau"][:, 0].cpu().numpy(),
+            "xi":  state["xi"][:, 0].cpu().numpy(),
+            **{f"sources_{s}": state["sources"][:, s].cpu().numpy() for s in range(n_sources)},
+        })
+    except Exception:
+        return None
     ip = model.get_individual_probabilities(ip)
 
     prob_cols = [c for c in ip.columns if c.startswith("prob_cluster_")]
@@ -457,8 +460,6 @@ class Info(AutoPrintMixin):
     n_clusters: Optional[int] = None
     obs_models: Optional[list[str]] = None
     n_total_params: Optional[int] = None
-    bic: Optional[float] = None
-    aic: Optional[float] = None
     latent_variables: dict = field(default_factory=dict)
     training_info: TrainingInfo = field(default_factory=dict)
     hyperparameters: dict = field(default_factory=dict)
@@ -478,16 +479,8 @@ class Info(AutoPrintMixin):
 
         # Parameter count, BIC, AIC
         n_total_params = None
-        bic = None
-        aic = None
         if getattr(model, "parameters", None):
             n_total_params = get_number_of_parameters(model)
-            fm = getattr(model, "fit_metrics", None) or {}
-            nll_val = fm.get("nll_attach", fm.get("nll_tot"))
-            n_subjects = model.dataset_info.get("n_subjects")
-            if nll_val is not None and n_subjects is not None:
-                bic = compute_bic(float(nll_val), n_total_params, n_subjects)
-                aic = compute_aic(float(nll_val), n_total_params, n_subjects)
 
         # Leaspy version
         try:
@@ -522,7 +515,6 @@ class Info(AutoPrintMixin):
             n_clusters=getattr(model, "n_clusters", None),
             obs_models=obs_model_names,
             n_total_params=n_total_params,
-            bic=bic,
             training_info=dict(model.training_info),
             dataset_info=dict(model.dataset_info),
             hyperparameters=dict(getattr(model, "hyperparameters", {})),
@@ -628,10 +620,6 @@ class Info(AutoPrintMixin):
             lines.append(f"Observation Models: {', '.join(self.obs_models)}")
         if self.n_total_params is not None:
             lines.append(f"Parameters: {self.n_total_params}")
-        if self.bic is not None:
-            lines.append(f"BIC: {self.bic:.2f}")
-        if self.aic is not None:
-            lines.append(f"AIC: {self.aic:.2f}")
         if self.n_clusters is not None:
             lines.append(f"Clusters: {self.n_clusters}")
         if self.latent_variables:
@@ -730,8 +718,6 @@ Available Attributes:
     n_clusters        Number of clusters (int or None)
     obs_models        Observation model names (list[str] or None)
     n_total_params    Number of free parameters (int)
-    bic               Bayesian Information Criterion (float or None)
-    aic               Akaike Information Criterion (float or None)
     hyperparameters   Model hyperparameters dict (e.g. source_dimension)
 
   Training:
