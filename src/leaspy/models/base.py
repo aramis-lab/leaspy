@@ -814,7 +814,11 @@ class BaseModel(ModelInterface):
 
         self.training_info["converged"] = getattr(algorithm, "converged", None)
         self.training_info["duration"] = f"{elapsed:.3f}s"
-        
+
+        # Cache ICL while individual variables are still on state — survives save/load via training_info.
+        from .summary import _persist_icl
+        _persist_icl(self)
+
     def info(self) -> Info:
         """Return model configuration and training context.
 

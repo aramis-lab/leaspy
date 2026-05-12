@@ -313,6 +313,34 @@ def compute_icl(
     ).to_numpy().sum()
     return bic - entropy_value
 
+
+def _persist_icl(model: "BaseModel") -> None:
+    """Compute ICL and stash it in ``model.training_info`` so it survives save/load.
+
+    Individual variables (``tau``, ``xi``, ``sources``) are only on ``model.state``
+    right after fit and are not serialized; without this cache, ICL would be
+    unrecoverable after :meth:`BaseModel.load`. Called at the end of fit while
+    those variables are still in scope.
+
+    No-op for non-mixture models, when required inputs are missing, or when the
+    cache is already populated.
+    """
+    if not getattr(model, "n_clusters", None):
+        return
+    if (model.training_info or {}).get("icl") is not None:
+        return
+    fm = getattr(model, "fit_metrics", None) or {}
+    nll_bic = fm.get("nll_attach", fm.get("nll_tot"))
+    n_subjects = (model.dataset_info or {}).get("n_subjects")
+    if nll_bic is None or n_subjects is None:
+        return
+    n_total_params = get_number_of_parameters(model)
+    bic = compute_bic(float(nll_bic), n_total_params, n_subjects)
+    icl = compute_icl(bic, model)
+    if icl is not None:
+        model.training_info["icl"] = float(icl)
+
+
 # ---------------------------------------------------------------------------
 # Parameter display registry
 # ---------------------------------------------------------------------------
@@ -827,7 +855,9 @@ class Summary(AutoPrintMixin):
         if nll_bic is not None and n_subjects is not None:
             aic = compute_aic(float(nll_bic), n_total_params, n_subjects)
 
-        icl = compute_icl(bic, model)
+        icl = (model.training_info or {}).get("icl")
+        if icl is None:
+            icl = compute_icl(bic, model)
 
         # Observation model names
         obs_model_names = None
