@@ -32,7 +32,6 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         ----------
         model : :class:~.models.abstract_model.McmcSaemCompatibleModel
             A Leaspy model object previously trained on longitudinal data.
-
         Raises
         ------
         LeaspyAlgoInputError
@@ -62,10 +61,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         first_visit = grouped["TIME"].min()
         last_visit = grouped["TIME"].max()
 
-        # Absolute mean first-visit age across patients.
-        # This is stored as-is and converted to an offset from tau_mean
-        # inside _get_leaspy_model once the model is available.
-        first_visit_mean = float(first_visit.mean())
+        first_visit_mean = float((first_visit - first_visit.mean()).mean())
         first_visit_std = float(first_visit.std())
 
         follow_up = last_visit - first_visit
@@ -187,26 +183,17 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             ]
 
             self.param_study = {}
-            # Tracks whether first_visit_mean was auto-estimated as an absolute age
-            # (needs tau_mean subtracted later) vs. user-supplied offset.
-            self._first_visit_mean_is_absolute_age = False
             for key in _random_keys:
                 if key in dict_param:
                     self.param_study[key] = dict_param[key]
                 elif key in estimated:
                     val = estimated[key]
-                    warnings.warn(
-                        f"Parameter '{key}' not provided, estimated from data: {val}",
-                        UserWarning,
-                        stacklevel=3,
+                    print(
+                        f"  [joint_simulate] Parameter '{key}' not provided, "
+                        f"estimated from data: {val}"
                     )
                     self.param_study[key] = val
-                    if key == "first_visit_mean":
-                        # _estimate_visit_params_from_data returns the absolute mean
-                        # first-visit age; _get_leaspy_model will subtract tau_mean
-                        # to convert it to a per-patient offset from disease onset.
-                        self._first_visit_mean_is_absolute_age = True
-                # else: missing: will be reported by _check_params
+                # else: missing — will be reported by _check_params
 
             # min_spacing_between_visits: optional, with fallback to data estimate
             if "min_spacing_between_visits" in dict_param:
@@ -215,17 +202,17 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
                 ]
             elif "min_spacing_between_visits" in estimated:
                 val = estimated["min_spacing_between_visits"]
-                warnings.warn(
-                    f"Parameter 'min_spacing_between_visits' not provided, estimated from data: {val}",
-                    UserWarning,
-                    stacklevel=3,
+                print(
+                    f"  [joint_simulate] Parameter 'min_spacing_between_visits' not provided, "
+                    f"estimated from data: {val}"
                 )
                 self.param_study["min_spacing_between_visits"] = val
 
     def _sample_individual_parameters_from_model_parameters(
         self, model: McmcSaemCompatibleModel
     ) -> pd.DataFrame:
-        """Generate individual parameters for joint model simulation, from the model parameters.
+        """
+        Generate individual parameters for joint model simulation, from the model parameters.
 
         Samples xi ~ N(0, sigma_xi) and tau ~ N(tau_mean, sigma_tau), and sources ~ N(0, 1)
         (standardized) for each source dimension.
@@ -284,7 +271,8 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         return individual_parameters
 
     def _get_leaspy_model(self, model: McmcSaemCompatibleModel) -> None:
-        """Validate and store the Leaspy model instance.
+        """
+        Validate and store the Leaspy model instance.
 
         Checks that ``model`` is a :class:`~leaspy.models.joint.JointModel`
         and stores it as ``self.model`` for use in ``_generate_dataset``.
@@ -303,148 +291,6 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         self._check_joint_model(model)
         self.model = model
 
-        # Convert auto-estimated first_visit_mean from absolute age to an
-        # offset relative to tau_mean (E[first_visit_age - tau_i] = mean_age - tau_mean).
-        if getattr(self, "_first_visit_mean_is_absolute_age", False):
-            tau_mean = float(model.parameters["tau_mean"])
-            self.param_study["first_visit_mean"] -= tau_mean
-            self._first_visit_mean_is_absolute_age = False
-
-    def _generate_visit_ages(self, df: pd.DataFrame) -> dict:
-        """Generate visit ages for each simulated patient, anchored to their event or study-end time.
-
-        Behaviour depends on ``self.visit_type``:
-
-        - ``VisitType.DATAFRAME``: visit ages are read directly from
-          ``self.param_study['df_visits']``.  ``self._pre_sampled_events`` is set to
-          ``None`` so that :meth:`_generate_dataset` falls back to its own event-sampling
-          path.
-
-        - ``VisitType.RANDOM``: for each patient a Weibull competing-event time is drawn
-          using the model's ``n_log_nu_mean``, ``log_rho_mean``, and (optionally)
-          ``zeta_mean`` parameters together with the patient's individual parameters.
-          A follow-up window is then sampled from the study parameters and the visit
-          schedule is built by stepping forward in time from ``anchor - follow_up`` with
-          inter-visit gaps drawn from ``N(distance_visit_mean, distance_visit_std)``.
-          The anchor is the event time if the event occurs within the study window,
-          otherwise the study-end time (censored).  The resulting event metadata
-          (``EVENT_TIME``, ``EVENT_BOOL``) are stored in ``self._pre_sampled_events``
-          so that :meth:`_generate_dataset` can reuse them without re-sampling.
-
-        Parameters
-        ----------
-        df : pd.DataFrame
-            Individual-parameters DataFrame with ``xi``, ``tau``, and optional
-            ``sources_k`` columns, indexed by patient ID strings.  Typically produced
-            by :meth:`_sample_individual_parameters_from_model_parameters`.
-
-        Returns
-        -------
-        dict
-            Mapping from patient-ID string to a list of visit ages (floats) in
-            ascending order.
-        """
-        if self.visit_type == VisitType.DATAFRAME:
-            self._pre_sampled_events = None
-            return (
-                self.param_study["df_visits"]
-                .groupby("ID")["TIME"]
-                .apply(list)
-                .to_dict()
-            )
-
-        # Population-level Weibull parameters (same expressions as in _generate_dataset)
-        nu = torch.exp(-self.model.parameters["n_log_nu_mean"])   # shape (nb_events,)
-        rho = torch.exp(self.model.parameters["log_rho_mean"])    # shape (nb_events,)
-        zeta = (
-            self.model.parameters["zeta_mean"]
-            if self.model.source_dimension > 0
-            else None
-        )  # shape (source_dimension, nb_events) or None
-
-        dict_timepoints: dict = {}
-        self._pre_sampled_events: dict = {}
-
-        for id_ in df.index:
-            xi_i = torch.tensor(float(df.loc[id_, "xi"]))
-            tau_i = float(df.loc[id_, "tau"])
-
-            # Sample Weibull event time (one draw per competing-event type)
-            event_times_per_type = []
-            for k in range(self.model.nb_events):
-                if zeta is not None:
-                    sources_i = torch.tensor(
-                        [float(df.loc[id_, f"sources_{j}"])
-                         for j in range(self.model.source_dimension)]
-                    )
-                    survival_shift_k = torch.dot(sources_i, zeta[:, k])
-                    nu_rep_k = nu[k] * torch.exp(
-                        -(xi_i + (1.0 / rho[k]) * survival_shift_k)
-                    )
-                else:
-                    nu_rep_k = nu[k] * torch.exp(-xi_i)
-                nu_rep_k = nu_rep_k.clamp(min=1e-8)
-                T_ek = float(
-                    torch.distributions.Weibull(nu_rep_k, rho[k]).sample()
-                ) + tau_i
-                event_times_per_type.append(T_ek)
-
-            if self.model.nb_events == 1:
-                T_e = event_times_per_type[0]
-                evt_idx = 1
-            else:
-                min_k = int(np.argmin(event_times_per_type))
-                T_e = event_times_per_type[min_k]
-                evt_idx = min_k + 1  # 1-indexed EVENT_BOOL
-
-            # Sample follow-up window (independent of event)
-            follow_up = float(np.abs(np.random.normal(
-                self.param_study["time_follow_up_mean"],
-                self.param_study["time_follow_up_std"],
-            )))
-            first_visit_offset = float(np.random.normal(
-                self.param_study["first_visit_mean"],
-                self.param_study["first_visit_std"],
-            ))
-            # Study-end: where the follow-up window would naturally close
-            study_end = tau_i + first_visit_offset + follow_up
-
-            # Anchor: end of the visit window
-            if T_e <= study_end:
-                # Event occurs within the study window -> observed
-                anchor = T_e
-                event_time_final = T_e
-                evt_idx_final = evt_idx
-            else:
-                # Event occurs after the study window -> censored at study_end
-                anchor = study_end
-                event_time_final = study_end
-                evt_idx_final = 0
-
-            # Generate visits backward from anchor
-            age_start = anchor - follow_up
-            visits = [age_start]
-            t = age_start
-            while t < anchor:
-                t += np.random.normal(
-                    self.param_study["distance_visit_mean"],
-                    self.param_study["distance_visit_std"],
-                )
-                visits.append(t)
-
-            # Keep only visits that fall within [age_start, anchor]
-            visits = [v for v in visits if v <= anchor + 1e-9]
-            if not visits:
-                visits = [age_start]
-
-            dict_timepoints[id_] = visits
-            self._pre_sampled_events[id_] = {
-                "EVENT_TIME": event_time_final,
-                "EVENT_BOOL": evt_idx_final,
-            }
-
-        return dict_timepoints
-
     def _generate_dataset(
         self,
         model: McmcSaemCompatibleModel,
@@ -452,7 +298,8 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         individual_parameters_from_model_parameters: pd.DataFrame,
         min_spacing_between_visits: float,
     ) -> pd.DataFrame:
-        """Generate a simulated joint dataset with longitudinal outcomes and time-to-event data.
+        """
+        Generate a simulated joint dataset with longitudinal outcomes and time-to-event data.
 
         Steps:
         1. Estimate longitudinal trajectories for all visit timepoints.
@@ -484,7 +331,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             f"sources_{i}" for i in range(model.source_dimension)
         ]
 
-        # Estimate longitudinal trajectories (output has n_features + nb_events columns)
+        # --- Step 1: estimate longitudinal trajectories (output has n_features + nb_events columns) ---
         values = self.model.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
@@ -509,7 +356,7 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             ]
         )
 
-        # Add beta-distributed noise
+        # --- Step 2: add beta-distributed noise ---
         for i, feat in enumerate(self.features):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
@@ -533,121 +380,114 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             beta_param = (1 - mu) * ((mu * (1 - mu) / adj_var) - 1)
             df_long.loc[:, feat] = beta.rvs(alpha_param, beta_param)
 
-        # Event times and censoring
-        if getattr(self, "_pre_sampled_events", None) is not None:
-            # Events were pre-sampled in _generate_visit_ages and the visit window
-            # was already anchored to each patient's event/study-end time.
-            event_records = [
-                {"ID": id_, **self._pre_sampled_events[id_]}
-                for id_ in individual_parameters_from_model_parameters.index
-            ]
-            ids_to_drop = []
-        else:
-            # Original path: sample Weibull event times and apply censoring.
-            nu = torch.exp(-model.parameters["n_log_nu_mean"])  # shape (nb_events,)
-            rho = torch.exp(model.parameters["log_rho_mean"])   # shape (nb_events,)
-            zeta = (
-                model.parameters["zeta_mean"]
-                if model.source_dimension > 0
-                else None
-            )  # shape (source_dimension, nb_events) or None
+        # --- Step 3: simulate event times from the Weibull sub-model ---
+        # Population-level Weibull parameters
+        nu = torch.exp(-model.parameters["n_log_nu_mean"])  # shape (nb_events,)
+        rho = torch.exp(model.parameters["log_rho_mean"])   # shape (nb_events,)
+        # Coefficient linking sources to log-scale shift (only for multivariate models)
+        zeta = (
+            model.parameters["zeta_mean"]
+            if model.source_dimension > 0
+            else None
+        )  # shape (source_dimension, nb_events) or None
 
-            event_records = []
-            ids_to_drop = []  # (id_, TIME) index pairs to remove from df_long
+        # --- Steps 4-5: apply censoring and build event records ---
+        event_records = []
+        ids_to_drop = []  # (id_, TIME) index pairs to remove from df_long
 
-            for id_ in individual_parameters_from_model_parameters.index:
-                xi_i = torch.tensor(
-                    float(individual_parameters_from_model_parameters.loc[id_, "xi"])
-                )
-                tau_i = torch.tensor(
-                    float(individual_parameters_from_model_parameters.loc[id_, "tau"])
-                )
+        for id_ in individual_parameters_from_model_parameters.index:
+            xi_i = torch.tensor(
+                float(individual_parameters_from_model_parameters.loc[id_, "xi"])
+            )
+            tau_i = torch.tensor(
+                float(individual_parameters_from_model_parameters.loc[id_, "tau"])
+            )
 
-                # Sample an event time for each competing event type
-                event_times_per_type = []
-                for k in range(model.nb_events):
-                    if zeta is not None:
-                        sources_i = torch.tensor(
-                            [
-                                float(
-                                    individual_parameters_from_model_parameters.loc[
-                                        id_, f"sources_{j}"
-                                    ]
-                                )
-                                for j in range(model.source_dimension)
-                            ]
-                        )
-                        survival_shift_k = torch.dot(sources_i, zeta[:, k])
-                        # WeibullRightCensoredWithSourcesFamily reparametrization
-                        nu_rep_k = nu[k] * torch.exp(
-                            -(xi_i + (1.0 / rho[k]) * survival_shift_k)
-                        )
-                    else:
-                        # WeibullRightCensoredFamily reparametrization
-                        nu_rep_k = nu[k] * torch.exp(-xi_i)
-
-                    nu_rep_k = nu_rep_k.clamp(min=1e-8)
-                    # T_{e,i,k} = Weibull(scale=nu_rep_k, shape=rho_k) + tau_i
-                    T_ek = float(
-                        torch.distributions.Weibull(nu_rep_k, rho[k]).sample() + tau_i
+            # Sample an event time for each competing event type
+            event_times_per_type = []
+            for k in range(model.nb_events):
+                if zeta is not None:
+                    sources_i = torch.tensor(
+                        [
+                            float(
+                                individual_parameters_from_model_parameters.loc[
+                                    id_, f"sources_{j}"
+                                ]
+                            )
+                            for j in range(model.source_dimension)
+                        ]
                     )
-                    event_times_per_type.append(T_ek)
-
-                # For competing events, the first event to occur wins
-                if model.nb_events == 1:
-                    T_e = event_times_per_type[0]
-                    evt_idx = 1
+                    survival_shift_k = torch.dot(sources_i, zeta[:, k])
+                    # WeibullRightCensoredWithSourcesFamily reparametrization
+                    nu_rep_k = nu[k] * torch.exp(
+                        -(xi_i + (1.0 / rho[k]) * survival_shift_k)
+                    )
                 else:
-                    min_k = int(np.argmin(event_times_per_type))
-                    T_e = event_times_per_type[min_k]
-                    evt_idx = min_k + 1  # 1-indexed EVENT_BOOL
+                    # WeibullRightCensoredFamily reparametrization
+                    nu_rep_k = nu[k] * torch.exp(-xi_i)
 
-                # Identify valid visits: keep only t <= T_e (visits before/at event)
-                patient_visits = sorted(dict_timepoints[id_])
-                original_last_visit = patient_visits[-1]
-                valid_visits = [t for t in patient_visits if t <= T_e]
+                nu_rep_k = nu_rep_k.clamp(min=1e-8)
+                # T_{e,i,k} = Weibull(scale=nu_rep_k, shape=rho_k) + tau_i
+                T_ek = float(
+                    torch.distributions.Weibull(nu_rep_k, rho[k]).sample() + tau_i
+                )
+                event_times_per_type.append(T_ek)
 
-                if len(valid_visits) == 0:
-                    # Event occurred before any scheduled visit: keep first visit, censor
-                    warnings.warn(
-                        f"Patient {id_}: simulated event time ({T_e:.3f}) is before "
-                        f"the first visit ({patient_visits[0]:.3f}). "
-                        "Keeping first visit and treating event as censored."
-                    )
-                    valid_visits = [patient_visits[0]]
+            # For competing events, the first event to occur wins
+            if model.nb_events == 1:
+                T_e = event_times_per_type[0]
+                evt_idx = 1
+            else:
+                min_k = int(np.argmin(event_times_per_type))
+                T_e = event_times_per_type[min_k]
+                evt_idx = min_k + 1  # 1-indexed EVENT_BOOL
+
+            # Identify valid visits: keep only t <= T_e (visits before/at event)
+            patient_visits = sorted(dict_timepoints[id_])
+            original_last_visit = patient_visits[-1]
+            valid_visits = [t for t in patient_visits if t <= T_e]
+
+            if len(valid_visits) == 0:
+                # Event occurred before any scheduled visit: keep first visit, censor
+                warnings.warn(
+                    f"Patient {id_}: simulated event time ({T_e:.3f}) is before "
+                    f"the first visit ({patient_visits[0]:.3f}). "
+                    "Keeping first visit and treating event as censored."
+                )
+                valid_visits = [patient_visits[0]]
+                evt_idx_final = 0
+                event_time_final = patient_visits[0]
+            else:
+                last_valid_visit = max(valid_visits)
+                # Mark visits after T_e for removal
+                for t in patient_visits:
+                    if t > T_e:
+                        ids_to_drop.append((id_, t))
+
+                # Censoring: event after the original end of follow-up means it was not observed
+                if T_e > original_last_visit + 1e-9:
+                    # Event occurred after the follow-up window -> censored
+                    event_time_final = last_valid_visit
                     evt_idx_final = 0
-                    event_time_final = patient_visits[0]
                 else:
-                    last_valid_visit = max(valid_visits)
-                    # Mark visits after T_e for removal
-                    for t in patient_visits:
-                        if t > T_e:
-                            ids_to_drop.append((id_, t))
+                    # Event occurred within follow-up -> observed
+                    event_time_final = T_e
+                    evt_idx_final = evt_idx
 
-                    # Censoring: event after the original end of follow-up means it was not observed
-                    if T_e > original_last_visit + 1e-9:
-                        # Event occurred after the follow-up window -> censored
-                        event_time_final = last_valid_visit
-                        evt_idx_final = 0
-                    else:
-                        # Event occurred within follow-up -> observed
-                        event_time_final = T_e
-                        evt_idx_final = evt_idx
-
-                event_records.append(
-                    {
-                        "ID": id_,
-                        "EVENT_TIME": event_time_final,
-                        "EVENT_BOOL": evt_idx_final,
-                    }
-                )
+            event_records.append(
+                {
+                    "ID": id_,
+                    "EVENT_TIME": event_time_final,
+                    "EVENT_BOOL": evt_idx_final,
+                }
+            )
 
         # Drop visits that occurred after the event time
         if ids_to_drop:
             drop_idx = pd.MultiIndex.from_tuples(ids_to_drop, names=["ID", "TIME"])
             df_long = df_long.drop(index=drop_idx, errors="ignore")
 
-        # Apply minimum visit spacing filter
+        # --- Step 6: apply minimum visit spacing filter ---
         rounding_options = {
             0: 1,
             1: 0.1,
@@ -665,11 +505,11 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         df_sim.set_index(["ID", "TIME"], inplace=True)
         df_sim = df_sim[~df_sim.index.duplicated()]
 
-        # Attach event data
+        # --- Step 7: attach event data ---
         df_events = pd.DataFrame(event_records).set_index("ID")
         df_sim = df_sim.join(df_events, on="ID")
 
-        # Drop visits whose rounded TIME exceeds EVENT_TIME
+        # --- Step 8: drop visits whose rounded TIME exceeds EVENT_TIME ---
         # Rounding can push a visit time above the event time, violating the
         # constraint that all visits must occur before or at the event.
         df_sim = df_sim.reset_index()
