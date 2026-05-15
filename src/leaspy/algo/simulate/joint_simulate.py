@@ -302,11 +302,11 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
         Generate a simulated joint dataset with longitudinal outcomes and time-to-event data.
 
         Steps:
-        1. Estimate longitudinal trajectories for all visit timepoints.
+        1. Estimate longitudinal trajectories and event predictions for all visit timepoints.
         2. Add beta-distributed noise to longitudinal feature values.
-        3. Simulate competing event times from the Weibull sub-model.
-        4. Remove visits occurring after the event time (step 6 of the simulation procedure).
-        5. Censor the event if it occurs after the last remaining visit.
+        3. Simulate event times via inverse CDF sampling on the estimate's event predictions.
+        4. Remove visits occurring after the event time.
+        5. Censor the event if it does not occur within the follow-up window.
         6. Apply minimum visit spacing filter.
         7. Return a DataFrame with feature columns and EVENT_TIME / EVENT_BOOL columns.
 
@@ -331,30 +331,19 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             f"sources_{i}" for i in range(model.source_dimension)
         ]
 
-        # --- Step 1: estimate longitudinal trajectories (output has n_features + nb_events columns) ---
-        values = self.model.estimate(
+        # --- Step 1: estimate longitudinal trajectories ---
+        # estimate() with to_dataframe=True returns a MultiIndex (ID, TIME) DataFrame
+        # with columns = model.features + model.event_features.
+        df_estimated = self.model.estimate(
             dict_timepoints,
             IndividualParameters().from_dataframe(
                 individual_parameters_from_model_parameters[ip_cols]
             ),
+            to_dataframe=True,
         )
 
-        n_long_features = len(self.features)
-
-        df_long = pd.concat(
-            [
-                pd.DataFrame(
-                    values[id_][:, :n_long_features].clip(
-                        max=0.9999999, min=0.00000001
-                    ),
-                    index=pd.MultiIndex.from_product(
-                        [[id_], dict_timepoints[id_]], names=["ID", "TIME"]
-                    ),
-                    columns=[feat + "_no_noise" for feat in self.features],
-                )
-                for id_ in values.keys()
-            ]
-        )
+        df_long = df_estimated[list(self.features)].clip(upper=0.9999999, lower=0.00000001)
+        df_long.columns = [feat + "_no_noise" for feat in self.features]
 
         # --- Step 2: add beta-distributed noise ---
         for i, feat in enumerate(self.features):
@@ -380,99 +369,72 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
             beta_param = (1 - mu) * ((mu * (1 - mu) / adj_var) - 1)
             df_long.loc[:, feat] = beta.rvs(alpha_param, beta_param)
 
-        # --- Step 3: simulate event times from the Weibull sub-model ---
-        # Population-level Weibull parameters
-        nu = torch.exp(-model.parameters["n_log_nu_mean"])  # shape (nb_events,)
-        rho = torch.exp(model.parameters["log_rho_mean"])   # shape (nb_events,)
-        # Coefficient linking sources to log-scale shift (only for multivariate models)
-        zeta = (
-            model.parameters["zeta_mean"]
-            if model.source_dimension > 0
-            else None
-        )  # shape (source_dimension, nb_events) or None
+        # --- Step 3: simulate event times via inverse CDF sampling ---
+        # The estimate output already contains event predictions (in addition to
+        # longitudinal features).  We use those predictions directly instead of
+        # re-deriving Weibull parameters from model internals:
+        #   nb_events == 1: "event_pred"   = S(t)/S(t0), conditional survival
+        #                    -> total conditional CDF = 1 - event_pred  (decreasing)
+        #   nb_events > 1:  "event_pred_k" = CIF_k(t)/S(t0), conditional cause-
+        #                    specific CIF  -> total conditional CDF = Σ_k event_pred_k
+        df_event_pred = df_estimated[model.event_features]
 
         # --- Steps 4-5: apply censoring and build event records ---
         event_records = []
         ids_to_drop = []  # (id_, TIME) index pairs to remove from df_long
 
         for id_ in individual_parameters_from_model_parameters.index:
-            xi_i = torch.tensor(
-                float(individual_parameters_from_model_parameters.loc[id_, "xi"])
-            )
-            tau_i = torch.tensor(
-                float(individual_parameters_from_model_parameters.loc[id_, "tau"])
-            )
-
-            # Sample an event time for each competing event type
-            event_times_per_type = []
-            for k in range(model.nb_events):
-                if zeta is not None:
-                    sources_i = torch.tensor(
-                        [
-                            float(
-                                individual_parameters_from_model_parameters.loc[
-                                    id_, f"sources_{j}"
-                                ]
-                            )
-                            for j in range(model.source_dimension)
-                        ]
-                    )
-                    survival_shift_k = torch.dot(sources_i, zeta[:, k])
-                    # WeibullRightCensoredWithSourcesFamily reparametrization
-                    nu_rep_k = nu[k] * torch.exp(
-                        -(xi_i + (1.0 / rho[k]) * survival_shift_k)
-                    )
-                else:
-                    # WeibullRightCensoredFamily reparametrization
-                    nu_rep_k = nu[k] * torch.exp(-xi_i)
-
-                nu_rep_k = nu_rep_k.clamp(min=1e-8)
-                # T_{e,i,k} = Weibull(scale=nu_rep_k, shape=rho_k) + tau_i
-                T_ek = float(
-                    torch.distributions.Weibull(nu_rep_k, rho[k]).sample() + tau_i
-                )
-                event_times_per_type.append(T_ek)
-
-            # For competing events, the first event to occur wins
-            if model.nb_events == 1:
-                T_e = event_times_per_type[0]
-                evt_idx = 1
-            else:
-                min_k = int(np.argmin(event_times_per_type))
-                T_e = event_times_per_type[min_k]
-                evt_idx = min_k + 1  # 1-indexed EVENT_BOOL
-
-            # Identify valid visits: keep only t <= T_e (visits before/at event)
             patient_visits = sorted(dict_timepoints[id_])
             original_last_visit = patient_visits[-1]
-            valid_visits = [t for t in patient_visits if t <= T_e]
 
-            if len(valid_visits) == 0:
-                # Event occurred before any scheduled visit: keep first visit, censor
-                warnings.warn(
-                    f"Patient {id_}: simulated event time ({T_e:.3f}) is before "
-                    f"the first visit ({patient_visits[0]:.3f}). "
-                    "Keeping first visit and treating event as censored."
-                )
-                valid_visits = [patient_visits[0]]
-                evt_idx_final = 0
-                event_time_final = patient_visits[0]
+            # Predictions for this patient at each scheduled visit (indexed by TIME)
+            patient_pred = df_event_pred.loc[id_]
+            times = patient_pred.index.values  # float TIME values
+
+            if model.nb_events == 1:
+                # conditional survival -> total conditional CDF = 1 - survival
+                total_cif = 1.0 - patient_pred.iloc[:, 0].values
             else:
-                last_valid_visit = max(valid_visits)
+                # sum of cause-specific conditional CIFs = total conditional CDF
+                total_cif = patient_pred.sum(axis=1).values
+
+            # Inverse transform sampling: first visit where CDF >= U
+            U = np.random.uniform(0.0, 1.0)
+            exceeded_idx = np.where(total_cif >= U)[0]
+
+            if len(exceeded_idx) == 0:
+                # U exceeds the total CDF at the last visit -> censored
+                event_time_final = original_last_visit
+                evt_idx_final = 0
+            else:
+                idx_e = exceeded_idx[0]
+                T_e = float(times[idx_e])
+
                 # Mark visits after T_e for removal
                 for t in patient_visits:
                     if t > T_e:
                         ids_to_drop.append((id_, t))
 
-                # Censoring: event after the original end of follow-up means it was not observed
-                if T_e > original_last_visit + 1e-9:
-                    # Event occurred after the follow-up window -> censored
-                    event_time_final = last_valid_visit
-                    evt_idx_final = 0
+                # Determine event type from incremental cause-specific CIF at T_e
+                if model.nb_events == 1:
+                    evt_idx_final = 1
                 else:
-                    # Event occurred within follow-up -> observed
-                    event_time_final = T_e
-                    evt_idx_final = evt_idx
+                    cif_at_Te = patient_pred.values[idx_e]
+                    cif_at_prev = (
+                        patient_pred.values[idx_e - 1]
+                        if idx_e > 0
+                        else np.zeros(model.nb_events)
+                    )
+                    delta_k = np.maximum(cif_at_Te - cif_at_prev, 0.0)
+                    if delta_k.sum() > 0:
+                        probs = delta_k / delta_k.sum()
+                        evt_idx_final = (
+                            int(np.random.choice(model.nb_events, p=probs)) + 1
+                        )
+                    else:
+                        evt_idx_final = int(np.argmax(cif_at_Te)) + 1
+
+                event_time_final = T_e
 
             event_records.append(
                 {
