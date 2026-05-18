@@ -18,6 +18,8 @@ class LoaderTest(LeaspyTestCase):
         Check ID and dtype of ID, TIME and values.
         """
         for name in DatasetName:
+            if name == DatasetName.SIMULATED_DATA_FOR_JOINT:
+                continue
             df = load_dataset(name)
             expected_index = (
                 ["ID", "TIME", "SPLIT"] if "train_and_test" in name else ["ID", "TIME"]
@@ -37,7 +39,7 @@ class LoaderTest(LeaspyTestCase):
         from leaspy.models import LogisticModel
 
         for name in DatasetName:
-            if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
+            if name not in (DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST, DatasetName.SIMULATED_DATA_FOR_JOINT):
                 model = load_model(name)
                 self.assertTrue(isinstance(model, LogisticModel))
         model = load_model(DatasetName.PARKINSON_PUTAMEN)
@@ -63,7 +65,7 @@ class LoaderTest(LeaspyTestCase):
     def test_load_individual_parameters(self):
         """Check that all ips are loadable, and check values for one individual_parameters instance."""
         for name in DatasetName:
-            if name != DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST:
+            if name not in (DatasetName.PARKINSON_PUTAMEN_TRAIN_TEST, DatasetName.SIMULATED_DATA_FOR_JOINT):
                 individual_parameters = load_individual_parameters(name)
         individual_parameters = load_individual_parameters("alzheimer")
 
