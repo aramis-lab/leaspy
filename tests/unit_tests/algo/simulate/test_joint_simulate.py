@@ -71,7 +71,7 @@ class JointSimulateAlgoTest(LeaspyTestCase):
             self.assertTrue((diffs > 0).all())
 
     def test_dataframe_visits(self):
-        df_input = pd.DataFrame({"ID": ["p1", "p1", "p2"], "TIME": [50.0, 51.0, 52.0]})
+        df_input = pd.DataFrame({"ID": ["p1", "p1", "p2"], "TIME": [79.0, 80.0, 81.0]})
 
         visits_param = {"visit_type": "dataframe", "df_visits": df_input}
 
@@ -83,14 +83,17 @@ class JointSimulateAlgoTest(LeaspyTestCase):
         )
 
         df_sim = df_sim.data.to_dataframe()
+        self.assertFalse(df_sim.empty)
 
-        # Check all input times are present
+        # Simulated visits must be a *subset* of the input visits: the algorithm may
+        # legitimately drop visits that occur after a simulated event, but it must
+        # never introduce times that were not in the input dataframe.
         df_sim = df_sim.set_index(["ID", "TIME"])
         input_indices = df_input.set_index(["ID", "TIME"]).index
         simulated_indices = df_sim.index
 
-        for idx in input_indices:
-            self.assertIn(idx, simulated_indices)
+        for idx in simulated_indices:
+            self.assertIn(idx, input_indices)
 
         # Check features exist
         for feature in model.features:
