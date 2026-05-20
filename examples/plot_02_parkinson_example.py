@@ -118,10 +118,10 @@ plt.show()
 # two numbers that place them on a shared disease timeline and predict their future
 # trajectory across all scores simultaneously.
 
-# `ip.transform(model)` converts each patient's abstract source variables into concrete
-# per-feature offsets — showing how much each score deviates from the average trajectory
-# for that patient, independently of their speed or position on the shared timeline.
-ip.transform(model).head()
+# `ip.compute_space_shifts(model)` converts each patient's abstract source variables into
+# concrete per-feature offsets — showing how much each score deviates from the average
+# trajectory for that patient, independently of their speed or position on the shared timeline.
+ip.compute_space_shifts(model).head()
 
 # %%
 # The next example extends this to joint models that also incorporate time-to-event

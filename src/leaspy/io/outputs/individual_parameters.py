@@ -389,7 +389,7 @@ class IndividualParameters:
         df = pd.DataFrame(arr, columns=final_names)
         return df.set_index("ID")
 
-    def transform(self, model) -> pd.DataFrame:
+    def compute_space_shifts(self, model) -> pd.DataFrame:
         r"""
         Compute per-subject space shifts ``w = sources @ mixing_matrix``.
 
@@ -411,7 +411,7 @@ class IndividualParameters:
         Examples
         --------
         >>> ip = model.personalize(data, "scipy_minimize", seed=0)
-        >>> w_df = ip.transform(model)
+        >>> w_df = ip.compute_space_shifts(model)
         """
         import torch
 
