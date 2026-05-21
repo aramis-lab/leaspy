@@ -1,6 +1,6 @@
 """
 Personalization: Parkinson's disease progression and inference modeling with Leaspy
-================================================================
+===================================================================================
 
 This example walks through the core Leaspy workflow on a synthetic Parkinson's disease dataset:
 
@@ -118,10 +118,28 @@ plt.show()
 # two numbers that place them on a shared disease timeline and predict their future
 # trajectory across all scores simultaneously.
 
-# `ip.compute_space_shifts(model)` converts each patient's abstract source variables into
-# concrete per-feature offsets — showing how much each score deviates from the average
-# trajectory for that patient, independently of their speed or position on the shared timeline.
+# %%
+# **Interpreting the individual space shifts.** Beyond (τᵢ, ξᵢ), each patient
+# also has a *spatial* signature — per-feature offsets that describe whether
+# they are more or less affected on certain features than the cohort-average
+# trajectory predicts for someone at their disease stage. These offsets are the
+# **space shifts** ``wᵢ,ₖ``:
+#
+# * ``wᵢ,ₖ`` has one entry per feature, returned as columns ``w_<feature>``.
+# * A *positive* ``w_MDS1`` for patient *i* means "given this patient's
+#   (τ, ξ), they are *more* impaired on MDS1 than the cohort-average trajectory
+#   predicts"; *negative* means *less* impaired.
+# * By construction, the cohort-average ``wᵢ,ₖ`` is approximately zero.
+
 ip.compute_space_shifts(model).head()
+
+# %%
+# Large ``|wᵢ,ₖ|`` flags patients whose feature *k* is
+# atypically ahead or behind their overall stage — a signal worth a closer
+# look (alternative diagnosis, treatment response, comorbidity). This parameter
+# can be also interpreted "reverting" the features normalization, i.e. for the
+# MMSE that goes from 0 to 30, a ``wᵢ,MMSE = -0.1`` means that patient *i* is 3 
+# points better than the average patient at their stage.
 
 # %%
 # The next example extends this to joint models that also incorporate time-to-event

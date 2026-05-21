@@ -68,6 +68,31 @@ model.fit(
 model.summary()
 
 # %%
+# **Interpreting the population parameters.** The summary above describes the
+# cohort-average disease trajectory through three population-level quantities:
+#
+# * ``tau_mean`` — the reference age (in years) at which the cohort, on
+#   average, reaches the reference state ``p0``. It anchors the shared disease
+#   clock.
+# * ``v0`` — the per-feature velocity at ``tau_mean`` (per year, on the
+#   ``[0, 1]`` scale). Features with larger ``v0`` change faster around the
+#   reference age.
+# * ``p0`` — the per-feature value at ``tau_mean``, on ``[0, 1]``. Read it as
+#   the average impairment level when the cohort reaches ``tau_mean``.
+#
+# ``v0`` and ``p0`` appear under "Derived Parameters" in the summary. They are
+# returned in interpretable scale by ``model.compute_derived_parameters()`` —
+# the raw fitted values ``log_v0_mean`` and ``log_g_mean`` live in log / logit
+# space and are not meant to be read directly.
+
+derived = model.compute_derived_parameters()
+for k, name in enumerate(model.features):
+    v0_k = derived["v0"][k].item()
+    p0_k = derived["p0"][k].item()
+    print(f"  {name:<8}  v0 = {v0_k: .4f} / yr     p0 = {p0_k:.3f}")
+print(f"  tau_mean = {float(model.parameters['tau_mean']):.2f} yr")
+
+# %%
 # The ``fit`` method estimates the parameters of the model, which are then accessible
 # through the ``summary`` method. The parameters are also stored in the ``parameters`` attribute of the model.
 
