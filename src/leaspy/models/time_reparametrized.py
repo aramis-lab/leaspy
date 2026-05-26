@@ -61,7 +61,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
         # - use factory of observation models instead? dataset -> ObservationModel
         # - or refact a bit `ObservationModel` structure? (lazy init of its variables...)
         # (cf. note in AbstractModel as well)
-        dimension = kwargs.get("dimension", None)
+        dimension = kwargs.get("dimension", 1000)
         if "features" in kwargs:
             dimension = len(kwargs["features"])
         # source_dimension = kwargs.get("source_dimension", None)
