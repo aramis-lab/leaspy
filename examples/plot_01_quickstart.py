@@ -62,13 +62,12 @@ model.fit(
     save_periodicity=10,
     plot_periodicity=10,
 )
-
+# %%
 # The save_periodicity and plot_periodicity arguments are optional, and control how often the 
 # model parameters are saved and plotted during the fitting process. By setting them to an
 # integer value, an output folder is created under the name `_outputs`in the working directory,
 # where the convergence plots and csv are saved. You can also control the target folder by
 # providing a string to the `path` argument.
-
 # %%
 # Leaspy can also estimate the *individual trajectories* of each participant.
 # This is done using a personalization algorithm, here `scipy_minimize`:
