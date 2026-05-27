@@ -73,7 +73,23 @@ plt.show()
 #   τ (tau) — disease onset age (position on the timeline)
 #   ξ (xi)  — log-acceleration (pace of progression)
 ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False)
+ip.to_dataframe().head()
 
+# %%
+# For example for the patient with ID `GS-161` we observe a `tau`of 57.69` and a `xi` of -0.29 (let's ignore the `sources` parameters for the moment).
+# To interpret the patient's `tau` we should compare it with the population-level `tau_mean`.
+
+model.parameters['tau_mean']
+
+# %%
+# The average patient reaches the inflection point of the disease trajectory at age 67.35. 
+# The patient `GS-161` has a `tau` of 57.69, which means that they are showing an earlier 
+# disease onset by approximately 10 years on the reparametrized disease timeline.
+
+# %%
+# To interpret the patient's `xi` we should compare it with 0.
+# Patient `GS-161` has a `xi` of -0.29, which means that they are progressing slower than the average patient,
+# while patient `GS-163` has a `xi` of 0.13 which means that they are progressing faster than the average patient.
 # %%
 # After time reparametrization ψᵢ(t) = exp(ξᵢ)·(t − τᵢ), all patients align onto
 # the same curve — confirming the model has captured their individual stages and speeds.
