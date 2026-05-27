@@ -121,15 +121,15 @@ plt.show()
 # %%
 # **Interpreting the individual space shifts.** Beyond (τᵢ, ξᵢ), each patient
 # also has a *spatial* signature — per-feature offsets that describe whether
-# they are more or less affected on certain features than the cohort-average
-# trajectory predicts for someone at their disease stage. These offsets are the
+# they are more or less affected on certain features than the average
+# trajectory at ``tau_mean``. These offsets are the
 # **space shifts** ``wᵢ,ₖ``:
 #
 # * ``wᵢ,ₖ`` has one entry per feature, returned as columns ``w_<feature>``.
 # * A *positive* ``w_MDS1`` for patient *i* means "given this patient's
-#   (τ, ξ), they are *more* impaired on MDS1 than the cohort-average trajectory
+#   (τ, ξ), they are *more* impaired on MDS1 than the average trajectory
 #   predicts"; *negative* means *less* impaired.
-# * By construction, the cohort-average ``wᵢ,ₖ`` is approximately zero.
+# * By construction, the average ``wᵢ,ₖ`` is approximately zero.
 
 ip.compute_space_shifts(model).head()
 

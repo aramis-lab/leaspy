@@ -69,16 +69,16 @@ model.summary()
 
 # %%
 # **Interpreting the population parameters.** The summary above describes the
-# cohort-average disease trajectory through three population-level quantities:
+# average disease trajectory through three population-level parameters:
 #
-# * ``tau_mean`` — the reference age (in years) at which the cohort, on
-#   average, reaches the reference state ``p0``. It anchors the shared disease
-#   clock.
-# * ``v0`` — the per-feature velocity at ``tau_mean`` (per year, on the
-#   ``[0, 1]`` scale). Features with larger ``v0`` change faster around the
+# * ``tau_mean`` — the reference age (in years) at which the patients, on
+#   average, reaches the inflection point. It anchors the shared disease
+#   timeline.
+# * ``v0`` — the per-feature velocity at ``tau_mean``.
+#   Features with larger ``v0`` change faster around the
 #   reference age.
-# * ``p0`` — the per-feature value at ``tau_mean``, on ``[0, 1]``. Read it as
-#   the average impairment level when the cohort reaches ``tau_mean``.
+# * ``p0`` — the per-feature value at ``tau_mean``, on ``[0, 1]``.
+#   Features with larger ``p0`` are more advanced at ``tau_mean``.
 #
 # ``v0`` and ``p0`` appear under "Derived Parameters" in the summary. They are
 # returned in interpretable scale by ``model.compute_derived_parameters()`` —
