@@ -374,14 +374,12 @@ class StatefulModel(BaseModel):
             parameter_value = val_to_tensor(
                 parameter_value, getattr(self.dag[parameter_name], "shape", None)
             )
-            assert (
-                parameter_value.shape == current_value.shape,
-                (parameter_name, parameter_value.shape, current_value.shape),
+            assert parameter_value.shape == current_value.shape, (
+                parameter_name, parameter_value.shape, current_value.shape
             )
             # TODO: WeightedTensor? (e.g. batched `deltas``)
-            assert (
-                torch.allclose(parameter_value, current_value, atol=1e-4),
-                (parameter_name, parameter_value, current_value),
+            assert torch.allclose(parameter_value, current_value, atol=1e-4), (
+                parameter_name, parameter_value, current_value
             )
 
     @abstractmethod

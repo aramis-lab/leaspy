@@ -49,7 +49,13 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
+    "sphinx.ext.viewcode",
+    "sphinx_copybutton",
 ]
+
+# sphinx-copybutton: strip shell prompts from copied text
+copybutton_prompt_text = r">>> |\$ "
+copybutton_prompt_is_regexp = True
 
 bibtex_bibfiles = ["references.bib"]
 
@@ -133,6 +139,7 @@ exclude_patterns = [
     "auto_examples/*.ipynb",
     "auto_examples/*.py.md5",
     "auto_examples/*.codeobj.json",
+    "data_summary.ipynb",
 ]
 
 show_warning_types = True
@@ -143,20 +150,16 @@ suppress_warnings = [
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
+# PyData supports separate styles for light and dark mode.
 highlight_language = "python3"
-pygments_style = "sphinx"
+pygments_style = "friendly"        # light mode
+pygments_dark_style = "monokai"    # dark mode
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages. See the documentation for
 # a list of builtin themes.
 #
-# ---sphinx-themes-----
-# html_theme = 'neo_rtd_theme'
-# html_theme_path = [sphinx_theme.get_html_theme_path()]
-
-# html_theme = 'alabaster'
-# html_theme = 'sphinx-theme'
 html_theme = "pydata_sphinx_theme"
 
 add_function_parentheses = True
@@ -170,48 +173,40 @@ html_css_files = [
 ]
 html_js_files = ["custom.js"]
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further. For a list of options available for each theme, see the
-# documentation.
+# Favicon
+html_favicon = "_static/favicon.png"
+
+# Theme options
 html_theme_options = {
-    "collapse_navigation": True,
-    "navigation_depth": 4,
-    # Logo and description
-    # 'description': 'LEArning Spatiotemporal Patterns in Python',
-    # 'logo_name': 'false',
-    # 'logo_text_align': 'center',
-    # GitHub stuff
-    # 'github_banner': 'true',
-    # 'github_repo': 'pyts',
-    # 'github_type': 'star',
-    # 'github_user': 'johannfaouzi',
-    # Page and sidebar widths
-    # 'page_width': '1300px',
-    "body_max_width": "1000px",
-    # 'sidebar_width': '250px',
-    # Related links
-    # 'show_related': 'true',
-    # 'show_relbar_bottom': 'true',
-    # Font sizes
-    # 'font_size': '15px',
-    # 'code_font_size': '13px'
+    # Navbar
+    "navbar_align": "left",
+    "navbar_center": ["navbar-nav"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "header_links_before_dropdown": 6,
+    # Secondary (right) sidebar
+    "secondary_sidebar_items": ["page-toc"],
+    "show_toc_level": 2,
+    # Logo
+    "logo": {
+        "image_light": "_static/images/leaspy_logo.png",
+        "image_dark": "_static/images/leaspy_logo.png",
+    },
+    # GitHub icon in navbar
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/aramis-lab/leaspy",
+            "icon": "fa-brands fa-github",
+        }
+    ],
 }
 
 html_context = {
-    "display_github": True,
-    "github_url": "https://github.com",
     "github_user": "aramis-lab",
     "github_repo": "leaspy",
-    "github_version": "v2/",
-    "conf_py_path": "/docs/",
+    "github_version": "v2",
+    "doc_path": "docs",
 }
-
-# Custom CSS files
-# html_css_files = [
-#     'custom.css',
-# ]# The name of an image file (relative to this directory) to place at the top
-# of the sidebar.
-html_logo = "_static/images/leaspy_logo.png"
 
 html_title = "Leaspy"
 # A shorter title for the navigation bar. Default is the same as html_title.

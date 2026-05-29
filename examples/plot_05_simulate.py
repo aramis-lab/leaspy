@@ -91,4 +91,7 @@ df_sim = df_sim.data.to_dataframe()
 
 # %%
 # The simulated longitudinal dataset is displayed below.
-print(df_sim)
+df_sim.head(10)
+
+# %%
+# This concludes the simulation example using Leaspy. Stay tuned for more examples on model fitting and analysis!

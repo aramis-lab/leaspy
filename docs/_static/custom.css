@@ -1,6 +1,246 @@
-.wy-nav-content {
-    max-width: 96% !important;
+/* =============================================================================
+   Leaspy custom styles for PyData Sphinx Theme
+   CSS variables: https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/styling.html
+   ============================================================================= */
+
+/* --- Viewcode: pastel blue highlights (hll lines + target blocks) --- */
+html[data-theme="light"] {
+    --pst-color-target: rgba(80, 150, 220, 0.18);
 }
+html[data-theme="dark"] {
+    --pst-color-target: rgba(80, 150, 220, 0.15);
+}
+html[data-theme="light"] .highlight .hll {
+    background-color: rgba(80, 150, 220, 0.18) !important;
+}
+html[data-theme="dark"] .highlight .hll {
+    background-color: rgba(80, 150, 220, 0.15) !important;
+}
+
+/* =============================================================================
+   Sphinx-Gallery
+   ============================================================================= */
+
+/* Hide download note, timing, and download footer */
+.sphx-glr-download-link-note,
+.sphx-glr-timing,
+.sphx-glr-footer {
+    display: none !important;
+}
+
+/* Gallery card thumbnails: text only, no images */
 .sphx-glr-thumbcontainer .xref.std.std-ref {
     display: none;
+}
+.sphx-glr-thumbcontainer img {
+    display: none !important;
+}
+.sphx-glr-thumbcontainer {
+    min-height: auto !important;
+    height: auto !important;
+}
+
+/* Input code blocks: green left border + grey/white outline */
+div.highlight-Python,
+div.highlight-python3,
+div.highlight-python {
+    border: 1px solid;
+    border-left: 4px solid var(--pst-color-success);
+    border-radius: 6px;
+    overflow: hidden;
+}
+html[data-theme="light"] div.highlight-Python,
+html[data-theme="light"] div.highlight-python3,
+html[data-theme="light"] div.highlight-python {
+    border-color: #c0c0c0;
+    border-left-color: var(--pst-color-success);
+}
+html[data-theme="dark"] div.highlight-Python,
+html[data-theme="dark"] div.highlight-python3,
+html[data-theme="dark"] div.highlight-python {
+    border-color: #555;
+    border-left-color: var(--pst-color-success);
+}
+
+/* Output blocks: grey/white outline, no green bar, tinted background */
+.sphx-glr-script-out div.highlight-none {
+    border: 1px solid;
+    border-radius: 6px;
+    overflow: hidden;
+}
+html[data-theme="light"] .sphx-glr-script-out div.highlight-none {
+    border-color: #989898;
+}
+html[data-theme="dark"] .sphx-glr-script-out div.highlight-none {
+    border-color: #555;
+}
+html[data-theme="light"] .sphx-glr-script-out .highlight,
+html[data-theme="light"] .sphx-glr-script-out pre {
+    background: #e1e1e1 !important;
+}
+html[data-theme="dark"] .sphx-glr-script-out .highlight,
+html[data-theme="dark"] .sphx-glr-script-out pre {
+    background: #272626 !important;
+}
+.sphx-glr-script-out pre {
+    color: var(--pst-color-text-base) !important;
+    font-size: 0.875em;
+    line-height: 1.5;
+}
+
+/* =============================================================================
+   Misc
+   ============================================================================= */
+
+/* Logo: white background patch for transparency on dark bg */
+img[src*="leaspy_logo.png"] {
+    background-color: white;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Pandas DataFrame styling */
+table.dataframe {
+    border: none !important;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 1em;
+    width: auto;
+    overflow-x: auto;
+    display: block;
+}
+table.dataframe thead {
+    border-bottom: 1px solid var(--pst-color-border);
+    vertical-align: bottom;
+}
+table.dataframe tr,
+table.dataframe th,
+table.dataframe td {
+    text-align: right;
+    vertical-align: middle;
+    padding: 0.5em;
+    line-height: normal;
+    white-space: normal;
+    max-width: none;
+    border: none;
+    color: var(--pst-color-text-base);
+}
+table.dataframe th {
+    font-weight: bold;
+    background: var(--pst-color-surface);
+}
+table.dataframe tbody tr:nth-child(odd) {
+    background: var(--pst-color-surface);
+}
+table.dataframe tbody tr:hover {
+    background: var(--pst-color-surface);
+    opacity: 0.85;
+}
+
+/* =============================================================================
+   API Reference Styling
+   ============================================================================= */
+
+/* 1. Class block separation */
+dl.py.class {
+    margin-bottom: 4rem !important;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--pst-color-border);
+}
+
+/* 2. Method / Function separation */
+dl.py.method,
+dl.py.function {
+    margin-bottom: 2rem !important;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--pst-color-border);
+}
+dl.py.class > dd > dl.py.method:last-child {
+    border-bottom: none;
+    margin-bottom: 0 !important;
+    padding-bottom: 0;
+}
+
+/* 3. Signature headers */
+dl.py.class > dt {
+    background-color: var(--pst-color-surface);
+    padding: 0.8rem;
+    border-radius: 4px;
+    margin-top: 1.5rem;
+    font-weight: bold;
+    border-left: 5px solid var(--pst-color-primary);
+    display: block;
+    text-indent: 0 !important;
+    margin-left: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+dl.py.function > dt,
+dl.py.method > dt {
+    background-color: var(--pst-color-surface);
+    padding: 0.6rem;
+    border-radius: 4px;
+    margin-top: 1.0rem;
+    font-weight: bold;
+    border-left: 3px solid var(--pst-color-text-base);
+    display: block;
+    text-indent: 0 !important;
+    margin-left: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 4. Body indentation with vertical lines */
+dl.py.class > dd {
+    margin-left: 0 !important;
+    padding-left: 1.5rem;
+    border-left: 4px solid var(--pst-color-primary);
+}
+dl.py.method > dd,
+dl.py.function > dd {
+    margin-left: 0 !important;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--pst-color-text-base);
+}
+
+/* 5. Parameters / Returns / Attributes field lists */
+dl.field-list > dt {
+    font-weight: bold;
+    color: var(--pst-color-text-base);
+    margin-top: 1.0rem;
+    margin-bottom: 0.5rem;
+    padding: 0;
+    border: none;
+    background: none;
+}
+dl.field-list > dd {
+    margin-left: 0 !important;
+    padding-left: 1.0rem;
+}
+dl.field-list > dd > dl > dt {
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    font-weight: bold;
+    border: none !important;
+    color: var(--pst-color-text-base);
+    font-family: var(--pst-font-family-monospace);
+    line-height: 1.2;
+}
+dl.field-list > dd > dl > dt::before {
+    content: "•";
+    color: var(--pst-color-text-muted);
+    margin-right: 0.5rem;
+    font-weight: normal;
+}
+dl.field-list > dd > dl > dd {
+    margin-top: 0 !important;
+    margin-bottom: 0.1rem !important;
+    margin-left: 1.0rem !important;
+}
+dl.field-list > dd > dl > dd > p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.3;
 }
