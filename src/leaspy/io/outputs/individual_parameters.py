@@ -406,7 +406,9 @@ class IndividualParameters:
         Raises
         ------
         :exc:`.LeaspyIndividualParamsInputError`
-            If the model has no sources or the individual parameters contain no ``sources``.
+            If the model is not fitted, the individual parameters are empty
+            (personalization has not run), the model has no sources, or the
+            individual parameters contain no ``sources``.
 
         Examples
         --------
@@ -415,6 +417,15 @@ class IndividualParameters:
         """
         import torch
 
+        if not getattr(model, "is_initialized", False):
+            raise LeaspyIndividualParamsInputError(
+                "Model is not fitted yet. Call `model.fit(...)` before "
+                "`compute_space_shifts(...)`."
+            )
+        if not self._individual_parameters:
+            raise LeaspyIndividualParamsInputError(
+                "Individual parameters are empty. Call `model.personalize(...)` first."
+            )
         source_dimension = getattr(model, "source_dimension", 0) or 0
         if source_dimension == 0:
             raise LeaspyIndividualParamsInputError(

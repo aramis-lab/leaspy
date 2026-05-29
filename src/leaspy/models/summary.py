@@ -499,16 +499,26 @@ class Info(AutoPrintMixin):
 
     @classmethod
     def from_model(cls, model: "BaseModel") -> "Info":
-        """Build an :class:`Info` from a model instance."""
+        """Build an :class:`Info` from a model instance.
+
+        Works on un-fitted models too: parameter counts and DAG-derived fields
+        are simply omitted when the model state isn't available yet.
+        """
+        is_initialized = getattr(model, "is_initialized", False)
+
         # Observation model names
         obs_model_names = None
         if hasattr(model, "obs_models"):
             obs_model_names = [om.to_string() for om in model.obs_models]
 
-        # Parameter count, BIC, AIC
+        # Parameter count (requires initialized state)
         n_total_params = None
-        if getattr(model, "parameters", None):
-            n_total_params = get_number_of_parameters(model)
+        if is_initialized:
+            try:
+                if getattr(model, "parameters", None):
+                    n_total_params = get_number_of_parameters(model)
+            except Exception:
+                n_total_params = None
 
         # Leaspy version
         try:
@@ -516,23 +526,35 @@ class Info(AutoPrintMixin):
         except ImportError:
             version = None
 
-        # Latent variable distributions
+        # Latent variable distributions (requires DAG, which needs initialization)
         from leaspy.variables.specs import PopulationLatentVariable, IndividualLatentVariable
 
         latent_variables = {}
-        dag = getattr(model, "dag", None)
-        if dag is not None:
-            for kind, lv_type in [("population", PopulationLatentVariable), ("individual", IndividualLatentVariable)]:
-                group = {}
-                for var_name, var in dag.sorted_variables_by_type[lv_type].items():
-                    dist_name = var.prior.dist_family.__name__.replace("Family", "")  # "Normal", "MixtureNormal"
-                    group[var_name] = {
-                        "distribution": dist_name,
-                        "parameters": list(var.prior.parameters_names),
-                    }
-                if group:
-                    latent_variables[kind] = group
+        if is_initialized:
+            try:
+                dag = getattr(model, "dag", None)
+            except Exception:
+                dag = None
+            if dag is not None:
+                for kind, lv_type in [("population", PopulationLatentVariable), ("individual", IndividualLatentVariable)]:
+                    group = {}
+                    for var_name, var in dag.sorted_variables_by_type[lv_type].items():
+                        dist_name = var.prior.dist_family.__name__.replace("Family", "")  # "Normal", "MixtureNormal"
+                        group[var_name] = {
+                            "distribution": dist_name,
+                            "parameters": list(var.prior.parameters_names),
+                        }
+                    if group:
+                        latent_variables[kind] = group
 
+
+        # Hyperparameters (requires initialized state)
+        hyperparameters = {}
+        if is_initialized:
+            try:
+                hyperparameters = dict(getattr(model, "hyperparameters", {}))
+            except Exception:
+                hyperparameters = {}
 
         return cls(
             name=model.name,
@@ -545,7 +567,7 @@ class Info(AutoPrintMixin):
             n_total_params=n_total_params,
             training_info=dict(model.training_info),
             dataset_info=dict(model.dataset_info),
-            hyperparameters=dict(getattr(model, "hyperparameters", {})),
+            hyperparameters=hyperparameters,
             leaspy_version=version,
             latent_variables=latent_variables,
         )

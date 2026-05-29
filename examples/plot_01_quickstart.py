@@ -113,7 +113,7 @@ print(individual_parameters.to_dataframe())
 # %%
 # We have seen how to fit a model and personalize it to individuals.
 # Leaspy also provides various plotting functions to visualize the results.
-# Let's  go to the next :doc:`section <plot_02_parkinson_example>` to see how to plot
+# Let's go to the next :doc:`section <plot_02_parkinson_example>` to see how to plot
 # the group-average trajectory and the individual trajectories using the Parkinson's disease dataset.
 
 # %%

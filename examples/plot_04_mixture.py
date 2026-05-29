@@ -48,7 +48,7 @@ model.fit(leaspy_data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
 model.summary()
 
 # %%
-# First we take a look in the population parameters.
+# First we take a look at the population parameters.
 # With the mixture model we obtain separate values for the `tau_mean`, `xi_mean` and the `sources_mean` for each cluster,
 # as well as the cluster probabilities (`probs`).
 
