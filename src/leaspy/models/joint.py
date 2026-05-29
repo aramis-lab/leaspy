@@ -53,8 +53,20 @@ class JointModel(LogisticModel):
 
     def __init__(self, name: Optional[str] = None, **kwargs):
         super().__init__(name or self.type, **kwargs)
-        self._configure_observation_models()
+        # If the dimension is not known yet, defer obs_models configuration to
+        # `_finalize_specs` (called from `initialize(dataset)`). Otherwise the
+        # weibull variant chosen here may not match the actual data.
+        if self.dimension is not None:
+            self._configure_observation_models()
         self._configure_variables_to_track()
+
+    def _finalize_specs(self, dataset=None) -> None:
+        # First let the parent rebuild the gaussian obs_model if it was auto-defaulted.
+        super()._finalize_specs(dataset)
+        # Then (re-)configure the weibull part now that dimension/source_dimension
+        # are known. `_configure_observation_models` is idempotent: it checks
+        # `has_observation_model_with_name` before appending.
+        self._configure_observation_models()
 
     def _configure_variables_to_track(self):
         self.track_variables(["nu", "rho", "nll_attach_y", "nll_attach_event"])
