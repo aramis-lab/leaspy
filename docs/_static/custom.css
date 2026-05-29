@@ -244,3 +244,61 @@ dl.field-list > dd > dl > dd > p {
     margin-bottom: 0 !important;
     line-height: 1.3;
 }
+
+/* =============================================================================
+   Custom doc components (mermaid, DAG diagrams, variable legend)
+   ============================================================================= */
+
+/* Mermaid: override JS-injected sizing */
+.mermaid-container {
+    width: 100% !important;
+    max-width: 1200px !important;
+    min-height: 700px !important;
+    margin: 30px auto !important;
+    display: flex !important;
+}
+.mermaid-container > pre,
+pre.mermaid {
+    width: 100% !important;
+    min-height: 700px !important;
+    display: block !important;
+}
+.mermaid-container > pre > svg,
+pre.mermaid > svg {
+    height: 700px !important;
+    min-height: 700px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Variable-type legend dots */
+.vdot {
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
+    border-radius: 50%;
+    border: 1px solid #555;
+    vertical-align: middle;
+    margin-right: 0.2em;
+}
+
+/* DAG variable tables: 25% name+type, 75% description */
+.dag-var-table th:first-child,
+.dag-var-table td:first-child { width: 25%; }
+.dag-var-table th:last-child,
+.dag-var-table td:last-child { width: 75%; }
+
+/* DAG zoomable image - click to zoom in/out */
+.dag-zoomable {
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+    max-width: 100%;
+    height: auto;
+}
+.dag-zoomable.zoomed {
+    cursor: zoom-out;
+    transform: scale(1.5);
+    transform-origin: center;
+    z-index: 1000;
+    position: relative;
+}

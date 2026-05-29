@@ -49,6 +49,9 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "myst_nb",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.mermaid",
+    "sphinx_tabs.tabs",
+    "sphinx_design",
     "sphinx.ext.viewcode",
     "sphinx_copybutton",
 ]
@@ -59,6 +62,12 @@ copybutton_prompt_is_regexp = True
 
 bibtex_bibfiles = ["references.bib"]
 
+# -- mermaid configuration ---------------------------------------------------
+# Configure mermaid diagram rendering
+mermaid_params = ['--theme', 'default', '--width', '1200', '--backgroundColor', 'transparent']
+mermaid_sequence_config = False
+mermaid_verbose = False
+
 # -- autoapi configuration ---------------------------------------------------
 # https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
 
@@ -66,6 +75,7 @@ myst_enable_extensions = [
     "amsmath",
     "dollarmath",
     "colon_fence",
+    "tasklist",
 ]
 nb_execution_timeout = 600
 autoapi_dirs = ["../src"]

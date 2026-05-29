@@ -89,3 +89,11 @@ notations
 to_go_further
 license
 ```
+
+```{toctree}
+:hidden:
+:caption: Developer Guide
+:maxdepth: 2
+
+docdev/index
+```
