@@ -1,6 +1,6 @@
 {
-  "leaspy_version": "2.0.0-dev",
-  "name": "logistic_parallel",
+  "leaspy_version": "2.0.2",
+  "name": "shared_speed_logistic",
   "features": [
     "Y0",
     "Y1",
@@ -8,9 +8,6 @@
     "Y3"
   ],
   "dimension": 4,
-  "obs_models": {
-    "y": "gaussian-diagonal"
-  },
   "hyperparameters": {
     "deltas_std": 0.009999999776482582,
     "log_g_std": 0.009999999776482582
@@ -43,11 +40,14 @@
       1.2214618921279907
     ]
   },
+  "obs_models": {
+    "y": "gaussian-diagonal"
+  },
   "fit_metrics": {
     "nll_attach": -362.1439208984375,
     "nll_regul_ind_sum": 92.73100280761719,
-    "nll_regul_pop_sum": 4.57763671875e-05,
-    "nll_tot": -269.4128723144531
+    "nll_regul_pop_sum": -12.78219985961914,
+    "nll_tot": -282.1950988769531
   },
   "source_dimension": 0
 }

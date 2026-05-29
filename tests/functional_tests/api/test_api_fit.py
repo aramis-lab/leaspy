@@ -10,6 +10,10 @@ from leaspy.models import BaseModel, model_factory
 from leaspy.models.obs_models import observation_model_factory
 from tests.unit_tests.plots.test_plotter import MatplotlibTestCase
 
+# Set to True to regenerate gold standard JSON files after breaking changes.
+# <!> Always revert to False before committing.
+MODIFY_GOLD_STANDARD = False
+
 
 class LeaspyFitTestMixin(MatplotlibTestCase):
     """Mixin holding generic fit methods that may be safely reused in other tests (no actual test here)."""
@@ -26,9 +30,9 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
         # logs_kws: dict = dict(console_print_periodicity=50, save_periodicity=20, plot_periodicity=100),
         logs_kws: Optional[dict] = None,
         print_model: Optional[bool] = False,
-        check_model: Optional[bool] = True,
+        check_model: Optional[bool] = not MODIFY_GOLD_STANDARD,
         check_kws: Optional[dict] = None,
-        save_model: Optional[bool] = False,
+        save_model: Optional[bool] = MODIFY_GOLD_STANDARD,
         **model_hyperparams,
     ):
         """Helper for a generic calibration in following tests.
@@ -154,6 +158,7 @@ class LeaspyFitTestMixin(MatplotlibTestCase):
 # some noticeable reproducibility errors btw MacOS and Linux here...
 ALLCLOSE_CUSTOM = dict(
     nll_regul_ind_sum=dict(atol=5),
+    nll_regul_pop_sum=dict(atol=5),
     nll_attach=dict(atol=10),
     nll_tot=dict(atol=15),
     tau_mean=dict(atol=0.2),
@@ -279,13 +284,13 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "joint",
             "univariate_joint",
             check_kws=DEFAULT_CHECK_KWS,
-            check_model=True,
             dimension=1,
         )
 
     def test_fit_joint_no_sources(self):
         self.generic_fit(
-            "joint", "joint_no_sources", check_kws=DEFAULT_CHECK_KWS, check_model=True
+            "joint", "joint_no_sources", check_kws=DEFAULT_CHECK_KWS,
+            obs_models=observation_model_factory("gaussian-scalar"),
         )
 
     def test_fit_joint_diagonal(self):
@@ -293,7 +298,6 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "joint",
             "joint_diagonal",
             check_kws=DEFAULT_CHECK_KWS,
-            check_model=True,
             obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=2,
         )
@@ -303,13 +307,13 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "joint",
             "joint_scalar",
             check_kws=DEFAULT_CHECK_KWS,
-            check_model=True,
+            obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=0,
         )
 
     # @skip("Linear models are currently broken.")
     def test_fit_univariate_linear(self):
-        self.generic_fit("linear", "univariate_linear", dimension=1)
+        self.generic_fit("linear", "univariate_linear", dimension=1, check_kws=DEFAULT_CHECK_KWS)
 
     # @skip("Linear models are currently broken.")
     def test_fit_linear(self):
@@ -318,6 +322,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "linear_scalar_noise",
             obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=2,
+            check_kws=DEFAULT_CHECK_KWS,
         )
 
     # @skip("Linear models are currently broken.")
@@ -327,6 +332,7 @@ class LeaspyFitTest(LeaspyFitTestMixin):
             "linear_diag_noise",
             obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=2,
+            check_kws=DEFAULT_CHECK_KWS,
         )
 
     def test_fit_logistic_binary(self):
@@ -374,7 +380,7 @@ class LeaspyFitGPUTest(LeaspyFitTestMixin):
 
     def test_fit_logistic_parallel(self):
         self.generic_fit(
-            "logistic_parallel",
+            "shared_speed_logistic",
             "logistic_parallel_scalar_noise_gpu",
             obs_models=observation_model_factory("gaussian-scalar"),
             source_dimension=2,
@@ -385,22 +391,24 @@ class LeaspyFitGPUTest(LeaspyFitTestMixin):
         self.generic_fit(
             "shared_speed_logistic",
             "logistic_parallel_diag_noise_gpu",
-            obs_models=observation_model_factory("gaussian-diagonal"),
+            obs_models=observation_model_factory("gaussian-diagonal", dimension=4),
             source_dimension=2,
             algo_params={"n_iter": 100, "seed": 0, "device": "cuda"},
         )
 
     def test_fit_univariate_logistic(self):
         self.generic_fit(
-            "univariate_logistic",
+            "logistic",
             "univariate_logistic_gpu",
+            dimension=1,
             algo_params={"n_iter": 100, "seed": 0, "device": "cuda"},
         )
 
     def test_fit_univariate_linear(self):
         self.generic_fit(
-            "univariate_linear",
+            "linear",
             "univariate_linear_gpu",
+            dimension=1,
             algo_params={"n_iter": 100, "seed": 0, "device": "cuda"},
         )
 

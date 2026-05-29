@@ -37,7 +37,7 @@ data = Data.from_dataframe(
 # A logistic model with a two-dimensional latent space is initialized.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2)
+model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
 
 # %%
 # The model is fitted to the data using the MCMC-SAEM algorithm.

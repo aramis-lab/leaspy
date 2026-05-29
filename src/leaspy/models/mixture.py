@@ -874,9 +874,10 @@ class LogisticMultivariateMixtureModel(
     LogisticMixtureInitializationMixin, RiemanianManifoldMixtureModel
 ):
     """Mixture Manifold model for multiple variables of interest (logistic formulation)."""
+    type = "mixture_logistic"
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """

@@ -18,6 +18,8 @@ from leaspy.variables.specs import (
 from .obs_models import FullGaussianObservationModel
 from .riemanian_manifold import RiemanianManifoldModel
 
+from typing import Optional
+
 __all__ = [
     "LinearInitializationMixin",
     "LinearModel",
@@ -100,9 +102,10 @@ class LinearInitializationMixin:
 
 class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
     """Manifold model for multiple variables of interest (linear formulation)."""
+    type = "linear"
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """

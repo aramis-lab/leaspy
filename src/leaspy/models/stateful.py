@@ -228,6 +228,9 @@ class StatefulModel(BaseModel):
             Input dataset from which to initialize the model.
         """
         super().initialize(dataset=dataset)
+        # Hook for subclasses to finalize variable specs (e.g. rebuild obs_models
+        # with the actual dataset dimension) before the DAG is built.
+        self._finalize_specs(dataset)
         self._initialize_state()
         if not dataset:
             return
@@ -237,6 +240,14 @@ class StatefulModel(BaseModel):
             self._state.put_population_latent_variables(
                 LatentVariableInitType.PRIOR_MODE
             )
+
+    def _finalize_specs(self, dataset: Optional[Dataset] = None) -> None:
+        """Finalize variable specs once `features`/`dimension` are known from `dataset`.
+
+        Default is a no-op. Subclasses may override to rebuild specs whose shape
+        depends on the dataset's dimension (e.g. observation models).
+        """
+        return
 
     def _initialize_state(self) -> None:
         """Initialize the internal state of model, as well as the underlying DAG.
