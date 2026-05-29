@@ -39,7 +39,7 @@ class SimulateAlgoTest(LeaspyTestCase):
             ]
         )
 
-        cls.model_loaded = LogisticModel(name="test-model", source_dimension=2)
+        cls.model_loaded = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
         auto_path_logs = temp_instance.get_test_tmp_path("model-logs")
         cls.model_loaded.fit(
             data,

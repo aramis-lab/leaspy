@@ -39,7 +39,7 @@ print(df.head())
 from leaspy.models import JointModel
 
 data = Data.from_dataframe(df, "joint")
-model = JointModel(name="test_model", nb_events=1)
+model = JointModel(name="test_model", nb_events=1, obs_models="gaussian-scalar")
 
 # %%
 # The parameter `nb_events` should match the number of distinct event types
