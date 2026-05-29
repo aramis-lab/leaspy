@@ -16,6 +16,7 @@ from leaspy.utils.filtered_mapping_proxy import FilteredMappingProxy
 
 from .specs import (
     IndividualLatentVariable,
+    PopulationLatentVariable,
     VariableInterface,
     VariableName,
     VariablesToFrozenSet,
@@ -482,5 +483,20 @@ class VariablesDAG(Mapping):
         """
         try:
             return tuple(self.sorted_variables_by_type[IndividualLatentVariable].keys())
+        except KeyError:
+            return ()
+        
+    @property
+    def population_variable_names(self) -> tuple[VariableName, ...]:
+        """
+        Returns a tuple of variable names corresponding to the population variables.
+
+        Returns
+        -------
+        :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName` :
+            The population variable names.
+        """
+        try:
+            return tuple(self.sorted_variables_by_type[PopulationLatentVariable].keys())
         except KeyError:
             return ()

@@ -37,7 +37,7 @@ data = Data.from_dataframe(
 # A logistic model with a two-dimensional latent space is initialized.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2)
+model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
 
 # %%
 # The model is fitted to the data using the MCMC-SAEM algorithm.
@@ -91,4 +91,7 @@ df_sim = df_sim.data.to_dataframe()
 
 # %%
 # The simulated longitudinal dataset is displayed below.
-print(df_sim)
+df_sim.head(10)
+
+# %%
+# This concludes the simulation example using Leaspy. Stay tuned for more examples on model fitting and analysis!

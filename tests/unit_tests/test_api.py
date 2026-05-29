@@ -28,7 +28,7 @@ class LeaspyTest(LeaspyFitTestMixin, ModelFactoryTestMixin):
         """Test the initialization of a logistic model from a json file."""
         model = self.get_hardcoded_model("logistic_scalar_noise")
 
-        self.assertEqual(type(model), type(model_factory("logistic")))
+        self.assertEqual(type(model), type(model_factory("logistic", obs_models="gaussian-scalar")))
         self.assertEqual(model.dimension, 4)
         self.assertEqual(model.features, ["Y0", "Y1", "Y2", "Y3"])
         self.assertEqual(model.source_dimension, 2)

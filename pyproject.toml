@@ -16,7 +16,7 @@ maintainers = [
 ]
 readme = "README.md"
 packages = [{include = "leaspy", from = "src"}]
-requires-python = ">=3.9,<=3.13"
+requires-python = ">=3.9,<3.14"
 keywords = [
     "leaspy",
     "longitudinal",
@@ -75,6 +75,7 @@ sphinxcontrib-mermaid = "*"
 pydata-sphinx-theme = "^0.16.1"
 sphinx-tabs = "*"
 sphinx_design = "*"
+sphinx-copybutton = "*"
 # Security fixes - prevent downgrades
 urllib3 = ">=2.6.3"
 requests = ">=2.32.5"

@@ -74,10 +74,18 @@ auto_examples/index
  :maxdepth: 3
 
 user_guide
+reference/api/index
+changelog
+references
+```
+
+```{toctree}
+ :hidden:
+ :caption: More
+ :maxdepth: 2
+
 glossary
 notations
-references
-changelog
 to_go_further
 license
 ```

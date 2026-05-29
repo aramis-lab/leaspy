@@ -80,11 +80,12 @@ class LMEModel(StatelessModel):
     :class:`~leaspy.algo.others.lme_fit.LMEFitAlgorithm`
     :class:`~leaspy.algo.others.lme_personalize.LMEPersonalizeAlgorithm`
     """
+    type = "lme"
 
     def __init__(
-        self, name: str, with_random_slope_age: Optional[bool] = True, **kwargs
+        self, name: Optional[str] = None, with_random_slope_age: Optional[bool] = True, **kwargs
     ):
-        super().__init__(name, **kwargs)
+        super().__init__(name or self.type, **kwargs)
         self.with_random_slope_age = with_random_slope_age
         self.dimension = 1
 
