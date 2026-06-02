@@ -29,7 +29,7 @@ The `super()` call is critical: it ensures the full inheritance chain contribute
 
 When `LogisticModel.get_variables_specs()` is called, four levels execute in sequence via `super()`:
 
-```
+```text
 LogisticModel.get_variables_specs()
 │
 ├─ RiemanianManifoldModel        ← geometric structure (v0, metric, model)
@@ -133,7 +133,7 @@ def get_variables_specs(self) -> NamedVariables:
 - `log_g` is a *random effect* shared across all patients → `PopulationLatentVariable`. The `Normal("log_g_mean", "log_g_std")` prior is symbolic — it reads current values from the State at each E-step.
 - `g` is *computed* from `log_g` → `LinkedVariable`. The DAG infers the dependency from the keyword argument name in `Exp("log_g")`.
 
-> For guidance on choosing between variable types, see the [Decision at a Glance](VariableTypes.md#decision-at-a-glance) flowchart.
+> For guidance on choosing between variable types, see the [Decision at a Glance](decision-at-a-glance) flowchart.
 
 ---
 

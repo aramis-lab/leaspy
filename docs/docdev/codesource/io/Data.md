@@ -39,7 +39,7 @@ for i in range(100):
 
 Users typically pass `Data` (or even a `pandas.DataFrame`) to the model's main methods: `fit`, `predict`, or `personalize`. 
 
-The conversion happens in [`BaseModel`](../models/BaseModel.md), the ancestor of all Leaspy models (including `LogisticModel`):
+The conversion happens in [`BaseModel`](../logistic/BaseModel.md), the ancestor of all Leaspy models (including `LogisticModel`):
 
 1.  **`BaseModel.fit(data)`**: 
     *   Accepts `DataFrame`, `Data`, or `Dataset`.

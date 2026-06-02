@@ -8,7 +8,7 @@ Every node in the [Variables DAG](DAG.md) is an instance of one of six Python cl
 
 ## Class Hierarchy
 
-```
+```text
 VariableInterface          (abstract base)
 ├── IndepVariable          (no dependencies on other variables — root nodes in the DAG)
 │   ├── Hyperparameter     — fixed constant, never learned
@@ -283,9 +283,10 @@ The names become keyword arguments that `update_rule` receives. The factory meth
 
 ---
 
+(decision-at-a-glance)=
 ## Decision at a Glance
 
-```
+```text
 Is the value OBSERVED (comes from the dataset)?
   └─ YES → DataVariable()
 
