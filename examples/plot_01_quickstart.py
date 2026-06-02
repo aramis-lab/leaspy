@@ -57,7 +57,7 @@ data = Data.from_dataframe(alzheimer_df)
 
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
+model = LogisticModel(name="test-model", source_dimension=2)
 model.fit(
     data,
     "mcmc_saem",

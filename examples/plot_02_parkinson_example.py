@@ -42,7 +42,7 @@ data_test  = Data.from_dataframe(df_test)
 # trajectory, and patients differ only in *when* and *how fast* they travel along it.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
+model = LogisticModel(name="test-model", source_dimension=2)
 
 # %%
 import matplotlib.pyplot as plt

@@ -78,7 +78,7 @@ plt.show()
 # Then the `get_individual_probabilities` method can be used to obtain the probability of each patient to belong to each cluster.
 # The individual cluster assignment can be obtained by taking the cluster with the highest probability for each patient.
 
-ip = model.personalize(leaspy_data, "scipy_minimize", seed=0, progress_bar=True)
+ip = model.personalize(leaspy_data, "scipy_minimize", seed=0, progress_bar=False)
 ip_df = ip.to_dataframe()
 ip_with_probs = model.get_individual_probabilities(ip_df)
 ip_with_probs.head()
