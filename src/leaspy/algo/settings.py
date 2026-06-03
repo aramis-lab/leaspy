@@ -45,6 +45,23 @@ class OutputsSettings:
 
     DEFAULT_LOGS_DIR = "_outputs"
 
+    # Keys understood by `AlgorithmSettings.set_logs` (i.e. logging/output settings,
+    # not algorithm parameters). Kept here as the single source of truth so callers
+    # can route these kwargs to logging instead of leaking them into the algorithm
+    # parameters (which would wrongly warn about "unsupported" parameters).
+    LOG_KEYS = frozenset(
+        {
+            "path",
+            "print_periodicity",
+            "save_periodicity",
+            "plot_periodicity",
+            "plot_patient_periodicity",
+            "plot_sourcewise",
+            "overwrite_logs_folder",
+            "nb_of_patients_to_plot",
+        }
+    )
+
     def __init__(self, settings):
         self.print_periodicity = None
         self.plot_periodicity = None

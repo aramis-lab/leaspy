@@ -64,6 +64,7 @@ model.fit(
     seed=42,
     n_iter=100,
     progress_bar=False,
+    path="_outputs",
     overwrite_logs_folder=True,
     save_periodicity=10,
     plot_periodicity=10,
