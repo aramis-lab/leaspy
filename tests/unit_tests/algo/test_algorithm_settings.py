@@ -29,7 +29,7 @@ class AlgorithmSettingsTest(LeaspyTestCase):
         settings = AlgorithmSettings(name, algorithm_initialization_method="blabla")
         self.assertEqual(settings.name, name)
         self.assertEqual(settings.parameters, json_data["parameters"])
-        self.assertEqual(settings.parameters["use_jacobian"], True)
+        self.assertEqual(settings.parameters["use_jacobian"], None)
         self.assertEqual(settings.seed, None)
         self.assertEqual(settings.algorithm_initialization_method, "blabla")
 

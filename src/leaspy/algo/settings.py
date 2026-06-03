@@ -228,7 +228,7 @@ class AlgorithmSettings:
         - ``algorithm_initialization_method`` (str | None): strategy name accepted by the target algorithm.
         - ``n_iter`` (int | None): number of iterations (no auto stopping for MCMC SAEM).
         - ``n_burn_in_iter`` (int | None): burn-in iterations for MCMC SAEM.
-        - ``use_jacobian`` (bool): use Jacobian in ``scipy_minimize`` to switch to L-BFGS (default True).
+        - ``use_jacobian`` (bool | None): use Jacobian in ``scipy_minimize`` to switch to L-BFGS; ``None`` (default) auto-uses it when available and silently falls back otherwise, ``True`` forces it (warns and falls back if the model has no analytic jacobian), ``False`` never uses it.
         - ``n_jobs`` (int): joblib parallelism for ``scipy_minimize`` (default 1).
         - ``progress_bar`` (bool): show a progress bar (default True).
         - ``device`` (int | torch.device | str): computation device for algorithms that support it.

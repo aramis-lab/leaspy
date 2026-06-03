@@ -72,7 +72,7 @@ plt.show()
 # Personalization estimates two individual parameters per test patient from their visits:
 #   τ (tau) — disease onset age (position on the timeline)
 #   ξ (xi)  — log-acceleration (pace of progression)
-ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False)
+ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False)
 ip.to_dataframe().head()
 
 # %%

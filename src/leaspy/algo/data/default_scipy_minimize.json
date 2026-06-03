@@ -3,7 +3,7 @@
   "seed": null,
   "algorithm_initialization_method": null,
   "parameters": {
-    "use_jacobian": true,
+    "use_jacobian": null,
     "custom_scipy_minimize_params": null,
     "custom_format_convergence_issues": null,
     "n_jobs": 1,

@@ -118,8 +118,7 @@ model.info()
 # This is done using a personalization algorithm, here `scipy_minimize`:
 
 individual_parameters = model.personalize(
-    data, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False
-)
+    data, "scipy_minimize", seed=0, progress_bar=False)
 print(individual_parameters.to_dataframe())
 
 # %%
