@@ -98,11 +98,7 @@ plt.show()
 ax = leaspy_plotting.patient_trajectories(
     leaspy_data,
     ip_with_probs,
-    patients_idx=['subj_12'],
-    markersize=8,
-    obs_alpha=0.5,
-    figsize=(12, 6),
-    factor_future=5,
+    patients_idx=['subj_12']
 )
 ax.set_xlim(45, 100)
 plt.show()
