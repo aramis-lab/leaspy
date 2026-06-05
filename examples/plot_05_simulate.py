@@ -37,7 +37,7 @@ data = Data.from_dataframe(
 # A logistic model with a two-dimensional latent space is initialized.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
+model = LogisticModel(name="test-model", source_dimension=2)
 
 # %%
 # The model is fitted to the data using the MCMC-SAEM algorithm.
@@ -46,6 +46,7 @@ model.fit(
     data,
     "mcmc_saem",
     n_iter=100,
+    seed=0,
     progress_bar=False,
 )
 
@@ -70,6 +71,7 @@ visit_params = {
 # A new longitudinal dataset is simulated from the fitted model using the specified parameters.
 df_sim = model.simulate(
     algorithm="simulate",
+    seed=109,
     features=[
         "MDS1_total",
         "MDS2_total",
@@ -82,7 +84,7 @@ df_sim = model.simulate(
         "CAUDATE_R",
         "CAUDATE_L",
     ],
-    visit_parameters=visit_params,
+    visit_parameters=visit_params
 )
 
 # %%
