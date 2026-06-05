@@ -15,23 +15,22 @@ df = load_dataset("parkinson")
 
 # %%
 # The clinical and imaging features of interest are selected and the DataFrame is converted
-# into a Leaspy `Data` object that can be used for model fitting.
-data = Data.from_dataframe(
-    df[
-        [
-            "MDS1_total",
-            "MDS2_total",
-            "MDS3_off_total",
-            "SCOPA_total",
-            "MOCA_total",
-            "REM_total",
-            "PUTAMEN_R",
-            "PUTAMEN_L",
-            "CAUDATE_R",
-            "CAUDATE_L",
-        ]
-    ]
-)
+# into a Leaspy `Data` object that can be used for model fitting. The same feature list is
+# reused later for the simulation.
+features = [
+    "MDS1_total",
+    "MDS2_total",
+    "MDS3_off_total",
+    "SCOPA_total",
+    "MOCA_total",
+    "REM_total",
+    "PUTAMEN_R",
+    "PUTAMEN_L",
+    "CAUDATE_R",
+    "CAUDATE_L",
+]
+
+data = Data.from_dataframe(df[features])
 
 # %%
 # A logistic model with a two-dimensional latent space is initialized.
@@ -72,19 +71,8 @@ visit_params = {
 df_sim = model.simulate(
     algorithm="simulate",
     seed=109,
-    features=[
-        "MDS1_total",
-        "MDS2_total",
-        "MDS3_off_total",
-        "SCOPA_total",
-        "MOCA_total",
-        "REM_total",
-        "PUTAMEN_R",
-        "PUTAMEN_L",
-        "CAUDATE_R",
-        "CAUDATE_L",
-    ],
-    visit_parameters=visit_params
+    features=features,
+    visit_parameters=visit_params,
 )
 
 # %%
