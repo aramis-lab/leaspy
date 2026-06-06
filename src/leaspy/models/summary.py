@@ -308,10 +308,14 @@ def compute_icl(
     ip = model.get_individual_probabilities(ip)
 
     prob_cols = [c for c in ip.columns if c.startswith("prob_cluster_")]
-    entropy_value = (
-        ip[prob_cols] * np.log(ip[prob_cols].replace(0, np.nan))
-    ).to_numpy().sum()
-    return bic - entropy_value
+    # np.nansum skips the NaN cells produced by the 0*log(0) terms (the .replace
+    # marks exact-zero responsibilities), implementing the entropy convention
+    # 0*log0 := 0. Plain .sum() would propagate a single NaN to the whole result.
+    entropy_value = np.nansum(
+        (ip[prob_cols] * np.log(ip[prob_cols].replace(0, np.nan))).to_numpy()
+    )
+    icl = bic - entropy_value
+    return icl if np.isfinite(icl) else None
 
 
 def _persist_icl(model: "BaseModel") -> None:
@@ -337,7 +341,9 @@ def _persist_icl(model: "BaseModel") -> None:
     n_total_params = get_number_of_parameters(model)
     bic = compute_bic(float(nll_bic), n_total_params, n_subjects)
     icl = compute_icl(bic, model)
-    if icl is not None:
+    # Guard against non-finite values: a NaN/inf icl would be cached here and then
+    # serialized by to_dict() as the bare token `NaN`, which is invalid JSON.
+    if icl is not None and np.isfinite(icl):
         model.training_info["icl"] = float(icl)
 
 
