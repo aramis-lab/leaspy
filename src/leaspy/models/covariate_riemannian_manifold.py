@@ -176,9 +176,10 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 shape=(self.dimension,),
             ),
             log_v0_std=Hyperparameter(0.01),
-            delta_v0_mean=ModelParameter.for_pop_mean(
-                "delta_v0", shape=(self.dimension, self.nb_cov)
+            delta_v0_mean=ModelParameter.for_pop_mean_condi(
+                "delta_v0", "gamma_v0", shape=(self.dimension, self.nb_cov)
             ),
+            delta_v0_cond_mean=LinkedVariable(Prod("gamma_v0", "delta_v0_mean")),
             delta_v0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
             pi_v0=Hyperparameter(0.5 * torch.ones(self.dimension, self.nb_cov)),
             xi_mean=Hyperparameter(0.0),
@@ -187,7 +188,7 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 Normal("log_v0_mean", "log_v0_std"),
             ),
             delta_v0=PopulationLatentVariable(
-                MultivariateNormal("delta_v0_mean", "delta_v0_sigma"),
+                MultivariateNormal("delta_v0_cond_mean", "delta_v0_sigma"),
                 sampling_kws={"scale": 0.01},
             ),
             gamma_v0=PopulationLatentVariable(Bernoulli("pi_v0")),

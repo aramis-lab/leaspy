@@ -25,6 +25,7 @@ from leaspy.models.utilities import (
     compute_ind_param_std_from_suff_stats,
     compute_ind_param_std_from_suff_stats_mixture,
     compute_ind_param_std_from_suff_stats_mixture_burn_in,
+    compute_pop_mean_cond_from_suff_stats,
     compute_probs_from_state,
 )
 from leaspy.utils.functional import (
@@ -418,6 +419,46 @@ class ModelParameter(IndepVariable):
             shape,
             suff_stats=Collect(population_variable_name),
             update_rule=Identity(population_variable_name),
+        )
+
+    @classmethod
+    def for_pop_mean_condi(
+        cls,
+        population_variable_name: VariableName,
+        mask_variable_name: VariableName,
+        shape: tuple[int, ...],
+    ):
+        """
+        Smart automatic definition of `ModelParameter` when it is the mean
+        of a Gaussian prior conditional on a binary mask:
+        p(delta | gamma) = N(gamma ⊙ delta_mean, Sigma).
+
+        The update rule is: delta_mean_c = S(gamma_c * delta_c) / (S(gamma_c) + eps).
+
+        Parameters
+        ----------
+        population_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the population latent variable (e.g. "delta_t0").
+        mask_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the binary mask variable (e.g. "gamma_t0").
+        shape : :obj:`tuple` of :obj:`int`
+            Shape of the model parameter.
+        """
+        gamma_delta_name = f"{mask_variable_name}_{population_variable_name}"
+        return cls(
+            shape,
+            suff_stats=Collect(
+                mask_variable_name,
+                **{
+                    gamma_delta_name: LinkedVariable(
+                        Prod(mask_variable_name, population_variable_name)
+                    )
+                },
+            ),
+            update_rule=NamedInputFunction(
+                compute_pop_mean_cond_from_suff_stats,
+                parameters=(gamma_delta_name, mask_variable_name),
+            ),
         )
 
     @classmethod

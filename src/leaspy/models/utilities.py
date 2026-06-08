@@ -294,6 +294,32 @@ def compute_ind_param_std_from_suff_stats_mixture_burn_in(
     return result
 
 
+def compute_pop_mean_cond_from_suff_stats(
+    gamma_delta: torch.Tensor,
+    gamma: torch.Tensor,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    M-step update for the mean of a population variable under a conditional prior
+    p(delta | gamma) = N(gamma ⊙ delta_mean, Sigma).
+
+    Parameters
+    ----------
+    gamma_delta : torch.Tensor
+        Stochastic approximation of E[gamma ⊙ delta] (S17/S19/S21).
+    gamma : torch.Tensor
+        Stochastic approximation of E[gamma] (S24/S25/S26).
+    eps : float
+        Small constant for numerical stability.
+
+    Returns
+    -------
+    torch.Tensor
+        Component-wise ratio gamma_delta / (gamma + eps).
+    """
+    return gamma_delta / (gamma + eps)
+
+
 def compute_probs_from_state(
     state: Dict[str, torch.Tensor],
 ) -> torch.Tensor:
