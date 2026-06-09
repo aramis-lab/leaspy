@@ -17,7 +17,7 @@ Where:
 - $\alpha_i = e^{\xi_i}$ is the **acceleration factor** — how fast the patient progresses ($\alpha > 1$ means faster, $\alpha < 1$ means slower)
 - $\xi_i$ is the **log-acceleration**, the actual latent variable sampled by MCMC (log-space ensures $\alpha > 0$)
 
-> For the mathematical formulation, see [Temporal Random Effects](../../models.md#temporal-random-effects).
+> For the mathematical formulation, see [Temporal Random Effects](temporal-random-effects).
 
 This is implemented as a static method with keyword-only arguments, which allows the DAG to automatically wire it as a `LinkedVariable`:
 

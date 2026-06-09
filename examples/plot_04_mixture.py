@@ -78,7 +78,7 @@ plt.show()
 # Then the `get_individual_probabilities` method can be used to obtain the probability of each patient to belong to each cluster.
 # The individual cluster assignment can be obtained by taking the cluster with the highest probability for each patient.
 
-ip = model.personalize(leaspy_data, "scipy_minimize", seed=0, progress_bar=True)
+ip = model.personalize(leaspy_data, "scipy_minimize", seed=0, progress_bar=False)
 ip_df = ip.to_dataframe()
 ip_with_probs = model.get_individual_probabilities(ip_df)
 ip_with_probs.head()
@@ -98,11 +98,7 @@ plt.show()
 ax = leaspy_plotting.patient_trajectories(
     leaspy_data,
     ip_with_probs,
-    patients_idx=['subj_12'],
-    markersize=8,
-    obs_alpha=0.5,
-    figsize=(12, 6),
-    factor_future=5,
+    patients_idx=['subj_12']
 )
 ax.set_xlim(45, 100)
 plt.show()

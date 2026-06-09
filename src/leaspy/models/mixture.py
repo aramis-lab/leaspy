@@ -902,7 +902,7 @@ class LogisticMultivariateMixtureModel(
 
     @staticmethod
     def metric(*, g: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Compute the metric tensor from input tensor `g`.
         This function calculates the metric as \((g + 1)^2 / g\) element-wise.
 

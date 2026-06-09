@@ -15,29 +15,28 @@ df = load_dataset("parkinson")
 
 # %%
 # The clinical and imaging features of interest are selected and the DataFrame is converted
-# into a Leaspy `Data` object that can be used for model fitting.
-data = Data.from_dataframe(
-    df[
-        [
-            "MDS1_total",
-            "MDS2_total",
-            "MDS3_off_total",
-            "SCOPA_total",
-            "MOCA_total",
-            "REM_total",
-            "PUTAMEN_R",
-            "PUTAMEN_L",
-            "CAUDATE_R",
-            "CAUDATE_L",
-        ]
-    ]
-)
+# into a Leaspy `Data` object that can be used for model fitting. The same feature list is
+# reused later for the simulation.
+features = [
+    "MDS1_total",
+    "MDS2_total",
+    "MDS3_off_total",
+    "SCOPA_total",
+    "MOCA_total",
+    "REM_total",
+    "PUTAMEN_R",
+    "PUTAMEN_L",
+    "CAUDATE_R",
+    "CAUDATE_L",
+]
+
+data = Data.from_dataframe(df[features])
 
 # %%
 # A logistic model with a two-dimensional latent space is initialized.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
+model = LogisticModel(name="test-model", source_dimension=2)
 
 # %%
 # The model is fitted to the data using the MCMC-SAEM algorithm.
@@ -46,6 +45,7 @@ model.fit(
     data,
     "mcmc_saem",
     n_iter=100,
+    seed=0,
     progress_bar=False,
 )
 
@@ -70,18 +70,8 @@ visit_params = {
 # A new longitudinal dataset is simulated from the fitted model using the specified parameters.
 df_sim = model.simulate(
     algorithm="simulate",
-    features=[
-        "MDS1_total",
-        "MDS2_total",
-        "MDS3_off_total",
-        "SCOPA_total",
-        "MOCA_total",
-        "REM_total",
-        "PUTAMEN_R",
-        "PUTAMEN_L",
-        "CAUDATE_R",
-        "CAUDATE_L",
-    ],
+    seed=109,
+    features=features,
     visit_parameters=visit_params,
 )
 

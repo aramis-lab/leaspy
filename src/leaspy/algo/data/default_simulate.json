@@ -7,6 +7,7 @@
     "cofactor": null,
     "cofactor_state": null,
     "features": null,
-    "visit_parameters": null
+    "visit_parameters": null,
+    "verbose_warnings": false
   }
 }

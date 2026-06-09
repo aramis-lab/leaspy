@@ -57,13 +57,14 @@ data = Data.from_dataframe(alzheimer_df)
 
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
+model = LogisticModel(name="test-model", source_dimension=2)
 model.fit(
     data,
     "mcmc_saem",
     seed=42,
     n_iter=100,
     progress_bar=False,
+    path="_outputs",
     overwrite_logs_folder=True,
     save_periodicity=10,
     plot_periodicity=10,
@@ -117,8 +118,7 @@ model.info()
 # This is done using a personalization algorithm, here `scipy_minimize`:
 
 individual_parameters = model.personalize(
-    data, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False
-)
+    data, "scipy_minimize", seed=0, progress_bar=False)
 print(individual_parameters.to_dataframe())
 
 # %%

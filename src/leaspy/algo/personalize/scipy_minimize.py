@@ -628,20 +628,32 @@ class ScipyMinimizeAlgorithm(
         if self.algo_parameters.get("progress_bar", True):
             self._display_progress_bar(-1, dataset.n_individuals, suffix="subjects")
 
-        # optimize by sending exact gradient of optimized function?
-        with_jac = self.algo_parameters["use_jacobian"]
-        if with_jac and not self.is_jacobian_implemented(model):
+        # Optimize by sending exact gradient of optimized function?
+        # `use_jacobian` is tri-state:
+        #   * True  -> user explicitly wants the analytic jacobian (L-BFGS).
+        #              Warn if the model does not implement it, then fall back.
+        #   * None  -> "auto" (the default): use the jacobian if the model
+        #              implements it, else silently use the gradient-free method.
+        #              No warning, since the user did not request anything specific.
+        #   * False -> never use the jacobian.
+        requested_jacobian = self.algo_parameters["use_jacobian"]
+        jacobian_available = self.is_jacobian_implemented(model)
+        if requested_jacobian and not jacobian_available:
+            # only reached for an *explicit* `use_jacobian=True` (None is falsy)
             warnings.warn(
                 "In `scipy_minimize` you requested `use_jacobian=True` but it "
                 f"is not implemented in your model {model.name}. "
                 "Falling back to `use_jacobian=False`..."
             )
-            with_jac = False
-            if self.algo_parameters.get("custom_scipy_minimize_params", None) is None:
-                # reset default `scipy_minimize_params`
-                self.scipy_minimize_params = (
-                    self.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN
-                )
+        with_jac = jacobian_available and (requested_jacobian is not False)
+
+        if self.algo_parameters.get("custom_scipy_minimize_params", None) is None:
+            # align the default optimizer params with the resolved decision
+            self.scipy_minimize_params = (
+                self.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN
+                if with_jac
+                else self.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN
+            )
             # TODO? change default logger as well?
 
         ind_p_all = Parallel(n_jobs=self.algo_parameters["n_jobs"])(

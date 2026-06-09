@@ -911,7 +911,12 @@ class BaseModel(ModelInterface):
         -------
         :class:`~leaspy.algo.base.AlgorithmInterface`, optional
             An instance of the algorithm if provided, otherwise None."""
-        from leaspy.algo import AlgorithmName, AlgorithmSettings, algorithm_factory
+        from leaspy.algo import (
+            AlgorithmName,
+            AlgorithmSettings,
+            OutputsSettings,
+            algorithm_factory,
+        )
 
         if algorithm_settings is not None:
             settings = algorithm_settings
@@ -921,8 +926,17 @@ class BaseModel(ModelInterface):
             algorithm = AlgorithmName(algorithm) if algorithm else None
             if algorithm is None:
                 return None
-            settings = AlgorithmSettings(algorithm.value, **kwargs)
-            settings.set_logs(**kwargs)
+            # `kwargs` mixes algorithm parameters with logging/output settings.
+            # Route them to their respective owners so logging keys don't leak into
+            # the algorithm parameters (which would wrongly warn them as unsupported).
+            log_kwargs = {
+                k: v for k, v in kwargs.items() if k in OutputsSettings.LOG_KEYS
+            }
+            algo_kwargs = {
+                k: v for k, v in kwargs.items() if k not in OutputsSettings.LOG_KEYS
+            }
+            settings = AlgorithmSettings(algorithm.value, **algo_kwargs)
+            settings.set_logs(**log_kwargs)
         return algorithm_factory(settings)
 
     def personalize(

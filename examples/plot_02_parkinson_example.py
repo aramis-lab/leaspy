@@ -42,7 +42,7 @@ data_test  = Data.from_dataframe(df_test)
 # trajectory, and patients differ only in *when* and *how fast* they travel along it.
 from leaspy.models import LogisticModel
 
-model = LogisticModel(name="test-model", source_dimension=2, obs_models="gaussian-scalar")
+model = LogisticModel(name="test-model", source_dimension=2)
 
 # %%
 import matplotlib.pyplot as plt
@@ -72,7 +72,7 @@ plt.show()
 # Personalization estimates two individual parameters per test patient from their visits:
 #   τ (tau) — disease onset age (position on the timeline)
 #   ξ (xi)  — log-acceleration (pace of progression)
-ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False, use_jacobian=False)
+ip = model.personalize(data_test, "scipy_minimize", seed=0, progress_bar=False)
 ip.to_dataframe().head()
 
 # %%
