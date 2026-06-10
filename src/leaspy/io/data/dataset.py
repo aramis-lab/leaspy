@@ -295,8 +295,10 @@ class Dataset:
         adapt_for_model : None, default or :class:`~leaspy.models.mcmc_saem_compatible.McmcSaemCompatibleModel`
             The values returned are suited for this model.
             In particular:
-                * For model with `noise_model='ordinal'` will return one-hot-encoded values [P(X = l), l=0..ordinal_max_level]
-                * For model with `noise_model='ordinal_ranking'` will return survival function values [P(X > l), l=0..ordinal_max_level-1]
+
+            * For model with `noise_model='ordinal'` will return one-hot-encoded values [P(X = l), l=0..ordinal_max_level]
+            * For model with `noise_model='ordinal_ranking'` will return survival function values [P(X > l), l=0..ordinal_max_level-1]
+
             If None, we return the raw values, whatever the model is.
 
         Returns
@@ -334,7 +336,7 @@ class Dataset:
         Convert dataset to a `DataFrame` with ['ID', 'TIME'] index, with all covariates, events and repeated measures if
         apply_headers is False, and only the repeated measures otherwise.
 
-         Parameters
+        Parameters
         ----------
         apply_headers : :obj:`bool`
             Enable to select only the columns that are needed for leaspy fit (headers attribute)

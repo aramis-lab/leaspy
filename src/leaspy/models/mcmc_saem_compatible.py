@@ -90,6 +90,7 @@ class McmcSaemCompatibleModel(StatefulModel):
         Returns
         -------
         :obj:`list` [:obj:`str`] :
+
             The names of the observation models.
         """
         return [model.to_string() for model in self.obs_models]
@@ -97,6 +98,7 @@ class McmcSaemCompatibleModel(StatefulModel):
     def has_observation_model_with_name(self, name: str) -> bool:
         """
         Check if the model has an observation model with the given name.
+
         Parameters
         ----------
         name : :obj:`str`
@@ -104,7 +106,7 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         Returns
         -------
-        :obj:`bool`:
+        bool
             True if the model has an observation model with the given name, False otherwise.
         """
         return name in self.observation_model_names
@@ -128,6 +130,27 @@ class McmcSaemCompatibleModel(StatefulModel):
             }
         )
         return d
+
+    def compute_derived_parameters(self) -> DictParamsTorch:
+        """Compute interpretable-scale parameters derived from fitted values.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.DictParamsTorch`
+            ``v0``: population velocity ``exp(log_v0_mean)``, if available.
+            ``p0``: population initial position, if available.
+        """
+        derived = {}
+        log_v0_mean = self.parameters.get("log_v0_mean")
+        if log_v0_mean is not None:
+            derived["v0"] = torch.exp(log_v0_mean)
+        log_g_mean = self.parameters.get("log_g_mean")
+        if log_g_mean is not None:
+            derived["p0"] = torch.sigmoid(-log_g_mean)
+        g_mean = self.parameters.get("g_mean")
+        if g_mean is not None:
+            derived["p0"] = g_mean.clone()
+        return derived
 
     @abstractmethod
     def _load_hyperparameters(self, hyperparameters: KwargsType) -> None:
@@ -181,9 +204,11 @@ class McmcSaemCompatibleModel(StatefulModel):
         individual_parameters : :class:`~leaspy.utils.typing.DictParams`
             Contains some individual parameters.
             If representing only one individual (in a multivariate model) it could be:
+
                 * {'tau':0.1, 'xi':-0.3, 'sources':[0.1,...]}
 
             Or for multiple individuals:
+
                 * {'tau':[0.1,0.2,...], 'xi':[-0.3,0.2,...], 'sources':[[0.1,...],[0,...],...]}
 
             In particular, a sources vector (if present) should always be a array_like, even if it is 1D
@@ -191,6 +216,7 @@ class McmcSaemCompatibleModel(StatefulModel):
         Returns
         -------
         ips_info : :class:`~leaspy.utils.typing.KwargsType`
+
             * ``'nb_inds'`` : :obj:`int` >= 0
                 Number of individuals present.
             * ``'tensorized_ips'`` : :obj:`dict` [ :obj:`str`, :class:`torch.Tensor` ]
@@ -464,10 +490,10 @@ class McmcSaemCompatibleModel(StatefulModel):
         # we add some fake sufficient statistics that are in fact convergence metrics (summed over individuals)
         # TODO proper handling of metrics
         # We do not account for regularization of pop. vars since we do NOT have true Bayesian priors on them (for now)
-        for k in ("nll_attach", "nll_regul_ind_sum"):
+        for k in ("nll_attach", "nll_regul_ind_sum", "nll_regul_pop_sum"):
             suff_stats[k] = state[k]
         suff_stats["nll_tot"] = (
-            suff_stats["nll_attach"] + suff_stats["nll_regul_ind_sum"]
+            suff_stats["nll_attach"] + suff_stats["nll_regul_ind_sum"] + suff_stats["nll_regul_pop_sum"]
         )  # "nll_regul_all_sum"
 
         return suff_stats
@@ -548,6 +574,7 @@ class McmcSaemCompatibleModel(StatefulModel):
         ----------
         state : :class:`~leaspy.variables.state.State`
             Instance holding values for all model variables (including latent individual variables), as well as:
+
             - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
 
         timepoints : :class:`~leaspy.utils.weighted_tensor.WeightedTensor` or :class:`torch.Tensor`
@@ -578,6 +605,7 @@ class McmcSaemCompatibleModel(StatefulModel):
 
         state : :class:`~leaspy.variables.state.State`
             Instance holding values for all model variables (including latent individual variables), as well as:
+
             - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
         dataset : :class:`~leaspy.io.data.dataset.Dataset`
             The dataset containing the data to be put in the state.
@@ -598,6 +626,7 @@ class McmcSaemCompatibleModel(StatefulModel):
         ----------
         state : :class:`~leaspy.variables.state.State`
             Instance holding values for all model variables (including latent individual variables), as well as:
+
             - timepoints : :class:`torch.Tensor` of shape (n_individuals, n_timepoints)
         """
         state["t"] = None

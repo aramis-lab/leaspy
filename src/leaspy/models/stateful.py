@@ -55,7 +55,7 @@ class StatefulModel(BaseModel):
         """Track a variable by its name.
 
         Parameters
-        -------
+        ----------
         variable : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable to track. This variable will be monitored for changes or updates.
         """
@@ -80,7 +80,7 @@ class StatefulModel(BaseModel):
         """Untrack a variable by its name.
 
         Parameters
-        -------
+        ----------
         variable : :class:`~leaspy.variables.specs.VariableName`
             The name of the variable to untrack. This variable will no longer be monitored for changes or updates.
         """
@@ -228,6 +228,9 @@ class StatefulModel(BaseModel):
             Input dataset from which to initialize the model.
         """
         super().initialize(dataset=dataset)
+        # Hook for subclasses to finalize variable specs (e.g. rebuild obs_models
+        # with the actual dataset dimension) before the DAG is built.
+        self._finalize_specs(dataset)
         self._initialize_state()
         if not dataset:
             return
@@ -237,6 +240,14 @@ class StatefulModel(BaseModel):
             self._state.put_population_latent_variables(
                 LatentVariableInitType.PRIOR_MODE
             )
+
+    def _finalize_specs(self, dataset: Optional[Dataset] = None) -> None:
+        """Finalize variable specs once `features`/`dimension` are known from `dataset`.
+
+        Default is a no-op. Subclasses may override to rebuild specs whose shape
+        depends on the dataset's dimension (e.g. observation models).
+        """
+        return
 
     def _initialize_state(self) -> None:
         """Initialize the internal state of model, as well as the underlying DAG.
@@ -363,14 +374,12 @@ class StatefulModel(BaseModel):
             parameter_value = val_to_tensor(
                 parameter_value, getattr(self.dag[parameter_name], "shape", None)
             )
-            assert (
-                parameter_value.shape == current_value.shape,
-                (parameter_name, parameter_value.shape, current_value.shape),
+            assert parameter_value.shape == current_value.shape, (
+                parameter_name, parameter_value.shape, current_value.shape
             )
             # TODO: WeightedTensor? (e.g. batched `deltas``)
-            assert (
-                torch.allclose(parameter_value, current_value, atol=1e-4),
-                (parameter_name, parameter_value, current_value),
+            assert torch.allclose(parameter_value, current_value, atol=1e-4), (
+                parameter_name, parameter_value, current_value
             )
 
     @abstractmethod

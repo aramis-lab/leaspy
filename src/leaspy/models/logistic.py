@@ -21,6 +21,8 @@ from .base import InitializationMethod
 from .obs_models import FullGaussianObservationModel
 from .riemanian_manifold import RiemanianManifoldModel
 
+from typing import Optional
+
 __all__ = [
     "LogisticInitializationMixin",
     "LogisticModel",
@@ -109,9 +111,10 @@ class LogisticInitializationMixin:
 
 class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
     """Manifold model for multiple variables of interest (logistic formulation)."""
+    type = "logistic"
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """
@@ -141,12 +144,12 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        g : t :class:`torch.Tensor`
+        g : :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             The computed metric tensor, same shape as g(number of features)
         """
         return (g + 1) ** 2 / g
@@ -179,7 +182,7 @@ class LogisticModel(LogisticInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             Weighted value tensor after applying sigmoid transformation,
             representing the model output with sources.
         """

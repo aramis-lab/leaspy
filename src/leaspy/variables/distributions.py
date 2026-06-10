@@ -50,9 +50,6 @@ class StatelessDistributionFamily(ABC):
     -----
     - Subclasses must define the `parameters` class variable, listing parameter names in order.
     - Each method operates solely on the passed tensors; no state or caching is assumed.
-
-    TODO
-    ----
     - Consider supporting `WeightedTensor` for distribution parameters,
       e.g., to mask latent variables like `batched_deltas` at the input level
       or directly at model parameter level (e.g., `batched_deltas_mean`).
@@ -391,8 +388,8 @@ class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
     
     Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
 
-    Class Attributes
-    ----------------
+    Attributes
+    ----------
     parameters : :obj:`tuple` of :obj:`str`
         The names of the parameters for the distribution. Here, it is `("loc",)`, where `loc` 
         represents the probability of success.
@@ -410,8 +407,8 @@ class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
     
     Inherits from `StatelessDistributionFamilyFromTorchDistribution`.
 
-    Class Attributes
-    ----------------
+    Attributes
+    ----------
     parameters : :obj:`tuple` of :obj:`str`
         The names of the distribution parameters: `("loc", "scale")`.
     dist_factory : :obj:`Callable`
@@ -708,14 +705,21 @@ class MixtureNormalFamily(StatelessDistributionFamily):
     This class defines a mixture distribution where each component is a univariate
     normal distribution, and the mixture weights are defined by a categorical distribution.
 
-    Parameters:
-        - loc (Tensor): Mean of each normal component, one for each cluster.
-        - scale (Tensor): Standard deviation of each normal component.
-        - probs (Tensor): Probabilities associated with each cluster; must sum to 1.
+    Parameters
+    ----------
+    loc : :class:`torch.Tensor`
+        Mean of each normal component, one for each cluster.
+    scale : :class:`torch.Tensor`
+        Standard deviation of each normal component.
+    probs : :class:`torch.Tensor`
+        Probabilities associated with each cluster; must sum to 1.
 
+    Notes
+    -----
     The mixture is modeled using `torch.distributions.MixtureSameFamily`, where:
-        - The mixing distribution is a `Categorical` defined by `probs`.
-        - The component distribution is `Normal(loc, scale)`.
+
+    - The mixing distribution is a `Categorical` defined by `probs`.
+    - The component distribution is `Normal(loc, scale)`.
     """
 
     parameters: ClassVar = ("loc", "scale", "probs")
@@ -742,7 +746,7 @@ class MixtureNormalFamily(StatelessDistributionFamily):
 
         Returns
         -------
-        :class: `.MixtureSameFamily`
+        :class:`torch.distributions.MixtureSameFamily`
             A mixture distribution with categorical mixing and normal components.
         """
         from torch.distributions import Categorical, Normal

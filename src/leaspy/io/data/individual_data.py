@@ -164,6 +164,7 @@ class IndividualData:
         -------
         :obj:`pd.DataFrame`
             DataFrame containing the individual's data with the following columns:
+
                 * ID: Unique identifier for the individual
                 * TIME: Timepoints associated with the observations
                 * Observations: Observed data points for each feature

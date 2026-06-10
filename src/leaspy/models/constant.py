@@ -5,6 +5,8 @@ from leaspy.utils.typing import DictParamsTorch
 
 from .stateless import StatelessModel
 
+from typing import Optional
+
 __all__ = ["ConstantModel"]
 
 
@@ -15,6 +17,7 @@ class ConstantModel(StatelessModel):
     provided during :term:`calibration`.
 
     It could predict:
+
         * ``last``: last value seen during calibration (even if ``NaN``).
         * ``last_known``: last non ``NaN`` value seen during :term:`calibration`.
         * ``max``: maximum (=worst) value seen during :term:`calibration`.
@@ -37,9 +40,10 @@ class ConstantModel(StatelessModel):
     --------
     :class:`~leaspy.algo.personalize.constant_prediction_algo.ConstantPredictionAlgorithm`
     """
+    type = "constant"
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
         self._is_initialized = True
 
     @property

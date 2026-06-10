@@ -39,8 +39,8 @@ class ObservationModel:
     ----------
     name : :obj:`str`
         The name of observed variable (to name the data variable & attachment term related to this observation).
-    getter : function :class:`.Dataset` -> :class:`.WeightedTensor`
-        The way to retrieve the observed values from the :class:`.Dataset` (as a :class:`.WeightedTensor`):
+    getter : function :class:`~leaspy.io.data.dataset.Dataset` -> :class:`.WeightedTensor`
+        The way to retrieve the observed values from the :class:`~leaspy.io.data.dataset.Dataset` (as a :class:`.WeightedTensor`):
         e.g. all values, subset of values - only x, y, z features, one-hot encoded features, ...
     dist : :class:`.SymbolicDistribution`
         The symbolic distribution, parametrized by model variables, for observed values (so to compute attachment).
@@ -70,22 +70,23 @@ class ObservationModel:
 
         Parameters
         ----------
-        named_attached_vars ::obj:`bool`, optional
+        named_attach_vars : bool, optional
+            If True, the attachment variables are named with the observation model name.
 
         Returns
         -------
-        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`] 
-            A dictionary mapping variable name to their correspondind specifications with
-            - the primary DaraVariable
-            - any `extra_vars` defined by the model
-            - nll attachment variables :
-                - nll_attach_var_ind: a :class:`~leaspy.variables.specs.LinkedVariable` representing the individual-level
-                negative log-likelihood contributions
-                - nll_attach_var: a :class:`~leaspy.variables.specs.LinkedVariable` that sums the individual contributions
+        dict[VariableName, VariableInterface]
+                        Mapping of variable names to specifications. It includes:
+
+                        * the primary ``DataVariable`` for the observation
+                        * any ``extra_vars`` defined by the model
+                        * negative log-likelihood attachment variables:
+                            * ``nll_attach_var_ind``: a :class:`~leaspy.variables.specs.LinkedVariable` for individual contributions
+                            * ``nll_attach_var``: a :class:`~leaspy.variables.specs.LinkedVariable` summing individual contributions
 
         Notes
         -----
-        The distribution object `self.dist`should provide a `get_func_nll(name)` method that
+        The distribution object `self.dist` should provide a `get_func_nll(name)` method that
         returns a callable for computing the nll
         """
         # TODO change? a bit dirty? possibility of having aliases for variables?

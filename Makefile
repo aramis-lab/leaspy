@@ -15,6 +15,10 @@ clean.doc:
 	@$(RM) -rf docs/auto_examples/
 	@$(RM) -rf docs/sg_execution_times.rst
 
+.PHONY: doc-quick
+doc-quick: install.doc
+	@$(SPHINX) -b html docs/ docs/_build/html
+
 .PHONY: clean.py
 clean.py:
 	@find . -name __pycache__ -exec $(RM) -r {} +

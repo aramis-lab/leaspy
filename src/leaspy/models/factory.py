@@ -56,8 +56,8 @@ def model_factory(
 
     Returns
     -------
-    :class:`.BaseModel`
-        A child class object of :class:`.models.BaseModel` class object determined by ``name``.
+    :class:`~leaspy.models.base.BaseModel`
+        A child class object of :class:`~leaspy.models.base.BaseModel` class object determined by ``name``.
 
     Raises
     ------

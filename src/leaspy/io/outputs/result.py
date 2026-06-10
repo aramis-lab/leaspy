@@ -27,7 +27,7 @@ class Result:
 
     Parameters
     ----------
-    data : :class:`.Data`
+    data : :class:`~leaspy.io.data.data.Data`
         Object containing the information of the individuals, 
         in particular the time-points :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
     individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
@@ -37,7 +37,7 @@ class Result:
 
     Attributes
     ----------
-    data : :class:`.Data`
+    data : :class:`~leaspy.io.data.data.Data`
         Object containing the information of the individuals, 
         in particular the time-points :math:`(t_{i,j})` and the observations :math:`(y_{i,j})`.
     individual_parameters : :obj:`dict` [:obj:`str`, :class:`torch.Tensor`]
@@ -629,7 +629,7 @@ class Result:
 
         Parameters
         ----------
-        data : :obj:`str` or :class:`pandas.DataFrame` or :class:`.Data`
+        data : :obj:`str` or :class:`pandas.DataFrame` or :class:`~leaspy.io.data.data.Data`
             The file's path or a DataFrame containing the features' scores.
         individual_parameters : :obj:`str` or :class:`pandas.DataFrame`
             The file's path or a DataFrame containing the individual parameters.
@@ -845,12 +845,14 @@ class Result:
         Notes
         -----
         If ``cofactor is None``:
+
             * If the parameter is univariate => return a list the parameter's distribution:
                 list[float]
             * If the parameter is multivariate => return a dictionary:
                 {'parameter1': distribution of parameter variable 1, 'parameter2': ...}
 
         If ``cofactor is not None``:
+
             * If the parameter is univariate => return a dictionary:
                 {'cofactor1': parameter distribution such that patient.covariate = covariate1, 'cofactor2': ...}
             * If the parameter is multivariate => return a dictionary:

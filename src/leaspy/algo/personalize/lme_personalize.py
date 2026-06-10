@@ -18,7 +18,7 @@ class LMEPersonalizeAlgorithm(PersonalizeAlgorithm[LMEModel, IndividualParameter
 
     Parameters
     ----------
-    settings : :class:`.AlgorithmSettings`
+    settings : :class:`~leaspy.algo.settings.AlgorithmSettings`
         Algorithm settings (none yet).
         Most LME parameters are defined within LME model and LME fit algorithm.
 

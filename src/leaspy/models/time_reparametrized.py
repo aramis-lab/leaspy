@@ -64,12 +64,9 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
         dimension = kwargs.get("dimension", None)
         if "features" in kwargs:
             dimension = len(kwargs["features"])
-        # source_dimension = kwargs.get("source_dimension", None)
-        # if dimension == 1 and source_dimension not in {0, None}:
-        #    raise LeaspyModelInputError(
-        #        "You should not provide `source_dimension` != 0 for univariate model."
-        #    )
-        # self.source_dimension: Optional[int] = source_dimension
+        # Track whether `obs_models` was auto-defaulted (vs. user-provided), so we can
+        # rebuild it once the real `dimension` is known from the dataset (see _finalize_specs).
+        self._obs_models_auto = kwargs.get("obs_models") is None
         observation_models = kwargs.get("obs_models", None)
         if observation_models is None:
             observation_models = (
@@ -145,7 +142,7 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
 
         Raises
         ------
-         :exc:`.LeaspyModelInputError`
+        :exc:`.LeaspyModelInputError`
             If `source_dimension` is not an integer, is negative, or exceeds the allowable range
             based on the model's dimension.
         """
@@ -262,6 +259,49 @@ class TimeReparametrizedModel(McmcSaemCompatibleModel):
             )
 
         return specifications
+
+    def _finalize_specs(self, dataset: Optional[Dataset] = None) -> None:
+        """Rebuild auto-defaulted observation models with the actual dataset dimension.
+
+        Called by `StatefulModel.initialize` after `features`/`dimension` are set from
+        the dataset but before the DAG is built. Only acts if the user did not
+        explicitly provide `obs_models` at construction. If the user did provide one,
+        we respect it and just warn on a scalar/diagonal vs dimension mismatch, 
+        specifically the case when the user provides a scalar noise model for a
+        multivariate dataset.
+        """
+        from .obs_models import FullGaussianObservationModel
+
+        if dataset is None or len(self.obs_models) == 0:
+            return
+        first = self.obs_models[0]
+        # We only know how to rebuild the gaussian one here; non-gaussian obs_models
+        # (bernoulli, weibull, ...) are user-driven and left untouched.
+        if not isinstance(first, FullGaussianObservationModel):
+            return
+        obs_model_is_scalar = first.extra_vars["noise_std"].shape == (1,)
+        dataset_is_univariate = dataset.dimension == 1
+        if self._obs_models_auto:
+            # Rebuild from scratch if the auto-default doesn't match the data dimension.
+            # We drop any tail obs_models the subclass may have added (e.g. JointModel's
+            # weibull): subclasses re-add them in their own `_finalize_specs` override.
+            if obs_model_is_scalar != dataset_is_univariate:
+                name = "gaussian-scalar" if dataset_is_univariate else "gaussian-diagonal"
+                self.obs_models = (
+                    observation_model_factory(name, dimension=dataset.dimension),
+                )
+        else:
+            if obs_model_is_scalar and not dataset_is_univariate:
+                warnings.warn(
+                    "You chose `gaussian-scalar` noise but the dataset has "
+                    f"{dataset.dimension} features: a single noise_std will be "
+                    "shared across all features."
+                )
+            elif not obs_model_is_scalar and dataset_is_univariate:
+                warnings.warn(
+                    "You chose `gaussian-diagonal` noise but the dataset has a "
+                    "single feature: consider `gaussian-scalar` instead."
+                )
 
     def _validate_compatibility_of_dataset(
         self, dataset: Optional[Dataset] = None

@@ -608,8 +608,8 @@ class LatentVariableInitType(str, Enum):
     """
     Type of initialization for latent variables.
 
-    Members
-    -------
+    Attributes
+    ----------
     PRIOR_MODE : :obj:`str`
         Initialize latent variables using the mode of their prior distribution.
     PRIOR_MEAN : :obj:`str`
@@ -634,11 +634,8 @@ class LatentVariable(IndepVariable):
         The symbolic prior distribution for the latent variable (e.g. `Normal('xi_mean', 'xi_std')`).
     sampling_kws : :obj:`dict`, optional
         Optional keyword arguments to customize the sampling process (e.g. number of samples, random seed).
-    
-    Class Attributes
-    ----------------
     is_settable : :obj:`bool`
-        Indicates that this variable can be explicitly set in the model (default: True).    
+        Indicates that this variable can be explicitly set in the model (default: True).
     """
 
     # TODO/WIP? optional mask derive from optional masks of prior distribution parameters?
@@ -773,7 +770,7 @@ class PopulationLatentVariable(LatentVariable):
 
         Returns
         -------
-        :class:`~leaspy.utils.functional._named_imput_function.NamedInputFunction`[:class:`torch.Tensor`] :
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction` [:class:`torch.Tensor`]
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=())
@@ -839,7 +836,7 @@ class IndividualLatentVariable(LatentVariable):
 
         Returns
         -------
-        :class:`~leaspy.utils.functional._named_imput_function.NamedInputFunction`[:class:`torch.Tensor`] :
+        :class:`~leaspy.utils.functional._named_input_function.NamedInputFunction` [:class:`torch.Tensor`]
             The initialization function.
         """
         return self._get_init_func_generic(method=method, sample_shape=(n_individuals,))
@@ -1013,8 +1010,8 @@ class NamedVariables(UserDict):
         "nll_regul_ind_sum",
         # "nll_regul_pop_sum" & "nll_regul_all_sum" are not really relevant so far
         # (because priors for our population variables are NOT true bayesian priors)
-        # "nll_regul_pop_sum",
-        # "nll_regul_all_sum",
+        "nll_regul_pop_sum",
+        "nll_regul_all_sum",
     )
 
     def __init__(self, *args, **kws):
@@ -1052,14 +1049,14 @@ class NamedVariables(UserDict):
     def _auto_vars(self) -> dict[VariableName, LinkedVariable]:
         # TODO? add jacobian as well?
         d = dict(
-            # nll_regul_pop_sum=LinkedVariable(
-            #     Sum(
-            #         *(
-            #             f"nll_regul_{pop_var_name}"
-            #             for pop_var_name in self._latent_pop_vars
-            #         )
-            #     )
-            # ),
+            nll_regul_pop_sum=LinkedVariable(
+                Sum(
+                    *(
+                        f"nll_regul_{pop_var_name}"
+                        for pop_var_name in self._latent_pop_vars
+                    )
+                )
+            ),
             nll_regul_ind_sum_ind=LinkedVariable(
                 Sum(
                     *(
@@ -1069,9 +1066,9 @@ class NamedVariables(UserDict):
                 )
             ),
             nll_regul_ind_sum=LinkedVariable(SumDim("nll_regul_ind_sum_ind")),
-            # nll_regul_all_sum=LinkedVariable(
-            #     Sum("nll_regul_pop_sum", "nll_regul_ind_sum")
-            # ),
+            nll_regul_all_sum=LinkedVariable(
+                Sum("nll_regul_pop_sum", "nll_regul_ind_sum")
+            ),
         )
         assert d.keys() == set(self.AUTOMATIC_VARS)
         return d

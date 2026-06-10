@@ -1,0 +1,22 @@
+{# Navbar navigation links.
+   On toctree-rooted pages, generate_header_nav_html produces the links.
+   On orphan pages (e.g. viewcode _modules/), it returns empty — fall back to
+   a hardcoded list so navigation is always visible.
+#}
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    {% set nav_html = generate_header_nav_html(
+        n_links_before_dropdown=theme_header_links_before_dropdown,
+        dropdown_text=theme_header_dropdown_text
+    ) %}
+    {{ nav_html }}
+    {% if not nav_html.strip() %}
+    <li class="nav-item"><a class="nav-link nav-internal" href="{{ pathto('install') }}">Installation</a></li>
+    <li class="nav-item"><a class="nav-link nav-internal" href="{{ pathto('auto_examples/index') }}">Examples gallery</a></li>
+    <li class="nav-item"><a class="nav-link nav-internal" href="{{ pathto('user_guide') }}">User guide</a></li>
+    <li class="nav-item"><a class="nav-link nav-internal" href="{{ pathto('references') }}">References</a></li>
+    <li class="nav-item"><a class="nav-link nav-internal" href="{{ pathto('changelog') }}">Changelog</a></li>
+    <li class="nav-item"><a class="nav-link nav-internal" href="{{ pathto('reference/api/index') }}">API Reference</a></li>
+    {% endif %}
+  </ul>
+</nav>

@@ -48,7 +48,7 @@ class BernoulliObservationModel(ObservationModel):
 
         Parameters
         ----------
-        dataset : :class:`.Dataset`
+        dataset : :class:`~leaspy.io.data.dataset.Dataset`
             A dataset object containing `values` and `mask` attributes.
 
         Returns

@@ -16,6 +16,7 @@ from leaspy.utils.filtered_mapping_proxy import FilteredMappingProxy
 
 from .specs import (
     IndividualLatentVariable,
+    PopulationLatentVariable,
     VariableInterface,
     VariableName,
     VariablesToFrozenSet,
@@ -63,10 +64,10 @@ class VariablesDAG(Mapping):
 
     Finally, we do not store children nor ancestors in a specific node class to avoid cross-references in such nodes.
 
-    To Do
-    -----
-    - pre-compute roots (no ancestors) and leaves (no children) as well?
-    - stratify variables dictionary per variable class?
+    Future improvements:
+
+    - Pre-compute roots (no ancestors) and leaves (no children) as well?
+    - Stratify variables dictionary per variable class?
 
     References
     ----------
@@ -482,5 +483,20 @@ class VariablesDAG(Mapping):
         """
         try:
             return tuple(self.sorted_variables_by_type[IndividualLatentVariable].keys())
+        except KeyError:
+            return ()
+        
+    @property
+    def population_variable_names(self) -> tuple[VariableName, ...]:
+        """
+        Returns a tuple of variable names corresponding to the population variables.
+
+        Returns
+        -------
+        :obj:`tuple` of :class:`~leaspy.variables.specs.VariableName` :
+            The population variable names.
+        """
+        try:
+            return tuple(self.sorted_variables_by_type[PopulationLatentVariable].keys())
         except KeyError:
             return ()

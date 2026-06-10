@@ -18,6 +18,8 @@ from leaspy.variables.specs import (
 from .obs_models import FullGaussianObservationModel
 from .riemanian_manifold import RiemanianManifoldModel
 
+from typing import Optional
+
 __all__ = [
     "LinearInitializationMixin",
     "LinearModel",
@@ -100,9 +102,10 @@ class LinearInitializationMixin:
 
 class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
     """Manifold model for multiple variables of interest (linear formulation)."""
+    type = "linear"
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """
@@ -111,7 +114,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-        :class:`~leaspy.variables.specs.NamedVariables :
+        :class:`~leaspy.variables.specs.NamedVariables` :
             A dictionary-like object mapping variable names to their specifications.
         """
         d = super().get_variables_specs()
@@ -130,12 +133,12 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        g :  :class:`torch.Tensor`
+        g : :class:`torch.Tensor`
             Input tensor with values of the population parameter `g` for each feature.
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             A tensor of ones with the same shape as `g`.
         """
         return torch.ones_like(g)
@@ -155,9 +158,9 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Parameters
         ----------
-        rt :  :class:`torch.Tensor`
+        rt : :class:`torch.Tensor`
             The reparametrized time.
-        space_shifts :  :class:`torch.Tensor`
+        space_shifts : :class:`torch.Tensor`
             The values of the space-shifts
         metric : Any
             The metric tensor used for computing the spatial/temporal influence.
@@ -168,7 +171,7 @@ class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
 
         Returns
         -------
-         :class:`torch.Tensor`
+        :class:`torch.Tensor`
             The model output with contribution from sources.
         """
         pop_s = (None, None, ...)

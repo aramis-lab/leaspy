@@ -1,27 +1,41 @@
 {
-  "leaspy_version": "1.4.0",
-  "name": "univariate_linear",
+  "leaspy_version": "2.0.2",
+  "name": "linear",
   "features": [
     "Y0"
   ],
   "dimension": 1,
-  "source_dimension": 0,
-  "noise_model": "gaussian_scalar",
+  "hyperparameters": {
+    "g_std": 0.009999999776482582,
+    "log_v0_std": 0.009999999776482582,
+    "xi_mean": 0.0
+  },
   "parameters": {
-    "g": [
-      0.4445808529853821
+    "g_mean": [
+      0.4774227440357208
     ],
-    "v0": [
-      -3.442329168319702
+    "log_v0_mean": [
+      -3.315992832183838
     ],
-    "betas": [],
-    "tau_mean": 77.91061401367188,
-    "tau_std": 6.064311981201172,
-    "xi_mean": 0.0,
-    "xi_std": 0.43325600028038025,
-    "sources_mean": 0.0,
-    "sources_std": 1.0,
-    "noise_std": 0.0704135000705719,
-    "mixing_matrix": []
-  }
+    "noise_std": 0.06745340675115585,
+    "tau_mean": [
+      78.56537628173828
+    ],
+    "tau_std": [
+      5.607176780700684
+    ],
+    "xi_std": [
+      0.47479555010795593
+    ]
+  },
+  "obs_models": {
+    "y": "gaussian-scalar"
+  },
+  "fit_metrics": {
+    "nll_attach": -200.5353240966797,
+    "nll_regul_ind_sum": 64.94036865234375,
+    "nll_regul_pop_sum": 1.5744067430496216,
+    "nll_tot": -134.02053833007812
+  },
+  "source_dimension": 0
 }

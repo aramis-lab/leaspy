@@ -13,7 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
 
 from leaspy.io.data import Dataset
-from leaspy.models import McmcSaemCompatibleModel
+from leaspy.models import McmcSaemCompatibleModel, LogisticMultivariateMixtureModel
 
 from .base import FitAlgorithm
 
@@ -89,7 +89,7 @@ class FitOutputManager:
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model used by the computation.
 
-        data : :class:`.Dataset`
+        data : :class:`~leaspy.io.data.dataset.Dataset`
             The data used by the computation
         """
         # <!> only `current_iteration` defined for AbstractFitAlgorithm... TODO -> generalize where possible?
@@ -174,22 +174,41 @@ class FitOutputManager:
         width = 10
         height_per_row = 3.5
 
-        to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "xi_mean"}
+        to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "xi_mean", "nll_regul_pop_sum"}
         if model.name == "ordinal":
             to_skip.add("deltas")
         params_with_feature_labels = ["g", "v0"]
         params_with_sources = ["mixing_matrix"]
         params_with_events = []
+        params_with_cluster_labels = []
         if model.name == "joint":
             to_skip.add("survival_shifts")
             params_with_sources.append("zeta")
             params_with_events += ["nu", "rho"]
+        if isinstance(model, LogisticMultivariateMixtureModel):
+            to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "mixing_matrix","sources_mean", "nll_regul_pop_sum"}
+            params_with_feature_labels = ["g", "v0", "noise_std"]
+            params_with_cluster_labels = ["probs", "tau_mean", "tau_std", "xi_mean", "xi_std"]
+            params_with_sources = []
 
         params_to_plot = list(model.state.tracked_variables - to_skip)
 
         files_to_plot = self._get_files_related_to_parameters(params_to_plot)
         # To plot related parameters close to each other, we sort the list
         files_to_plot.sort()
+        
+        if isinstance(model, LogisticMultivariateMixtureModel):
+            custom_order = ["g", "nll_regul_log_g", "v0", "nll_regul_log_v0", 
+                            "noise_std",  "nll_attach",
+                            "probs", "tau_mean", "tau_std", "xi_mean", "xi_std", 
+                            ]
+            files_to_plot.sort(
+                key=lambda f: (
+                    custom_order.index(f.name.split(".csv")[0])
+                    if f.name.split(".csv")[0] in custom_order
+                    else len(custom_order)
+                    )
+                )
 
         # If plot sourcewise is true, new sourcewise csv files will be created
 
@@ -231,6 +250,7 @@ class FitOutputManager:
                         params_with_feature_labels,
                         params_with_sources,
                         params_with_events,
+                        params_with_cluster_labels,
                         model,
                     )
 
@@ -355,25 +375,25 @@ class FitOutputManager:
     ) -> tuple[Optional[str], Optional[int]]:
         """Extract the parameter name and its corresponding index (if applicable) from the given parameter name.
 
-         Parameters
-         ----------
-         parameter_name : :obj:`str`
-             The name of the parameter to extract information from.
+        Parameters
+        ----------
+        parameter_name : :obj:`str`
+            The name of the parameter to extract information from.
 
-         Returns
-         -------
-         tuple[Optional[:obj:`str`], Optional[:obj:`int`]]
-             A tuple where the first element is the parameter name and the second is its index (if applicable).
+        Returns
+        -------
+        tuple[Optional[:obj:`str`], Optional[:obj:`int`]]
+            A tuple where the first element is the parameter name and the second is its index (if applicable).
 
-         Examples
-         --------
-         >>> _extract_parameter_name_and_index("mixing_matrix_10")
+        Examples
+        --------
+        >>> _extract_parameter_name_and_index("mixing_matrix_10")
         ('mixing_matrix', 10)
-         >>> _extract_parameter_name_and_index("mixing_matrix_1")
-         ('mixing_matrix', 1)
-         >>> _extract_parameter_name_and_index("mixing_matrix_")
-         ('mixing_matrix_', None)
-         >>> _extract_parameter_name_and_index("mixing_matrix_10_foo")
+        >>> _extract_parameter_name_and_index("mixing_matrix_1")
+        ('mixing_matrix', 1)
+        >>> _extract_parameter_name_and_index("mixing_matrix_")
+        ('mixing_matrix_', None)
+        >>> _extract_parameter_name_and_index("mixing_matrix_10_foo")
         ('mixing_matrix_10_foo', None)
         >>> _extract_parameter_name_and_index("v0")
         ('v0', None)
@@ -416,8 +436,11 @@ class FitOutputManager:
         """
         if parameter_name == "mixing_matrix":
             ax[i].set_title(parameter_name + " " + model.features[index])
-        elif parameter_name == "zeta":
-            ax[i].set_title(parameter_name + " " + "event" + " " + str(index + 1))
+        #elif parameter_name == "zeta":
+        #    ax[i].set_title(parameter_name + " " + "event" + " " + str(index + 1))
+        elif parameter_name == "zeta": 
+            idx_str = str(index + 1) if index is not None else "unknown" 
+            ax[i].set_title(f"{parameter_name} event {idx_str}")
         elif parameter_name.startswith("sourcewise"):
             ax[i].set_title(
                 parameter_name.replace("sourcewise_", "")
@@ -438,6 +461,7 @@ class FitOutputManager:
         params_with_feature_labels: Iterable[str],
         params_with_sources: Iterable[str],
         params_with_events: Iterable[str],
+        params_with_cluster_labels: Iterable[str],
         model: McmcSaemCompatibleModel,
     ) -> plt.Axes:
         """Set the legend for the plot based on the parameter name and the model's features, sources, or events.
@@ -456,6 +480,8 @@ class FitOutputManager:
             A list of parameters associated with sources.
         params_with_events : list[:obj:`str`]
             A list of parameters associated with events.
+        params_with_cluster_labels : list[:obj:`str`]
+            A list of parameters associated with cluster labels.
         model : :class:`~leaspy.models.McmcSaemCompatibleModel`
             The model containing the necessary information for legends.
 
@@ -466,11 +492,10 @@ class FitOutputManager:
         """
         if parameter_name in params_with_feature_labels:
             ax[i].legend(model.features, loc="best")
-        if hasattr(model, "source_dimension") and parameter_name in params_with_sources:
-            sources = [
-                "Source" + " " + str(i + 1) for i in range(model.source_dimension)
-            ]
-            ax[i].legend(sources, loc="best")
+        if hasattr(model, "source_dimension") and self.plot_sourcewise == False:
+            if parameter_name in params_with_sources:
+                sources = ["Source" + " " + str(i + 1) for i in range(model.source_dimension)]
+                ax[i].legend(sources, loc="best")
         if hasattr(model, "nb_events"):
             if parameter_name in params_with_events:
                 events = ["Event" + " " + str(i + 1) for i in range(model.nb_events)]
@@ -483,6 +508,10 @@ class FitOutputManager:
                         "Event" + " " + str(i + 1) for i in range(model.nb_events)
                     ]
                     ax[i].legend(events, loc="best")
+        if hasattr(model, "n_clusters"): 
+            if parameter_name in params_with_cluster_labels:
+                clusters = [ "Cluster" + " " + str(i + 1) for i in range(model.n_clusters)]
+                ax[i].legend(clusters, loc="best")
         return ax
 
     def _compute_files_sourcewise(
@@ -525,11 +554,11 @@ class FitOutputManager:
         Parameters
         ----------
         parameter_name : :obj:`str`
-              A sourcewise parameter
+            A sourcewise parameter
         files : Iterable[Path]
-              A list of file paths containing sourcewise parameter
+            A list of file paths containing sourcewise parameter
         source_idx : :obj:`int`
-              The index of the source
+            The index of the source
         Returns
         -------
         Path

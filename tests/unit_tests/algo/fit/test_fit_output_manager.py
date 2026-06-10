@@ -10,7 +10,7 @@ from tests import LeaspyTestCase
 
 def test_fit_output_manager(tmp_path):
     data = LeaspyTestCase.get_suited_test_data_for_model("logistic_diag_noise")
-    model = model_factory("logistic")
+    model = model_factory("logistic", obs_models="gaussian-scalar")
     algo_settings = LeaspyTestCase.get_algo_settings(
         name="mcmc_saem", n_iter=50, seed=0
     )

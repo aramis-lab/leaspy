@@ -54,7 +54,7 @@ class ScipyMinimizeTest(LeaspyTestCase):
         self.assertEqual(
             self.default_settings.parameters,
             {
-                "use_jacobian": True,
+                "use_jacobian": None,
                 "n_jobs": 1,
                 "progress_bar": True,
                 "custom_scipy_minimize_params": None,
@@ -65,9 +65,11 @@ class ScipyMinimizeTest(LeaspyTestCase):
     def test_default_constructor(self):
         self.assertEqual(self.default_algorithm.name, "scipy_minimize")
         self.assertEqual(self.default_algorithm.seed, None)
+        # `use_jacobian` now defaults to None ("auto"); with no model implementing
+        # an analytic jacobian, the constructor resolves to the gradient-free params.
         self.assertEqual(
             self.default_algorithm.scipy_minimize_params,
-            ScipyMinimizeAlgorithm.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITH_JACOBIAN,
+            ScipyMinimizeAlgorithm.DEFAULT_SCIPY_MINIMIZE_PARAMS_WITHOUT_JACOBIAN,
         )
         self.assertEqual(
             self.default_algorithm.format_convergence_issues,
@@ -167,17 +169,17 @@ class ScipyMinimizeTest(LeaspyTestCase):
     def test_fallback_without_jacobian(self):
         model = self.get_hardcoded_model("logistic_scalar_noise")
 
-        # pretend as if compute_jacobian_tensorized was not implemented
-        def not_implemented_compute_jacobian_tensorized(tpts, ips, **kws):
-            raise NotImplementedError
-
-        model.compute_jacobian_tensorized = not_implemented_compute_jacobian_tensorized
+        # An *explicit* `use_jacobian=True` on a model with no analytic jacobian
+        # must warn and fall back. (The default `None`/"auto" stays silent.)
+        algorithm = ScipyMinimizeAlgorithm(
+            AlgorithmSettings("scipy_minimize", use_jacobian=True)
+        )
         mini_dataset = Dataset(
             self.get_suited_test_data_for_model("logistic_scalar_noise"),
             no_warning=True,
         )
         with self.assertWarnsRegex(UserWarning, r"`use_jacobian\s?=\s?False`"):
-            self.default_algorithm._compute_individual_parameters(model, mini_dataset)
+            algorithm._compute_individual_parameters(model, mini_dataset)
 
     @skip("Broken : ScipyMinimize has not _pull_individual_parameters method")
     def test_get_reconstruction_error(self):
