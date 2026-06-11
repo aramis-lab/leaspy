@@ -248,16 +248,17 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             delta_t0_mean=ModelParameter.for_pop_mean_condi(
                 "delta_t0", "gamma_t0", shape=(self.nb_cov,)
             ),
-            delta_t0_cond_mean=LinkedVariable(Prod("gamma_t0", "delta_t0_mean")),
             delta_t0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 1.0),
             pi_t0=Hyperparameter(0.5 * torch.ones(self.nb_cov)),
             # LATENT VARS
             t0=PopulationLatentVariable(Normal("t0_mean", "t0_std")),
-            delta_t0=PopulationLatentVariable(
-                MultivariateNormal("delta_t0_cond_mean", "delta_t0_sigma"),
-                sampling_kws={"scale": 1},
-            ),
             gamma_t0=PopulationLatentVariable(Bernoulli("pi_t0")),
+            delta_t0_cond_mean=LinkedVariable(Prod("gamma_t0", "delta_t0_mean")),
+            delta_t0=PopulationLatentVariable(
+                MultivariateNormal("delta_t0_mean", "delta_t0_sigma"),
+                sampling_kws={"scale": 1},
+                nll_prior=MultivariateNormal("delta_t0_cond_mean", "delta_t0_sigma"),
+            ),
             xi=IndividualLatentVariable(Normal("xi_mean", "xi_std")),
             tau=IndividualLatentVariable(Normal("tau_mean", "tau_std")),
             # DERIVED VARS

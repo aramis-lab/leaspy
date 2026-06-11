@@ -172,14 +172,15 @@ class CovariateLogisticModel(
             delta_g_mean=ModelParameter.for_pop_mean_condi(
                 "delta_g", "gamma_g", shape=(self.dimension, self.nb_cov)
             ),
-            delta_g_cond_mean=LinkedVariable(Prod("gamma_g", "delta_g_mean")),
             delta_g_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
             pi_g=Hyperparameter(0.5 * torch.ones(self.dimension, self.nb_cov)),
-            delta_g=PopulationLatentVariable(
-                MultivariateNormal("delta_g_cond_mean", "delta_g_sigma"),
-                sampling_kws={"scale": 0.01},
-            ),
             gamma_g=PopulationLatentVariable(Bernoulli("pi_g")),
+            delta_g_cond_mean=LinkedVariable(Prod("gamma_g", "delta_g_mean")),
+            delta_g=PopulationLatentVariable(
+                MultivariateNormal("delta_g_mean", "delta_g_sigma"),
+                sampling_kws={"scale": 0.01},
+                nll_prior=MultivariateNormal("delta_g_cond_mean", "delta_g_sigma"),
+            ),
             delta_g_masked=LinkedVariable(Prod("gamma_g", "delta_g")),
             log_g_patient=LinkedVariable(
                 AffineMatrix("log_g", "delta_g_masked", "covariates"),

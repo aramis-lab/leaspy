@@ -74,6 +74,7 @@ __all__ = [
     "PopulationLatentVariable",
     "IndividualLatentVariable",
     "LinkedVariable",
+    "FixedShapeLinkedVariable",
     "NamedVariables",
 ]
 
@@ -727,6 +728,7 @@ class LatentVariable(IndepVariable):
     # or should be fixed & explicit here?
     prior: SymbolicDistribution
     sampling_kws: Optional[KwargsType] = None
+    nll_prior: Optional[SymbolicDistribution] = None
 
     is_settable: ClassVar = True
 
@@ -867,6 +869,11 @@ class PopulationLatentVariable(LatentVariable):
         """
         Return the negative log likelihood regularity for the provided variable name.
 
+        If ``nll_prior`` was provided at construction time, it is used for the NLL
+        computation instead of ``prior``. This allows using a conditional prior
+        (e.g. depending on another latent variable) for MCMC without affecting
+        initialization, which always uses ``prior``.
+
         Parameters
         ----------
         variable_name : :class:`~leaspy.variables.specs.VariableName`
@@ -877,18 +884,12 @@ class PopulationLatentVariable(LatentVariable):
         :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`] :
             The dictionary holding the :class:`~leaspy.variables.specs.LinkedVariable` for the regularity.
         """
-        # d = super().get_regularity_variables(value_name)
-        d = {}
-        d.update(
-            {
-                f"nll_regul_{variable_name}": LinkedVariable(
-                    # SumDim(f"nll_regul_{value_name}_full")
-                    self.prior.get_func_regularization(variable_name).then(sum_dim)
-                ),
-                # TODO: jacobian as well...
-            }
-        )
-        return d
+        nll_dist = self.nll_prior if self.nll_prior is not None else self.prior
+        return {
+            f"nll_regul_{variable_name}": LinkedVariable(
+                nll_dist.get_func_regularization(variable_name).then(sum_dim)
+            ),
+        }
 
 
 class IndividualLatentVariable(LatentVariable):
@@ -1063,6 +1064,25 @@ class LinkedVariable(VariableInterface):
             The value of the variable.
         """
         return self.f(**{k: state[k] for k in self.parameters})
+
+
+@dataclass(frozen=True)
+class FixedShapeLinkedVariable(LinkedVariable):
+    """A LinkedVariable whose shape is fixed and known at construction time.
+
+    Use this instead of `LinkedVariable` when the variable is a prior distribution
+    parameter and its shape is statically known (e.g. gamma ⊙ delta_mean).
+
+    Parameters
+    ----------
+    f : Callable
+        Same as :class:`LinkedVariable`.
+    shape : tuple of int
+        The fixed shape of this variable's values.
+    """
+
+    shape: tuple[int, ...]
+    fixed_shape: ClassVar = True
 
 
 class NamedVariables(UserDict):
