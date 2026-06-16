@@ -179,8 +179,8 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
             delta_v0_mean=ModelParameter.for_pop_mean_condi(
                 "delta_v0", "gamma_v0", shape=(self.dimension, self.nb_cov)
             ),
-            delta_v0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 0.01),
-            pi_v0=Hyperparameter(0.5 * torch.ones(self.dimension, self.nb_cov)),
+            delta_v0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 1),
+            pi_v0=Hyperparameter(0.2 * torch.ones(self.dimension, self.nb_cov)),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             log_v0=PopulationLatentVariable(

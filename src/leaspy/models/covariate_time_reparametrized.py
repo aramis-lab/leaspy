@@ -249,7 +249,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
                 "delta_t0", "gamma_t0", shape=(self.nb_cov,)
             ),
             delta_t0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 1.0),
-            pi_t0=Hyperparameter(0.5 * torch.ones(self.nb_cov)),
+            pi_t0=Hyperparameter(0.2 * torch.ones(self.nb_cov)),
             # LATENT VARS
             t0=PopulationLatentVariable(Normal("t0_mean", "t0_std")),
             gamma_t0=PopulationLatentVariable(Bernoulli("pi_t0")),
