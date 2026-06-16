@@ -152,7 +152,7 @@ class Plotting:
 
         return ax, features, features_ix, labels, colors
 
-    def _handle_kwargs_end(self, ax, kwargs, colors, labels):
+    def _handle_kwargs_end(self, ax, kwargs, colors, labels, extra_handles=None, extra_labels=None):
         # ---- Legend
         dimension = len(labels)
         # if dimension is None:
@@ -161,7 +161,9 @@ class Plotting:
         custom_lines = [
             mpl.lines.Line2D([0], [0], color=colors[i], lw=4) for i in range(dimension)
         ]
-        ax.legend(custom_lines, labels, title="Features")
+        all_handles = custom_lines + (list(extra_handles) if extra_handles else [])
+        all_labels = list(labels) + (list(extra_labels) if extra_labels else [])
+        ax.legend(all_handles, all_labels, title="Features")
         # ax.legend(title='Features')
         ax.set_ylabel("Normalized score")
 
@@ -427,6 +429,14 @@ class Plotting:
                 **kwargs,
             )
 
+        # ---- Event times (joint models only)
+        extra_handles, extra_labels = [], []
+        if data.event_time_name is not None:
+            event_legend = self._plot_event_times(ax, data, patients_idx)
+            for lbl, hdl in event_legend.items():
+                extra_handles.append(hdl)
+                extra_labels.append(lbl)
+
         # ---- Title & labels
         if with_obs:
             title = "Observations"
@@ -441,9 +451,28 @@ class Plotting:
         else:
             ax.set_xlabel("Age")
 
-        self._handle_kwargs_end(ax, kwargs, colors, labels)
+        self._handle_kwargs_end(ax, kwargs, colors, labels, extra_handles or None, extra_labels or None)
 
         return ax
+
+    @staticmethod
+    def _plot_event_times(ax, data, patients_idx):
+        """Plot vertical lines at event times; return de-duplicated legend handles."""
+        legend = {}  # label -> Line2D (first occurrence kept)
+        for ind_id in patients_idx:
+            indiv = data.individuals.get(ind_id)
+            if indiv is None or indiv.event_time is None:
+                continue
+            for evt_t, evt_b in zip(indiv.event_time, indiv.event_bool):
+                if evt_b:
+                    label = "Event time"
+                    kws = dict(color="black", linewidth=2, alpha=0.9, linestyle="-")
+                else:
+                    label = "Event time (censored)"
+                    kws = dict(color="black", linewidth=1, alpha=0.35, linestyle="--")
+                line = ax.axvline(evt_t, **kws)
+                legend.setdefault(label, line)
+        return legend
 
     @staticmethod
     def _plot_observations(ax, df, features, colors, reparametrized_ages, plot_kws):
