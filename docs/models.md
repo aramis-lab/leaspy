@@ -3,6 +3,7 @@
 (introduction-to-spatio-temporal-models)=
 ## Introduction to Spatio-Temporal Models
 
+(temporal-random-effects)=
 ### Temporal Random Effects
 Individual temporal variability for patient $i$ is modeled with the [latent disease age](latent-disease-age) $\psi_i(t)$ :  
 

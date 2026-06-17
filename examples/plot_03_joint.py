@@ -7,14 +7,11 @@ This notebook contains the code for a simple implementation of the Leaspy Joint 
 # %%
 # The following imports are required libraries for numerical computation and data manipulation.
 import os
-
 import pandas as pd
-
 import leaspy
 from leaspy.io.data import Data
 
 leaspy_root = os.path.dirname(leaspy.__file__)
-
 data_path = os.path.join(leaspy_root, "datasets/data/simulated_data_for_joint.csv")
 
 df = pd.read_csv(data_path, dtype={"ID": str}, sep=";")
@@ -39,7 +36,13 @@ print(df.head())
 from leaspy.models import JointModel
 
 data = Data.from_dataframe(df, "joint")
-model = JointModel(name="test_model", nb_events=1)
+model = JointModel(name="test_model", nb_events=1, source_dimension=2)
+
+# %%
+# .. warning::
+#
+#    For Joint models you **MUST** include "joint" as the second argument of the ``Data.from_dataframe`` method.
+#    This is necessary to ensure that the data is correctly processed and that the model can be fitted without errors.
 
 # %%
 # The parameter `nb_events` should match the number of distinct event types
@@ -51,8 +54,17 @@ model = JointModel(name="test_model", nb_events=1)
 # Once the model is initialized, we can fit it to the data.
 
 model.fit(data, "mcmc_saem", seed=1312, n_iter=100, progress_bar=False)
+model.summary()
+
+# %%
+# We can also access the model information and parameters after fitting it to the data.
+model.info()
 
 
 # %%
 # The Joint Model includes specific parameters such as `log_rho_mean` and `zeta_mean`.
 print(model.parameters)
+
+# %%
+# We have seen how to fit a Joint Model using Leaspy. It also provides other models such as the
+# :doc:`Mixture Model <plot_04_mixture>` that can be explored in the next example.

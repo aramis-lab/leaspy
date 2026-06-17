@@ -4,6 +4,7 @@ from typing import Union
 from leaspy import __version__
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.utils.typing import KwargsType
+from .summary import DatasetInfo, TrainingInfo
 
 __all__ = ["ModelSettings"]
 
@@ -50,10 +51,13 @@ class ModelSettings:
         ModelSettings._check_settings(settings)
         self.name: str = settings["name"].lower()
         self.parameters: KwargsType = settings["parameters"]
+        self.dataset_info: DatasetInfo = settings.get("dataset_info", {})
+        self.training_info: TrainingInfo = settings.get("training_info", {})
+        
         self.hyperparameters: KwargsType = {
             k.lower(): v
             for k, v in settings.items()
-            if k not in ("name", "parameters", "hyperparameters", "leaspy_version")
+            if k not in ("name", "parameters", "hyperparameters", "leaspy_version", "dataset_info", "training_info")
         }
 
     @staticmethod

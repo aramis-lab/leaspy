@@ -728,7 +728,7 @@ class Plotting:
 
         Returns
         -------
-        :class:`matplotlib.pyplot
+        :class:`matplotlib.pyplot`
             The pyplot module with all generated figures, allowing further modification or saving.
         """
 

@@ -55,7 +55,7 @@ def test_empty_state():
 
 
 def _assert_state_in_initial_state(state: State):
-    assert len(state) == 8
+    assert len(state) == 10
     assert state.dag.sorted_variables_names == (
         "mean",
         "nll_regul_ind_sum_ind",
@@ -65,6 +65,8 @@ def _assert_state_in_initial_state(state: State):
         "nll_regul_ind_sum",
         "model",
         "nll_regul_x",
+        "nll_regul_pop_sum",
+        "nll_regul_all_sum",
     )
     assert state["mean"] == torch.tensor(100)
     assert state["scale"] == torch.tensor(0.1)
@@ -79,6 +81,8 @@ def _assert_state_in_initial_state(state: State):
         "nll_regul_ind_sum": None,
         "model": None,
         "nll_regul_x": None,
+        "nll_regul_pop_sum": None,
+        "nll_regul_all_sum": None,
     }
     assert state.dag.direct_ancestors == {
         "mean": frozenset(),
@@ -89,6 +93,8 @@ def _assert_state_in_initial_state(state: State):
         "model": frozenset({"t", "x"}),
         "nll_regul_ind_sum_ind": frozenset(),
         "nll_regul_ind_sum": frozenset({"nll_regul_ind_sum_ind"}),
+        "nll_regul_pop_sum": frozenset({"nll_regul_x"}),
+        "nll_regul_all_sum": frozenset({"nll_regul_ind_sum", "nll_regul_pop_sum"}),
     }
     assert state._last_fork is None  # noqa
 

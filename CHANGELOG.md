@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 These are the releases of the version 2 of Leaspy.
 
+### [2.1.0] - 2026-06-10
+
+- [FEAT] New model inspection API: `model.summary()` and `model.info()` expose model metadata, training and dataset statistics, and model-selection criteria (AIC, BIC, ICL). The returned objects auto-print when their result is discarded and stay silent when assigned to a variable (see #485)
+- [FEAT] Mixture model completed: remaining clustering functionality and ICL-based evaluation (see #489)
+- [DOC] New developer documentation: architecture (DAG) diagrams, model animations, contribution workflow, and a release guide (see #476)
+- [DOC] Documentation example gallery modernized and trimmed (quickstart, Parkinson, joint, mixture, simulate) (see #485, #494, #496)
+- [DOC] Fixed Sphinx / ReadTheDocs build and numerous documentation warnings (see #483, #490)
+- [FIX] Broad bug fixes across models (base, joint, linear, logistic, lme, mixture) and the fit output manager (see #494)
+- [FIX] Numerical and warning fixes: ICL no longer produces `NaN` (and corrupts JSON export) when a cluster probability reaches exactly 0 (convention `p·log(p) → 0`); `use_jacobian` defaults to `None` ("auto") to avoid a spurious warning on fit/personalize; and scalar-noise warnings and issue #501 are resolved
+- [CHANGE] `simulate` now groups warnings and defaults to `verbose_warnings=False`, printing a summary count with a hint to set `verbose_warnings=True` for details
+
 ### [2.0.2] - 2026-01-20
 
 - Adressing security issues in 6 packages

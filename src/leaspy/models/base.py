@@ -1,3 +1,4 @@
+import time
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -14,6 +15,8 @@ from leaspy.io.data.dataset import Data, Dataset
 from leaspy.io.outputs import IndividualParameters
 from leaspy.io.outputs.result import Result
 from leaspy.utils.typing import DictParamsTorch, FeatureType, IDType, KwargsType
+
+from .summary import DatasetInfo, Info, Summary, TrainingInfo
 
 __all__ = [
     "InitializationMethod",
@@ -128,6 +131,16 @@ class ModelInterface(ABC):
         NotImplementedError
         """
         raise NotImplementedError
+
+    def compute_derived_parameters(self) -> DictParamsTorch:
+        """Compute interpretable-scale parameters derived from fitted values.
+
+        Returns
+        -------
+        :class:`~leaspy.utils.typing.DictParamsTorch`
+            Mapping of derived parameter names to their tensor values.
+        """
+        return {}
 
     @abstractmethod
     def save(self, path: Union[str, Path], **kwargs) -> None:
@@ -387,6 +400,30 @@ class ModelInterface(ABC):
         """
         raise NotImplementedError
 
+    def _compute_dataset_statistics(self, dataset: Dataset) -> DatasetInfo:
+        """Compute descriptive statistics of the dataset used for training."""
+        stats = {
+            "n_subjects": dataset.n_individuals,
+            "n_scores": dataset.dimension,
+            "n_visits": dataset.n_visits,
+            "n_observations": int(dataset.mask.sum().item()),
+        }
+
+        # Per-subject observations
+        visits_per_ind = np.array(dataset.n_visits_per_individual)
+        stats["visits_per_subject"] = {
+            "median": float(np.median(visits_per_ind)),
+            "min": int(np.min(visits_per_ind)),
+            "max": int(np.max(visits_per_ind)),
+            "iqr": float(np.percentile(visits_per_ind, 75) - np.percentile(visits_per_ind, 25))
+        }
+
+        # Joint model specific
+        if getattr(dataset, "event_bool", None) is not None:
+            stats["n_events"] = int(dataset.event_bool.sum().item())
+
+        return stats
+
 
 class BaseModel(ModelInterface):
     """Base model class from which all ``Leaspy`` models should inherit.
@@ -396,12 +433,15 @@ class BaseModel(ModelInterface):
 
     def __init__(self, name: str, **kwargs):
         self._is_initialized: bool = False
-        self._name = name
+        #self._name = name
+        self._name = getattr(self, "type", "unknown")
         user_provided_dimension, user_provided_features = (
             self._validate_user_provided_dimension_and_features_at_init(**kwargs)
         )
         self._features: Optional[list[FeatureType]] = user_provided_features
         self._dimension: Optional[int] = user_provided_dimension
+        self.dataset_info: DatasetInfo = {}
+        self.training_info: TrainingInfo = {}
         self.initialization_method: InitializationMethod = InitializationMethod.DEFAULT
         if "initialization_method" in kwargs:
             self.initialization_method = InitializationMethod(
@@ -664,6 +704,8 @@ class BaseModel(ModelInterface):
             "parameters": {
                 k: tensor_to_list(v) for k, v in (self.parameters or {}).items()
             },
+            "dataset_info": self.dataset_info,
+            "training_info": self.training_info,
         }
 
     @classmethod
@@ -692,6 +734,11 @@ class BaseModel(ModelInterface):
         reader = ModelSettings(path_to_model_settings)
         instance = model_factory(reader.name, **reader.hyperparameters)
         instance.load_parameters(reader.parameters)
+        
+        # Load extra info if available
+        instance.dataset_info = reader.dataset_info
+        instance.training_info = reader.training_info
+        
         instance._is_initialized = True
         return instance
 
@@ -750,7 +797,73 @@ class BaseModel(ModelInterface):
             )
         ) is None:
             return
+            
+        # Compute and store dataset statistics
+        self.dataset_info = self._compute_dataset_statistics(dataset)
+
+        # Store training metadata (converged captured after run)
+        self.training_info = {
+            "algorithm": algorithm.name.value,
+            "seed": algorithm.seed,
+            "n_iter": algorithm.algo_parameters.get("n_iter"),
+            "n_burn_in_iter": algorithm.algo_parameters.get("n_burn_in_iter"),
+        }
+
+        t0 = time.perf_counter()
         algorithm.run(self, dataset)
+        elapsed = time.perf_counter() - t0
+
+        self.training_info["converged"] = getattr(algorithm, "converged", None)
+        self.training_info["duration"] = f"{elapsed:.3f}s"
+
+        # Cache ICL while individual variables are still on state — survives save/load via training_info.
+        from .summary import _persist_icl
+        _persist_icl(self)
+
+    def info(self) -> Info:
+        """Return model configuration and training context.
+
+        When called directly (e.g. ``model.info()``), prints the information.
+        When stored in a variable, provides programmatic access.
+
+        Returns
+        -------
+        :class:`~leaspy.models.summary.Info`
+            Model configuration and training context.
+
+        Examples
+        --------
+        >>> model.info()              # prints info
+        >>> i = model.info()          # store for programmatic access
+        >>> i.n_subjects              # 150
+        >>> i.help()                  # list available attributes
+        """
+        return Info.from_model(self)
+
+    def summary(self) -> Summary:
+        """Generate a structured summary of the model.
+
+        When called directly (e.g., ``model.summary()``), prints a formatted summary.
+        When stored in a variable, provides programmatic access to model attributes.
+
+        Returns
+        -------
+        :class:`Summary`
+            A structured summary object.
+
+        Raises
+        ------
+        :exc:`.LeaspyModelInputError`
+            If the model is not initialized or has no parameters.
+
+        Examples
+        --------
+        >>> model.summary()           # Prints the summary
+        >>> s = model.summary()       # Store to access attributes
+        >>> s.nll                     # Get specific value
+        >>> s.help()                  # Show available attributes
+        """
+        return Summary.from_model(self)
 
     @staticmethod
     def _get_dataset(
@@ -798,7 +911,12 @@ class BaseModel(ModelInterface):
         -------
         :class:`~leaspy.algo.base.AlgorithmInterface`, optional
             An instance of the algorithm if provided, otherwise None."""
-        from leaspy.algo import AlgorithmName, AlgorithmSettings, algorithm_factory
+        from leaspy.algo import (
+            AlgorithmName,
+            AlgorithmSettings,
+            OutputsSettings,
+            algorithm_factory,
+        )
 
         if algorithm_settings is not None:
             settings = algorithm_settings
@@ -808,8 +926,17 @@ class BaseModel(ModelInterface):
             algorithm = AlgorithmName(algorithm) if algorithm else None
             if algorithm is None:
                 return None
-            settings = AlgorithmSettings(algorithm.value, **kwargs)
-            settings.set_logs(**kwargs)
+            # `kwargs` mixes algorithm parameters with logging/output settings.
+            # Route them to their respective owners so logging keys don't leak into
+            # the algorithm parameters (which would wrongly warn them as unsupported).
+            log_kwargs = {
+                k: v for k, v in kwargs.items() if k in OutputsSettings.LOG_KEYS
+            }
+            algo_kwargs = {
+                k: v for k, v in kwargs.items() if k not in OutputsSettings.LOG_KEYS
+            }
+            settings = AlgorithmSettings(algorithm.value, **algo_kwargs)
+            settings.set_logs(**log_kwargs)
         return algorithm_factory(settings)
 
     def personalize(

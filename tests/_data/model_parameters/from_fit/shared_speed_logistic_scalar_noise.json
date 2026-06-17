@@ -75,6 +75,7 @@
   "fit_metrics": {
     "nll_attach": -534.9681396484375,
     "nll_regul_ind_sum": 153.65789794921875,
+    "nll_regul_pop_sum": 3.0517578125e-05,
     "nll_tot": -381.3102111816406
   },
   "source_dimension": 2
