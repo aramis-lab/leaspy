@@ -401,26 +401,35 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
                 - individual_parameters_from_model_parameters[f"sources_{i}"].mean()
             ) / individual_parameters_from_model_parameters[f"sources_{i}"].std()
 
-        patient_source_values_matrix = torch.stack(
-            [
-                torch.tensor(
-                    individual_parameters_from_model_parameters[f"sources_{i}"].values,
-                    dtype=torch.float32,
-                )
-                for i in range(model.source_dimension)
-            ],
-            dim=1,
-        )
-        mixing_matrix = model.state.get_tensor_value("mixing_matrix")
-        result = torch.matmul(
-            mixing_matrix.transpose(0, 1), patient_source_values_matrix.transpose(0, 1)
-        )
+        # Handle space shifts: only compute if sources exist
+        if model.source_dimension > 0:
+            patient_source_values_matrix = torch.stack(
+                [
+                    torch.tensor(
+                        individual_parameters_from_model_parameters[f"sources_{i}"].values,
+                        dtype=torch.float32,
+                    )
+                    for i in range(model.source_dimension)
+                ],
+                dim=1,
+            )
+            mixing_matrix = model.state.get_tensor_value("mixing_matrix")
+            result = torch.matmul(
+                mixing_matrix.transpose(0, 1), patient_source_values_matrix.transpose(0, 1)
+            )
 
-        space_shifts = pd.DataFrame(
-            result.T,
-            columns=[f"w_{i}" for i in range(len(self.features))],
-            index=individual_parameters_from_model_parameters.index,
-        )
+            space_shifts = pd.DataFrame(
+                result.T,
+                columns=[f"w_{i}" for i in range(len(self.features))],
+                index=individual_parameters_from_model_parameters.index,
+            )
+        else:
+            # For univariate models (source_dimension=0), space shifts are all zeros
+            space_shifts = pd.DataFrame(
+                0.0,
+                index=individual_parameters_from_model_parameters.index,
+                columns=[f"w_{i}" for i in range(len(self.features))],
+            )
 
         return pd.concat(
             [individual_parameters_from_model_parameters, space_shifts], axis=1
