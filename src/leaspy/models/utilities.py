@@ -189,9 +189,12 @@ def compute_std_from_variance(
         If the variance is less than the specified tolerance, indicating a convergence issue.
     """
 
-    if (variance < tol).any():
+    # `~(variance >= tol)` (rather than `variance < tol`) also catches NaN and inf:
+    # a `NaN` variance fails the `>= tol` test, whereas `NaN < tol` is `False` and would
+    # let a non-finite variance slip through into `sqrt()` -> silent NaN (see issue #106).
+    if (~(variance >= tol)).any():
         raise LeaspyConvergenceError(
-            f"The parameter '{varname}' collapsed to zero, which indicates a convergence issue.\n"
+            f"The parameter '{varname}' collapsed to zero or became non-finite, which indicates a convergence issue.\n"
             "Start by investigating what happened in the logs of your calibration and try to double check:"
             "\n- your training dataset (not enough subjects and/or visits? too much missing data?)"
             "\n- the hyperparameters of your Leaspy model (`source_dimension` too low or too high? "
