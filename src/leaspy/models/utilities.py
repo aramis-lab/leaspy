@@ -189,10 +189,8 @@ def compute_std_from_variance(
         If the variance is less than the specified tolerance, indicating a convergence issue.
     """
 
-    # `~(variance >= tol)` (rather than `variance < tol`) also catches NaN and inf:
-    # a `NaN` variance fails the `>= tol` test, whereas `NaN < tol` is `False` and would
-    # let a non-finite variance slip through into `sqrt()` -> silent NaN (see issue #106).
-    if (~(variance >= tol)).any():
+    # Reject variance that collapsed (< tol) or became non-finite (NaN or +/-inf).
+    if (~torch.isfinite(variance) | (variance < tol)).any():
         raise LeaspyConvergenceError(
             f"The parameter '{varname}' collapsed to zero or became non-finite, which indicates a convergence issue.\n"
             "Start by investigating what happened in the logs of your calibration and try to double check:"
