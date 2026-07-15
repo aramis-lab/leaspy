@@ -3,7 +3,11 @@ from typing import Iterable, Optional, Union
 
 import torch
 
-from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
+from leaspy.exceptions import (
+    LeaspyConvergenceError,
+    LeaspyIndividualParamsInputError,
+    LeaspyModelInputError,
+)
 from leaspy.io.data.dataset import Dataset
 from leaspy.utils.typing import DictParams, DictParamsTorch, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
@@ -495,6 +499,19 @@ class McmcSaemCompatibleModel(StatefulModel):
         suff_stats["nll_tot"] = (
             suff_stats["nll_attach"] + suff_stats["nll_regul_ind_sum"] + suff_stats["nll_regul_pop_sum"]
         )  # "nll_regul_all_sum"
+
+        # Fail fast if the negative log-likelihood became non-finite (NaN or +/-inf).
+        if not torch.isfinite(suff_stats["nll_tot"]).all():
+            raise LeaspyConvergenceError(
+                "The negative log-likelihood became non-finite (NaN or inf) during "
+                "calibration, which indicates a convergence issue.\n"
+                "Start by investigating what happened in the logs of your calibration and try to double check:"
+                "\n- your training dataset (not enough subjects and/or visits? too much missing data? "
+                "non-finite values flagged as observed?)"
+                "\n- the hyperparameters of your Leaspy model (`source_dimension` too low or too high? "
+                "observation model not suited to your data?)"
+                "\n- the hyperparameters of your calibration algorithm"
+            )
 
         return suff_stats
 
