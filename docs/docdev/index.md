@@ -21,6 +21,9 @@ Process guides for developing, testing, and releasing Leaspy.
 :maxdepth: 2
 
 contributions
+testing
+writing_unit_tests
+writing_functional_tests
 Dependency_management
 releasing
 ```
