@@ -162,7 +162,7 @@ class AlgorithmWithSamplersMixin:
             # To enforce a fixed scale for a given var, one should put it in the random var specs
             # For instance: for betas & deltas, it is a good idea to define them this way
             # since they'll probably be = 0 just after initialization!
-            var_kws.setdefault("scale", state[var_name].abs())
+            var_kws.setdefault("scale",state[var_name].abs().clamp_min(1e-8))
             # TODO: after functional test passed we could change the previous line with the following one (more consistent)
             # var_kws.setdefault("scale", var.prior.stddev.call(state))
 
