@@ -342,7 +342,7 @@ poetry run python -m pytest -v tests
 
 Despite the workflow step being named “Run unit tests,” this command collects both `tests/unit_tests/` and `tests/functional_tests/`. That is why fixed seeds, platform-aware references, and justified tolerances matter.
 
-GPU fit tests are decorated to skip when CUDA is unavailable; the current GitHub matrix does not request GPU runners. Ruff and Sphinx are valuable local checks, but the current workflow does not define separate lint or documentation jobs.
+GPU fit tests are decorated to skip when CUDA is unavailable; the current GitHub matrix does not request GPU runners. Building the Sphinx documentation is a useful local check for documentation changes, but the current workflow does not define a documentation job.
 
 ## Before you open your PR
 
@@ -357,9 +357,6 @@ python -m pytest -v path/to/test_file.py
 
 # 3. The complete suite, matching CI
 make test
-
-# 4. Project style
-ruff check .
 ```
 
 If you changed these tutorials or other documentation, also build it locally:

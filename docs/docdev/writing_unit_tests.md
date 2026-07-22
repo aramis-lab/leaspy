@@ -227,31 +227,39 @@ self.assertDictAlmostEqual(actual_parameters, expected_parameters, atol=1e-6)
 
 Use `assertAllClose` for one number, array, or tensor. Use `assertDictAlmostEqual` for a dictionary, including nested dictionaries; it compares every numerical value and reports all differences together.
 
-### Reading test data and writing temporary files
+### Using existing test data and a safe temporary folder
 
-Tests must not write arbitrary files into the repository. `LeaspyTestCase` creates a private temporary folder for each test class and removes it afterward:
+`LeaspyTestCase` provides a few helpers for test files:
+
+- `get_hardcoded_model("logistic_scalar_noise")` loads `tests/_data/model_parameters/hardcoded/logistic_scalar_noise.json`. Choose an existing file from that folder and pass its name **without** `.json`.
+- `get_test_tmp_path("model.json")` returns `tests/_data/_tmp/<TestClassName>/model.json`. It does not create the file; the folder is created before the class runs and removed afterward.
+
+`ModelSaveLoadTest` below is an ordinary test class, not a saving utility. If a suitable test class already exists in your file, add the method there instead of creating this exact class.
 
 ```python
 from leaspy.models import BaseModel
 from tests import LeaspyTestCase
 
 
-class ModelSaveTutorialTest(LeaspyTestCase):
+class ModelSaveLoadTest(LeaspyTestCase):
     def test_saved_model_can_be_loaded(self):
-        # Arrange
+        # Arrange: load a stable model fixture and choose a safe output path
         model = self.get_hardcoded_model("logistic_scalar_noise")
         output_path = self.get_test_tmp_path("model.json")
 
-        # Act
+        # Act: call the real Leaspy save and load methods
         model.save(output_path)
         reloaded_model = BaseModel.load(output_path)
 
-        # Assert
+        # Assert: the file exists and its parameters were preserved
         self.assertHasTmpFile("model.json")
-        self.assertDictAlmostEqual(reloaded_model.parameters, model.parameters)
+        self.assertDictAlmostEqual(
+            reloaded_model.parameters,
+            model.parameters,
+        )
 ```
 
-Here, `get_hardcoded_model` provides stable parameters written specifically for tests. A model from `model_parameters/from_fit/` is an algorithm output and may legitimately change when fitting evolves, so it is usually a poor input for an unrelated unit test.
+The `self.*` helpers come from `LeaspyTestCase`; `model.save(...)` and `BaseModel.load(...)` are the real Leaspy operations being tested. The toolbox below lists the other common helpers.
 
 ## The Leaspy unit-test toolbox
 
@@ -317,12 +325,9 @@ python -m pytest -v tests/unit_tests/algo
 
 # 3. The same full-suite command used by GitHub Actions
 make test
-
-# 4. The local style check requested by the contribution guide
-ruff check .
 ```
 
-The current GitHub Actions workflow runs `make test` on Ubuntu and macOS with Python 3.9, 3.10, 3.11, 3.12, and 3.13. Despite the workflow step being named “Run unit tests,” `make test` executes the entire `tests/` directory, so functional tests run too. Ruff is a recommended local check, but it is not a separate job in the current workflow.
+The current GitHub Actions workflow runs `make test` on Ubuntu and macOS with Python 3.9, 3.10, 3.11, 3.12, and 3.13. Despite the workflow step being named “Run unit tests,” `make test` executes the entire `tests/` directory, so functional tests run too.
 
 Final unit-test checklist:
 
