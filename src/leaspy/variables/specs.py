@@ -32,7 +32,6 @@ from leaspy.utils.functional import (
     Identity,
     Mean,
     NamedInputFunction,
-    OuterProduct,
     Prod,
     Sqr,
     Std,

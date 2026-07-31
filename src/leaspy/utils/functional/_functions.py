@@ -29,7 +29,6 @@ __all__ = [
     "Std",
     "SumDim",
     "Sum",
-    "OuterProduct",
     "Affine",
     "AffineMatrix",
     "Unique",
@@ -124,14 +123,6 @@ Sum = NamedInputFunction.bound_to(
     ),
 )
 
-
-OuterProduct = NamedInputFunction.bound_to(
-    _outer_product,
-    _arguments_checker(
-        nb_arguments=1,
-        possible_kws={"dim"},
-    ),
-)
 
 Affine = NamedInputFunction.bound_to(
     _affine,
