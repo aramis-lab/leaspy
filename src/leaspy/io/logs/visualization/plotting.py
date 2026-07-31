@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import itertools
 
 from leaspy.exceptions import (
     LeaspyIndividualParamsInputError,
@@ -14,6 +17,8 @@ from leaspy.exceptions import (
 )
 
 from ...outputs import IndividualParameters
+from leaspy.models import LogisticMultivariateMixtureModel
+
 
 __all__ = ["Plotting"]
 
@@ -39,10 +44,6 @@ class Plotting:
     """
 
     def __init__(self, model, output_path=".", palette="tab10", max_colors=10):
-        warnings.warn(
-            "Plotting will soon be removed from Leaspy, please use Plotter instead.",
-            FutureWarning,
-        )
 
         self.model = model
 
@@ -284,8 +285,15 @@ class Plotting:
                 linewidth=kwargs.get("linewidth", self.linewidth["individual_model"]),
             )
             return {"obs": p_obs, "model": p_model}
+        elif case == "cluster":
+            return {
+                "model": dict(
+                    alpha=kwargs.get("alpha", self.alpha["average_model"]),
+                    linewidth=kwargs.get("linewidth", self.linewidth["average_model"]),
+                )
+            }
         else:
-            raise LeaspyInputError("case must be in {'average', 'obs', 'recons'}")
+            raise LeaspyInputError("case must be in {'average', 'obs', 'recons', 'cluster'}")
 
     @staticmethod
     def _get_ip_df_torch(individual_parameters):
@@ -381,10 +389,17 @@ class Plotting:
                     "You want to plot reparametrized ages (`reparametrized_ages=True`) but you did not provide any individual parameters "
                     "to do so (please use `individual_parameters` argument)."
                 )
-            t0 = self.model.parameters["tau_mean"].item()
             df = df.join(ip_df)
-            # reparametrized ages
-            df["TIME_reparam"] = np.exp(df["xi"]) * (df["TIME"] - df["tau"]) + t0
+            if self.model.parameters['tau_mean'].size(0) == 1:
+                t0 = self.model.parameters["tau_mean"].item()
+                # reparametrized ages
+                df["TIME_reparam"] = np.exp(df["xi"]) * (df["TIME"] - df["tau"]) + t0
+            else:
+                tau_means_per_cluster = {
+                    c:  self.model.parameters['tau_mean'][c].item() for c in range(self.model.n_clusters)
+                    }
+                df["tau_mean_cluster"] = df["cluster_label"].map(tau_means_per_cluster)
+                df["TIME_reparam"] = np.exp(df["xi"]) * (df["TIME"] - df["tau"]) + df["tau_mean_cluster"]
 
         # ---- Plot
 
@@ -528,8 +543,18 @@ class Plotting:
                 kwargs.get("n_tpts", 100),
             )
             t = torch.tensor(timepoints, dtype=torch.float32).unsqueeze(0)
-
-            trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
+            
+            if isinstance(model, LogisticMultivariateMixtureModel):
+                # for the mixture model make sure we remove the probabilities and the cluster labels from the dictionary
+                valid_keys = set(model.individual_variables_names)
+                ind_ip = {
+                    pn: pv[ind_ix]
+                    for pn, pv in ip_torch.items()
+                    if pn in valid_keys
+                    }
+                trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
+            else:
+                trajectory = model.compute_individual_trajectory(t, ind_ip).squeeze(0)
 
             # times to plot if reparametrized ages are wanted
             if reparametrized_ages:
@@ -627,3 +652,158 @@ class Plotting:
             reparametrized_ages=reparametrized_ages,
             **kwargs,
         )
+
+    def average_trajectory_cluster(self, colors=None, n_features_per_plot=3, clusters=None, **kwargs):
+        """
+        Plot the population average trajectories for each cluster. They are parametrized by the population parameters derived
+        from the fit. Each cluster is plotted in a different linestyle, and each feature in a different color. 
+        Default is to plot 3 features per figure, so if there are more features they will be plotted in several plots.
+        We can choose which clusters to plot, default is all.
+
+        Parameters
+        ----------
+        colors : list of str
+            List of matplotlib-compatible colors for clusters. Cycles if fewer than number of clusters.
+        n_features_per_plot : int, default 3
+            Number of features to plot in each figure.
+        clusters : list of int, default None
+            List of cluster indices to plot. If None, all clusters are plotted.
+        **kwargs
+            * alpha: :obj:`float`, default 0.6
+                Matplotlib's transparency option. Must be in [0, 1].
+            * linestyle: {'-', '--', '-.', ':', '', (offset, on-off-seq), ...}
+                Matplotlib's linestyle option.
+            * linewidth: :obj:`float`
+                Matplotlib's linewidth option.
+            * features: list[:obj:`str`]
+                Name of features (if set it must be a subset of model features)
+                Default: all model features.
+            * colors: list[:obj:`str`]
+                Contains matplotlib compatible colors.
+                At least as many as number of features.
+            * labels: list[:obj:`str`]
+                Used to rename features in the plot.
+                Exactly as many as number of features.
+                Default: raw variable name of each feature
+            * ax: matplotlib.axes.Axes
+                Axes object to modify, instead of creating a new one.
+            * figsize: tuple of int
+                The figure's size.
+            * save_as: :obj:`str`, default None
+                Path to save the figure.
+            * title: :obj:`str`
+            * n_tpts: :obj:`int`
+                Number of timepoints in plot (default: 100)
+            * n_std_left, n_std_right: :obj:`float` (default: 3 and 6 resp.)
+                Time window around `tau_mean`, expressed as times of max(`tau_std`, 4)
+
+        Returns
+        -------
+        :class:`matplotlib.pyplot`
+            The pyplot module with all generated figures, allowing further modification or saving.
+        """
+
+        if colors is None:
+            colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+            
+        plot_kws = self._plot_kwargs("cluster", kwargs)
+            
+        # ---- Get timepoints
+        mean_time = self.model.parameters['tau_mean'].mean().item()
+        std_time = max(self.model.parameters["tau_std"].mean().item(), 4)
+        timepoints = mean_time + std_time * np.linspace(
+            -kwargs.get("n_std_left", 3),
+            kwargs.get("n_std_right", 6),
+            kwargs.get("n_tpts", 100),
+        )
+    
+        timepoints = torch.tensor(timepoints, dtype=torch.float32)
+        parameters = self.model.parameters
+        n_clusters = self.model.n_clusters
+        n_features = self.model.dimension
+        
+        if clusters is None:
+            clusters_to_plot = list(range(n_clusters))  # all clusters
+        elif isinstance(clusters, int):
+            clusters_to_plot = [clusters]               # single cluster
+        else:
+            clusters_to_plot = list(clusters)           # list of clusters
+
+        cluster_dict = {}
+        cluster_estimates = {}
+
+        for c in range(n_clusters):
+            cluster_dict[c] = {
+                'xi': parameters['xi_mean'].numpy()[c],
+                'tau': parameters['tau_mean'].numpy()[c],
+                'sources': parameters['sources_mean'].numpy()[:, c].tolist()  # all sources for this cluster
+            }
+    
+            ip = IndividualParameters()
+            ip.add_individual_parameters("average", cluster_dict[c])
+            cluster_estimates[c] = self.model.estimate({"average": timepoints}, ip)
+        
+        lines = [
+            "-", "--", ":", "-.",
+            (0, (1, 1)),            # densely dotted
+            (0, (5, 1)),            # long dash, short gap
+            (0, (3, 1, 1, 1)),      # dash-dot-dotted
+            (0, (5, 5)),            # evenly spaced dashes
+            (0, (5, 2, 1, 2)),      # long dash, dot, gap
+            (0, (2, 2, 8, 2)),      # dot + long dash
+            (0, (10, 3)),           # very long dash
+            ]
+        n_lines = len(lines)
+        colors_cycle = itertools.cycle(colors)
+    
+        # Loop over feature chunks
+        for start in range(0, n_features, n_features_per_plot):
+            end = min(start + n_features_per_plot, n_features)
+            feature_names = self.model.features[start:end]
+        
+            plt.figure(figsize=(8, 6))
+            plt.ylim(0, 1)
+        
+            # Plot each cluster
+            feature_colors = {name: next(colors_cycle) for name in feature_names}
+            
+            for c in clusters_to_plot:
+                ls = lines[c % len(lines)]  # linestyle per cluster
+                values = cluster_estimates[c]["average"][:, start:end].T
+                
+                for name, val in zip(feature_names, values):
+                    plt.plot(
+                        timepoints,
+                        val,
+                        label=f"cluster_{c}_{name}",
+                        c=feature_colors[name],
+                        ls=ls,
+                        **plot_kws["model"]
+                        )
+        
+            # Cluster legend
+            cluster_legend = [
+                Line2D([0], [0], linestyle=lines[c % len(lines)],  linewidth=3, color="black", label=f"cluster_{c}")
+                for c in clusters_to_plot
+            ]
+            legend1 = plt.legend(handles=cluster_legend, loc="upper left", prop={"size": 12})
+        
+            # Feature/line style legend
+            feature_legend = [
+                Line2D([0], [0], linestyle="-", color=feature_colors[name], linewidth=3, label=f"{name}")
+                for i, name in enumerate(feature_names)
+            ]
+            legend2 = plt.legend(handles=feature_legend, loc="lower right", title="Feature", prop={"size": 12})
+            plt.gca().add_artist(legend1)
+        
+            plt.xlim(min(timepoints), max(timepoints))
+            plt.xlabel("Reparametrized age", fontsize=14)
+            plt.ylabel("Normalized feature value", fontsize=14)
+            plt.title(f"scores {start+1}-{end}", fontsize=14)
+            plt.suptitle("Population progression", fontsize=16)
+            plt.tight_layout()
+        
+        return plt
+
+    
+

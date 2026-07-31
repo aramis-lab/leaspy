@@ -81,11 +81,12 @@ class FitAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
         # TODO: finalize metrics handling, a bit dirty to place them in sufficient stats, only with a prefix...
         if self.sufficient_statistics is None:
             return None
+        excluded_metrics = {"nll_regul_all_sum",}
         return {
             # (scalars only)
             k: v.item()
             for k, v in self.sufficient_statistics.items()
-            if k.startswith("nll_")
+            if k.startswith("nll_") and k not in excluded_metrics
         }
 
     def __str__(self) -> str:

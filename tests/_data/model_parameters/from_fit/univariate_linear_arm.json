@@ -1,13 +1,10 @@
 {
-  "leaspy_version": "2.0.0-dev",
+  "leaspy_version": "2.0.2",
   "name": "linear",
   "features": [
     "Y0"
   ],
   "dimension": 1,
-  "obs_models": {
-    "y": "gaussian-scalar"
-  },
   "hyperparameters": {
     "g_std": 0.009999999776482582,
     "log_v0_std": 0.009999999776482582,
@@ -18,23 +15,27 @@
       0.4445808529853821
     ],
     "log_v0_mean": [
-      -3.4423303604125977
+      -3.442328691482544
     ],
-    "noise_std": 0.0704135000705719,
+    "noise_std": 0.07041367888450623,
     "tau_mean": [
       77.91062927246094
     ],
     "tau_std": [
-      6.0642313957214355
+      6.064271450042725
     ],
     "xi_std": [
       0.4332558214664459
     ]
   },
+  "obs_models": {
+    "y": "gaussian-scalar"
+  },
   "fit_metrics": {
-    "nll_attach": -193.77960205078125,
-    "nll_regul_ind_sum": 64.75054931640625,
-    "nll_tot": -129.029052734375
+    "nll_attach": -193.77963256835938,
+    "nll_regul_ind_sum": 64.75056457519531,
+    "nll_regul_pop_sum": 22.881973266601562,
+    "nll_tot": -106.14710998535156
   },
   "source_dimension": 0
 }

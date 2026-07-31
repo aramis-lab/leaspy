@@ -104,6 +104,7 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
         super().__init__(settings)
         self.features = settings.parameters["features"]
         self.visit_type = settings.parameters["visit_parameters"]["visit_type"]
+        self.verbose_warnings = settings.parameters.get("verbose_warnings", False)
         self._set_param_study(settings.parameters["visit_parameters"])
         self._validate_algo_parameters()
 
@@ -586,6 +587,9 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
             ]
         )
 
+        # Number of clamped points per feature, used to emit a single aggregated
+        # warning instead of one warning per (subject, visit) when not verbose.
+        clamped_counts = {}
         for i, feat in enumerate(self.features):
             if model.parameters["noise_std"].numel() == 1:
                 mu = df_long[feat + "_no_noise"]
@@ -598,15 +602,31 @@ class SimulationAlgorithm(BaseSimulationAlgorithm):
             max_var = mu * (1 - mu)
             adj_var = np.minimum(var, 0.99 * max_var)
             differences = adj_var[adj_var != var]
-            for (ID, TIME), adj_val in differences.items():
-                warnings.warn(
-                    f"Patient {ID} is too advanced in the disease at TIME {np.round(TIME, 3)}. Variance value ({np.round(var, 3)}) out of range for feature {feat}, clamped to {np.round(adj_val, 3)}."
-                )
+            if len(differences):
+                clamped_counts[feat] = len(differences)
+                if self.verbose_warnings:
+                    for (ID, TIME), adj_val in differences.items():
+                        warnings.warn(
+                            f"Patient {ID} is too advanced in the disease at TIME {np.round(TIME, 3)}. Variance value ({np.round(var, 3)}) out of range for feature {feat}, clamped to {np.round(adj_val, 3)}."
+                        )
 
             # Mean and variance parametrization
             alpha_param = mu * ((mu * (1 - mu) / adj_var) - 1)
             beta_param = (1 - mu) * ((mu * (1 - mu) / adj_var) - 1)
             df_long.loc[:, feat] = beta.rvs(alpha_param, beta_param)
+
+        # Single aggregated warning (the per-point detail is opt-in via verbose_warnings)
+        if clamped_counts and not self.verbose_warnings:
+            total_clamped = sum(clamped_counts.values())
+            features_list = ", ".join(clamped_counts)
+            warnings.warn(
+                f"Noise variance was clamped for {total_clamped} simulated point(s) "
+                f"across feature(s) [{features_list}] because some subjects are advanced "
+                f"in the disease (model estimate close to 1, where the maximum valid "
+                f"variance approaches 0). This is expected and the values were drawn from "
+                f"the nearest valid distribution. Pass `verbose_warnings=True` to "
+                f"simulate(...) for the per-subject breakdown."
+            )
 
         dict_rm_rename = {
             "tau": "RM_TAU",

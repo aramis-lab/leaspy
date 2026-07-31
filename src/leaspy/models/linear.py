@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 import torch
 
@@ -101,8 +103,10 @@ class LinearInitializationMixin:
 class LinearModel(LinearInitializationMixin, RiemannianManifoldModel):
     """Manifold model for multiple variables of interest (linear formulation)."""
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    type = "linear"
+
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """

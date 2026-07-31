@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 
 from leaspy.io.data.dataset import Dataset
@@ -110,8 +112,10 @@ class LogisticInitializationMixin:
 class LogisticModel(LogisticInitializationMixin, RiemannianManifoldModel):
     """Manifold model for multiple variables of interest (logistic formulation)."""
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    type = "logistic"
+
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(name or self.type, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """

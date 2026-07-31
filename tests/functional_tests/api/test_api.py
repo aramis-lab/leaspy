@@ -3,7 +3,7 @@ import os
 import platform
 from typing import Optional
 
-from .test_api_fit import LeaspyFitTestMixin
+from .test_api_fit import MODIFY_GOLD_STANDARD, LeaspyFitTestMixin
 from .test_api_personalize import LeaspyPersonalizeTestMixin
 from .test_api_simulate import LeaspySimulateTest_Mixin
 
@@ -25,6 +25,7 @@ class LeaspyAPITest(
         simulate_algo: str = "simulation",
         fit_check_kws: Optional[dict] = None,
         fit_algo_params: Optional[dict] = None,
+        save_model: Optional[bool] = MODIFY_GOLD_STANDARD,
         personalization_algo_params: Optional[dict] = None,
         simulate_algo_params: Optional[dict] = None,
         simulate_tol: float = 1e-4,
@@ -80,8 +81,8 @@ class LeaspyAPITest(
             **model_hyperparams,
             algo_name=fit_algo,
             algo_params=fit_algo_params,
-            check_model=True,
             check_kws=fit_check_kws,
+            save_model=save_model,
         )
         # unlink 1st functional fit test from next steps...
         model = self.get_from_fit_model(filename_expected_model)
@@ -165,6 +166,7 @@ class LeaspyAPITest(
             # "nll_regul_xi": dict(atol=5),
             # "nll_regul_sources": dict(atol=1),
             "nll_regul_ind_sum": {"atol": 5},
+            "nll_regul_pop_sum": {"atol": 5},
             "nll_attach": {"atol": 6},
             "nll_tot": {"atol": 5},
             "tau_mean": {"atol": 0.3},

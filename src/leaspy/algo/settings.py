@@ -45,6 +45,23 @@ class OutputsSettings:
 
     DEFAULT_LOGS_DIR = "_outputs"
 
+    # Keys understood by `AlgorithmSettings.set_logs` (i.e. logging/output settings,
+    # not algorithm parameters). Kept here as the single source of truth so callers
+    # can route these kwargs to logging instead of leaking them into the algorithm
+    # parameters (which would wrongly warn about "unsupported" parameters).
+    LOG_KEYS = frozenset(
+        {
+            "path",
+            "print_periodicity",
+            "save_periodicity",
+            "plot_periodicity",
+            "plot_patient_periodicity",
+            "plot_sourcewise",
+            "overwrite_logs_folder",
+            "nb_of_patients_to_plot",
+        }
+    )
+
     def __init__(self, settings):
         self.print_periodicity = None
         self.plot_periodicity = None
@@ -211,7 +228,7 @@ class AlgorithmSettings:
         - ``algorithm_initialization_method`` (str | None): strategy name accepted by the target algorithm.
         - ``n_iter`` (int | None): number of iterations (no auto stopping for MCMC SAEM).
         - ``n_burn_in_iter`` (int | None): burn-in iterations for MCMC SAEM.
-        - ``use_jacobian`` (bool): use Jacobian in ``scipy_minimize`` to switch to L-BFGS (default True).
+        - ``use_jacobian`` (bool | None): use Jacobian in ``scipy_minimize`` to switch to L-BFGS; ``None`` (default) auto-uses it when available and silently falls back otherwise, ``True`` forces it (warns and falls back if the model has no analytic jacobian), ``False`` never uses it.
         - ``n_jobs`` (int): joblib parallelism for ``scipy_minimize`` (default 1).
         - ``progress_bar`` (bool): show a progress bar (default True).
         - ``device`` (int | torch.device | str): computation device for algorithms that support it.

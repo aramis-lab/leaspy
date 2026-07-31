@@ -1,5 +1,5 @@
 {
-  "leaspy_version": "2.0.0-dev",
+  "leaspy_version": "2.0.2",
   "name": "shared_speed_logistic",
   "features": [
     "Y0",
@@ -45,13 +45,13 @@
       71.66182708740234
     ],
     "tau_std": [
-      3.5590717792510986
+      3.5590031147003174
     ],
     "xi_mean": [
-      -3.0595102310180664
+      -3.0595099925994873
     ],
     "xi_std": [
-      0.8993605375289917
+      0.8993615508079529
     ],
     "mixing_matrix": [
       [
@@ -72,9 +72,10 @@
     "y": "bernoulli"
   },
   "fit_metrics": {
-    "nll_attach": 165.01451110839844,
-    "nll_regul_ind_sum": 117.24949645996094,
-    "nll_tot": 282.2640075683594
+    "nll_attach": 165.01449584960938,
+    "nll_regul_ind_sum": 117.24954986572266,
+    "nll_regul_pop_sum": -35.346099853515625,
+    "nll_tot": 246.91793823242188
   },
   "source_dimension": 2
 }

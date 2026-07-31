@@ -389,6 +389,66 @@ class IndividualParameters:
         df = pd.DataFrame(arr, columns=final_names)
         return df.set_index("ID")
 
+    def compute_space_shifts(self, model) -> pd.DataFrame:
+        r"""
+        Compute per-subject space shifts ``w = sources @ mixing_matrix``.
+
+        Parameters
+        ----------
+        model : fitted model with ``source_dimension > 0``
+            The fitted model whose ``mixing_matrix`` is used.
+
+        Returns
+        -------
+        :class:`pandas.DataFrame`
+            Indexed by subject ID. One column per feature, named ``w_<feature>``.
+
+        Raises
+        ------
+        :exc:`.LeaspyIndividualParamsInputError`
+            If the model is not fitted, the individual parameters are empty
+            (personalization has not run), the model has no sources, or the
+            individual parameters contain no ``sources``.
+
+        Examples
+        --------
+        >>> ip = model.personalize(data, "scipy_minimize", seed=0)
+        >>> w_df = ip.compute_space_shifts(model)
+        """
+        import torch
+
+        if not getattr(model, "is_initialized", False):
+            raise LeaspyIndividualParamsInputError(
+                "Model is not fitted yet. Call `model.fit(...)` before "
+                "`compute_space_shifts(...)`."
+            )
+        if not self._individual_parameters:
+            raise LeaspyIndividualParamsInputError(
+                "Individual parameters are empty. Call `model.personalize(...)` first."
+            )
+        source_dimension = getattr(model, "source_dimension", 0) or 0
+        if source_dimension == 0:
+            raise LeaspyIndividualParamsInputError(
+                "Model has no sources (source_dimension = 0). Cannot compute space shifts."
+            )
+        if "sources" not in (self._parameters_shape or {}):
+            raise LeaspyIndividualParamsInputError(
+                "Individual parameters contain no 'sources'. Cannot compute space shifts."
+            )
+
+        mixing_matrix = model.state.get_tensor_value("mixing_matrix")  # (n_sources, n_features)
+        feature_names = model.features or [f"f{i}" for i in range(model.dimension)]
+        col_names = [f"w_{f}" for f in feature_names]
+
+        rows = {}
+        for idx in self._indices:
+            sources = self._individual_parameters[idx]["sources"]  # list of floats
+            s = torch.tensor(sources, dtype=torch.float32).unsqueeze(0)  # (1, n_sources)
+            w = (s @ mixing_matrix).squeeze(0).detach().numpy()           # (n_features,)
+            rows[idx] = w
+
+        return pd.DataFrame.from_dict(rows, orient="index", columns=col_names)
+
     @staticmethod
     def from_dataframe(df: pd.DataFrame):
         r"""

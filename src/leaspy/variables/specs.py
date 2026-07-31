@@ -1121,8 +1121,8 @@ class NamedVariables(UserDict):
         "nll_regul_ind_sum",
         # "nll_regul_pop_sum" & "nll_regul_all_sum" are not really relevant so far
         # (because priors for our population variables are NOT true bayesian priors)
-        # "nll_regul_pop_sum",
-        # "nll_regul_all_sum",
+        "nll_regul_pop_sum",
+        "nll_regul_all_sum",
     )
 
     def __init__(self, *args, **kws):
@@ -1160,14 +1160,14 @@ class NamedVariables(UserDict):
     def _auto_vars(self) -> dict[VariableName, LinkedVariable]:
         # TODO? add jacobian as well?
         d = dict(
-            # nll_regul_pop_sum=LinkedVariable(
-            #     Sum(
-            #         *(
-            #             f"nll_regul_{pop_var_name}"
-            #             for pop_var_name in self._latent_pop_vars
-            #         )
-            #     )
-            # ),
+            nll_regul_pop_sum=LinkedVariable(
+                Sum(
+                    *(
+                        f"nll_regul_{pop_var_name}"
+                        for pop_var_name in self._latent_pop_vars
+                    )
+                )
+            ),
             nll_regul_ind_sum_ind=LinkedVariable(
                 Sum(
                     *(
@@ -1177,9 +1177,9 @@ class NamedVariables(UserDict):
                 )
             ),
             nll_regul_ind_sum=LinkedVariable(SumDim("nll_regul_ind_sum_ind")),
-            # nll_regul_all_sum=LinkedVariable(
-            #     Sum("nll_regul_pop_sum", "nll_regul_ind_sum")
-            # ),
+            nll_regul_all_sum=LinkedVariable(
+                Sum("nll_regul_pop_sum", "nll_regul_ind_sum")
+            ),
         )
         assert d.keys() == set(self.AUTOMATIC_VARS)
         return d

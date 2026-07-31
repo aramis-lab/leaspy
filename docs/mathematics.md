@@ -2,14 +2,14 @@
 
 ## Nonlinear mixed effect models
 
-Mixed effects models have become a powerful and widely used statistical tool for analyzing longitudinal data, or more specifically repeated measurements, especially in the context of biomedical and epidemiological research. These models are particularly suited for studying neurodegenerative and brain diseases where patients are followed over time, and multiple clinical characteristics are measured repeatedly. Moreover these diseases have been known to be heterogeneous with subtypes that are often difficult to characterize.
+Mixed effects models have become a powerful and widely used statistical tool for analyzing longitudinal, or more specifically repeated measurements, data, especially in the context of biomedical and epidemiological research. These models are particularly suited for studying neurodegenerative and brain diseases where patients are followed over time, and multiple clinical characteristics are measured repeatedly. Moreover these diseases have been known to be heterogenous with subtypes that are often difficult ot characterize.
 
 One of the key strengths of mixed-effects models lies in their ability to capture two types of variability:
 
 - **Within-subject variability (fixed effects)**
-  This reflects systematic influences that affect all patients in similar ways, such as the effect of treatment, demographic factors, or known disease subtypes. Fixed effects represent consistent trends or shifts in the data that apply across the **population** or across specific groups.
+    This reflects systematic influences that affect all patients in similar ways, such as the effect of treatment, demographic factors, or known disease subtypes. Fixed effects represent consistent trends or shifts in the data that apply across the **population** or across specific groups.
 - **Between-subject variability (random effects)**
-  This accounts for differences among individual patients. For example, even if patients share the same diagnosis, their disease progression rates and onset time can vary considerably. By incorporating random effects, the model can capture this heterogeneity, allowing for personalized trajectory estimates at an **individual** level.
+    This accounts for differences among individual patients. For example, even if patients share the same diagnosis, their disease progression rates and onset time can vary considerably. By incorporating random effects, the model can capture this heterogeneity, allowing for personalized trajectory estimates at an **individual** level.
 
 With a mixed effects model, we can estimate the long-term progression of a disease by reconstructing individual patient trajectories over time, even when measurements are irregularly spaced or partially missing. This is crucial for understanding the natural history of a disease, identifying typical progression patterns, and recognizing outliers. Importantly, understanding how a disease evolves over time and quantifying the expected variability between individuals have significant clinical and research implications. Clinically, it supports personalized medicine approaches, tailoring treatment plans based on predicted progression. From a research standpoint, it helps identify factors driving heterogeneity in disease progression, which can inform new hypotheses about disease mechanisms or guide the development of targeted therapies.
 
@@ -17,11 +17,11 @@ Brain and neurodegenerative diseases typically do not progress at a constant rat
 
 ### Parameter estimation
 
-We suppose that the parameters capturing the population and the individual variability, namely fixed and random effects respectively, are latent variables ($z$) that follow some prior distributions. The parameters that define these distributions are called model parameters ($\theta$). We can also include hyperparmeters ($\Pi$) that have known values.
+We suppose that the parameters capturing the population and the individual variability, namely fixed and random effects respectively, are latent ($z$) follow some prior distributions. The parameters that define these distributions are called namely model parameters ($\theta$). We can also include hyperparmeters $\Pi$ that have known values.
 
-Estimating the parameters of the models can be done through maximization of the likelihood.
+Estimating the parameters of the models can be done through maximisation of the likelihood.
 
-Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters, the likelihood estimated by the model is the following:
+Assuming $y$ correspond to the observed data, $z$ the latent parameters, $\theta$ the model parameters and $\Pi$ the hyperparameters the likelihood estimated by the model is the following:
 
 $$
 p(y \mid \theta, \Pi) = \int_{z} p(y, z \mid  \theta, \Pi) dz
@@ -33,7 +33,7 @@ $$
 \log p(y, z \mid  \theta ,\Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z \mid \theta , \Pi )
 $$
 
-The prior attachment term can be separated into two terms: two terms for the prior attachment of latent parameters (fixed and random). We end up with the following expression :
+The prior attachment term can be separated into two terms: two terms for the prior attachment of latent parameters (fixed and random). We end up with the following expression : 
 
 $$
 \log p(y, z \mid \theta, \Pi) = \log {p(y \mid z, \theta, \Pi)} + \log p(z_{re} \mid z_{fe}, \theta, \Pi) +  \log p(z_{fe} \mid \theta, \Pi)
