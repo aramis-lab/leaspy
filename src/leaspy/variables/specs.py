@@ -51,7 +51,6 @@ from leaspy.utils.weighted_tensor import (
 from .distributions import SymbolicDistribution
 from .utilities import (
     compute_individual_parameter_std_from_sufficient_statistics,
-    compute_population_covariance_from_sufficient_statistics,
 )
 
 __all__ = [
@@ -460,40 +459,6 @@ class ModelParameter(IndepVariable):
                 compute_pop_mean_cond_from_suff_stats,
                 parameters=(gamma_delta_name, mask_variable_name),
             ),
-        )
-
-    @classmethod
-    def for_pop_cov_matrix(
-        cls, population_variable_name: VariableName, shape: tuple[int, ...], **tol_kw
-    ):
-        """
-        Smart automatic definition of a covariance matrix for
-        a population latent variable.
-        """
-
-        outer_name = f"{population_variable_name}_outer"
-
-        update_rule_normal = NamedInputFunction(
-            compute_population_covariance_from_sufficient_statistics,
-            parameters=(
-                "state",
-                population_variable_name,
-                outer_name,
-            ),
-            kws=dict(
-                population_parameter_name=population_variable_name,
-                **tol_kw,
-            ),
-        )
-
-        return cls(
-            shape,
-            suff_stats=Collect(
-                population_variable_name,
-                **{outer_name: LinkedVariable(OuterProduct(population_variable_name))},
-            ),
-            update_rule_burn_in=None,  # généralement pas nécessaire ici
-            update_rule=update_rule_normal,
         )
 
     @classmethod

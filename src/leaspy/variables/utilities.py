@@ -2,7 +2,6 @@ import torch
 
 __all__ = [
     "compute_individual_parameter_std_from_sufficient_statistics",
-    "compute_population_covariance_from_sufficient_statistics",
 ]
 
 
@@ -50,31 +49,6 @@ def compute_individual_parameter_std_from_sufficient_statistics(
     return compute_std_from_variance(
         individual_parameter_variance, varname=f"{individual_parameter_name}_std", **kws
     )
-
-
-def compute_population_covariance_from_sufficient_statistics(
-    state: dict[str, torch.Tensor],
-    population_parameter_values: torch.Tensor,
-    population_parameter_outer_values: torch.Tensor,
-    *,
-    population_parameter_name: str,
-    **kws,
-):
-    if population_parameter_values.ndim == 1:
-        # cas delta_t0 : une seule observation
-        cov = population_parameter_outer_values - torch.outer(
-            population_parameter_values, population_parameter_values
-        )
-    else:
-        # cas delta_g/delta_v0 : K observations, on moyenne
-        means_outer = torch.einsum(
-            "ki,kj->kij", population_parameter_values, population_parameter_values
-        )
-        # moyenne sur les K features
-        cov = (population_parameter_outer_values - means_outer).mean(
-            dim=0
-        )  # (N_c, N_c)
-    return _make_spd(cov)
 
 
 def _make_spd(matrix: torch.Tensor, epsilon: float = 1e-6) -> torch.Tensor:
