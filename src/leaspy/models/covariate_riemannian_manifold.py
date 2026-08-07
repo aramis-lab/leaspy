@@ -206,10 +206,6 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
             metric_patient=LinkedVariable(self.metric_patient),
-            log_v0_cov=LinkedVariable(
-                AffineMatrix("log_v0", "delta_v0", "unique_covariates")
-            ),
-            v0_cov=LinkedVariable(Exp("log_v0_cov")),
         )
         if self.source_dimension >= 1:
             d.update(

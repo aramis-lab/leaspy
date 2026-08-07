@@ -266,7 +266,6 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             delta_t0_masked=LinkedVariable(Prod("gamma_t0", "delta_t0")),
             t0_patient=LinkedVariable(Affine("t0", "delta_t0_masked", "covariates")),
             unique_covariates=LinkedVariable(Unique("covariates")),
-            t0_cov=LinkedVariable(Affine("t0", "delta_t0", "unique_covariates")),
         )
         if self.source_dimension >= 1:
             specifications.update(

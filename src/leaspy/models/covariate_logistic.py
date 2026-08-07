@@ -188,10 +188,6 @@ class CovariateLogisticModel(
             g_patient=LinkedVariable(
                 Exp("log_g_patient"),
             ),
-            log_g_cov=LinkedVariable(
-                AffineMatrix("log_g", "delta_g", "unique_covariates")
-            ),
-            g_cov=LinkedVariable(Exp("log_g_cov")),
         )
 
         return d
