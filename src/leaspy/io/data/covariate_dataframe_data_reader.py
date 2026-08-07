@@ -120,14 +120,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     "Please ensure that values are provided for each visit."
                 )
 
+        # Numeric dtype and absence of infinite values are already enforced
+        # upstream (on the raw dataframe) by `_clean_numeric_data`; here we just
+        # settle on a single dtype (covariates may be int- or float-typed).
         for covariate in self.covariate_names:
-            if not np.array_equal(
-                df_covariate[covariate], df_covariate[covariate].astype(int)
-            ):
-                raise LeaspyDataInputError(
-                    f"Covariate '{covariate}' must contain only integer values."
-                )
-            df_covariate[covariate] = df_covariate[covariate].astype(int)
+            df_covariate[covariate] = df_covariate[covariate].astype(float)
 
         # Assert one unique covariate per patient and group to drop duplicates
         if (
@@ -148,6 +145,13 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         # (mean 0, std 1). Covariates far from that scale are still accepted, but
         # may lead to poorly calibrated priors and slower/unstable MCMC mixing.
         for covariate in self.covariate_names:
+            if set(df_covariate[covariate].unique()) <= {0, 1}:
+                # 0/1-coded binary covariates are already on a scale suited to
+                # the model's priors: going from 0 to 1 represents the
+                # covariate's full range of variation, just like +/- 1 std does
+                # for a standardized continuous covariate. A 2-level covariate
+                # coded on another scale (e.g. {10, 20}) doesn't get this pass.
+                continue
             mean = df_covariate[covariate].mean()
             std = df_covariate[covariate].std()
             if std > 0 and (abs(mean) > 0.5 or not (0.5 <= std <= 2)):

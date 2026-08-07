@@ -482,7 +482,7 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
 
     def put_data_variables(self, state: State, dataset: Dataset) -> None:
         super().put_data_variables(state, dataset)
-        covariates_tensor = dataset.covariates.clone().detach().to(torch.int)
+        covariates_tensor = dataset.covariates.clone().detach().to(torch.float32)
         state["covariates"] = WeightedTensor(covariates_tensor)
 
     def to_dict(self, *, with_mixing_matrix: bool = True) -> KwargsType:
