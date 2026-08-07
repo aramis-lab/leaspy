@@ -143,6 +143,20 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         if len(df_covariate) == 0:
             raise LeaspyDataInputError("Dataframe should have at least 1 covariate")
 
+        # The model's prior on covariate effects (delta_*) and the MCMC proposal
+        # scales are calibrated for covariates on a roughly standardized scale
+        # (mean 0, std 1). Covariates far from that scale are still accepted, but
+        # may lead to poorly calibrated priors and slower/unstable MCMC mixing.
+        for covariate in self.covariate_names:
+            mean = df_covariate[covariate].mean()
+            std = df_covariate[covariate].std()
+            if std > 0 and (abs(mean) > 0.5 or not (0.5 <= std <= 2)):
+                warnings.warn(
+                    f"Covariate '{covariate}' has mean={mean:.3g} and std={std:.3g}, which is not on a standardized scale."
+                    "Leaspy's priors on covariate effects assume a roughly unit scale; consider standardizing this covariate,"
+                    "e.g. (x - mean) / std, before fitting for more stable and interpretable results."
+                )
+
         # Identifiability conditions
         # Assert at least 2 different values per covariate
         for covariate in self.covariate_names:
