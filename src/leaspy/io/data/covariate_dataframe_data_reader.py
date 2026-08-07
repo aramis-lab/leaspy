@@ -152,21 +152,25 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     "Each covariate must have at least two distinct values across patients"
                 )
 
-        # Assert that covariates are not collinear
-        C = df_covariate[self.covariate_names].values
+        # Assert that [intercept, covariates] is full rank: the model has a free
+        # intercept per feature (e.g. `t0`, `log_g`, `log_v0`), so the covariates
+        # must remain linearly independent from a constant column too.
         names = self.covariate_names
-        U, S, Vt = np.linalg.svd(C)
-        rank = np.sum(S > 1e-12)
-        if rank < C.shape[1]:
+        C = df_covariate[names].to_numpy(dtype=float)
+        design = np.column_stack([np.ones(len(df_covariate)), C])
+        _, S, Vt = np.linalg.svd(design)
+        tol = S.max() * max(design.shape) * np.finfo(float).eps
+        rank = int(np.sum(S > tol))
+        if rank < design.shape[1]:
             null_vec = Vt[-1, :]
             involved = [
-                names[i] for i, coeff in enumerate(null_vec) if abs(coeff) > 1e-8
+                names[i - 1] for i in range(1, len(null_vec)) if abs(null_vec[i]) > 1e-8
             ]
             raise LeaspyDataInputError(
-                "Linear dependence detected among the covariates.\n"
+                "Linear dependence detected among the covariates (including the model's intercept).\n"
                 f"The following covariates are involved in a linear dependence relation: {involved}.\n"
                 "Note that additional linear dependence relations may exist among other covariates.\n"
-                "Please ensure that the covariates are linearly independent.\n"
+                "Please ensure that the covariates, together with an intercept, are linearly independent\n"
             )
 
         return df_covariate

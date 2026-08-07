@@ -15,7 +15,6 @@ from ._utils import (
     _outer_product,
     _prod_args,
     _sum_args,
-    _unique_wrapper,
 )
 
 __all__ = [
@@ -31,7 +30,6 @@ __all__ = [
     "Sum",
     "Affine",
     "AffineMatrix",
-    "Unique",
 ]
 
 
@@ -136,14 +134,6 @@ AffineMatrix = NamedInputFunction.bound_to(
     _affine_matrix,
     _arguments_checker(
         nb_arguments=3,
-        possible_kws={"dim"},
-    ),
-)
-
-Unique = NamedInputFunction.bound_to(
-    _unique_wrapper,
-    _arguments_checker(
-        nb_arguments=1,
         possible_kws={"dim"},
     ),
 )

@@ -5,7 +5,7 @@ import torch
 
 from leaspy.exceptions import LeaspyIndividualParamsInputError, LeaspyModelInputError
 from leaspy.io.data.dataset import Dataset
-from leaspy.utils.functional import Affine, Exp, MatMul, Prod, Unique
+from leaspy.utils.functional import Affine, Exp, MatMul, Prod
 from leaspy.utils.typing import DictParams, DictParamsTorch, FeatureType, KwargsType
 from leaspy.utils.weighted_tensor import TensorOrWeightedTensor, WeightedTensor
 from leaspy.variables.distributions import Bernoulli, MultivariateNormal, Normal
@@ -265,7 +265,6 @@ class CovariateTimeReparametrizedModel(McmcSaemCompatibleModel):
             alpha=LinkedVariable(Exp("xi")),
             delta_t0_masked=LinkedVariable(Prod("gamma_t0", "delta_t0")),
             t0_patient=LinkedVariable(Affine("t0", "delta_t0_masked", "covariates")),
-            unique_covariates=LinkedVariable(Unique("covariates")),
         )
         if self.source_dimension >= 1:
             specifications.update(
