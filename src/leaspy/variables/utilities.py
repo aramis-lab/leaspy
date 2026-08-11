@@ -49,15 +49,3 @@ def compute_individual_parameter_std_from_sufficient_statistics(
     return compute_std_from_variance(
         individual_parameter_variance, varname=f"{individual_parameter_name}_std", **kws
     )
-
-
-def _make_spd(matrix: torch.Tensor, epsilon: float = 1e-6) -> torch.Tensor:
-    """Project matrix onto the cone of symmetric positive definite matrices."""
-    # Symmetrize
-    matrix = (matrix + matrix.T) / 2
-    # Eigendecomposition
-    eigenvalues, eigenvectors = torch.linalg.eigh(matrix)
-    # Clip negative eigenvalues
-    eigenvalues = eigenvalues.clamp(min=epsilon)
-    # Reconstruct
-    return eigenvectors @ torch.diag(eigenvalues) @ eigenvectors.T

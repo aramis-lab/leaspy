@@ -216,28 +216,6 @@ def _sum_args(*args: TensorOrWeightedTensor, **start_kw) -> TensorOrWeightedTens
     return summation
 
 
-def _outer_product(x: torch.Tensor, *, dim=None, **kws) -> torch.Tensor:
-    """
-    Compute the outer product x x^T along the population dimension.
-
-    Parameters
-    ----------
-    x : torch.Tensor
-        Tensor of shape (N, d) for N samples, d-dimensional.
-    dim : int, optional
-        Dimension corresponding to the population level.
-    """
-    if x.ndim == 1:
-        # cas (N_c,) -> outer product -> (N_c, N_c)
-        x = x[:, None]
-        return x @ x.T
-    elif x.ndim == 2:
-        # cas (K, N_c) -> outer product par feature -> (K, N_c, N_c)
-        return torch.einsum("ki,kj->kij", x, x)
-    else:
-        raise ValueError(f"Unexpected shape {x.shape}")
-
-
 def _affine(
     t0: torch.Tensor,
     delta: torch.Tensor,

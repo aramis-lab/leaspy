@@ -22,7 +22,6 @@ import torch
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.models.utilities import (
     compute_ind_param_mean_from_suff_stats_mixture,
-    compute_ind_param_std_from_suff_stats,
     compute_ind_param_std_from_suff_stats_mixture,
     compute_ind_param_std_from_suff_stats_mixture_burn_in,
     compute_pop_mean_cond_from_suff_stats,
@@ -72,7 +71,6 @@ __all__ = [
     "PopulationLatentVariable",
     "IndividualLatentVariable",
     "LinkedVariable",
-    "FixedShapeLinkedVariable",
     "NamedVariables",
 ]
 
@@ -1028,25 +1026,6 @@ class LinkedVariable(VariableInterface):
             The value of the variable.
         """
         return self.f(**{k: state[k] for k in self.parameters})
-
-
-@dataclass(frozen=True)
-class FixedShapeLinkedVariable(LinkedVariable):
-    """A LinkedVariable whose shape is fixed and known at construction time.
-
-    Use this instead of `LinkedVariable` when the variable is a prior distribution
-    parameter and its shape is statically known (e.g. gamma ⊙ delta_mean).
-
-    Parameters
-    ----------
-    f : Callable
-        Same as :class:`LinkedVariable`.
-    shape : tuple of int
-        The fixed shape of this variable's values.
-    """
-
-    shape: tuple[int, ...]
-    fixed_shape: ClassVar = True
 
 
 class NamedVariables(UserDict):

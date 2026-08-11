@@ -12,7 +12,6 @@ from ._utils import (
     _affine_matrix,
     _arguments_checker,
     _identity,
-    _outer_product,
     _prod_args,
     _sum_args,
 )

@@ -202,34 +202,6 @@ def compute_std_from_variance(
     return variance.sqrt()
 
 
-def compute_ind_param_std_from_suff_stats(
-    state: Dict[str, torch.Tensor],
-    ip_values: torch.Tensor,
-    ip_sqr_values: torch.Tensor,
-    *,
-    ip_name: str,
-    dim: int,
-    **kws,
-):
-    """
-    Maximization rule, from the sufficient statistics, of the standard-deviation
-    of Gaussian prior for individual latent variables.
-
-    Parameters
-    ----------
-    state : Dict[str, torch.Tensor]
-    ip_values : torch.Tensor
-    ip_sqr_values : torch.Tensor
-    ip_name : str
-    dim : int
-    """
-    ip_old_mean = state[f"{ip_name}_mean"]
-    ip_cur_mean = torch.mean(ip_values, dim=dim)
-    ip_var_update = torch.mean(ip_sqr_values, dim=dim) - 2 * ip_old_mean * ip_cur_mean
-    ip_var = ip_var_update + ip_old_mean**2
-    return compute_std_from_variance(ip_var, varname=f"{ip_name}_std", **kws)
-
-
 def compute_ind_param_mean_from_suff_stats_mixture(
     state: Dict[str, torch.Tensor],
     *,
