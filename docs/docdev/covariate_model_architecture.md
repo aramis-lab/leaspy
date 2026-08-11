@@ -38,7 +38,20 @@ In other words, the covariate files reuse the *structure* (the same 3-level clas
 | `riemannian_manifold_Schiratti.py` (`RiemannianManifoldModelSchiratti`) | `covariate_riemannian_manifold.py` (`CovariateRiemannianManifoldModel`) | Defines`v0`, the metric, and (covariate side) `δ_v0`, `γ_v0`, `v0_patient`, `metric_patient`             |
 | `logistic_Schiratti.py` (`LogisticModelSchiratti`)                      | `covariate_logistic.py` (`CovariateLogisticModel`)                      | Defines`g`, the logistic model formula, initialization, and (covariate side) `δ_g`, `γ_g`, `g_patient`     |
 
-At each level, the `covariate_*` file reproduces the equivalent Schiratti file almost line for line (same `_center_xi_realizations`, `_center_tau_realizations`, `compute_sufficient_statistics`, `model_no_sources`, etc.), with `get_variables_specs()` extended to add the covariate-related variables, and the model formula (`model_with_sources`) updated to use the patient-specific parameters (`v0_patient`, `g_patient`, `metric_patient`) instead of the population-only ones (`v0`, `g`, `metric`).
+At each level, the `covariate_*` file reproduces the equivalent Schiratti file almost line for line, and only a small, identifiable set of methods actually differ. These are the methods that had to be touched to make the covariate mechanism work — everything else (e.g. `_center_xi_realizations`, `_center_tau_realizations`, `compute_sufficient_statistics`) is copied unchanged:
+
+* **`covariate_time_reparametrized.py`** — 2 methods differ from `time_reparametrized_Schiratti.py`:
+  * `time_reparametrization`: takes `t0_patient` instead of `t0` (`alpha * (t - t0_patient - tau)`).
+  * `get_variables_specs`: extended with the `δ_t0` / `γ_t0` / `t0_patient` block (§1.4).
+* **`covariate_riemannian_manifold.py`** — 3 methods differ from `riemannian_manifold_Schiratti.py`, and one is added:
+  * `__init__` (`default_variables_to_track`): the list of tracked variables gains `delta_t0`, `delta_g`, `delta_v0`, `gamma_t0`, `gamma_g`, `gamma_v0`.
+  * `get_variables_specs`: extended with the `δ_v0` / `γ_v0` / `v0_patient` block (§1.4).
+  * `model_with_sources` (abstract signature): its parameters change from `metric, v0, g` (population-only, in the Schiratti version) to `metric_patient, v0_patient, g_patient` (patient-specific) — the actual body is only implemented one level below, in `covariate_logistic.py`, but the abstract signature already commits to the patient-specific parameters at this level.
+  * An abstract `metric_patient` static method is also declared here (implemented in `covariate_logistic.py`).
+* **`covariate_logistic.py`** — 2 methods differ from `logistic_Schiratti.py`, one is added:
+  * `get_variables_specs`: extended with the `δ_g` / `γ_g` / `g_patient` block (§1.4).
+  * `model_with_sources`: the formula itself is rewritten to consume `metric_patient`, `v0_patient`, `g_patient` instead of `metric`, `v0`, `g`.
+  * `metric_patient` (new static method): `(g_patient + 1)**2 / g_patient` — the patient-specific counterpart of the existing `metric` method, needed because the metric now has to be recomputed per patient from `g_patient` rather than once at the population level from `g`.
 
 ### 1.4 What had to be added at each level — the pattern repeated 3 times
 
@@ -97,13 +110,16 @@ A new factory method, mirroring the existing `for_pop_mean`, but for a parameter
 
 This function is what makes it possible to express the pattern from §1.4 in a single line per parameter, instead of hand-writing the sufficient-statistics logic separately for `t0`, `g`, and `v0`.
 
-**b) `BernoulliFamily` (`src/leaspy/variables/distributions.py`)**
-A new stateless distribution family, alongside the existing `NormalFamily` and `MultivariateNormalFamily`. Provides the NLL and its gradient for a Bernoulli variable, which lets γ be treated like any other latent variable in the framework (computation of `nll_attach`, `nll_regul`, etc.), exposed as `Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)` and used in `get_variables_specs()`.
+**b) `MultivariateNormalFamily` (`src/leaspy/variables/distributions.py`)**
+A new stateless distribution family that did not exist in Leaspy before this model. Unlike the existing `NormalFamily` (independent, scalar-per-coordinate Gaussian), `δ_t0`/`δ_g`/`δ_v0` need a genuine multivariate Gaussian prior with a full covariance matrix `Σ` over the covariate directions — and, for `g`/`v0`, batched over features (covariance of shape `(K, N_cov, N_cov)`). `MultivariateNormalFamily` implements the NLL and its gradient for this case by hand (via a Cholesky decomposition of `Σ`, to stay numerically stable and support the batched case), and is exposed as `MultivariateNormal = SymbolicDistribution.bound_to(MultivariateNormalFamily)`, used for `delta_t0`, `delta_g`, `delta_v0` in `get_variables_specs()`.
 
-**c) `BernoulliDiscreteSampler` (`src/leaspy/samplers/gibbs.py`)**
+**c) `BernoulliFamily` (`src/leaspy/variables/distributions.py`)**
+Another new stateless distribution family, added alongside `MultivariateNormalFamily`. Provides the NLL and its gradient for a Bernoulli variable, which lets γ be treated like any other latent variable in the framework (computation of `nll_attach`, `nll_regul`, etc.), exposed as `Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)` and used in `get_variables_specs()`.
+
+**d) `BernoulliDiscreteSampler` (`src/leaspy/samplers/gibbs.py`)**
 Every other population variable in Leaspy is sampled via a continuous Gaussian random-walk Metropolis-Hastings step, which does not make sense for a discrete two-valued variable. This new sampler directly evaluates the total NLL at both possible values (0 and 1) for each coordinate of γ, and samples exactly from the conditional posterior — a true Gibbs step, with no rejection. Routing to this sampler is automatic in `algo_with_samplers.py`: any variable whose `dist_family` is `BernoulliFamily` is sent there instead of the default Gaussian sampler.
 
-**d) `Affine` / `AffineMatrix` (`src/leaspy/utils/functional/_functions.py`, `_utils.py`)**
+**e) `Affine` / `AffineMatrix` (`src/leaspy/utils/functional/_functions.py`, `_utils.py`)**
 Two new named functions (in the sense of Leaspy's `NamedInputFunction` framework):
 
 - `Affine(base, delta, covariates)` → `base + covariates @ delta` — used for `t0_patient` (scalar base, one δ per covariate).
@@ -141,9 +157,38 @@ This is the entry point: it turns a pandas `DataFrame` (with ID, TIME, feature c
 
 The covariate typing (the `covariates` parameter, the `Dataset.covariates` attribute, the `IndividualData.add_covariates` method) was changed from `int`/`torch.IntTensor` to `float`/`torch.FloatTensor` across the three files involved. This is necessary to support **continuous covariates** (e.g. a standardized N(0,1) score) in addition to binary ones — the original integer typing was inherited from a context where only discrete (mostly binary) covariates were considered.
 
-### 2.3 Wiring into the rest of the framework
+### 2.3 Routing: making the reader reachable
 
-- **`factory.py`** (`src/leaspy/io/data/factory.py`): adds `DataframeDataReaderFactoryInput.COVARIATE = "covariate"` and registers `CovariateDataframeDataReader` in `dataframe_data_reader_factory`, so that `Data.from_dataframe(df, data_type="covariate", ...)` routes correctly to this reader.
-- **`Data._from_reader`**: if the reader has a `covariate_names` attribute (which `CovariateDataframeDataReader` does), it is copied onto the `Data` object.
-- **Model side**: `covariates=DataVariable()` (declared in `get_variables_specs()` of `CovariateTimeReparametrizedModel`) and `put_data_variables()` (overridden in that same file) are what bridges `Dataset.covariates` (the tensor prepared on the data side) with the `covariates` variable usable in the model's symbolic formulas (`Affine`, `AffineMatrix`) described in §1.4.
-- **`nb_cov`**: a model property (`CovariateTimeReparametrizedModel.nb_cov`), read dynamically from `self.dataset.covariate_names` — this is what allows `delta_*` to be dimensioned correctly without hard-coding the number of covariates.
+* **`factory.py`** (`src/leaspy/io/data/factory.py`): adds `DataframeDataReaderFactoryInput.COVARIATE = "covariate"` and registers `CovariateDataframeDataReader` in `dataframe_data_reader_factory`, so that `Data.from_dataframe(df, data_type="covariate", ...)` routes correctly to this reader.
+* **`Data._from_reader`** : if the reader has a `covariate_names` attribute (which `CovariateDataframeDataReader` does), it is copied onto the `Data` object.
+
+### 2.4 The bridge between the data pipeline and the model — the actual connection point
+
+Everything described in §2.1–2.3 only gets covariate values into `Dataset.covariates`, a plain tensor sitting on the data side. **On its own, this tensor is invisible to the model** — nothing in §1 (the `Affine`/`AffineMatrix` formulas, `t0_patient`, `g_patient`, etc.) can reference it unless it is explicitly exposed as a named variable inside the model's own state. This is the single connection point where the two sides of this document actually meet, and it lives entirely on the model side, in `covariate_time_reparametrized.py` (the base of the covariate hierarchy — see §1):
+
+* **`covariates=DataVariable()`** , declared in `CovariateTimeReparametrizedModel.get_variables_specs()`, declares a variable named `covariates` inside the model's variable graph — a placeholder that says "this value comes from the dataset, not from a prior or a computation."
+* **`put_data_variables()`** , overridden in the same file, is what actually fills that placeholder at run time:
+
+python
+
+```python
+  def put_data_variables(self, state: State, dataset: Dataset) -> None:
+      super().put_data_variables(state, dataset)
+      covariates_tensor = dataset.covariates.clone().detach().to(torch.float32)
+      state["covariates"] = WeightedTensor(covariates_tensor)
+```
+
+It copies `dataset.covariates` into the model's `state` under the key `"covariates"`. From that point on, `"covariates"` is a name the symbolic formulas can reference — which is exactly what `Affine("t0", "delta_t0_masked", "covariates")` and `AffineMatrix(...)` do (§1.4).
+
+**`nb_cov`** is the other piece needed to make this bridge:
+
+python
+
+```python
+@property
+def nb_cov(self) -> int:
+    covariates = self.dataset.covariate_names
+    ...
+```
+
+It is a model property, read dynamically from `self.dataset.covariate_names` (itself populated by the reader, §2.1). Every `shape=(self.nb_cov,)` or `shape=(self.dimension, self.nb_cov)` used when declaring `delta_t0`, `delta_g`, `delta_v0` in `get_variables_specs()` (§1.4) depends on it. This is what allows the model to work with any number of covariates without hard-coding it anywhere — the shapes of `δ`, `γ`, `Σ` all derive from `nb_cov` at model-construction time.
