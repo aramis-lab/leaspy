@@ -128,9 +128,6 @@ class CovariateLogisticInitializationMixin:
                 "delta_t0_mean": torch.zeros((self.nb_cov,)),
                 "delta_v0_mean": torch.zeros((self.dimension, self.nb_cov)),
                 "delta_g_mean": torch.zeros((self.dimension, self.nb_cov)),
-                "gamma_t0": torch.ones((self.nb_cov)),
-                "gamma_g": torch.ones((self.dimension, self.nb_cov)),
-                "gamma_v0": torch.ones((self.dimension, self.nb_cov)),
             }
             if self.source_dimension >= 1:
                 parameters["betas_mean"] = betas
