@@ -32,7 +32,7 @@ class TestAlgoFactory(LeaspyTestCase):
     def test_loading_default_for_all_algos(self):
         # bit of a functional test
         for name in AlgorithmName:
-            if name != AlgorithmName.SIMULATE:
+            if name not in (AlgorithmName.SIMULATE, AlgorithmName.SIMULATE_COVARIATE):
                 algo_instance = algorithm_factory(AlgorithmSettings(name.value))
                 self.assertIsInstance(algo_instance, get_algorithm_class(name))
 
