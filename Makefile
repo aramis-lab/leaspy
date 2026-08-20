@@ -41,7 +41,7 @@ install.dev: check.lock
 
 .PHONY: install.doc
 install.doc: check.lock
-	@$(POETRY) install --only docs
+	@$(POETRY) install --with docs
 
 .PHONY: lock
 lock:
