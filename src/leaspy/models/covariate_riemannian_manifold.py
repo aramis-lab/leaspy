@@ -229,11 +229,18 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
 
     @staticmethod
     @abstractmethod
-    def metric_patient(*, g: torch.Tensor) -> torch.Tensor:
+    def metric_patient(*, g_patient: torch.Tensor) -> torch.Tensor:
         pass
 
     @classmethod
-    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
+    def model_no_sources(
+        cls,
+        *,
+        rt: torch.Tensor,
+        metric_patient: torch.Tensor,
+        v0_patient: torch.Tensor,
+        g_patient: torch.Tensor,
+    ) -> torch.Tensor:
         """
         Return the model output when sources(spatial components) are not present.
 
@@ -260,9 +267,9 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
         """
         return cls.model_with_sources(
             rt=rt,
-            metric=metric,
-            v0=v0,
-            g=g,
+            metric_patient=metric_patient,
+            v0_patient=v0_patient,
+            g_patient=g_patient,
             space_shifts=torch.zeros((1, 1)),
         )
 
@@ -273,8 +280,8 @@ class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
         *,
         rt: torch.Tensor,
         space_shifts: torch.Tensor,
-        metric_patient,
-        v0_patient,
-        g_patient,
+        metric_patient: torch.Tensor,
+        v0_patient: torch.Tensor,
+        g_patient: torch.Tensor,
     ) -> torch.Tensor:
         pass
