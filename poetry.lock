@@ -2971,23 +2971,20 @@ tests = ["pytest"]
 
 [[package]]
 name = "pybtex"
-version = "0.24.0"
+version = "0.26.1"
 description = "A BibTeX-compatible bibliography processor in Python"
 optional = false
-python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*"
+python-versions = ">=3.8"
 groups = ["docs"]
 files = [
-    {file = "pybtex-0.24.0-py2.py3-none-any.whl", hash = "sha256:e1e0c8c69998452fea90e9179aa2a98ab103f3eed894405b7264e517cc2fcc0f"},
-    {file = "pybtex-0.24.0.tar.gz", hash = "sha256:818eae35b61733e5c007c3fcd2cfb75ed1bc8b4173c1f70b56cc4c0802d34755"},
+    {file = "pybtex-0.26.1-py3-none-any.whl", hash = "sha256:e26c0412cc54f5f21b2a6d9d175762a2d2af9ccf3a8f651cdb89ec035db77aa1"},
+    {file = "pybtex-0.26.1.tar.gz", hash = "sha256:2e5543bea424e60e9e42eef70bff597be48649d8f68ba061a7a092b2477d5464"},
 ]
 
 [package.dependencies]
+importlib-metadata = {version = "*", markers = "python_version < \"3.10\""}
 latexcodec = ">=1.0.4"
-PyYAML = ">=3.01"
-six = "*"
-
-[package.extras]
-test = ["pytest"]
+pyyaml = ">=3.01"
 
 [[package]]
 name = "pybtex-docutils"
@@ -4742,4 +4739,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "439ee7533a9129ed26a4783755840e542e092584e2ccb39d8854af365f64db06"
+content-hash = "2d10cbc8846cf87b97cadc083e1ce8ee6d667ad783e47940c3c0e325ae852e3e"
