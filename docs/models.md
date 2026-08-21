@@ -1,30 +1,35 @@
 # Models
 
 (introduction-to-spatio-temporal-models)=
+
 ## Introduction to Spatio-Temporal Models
 
 (temporal-random-effects)=
+
 ### Temporal Random Effects
-Individual temporal variability for patient $i$ is modeled with the [latent disease age](latent-disease-age) $\psi_i(t)$ :  
+
+Individual temporal variability for patient $i$ is modeled with the [latent disease age](latent-disease-age) $\psi_i(t)$ :
 
 $$
 \psi_i(t) = e^{\xi_i}(t - \tau_i) + t_0
 $$
 
 where:
+
 - $ \xi_i $ is the [individual log speed factor](individual-log-speed-factor)
 - $ \tau_i $ is the [estimated reference time](estimated-reference-time)
 - $ t_0 $ is the [population reference time](population-reference-time)
 
-
-The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from $ \psi_i(t) $.  
+The longitudinal $ \gamma_i(t)$ and survival $S_i(t)$ processes are derived from $ \psi_i(t) $.
 
 *Key Hypothesis*: Longitudinal and survival processes are linked by a shared latent disease age.
 
 ### Spatial Random Effects
-Disease presentation variability is captured by [space-shifts](space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:  
+
+Disease presentation variability is captured by [space-shifts](space-shift) : $\mathbf{w}_i = \mathbf{A} \mathbf{s}_i$ where:
+
 - $\mathbf{A}$: [mixing matrix](mixing-matrix)  (dimension reduction with $N_s \leq K-1 $ independent sources:  $N_s$ being the number of sources and $K$ the number of outcomes).
-- $ \mathbf{s}_i$: Independent sources  
+- $ \mathbf{s}_i$: Independent sources
 
 For identifiability, $ \mathbf{A} $ is defined as a linear combination of an orthonormal basis $ (\mathbf{B}_k)_{1 \leq k \leq K} $ orthogonal to $ \text{Span}(\mathbf{v}_0) $ {cite}`schirattiBayesianMixedEffectsModel`, so that:
 
@@ -43,6 +48,7 @@ $$
 *Interpretation*: Space shifts ($w_{i,k}$)  are more interpretable than sources ($s_i $), as they encapsulate total spatial variability effects.
 
 (logistic-model)=
+
 ## Logistic Model
 
 ### Definition
@@ -53,11 +59,13 @@ The logistic model is governed by parameters, which control its **speed**, **inf
 In Leaspy, the logistic model is implemented using a **non-linear mixed-effects** framework, where the disease evolution is described through a latent time variable (latent disease age) shared across outcomes, and individual variations are modeled through subject-specific parameters {cite}`durrleman2013toward`.
 
 This model provides interpretable components:
+
 - A population-level trajectory defined by a logistic function,
 - Individual deviations from this curve through time reparametrization and spatial shifts,
 - The ability to simulate, estimate, and personalize trajectories for unseen individuals.
 
 (logistic-data)=
+
 ### Data
 
 A logistic model is relevant when you have:
@@ -68,8 +76,8 @@ A logistic model is relevant when you have:
 
 To fit a logistic model, you need a dataframe with the following columns:
 
-- `ID`: Patient identifier  
-- `TIME`: Time of measurement  
+- `ID`: Patient identifier
+- `TIME`: Time of measurement
 - One or more columns representing the longitudinal outcomes (e.g., `OUTCOME_1`, `OUTCOME_2`, ...)
 
 For the importation of dataframe:
@@ -97,7 +105,8 @@ $$
 \gamma_{i,k}(t) = \left[ 1 + g_k \times \exp\left( -\frac{(1+g_k)^2}{g_k} \left( v_{0,k}(\psi_i(t) - t_0) + w_{i,k} \right) \right) \right]^{-1}
 $$
 
-where:  
+where:
+
 - $\gamma_{i,k}(t)$ is the modeled outcome value,
 - $t_0$ is the population reference time
 - $v_{0,k}$ is the speed of progression for outcome $k$ at reference time $t_0$,
@@ -105,8 +114,8 @@ where:
 - $\frac{1}{1+g_k}$ is the value of the logistic curve at $t_0$
 - $\psi_i(t)$ is the latent disease age, please have a look to part [introduction to spatio-temporal models](introduction-to-spatio-temporal-models) for more details.
 
-
 (joint-model)=
+
 ## Joint Model
 
 ### Definition
@@ -116,13 +125,17 @@ Joint models are a class of statistical models that simultaneously analyze {term
 In Leaspy, the joint model {cite}`ortholand_joint_2024` is implemented as a longitudinal spatio-temporal model, and a survival model, that are linked through a shared latent disease age, and, in the case of multiple longitudinal outcomes, spatial random effects ([see description in first paragraph of this page](introduction-to-spatio-temporal-models)). This approach allows for the incorporation of both temporal and spatial random effects, providing a more comprehensive understanding of the underlying disease process.
 
 (joint-data)=
+
 ### Data
+
 A joint model is relevant when you have:
+
 - **Longitudinal measurements** as repeated biomarker readings, clinical scores
 - **Time-to-event outcomes** as survival, dropout, or failure events
 - **A suspected association** between the longitudinal process and event risk
 
 You must have one dataframe with the following columns:
+
 - `ID`: Patient identifier
 - `TIME`: Time of measurement
 - `EVENT_TIME`: Time of event
@@ -137,7 +150,7 @@ dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
 print(dataset.head())
 
                                 OUTCOME_1  OUTCOME_2  EVENT_TIME  EVENT_BOOL
-        ID              TIME                                                           
+        ID              TIME                                                     
 132-S2-0              81.661      0.44444    0.04000        84.0           1
            82.13600000000001      0.60000    0.00000        84.0           1
                       82.682      0.39267    0.04000        84.0           1
@@ -150,24 +163,27 @@ print(dataset.head())
 
 data_joint = Data.from_dataframe(dataset, "joint")
 ```
-  
+
 ### Mathematical background
+
 #### Longitudinal Submodel
 
 The longitudinal submodel that can be used here is the logistic model, please have a look to part [description logistic model](#logistic-model) for more details.
 
 #### Survival Submodel
+
 **Cause-Specific Weibull Hazards** (for competing risks):
 
-This submodel captures how variations in the progression of longitudinal disease outcomes influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To achieve this, the leaspy joint model uses a cause-specific hazard structure.  
+This submodel captures how variations in the progression of longitudinal disease outcomes influence the probability and timing of multiple clinical events, while accounting for censoring and competing risks. To achieve this, the leaspy joint model uses a cause-specific hazard structure.
 
 For each event $l$ and patient $i$, we model a cause-specific hazard $h_{i,l}(t)$ {cite}`prentice_regression_1978, cheng_prediction_1998`. This framework allows us to estimate the risk of each event separately and account for the presence of competing risks (where one event precludes others).
 
-A Weibull distribution is used to model time-to-event data due to its flexibility in representing:  
-- Increasing, decreasing, or constant hazard shapes,  
-- Dependence on two interpretable parameters:  
-  - Scale parameter $\nu_l$,  
-  - Shape parameter $\rho_l$.  
+A Weibull distribution is used to model time-to-event data due to its flexibility in representing:
+
+- Increasing, decreasing, or constant hazard shapes,
+- Dependence on two interpretable parameters:
+  - Scale parameter $\nu_l$,
+  - Shape parameter $\rho_l$.
 
 The hazard is modulated via a Cox-proportional hazard framework to incorporate the effect of longitudinal biomarkers using survival shifts.
 
@@ -184,6 +200,7 @@ h_{i,l}(t) = \frac{\rho_l e^{\xi_i}}{\nu_l} \cdot \left( \frac{e^{\xi_i} (t - \t
 $$
 
 **Where**:
+
 - $\nu_l$: Scale parameter of the Weibull distribution for event $l$,
 - $\rho_l$: Shape parameter of the Weibull distribution for event $l$,
 - $\xi_i$: Subject-specific parameter,
@@ -203,7 +220,9 @@ $$
 $$
 
 (joint-model-summary)=
+
 #### Model summary
+
 For patient $i$, outcome $k$, and event $l$:
 
 $$
@@ -222,9 +241,11 @@ In practice, create a `JointModel` to fit, personalize, and estimate joint traje
 leaspy_joint = JointModel(nb_events=2, source_dimension=3)
 leaspy_joint.fit(data_joint, nb_iter=1000, nb_burnin=500)
 ```
+
 For estimation, it is the {term}`CIF` that is outputted by the model. Note that for prediction purposes, the {term}`CIF` is corrected using the survival probability at the time of the last observed visit, following common practice in other packages {cite}`andrinopoulou_combined_2017`.
 
 (mixture-model)=
+
 ## Mixture Model
 
 ### Definition
@@ -234,6 +255,7 @@ Mixture models are a class of statistical models that represent a population as 
 In Leaspy the mixture model is implemented as an adaptation of the spatio-temporal logistic model where the individual parameters (`tau`, `xi`and `sources`) come from a mixture of gaussian distributions with a number of components defined by the user.
 
 (mixture-data)=
+
 ### Data
 
 The same rules apply as for the standard [logistic model](#logistic-model).
@@ -252,8 +274,8 @@ s_{il} \sim \sum_{c=1}^{n_c} \pi^c \mathcal{N} (\overline s^c, 1)
 \end{cases}
 $$
 
-
 (mixture-model-summary)=
+
 ### Model summary
 
 To use the mixture model in Leaspy you need to choose the number of cluster you wish to estimate beforehand.
@@ -265,7 +287,139 @@ leaspy_mixture = LogisticMultivariateMixtureModel(source_dimension=1, n_clusters
 leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
 ```
 
-<!--
+(covariate-model)=
+
 ## Covariate Model
-This section will be implemented later.
--->
+
+### Definition
+
+The **covariate model** extends the standard [logistic model](#logistic-model) to take patient-level covariates into account (e.g. gender, genotype, age at inclusion, socio-economic status). In the standard logistic model, as in classical mixed-effects models more generally, inter-patient variability is modeled as a random perturbation around a fixed population reference, even though some of that variability is known to stem from identifiable covariates. The covariate model instead estimates covariate effects **jointly** with the rest of the model, directly on the population parameters that govern the trajectory: the population reference time $t_0$, and the feature-specific position and velocity parameters $g_k$ and $v_{0,k}$.
+
+Rather than assuming every covariate has an effect, the model performs **variable selection**: for each population parameter and each covariate, a binary latent mask decides whether that covariate has an effect at all, and, if so, an effect size is estimated.
+
+In Leaspy, the covariate model is implemented as an extension of the spatio-temporal logistic model (in its original [Schiratti et al.] parametrization {cite}`schirattiBayesianMixedEffectsModel`, with an explicit population-level $t_0$), where $t_0$, $g_k$, and $v_{0,k}$ each become patient-specific through a linear covariate effect.
+
+(covariate-data)=
+
+### Data
+
+A covariate model is relevant when you have:
+
+- **Longitudinal repeated measurements** of one or more continuous outcomes, as for the [logistic model](#logistic-data)
+- **One or more patient-level covariates**, constant over time (e.g. genotype, baseline score, age at inclusion, sex)
+- **A hypothesis that some of these covariates affect the disease trajectory** (its onset, its speed, or the feature values), which you want to test and quantify jointly with the rest of the model, rather than post-hoc
+
+To fit a covariate model, you need a dataframe with the following columns:
+
+- `ID`: Patient identifier
+- `TIME`: Time of measurement
+- One or more columns representing the longitudinal outcomes (e.g., `OUTCOME_1`, `OUTCOME_2`, ...)
+- One or more columns representing the covariates (e.g., `COVARIATE_1`, `COVARIATE_2`, ...), constant across all visits of a given patient
+
+Covariates can be binary or continuous. Non-binary covariates should be standardized (mean $\approx 0$, standard deviation $\approx 1$) beforehand, since the model's priors and MCMC proposal steps are calibrated for that scale.
+
+For the importation of dataframe:
+
+```python
+dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
+print(dataset.head())
+
+                        OUTCOME_1  OUTCOME_2  COVARIATE_1  COVARIATE_2
+      ID    TIME
+132-S2-0  81.661          0.44444    0.04000            1        -0.32
+          82.136          0.60000    0.56000            1        -0.32
+          82.682          0.39267    0.04000            1        -0.32
+          83.139          0.58511    0.30000            1        -0.32
+          83.691          0.57044    0.05040            1        -0.32
+
+data_covariate = Data.from_dataframe(
+    dataset,
+    "covariate",
+    factory_kws={"covariate_names": ["COVARIATE_1", "COVARIATE_2"]},
+)
+```
+
+### Mathematical background
+
+Let $\mathbf{c}_i \in \mathbb{R}^{N_c}$ denote the vector of $N_c$ covariates for patient $i$. For each population parameter $x \in \{t_0, g_k, v_{0,k}\}$, the model introduces:
+
+- an effect vector $\delta_x \in \mathbb{R}^{N_c}$, quantifying the size of each covariate's effect,
+- a binary selection mask $\gamma_x \in \{0,1\}^{N_c}$, deciding, covariate by covariate, whether that effect is active.
+
+The population parameters become patient-specific through the masked, linear effect $(\gamma_x \odot \delta_x)^\top \mathbf{c}_i$, where $\odot$ denotes the element-wise (Hadamard) product:
+
+$$
+\begin{cases}
+t_0(\mathbf{c}_i) = t_0 + (\gamma_{t_0} \odot \delta_{t_0})^\top \mathbf{c}_i \\
+g_k(\mathbf{c}_i) = \exp\left(\tilde{g}_k + (\gamma_{g_k} \odot \delta_{g})^\top \mathbf{c}_i\right) \\
+v_{0,k}(\mathbf{c}_i) = \exp\left(\tilde{v}_k + (\gamma_{v_k} \odot \delta_{v})^\top \mathbf{c}_i\right)
+\end{cases}
+$$
+
+where $\tilde g_k = \log(g_k)$ and $\tilde v_k = \log(v_{0,k})$, as in the standard logistic model. When $\gamma_{x,c}=0$, the $c$-th covariate has no effect on parameter $x$; when $\gamma_{x,c}=1$, the full effect $\delta_{x,c}$ is applied.
+
+> **Note — back to the Schiratti parametrization.** Because the covariate effect on $t_0$ needs an explicit population-level reference time to act on, the covariate model reintroduces the original [Schiratti et al.](#logistic-model) parametrization, where $t_0$ and $\tau_i$ are kept separate. This differs from the standard Leaspy logistic model, which simplifies this parametrization by absorbing $t_0$ into the mean of $\tau_i$'s prior. Concretely, the latent disease age is here:
+>
+> $$
+> \psi_i(t) = e^{\xi_i}\left(t - t_0(\mathbf{c}_i) - \tau_i\right) + t_0(\mathbf{c}_i)
+> $$
+>
+> instead of $\psi_i(t) = e^{\xi_i}(t - \tau_i)$ in the standard logistic model.
+
+The resulting trajectory for outcome $k$ and patient $i$ follows the same logistic form as the [standard logistic model](#logistic-model), but evaluated at the patient-specific parameters:
+
+$$
+\gamma_{i,k}(t) = \left[ 1 + g_k(\mathbf{c}_i) \times \exp\left( -\frac{(1+g_k(\mathbf{c}_i))^2}{g_k(\mathbf{c}_i)} \left( v_{0,k}(\mathbf{c}_i)\left(\psi_i(t) - t_0(\mathbf{c}_i)\right) + w_{i,k} \right) \right) \right]^{-1}
+$$
+
+**Priors.** Population-level parameters keep their usual Gaussian priors. The mask and the covariate effect follow:
+
+$$
+\gamma_{x,c} \sim \text{Bernoulli}(\pi), \qquad \delta_x \sim \mathcal{N}\left(\gamma_x \odot \bar\delta_x, \, \Sigma_{\delta_x}\right)
+$$
+
+where $\pi$ and $\Sigma_{\delta_x}$ are fixed hyperparameters, and $\bar\delta_x$ is the corresponding population-level model parameter.
+
+(covariate-model-summary)=
+
+### Model summary
+
+For patient $i$ and outcome $k$, with covariate vector $\mathbf{c}_i$:
+
+$$
+\begin{cases}
+t_0(\mathbf{c}_i) = t_0 + (\gamma_{t_0} \odot \delta_{t_0})^\top \mathbf{c}_i \\
+g_k(\mathbf{c}_i) = \exp\left(\tilde{g}_k + (\gamma_{g_k} \odot \delta_{g})^\top \mathbf{c}_i\right) \\
+v_{0,k}(\mathbf{c}_i) = \exp\left(\tilde{v}_k + (\gamma_{v_k} \odot \delta_{v})^\top \mathbf{c}_i\right) \\
+\psi_i(t) = e^{\xi_i}\left(t - t_0(\mathbf{c}_i) - \tau_i\right) + t_0(\mathbf{c}_i) \\
+\mathbf{w}_i = \mathbf{A} \mathbf{s}_i \\
+\gamma_{i,k}(t) = \left[ 1 + g_k(\mathbf{c}_i) \exp\left( -\dfrac{(1+g_k(\mathbf{c}_i))^2}{g_k(\mathbf{c}_i)} \left( v_{0,k}(\mathbf{c}_i)(\psi_i(t) - t_0(\mathbf{c}_i)) + w_{i,k} \right) \right) \right]^{-1}
+\end{cases}
+$$
+
+In practice, once your data is loaded with `Data.from_dataframe(dataset, "covariate", factory_kws={"covariate_names": [...]})` as shown in the [Data](#covariate-data) section above, you can fit the covariate model:
+
+```python
+from leaspy.models import CovariateLogisticModel
+
+leaspy_covariate = CovariateLogisticModel(source_dimension=1)
+leaspy_covariate.fit(data_covariate, "mcmc_saem", n_iter=100000)
+```
+
+To speed up and stabilize convergence, it is recommended to first fit a standard [logistic model](#logistic-model) (in its `Schiratti` parametrization, i.e. `LogisticModelSchiratti`) and pass it to the covariate model via `init_from_model`. This initializes the parameters shared between both models (e.g. `t0`, `g`, `v0`) from the already-fitted logistic model, so that only the covariate-specific effects need to be learned from scratch:
+
+```python
+from leaspy.models import LogisticModelSchiratti, CovariateLogisticModel
+
+# 1. Fit a standard logistic model first
+model_init = LogisticModelSchiratti(name="logistic-init", source_dimension=1)
+model_init.fit(data, "mcmc_saem", n_iter=1000)
+
+# 2. Fit the covariate model, initialized from the model above
+leaspy_covariate = CovariateLogisticModel(
+    source_dimension=1, init_from_model=model_init
+)
+leaspy_covariate.fit(data_covariate, "mcmc_saem", n_iter=100000)
+```
+
+Each estimated mask $\gamma_x$ can be inspected after fitting to determine which covariates were found to have a non-negligible effect on which population parameter (onset $t_0$; feature position $g_k$; feature speed $v_{0,k}$), and the corresponding $\delta_x$ gives the size and direction of that effect.
