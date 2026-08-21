@@ -395,6 +395,92 @@ class JointModel(LogisticModel):
 
         return event_params
 
+    @property
+    def event_features(self) -> list[str]:
+        """Names of the event prediction columns returned by :meth:`estimate`.
+
+        For a single-event model this is ``["event_pred"]``; for competing
+        events it is ``["event_pred_1", "event_pred_2", ...]`` (1-indexed to
+        match the ``EVENT_BOOL`` convention used in the input data).
+        """
+        if self.nb_events == 1:
+            return ["event_pred"]
+        return [f"event_pred_{i + 1}" for i in range(self.nb_events)]
+
+    def estimate(self, timepoints, individual_parameters, *, to_dataframe=None):
+        """Return model values for individuals at the requested time-points.
+
+        Extends the base :meth:`~leaspy.models.BaseModel.estimate` so that the
+        returned DataFrame (when ``to_dataframe=True``) includes both the
+        longitudinal feature columns *and* the event-prediction columns
+        produced by the joint model.  The event columns are named according to
+        :attr:`event_features`.
+
+        When ``to_dataframe=False`` the raw :obj:`dict` mapping each subject id
+        to a :class:`numpy.ndarray` of shape
+        ``(n_timepoints, n_features + nb_events)`` is returned unchanged.
+
+        Parameters
+        ----------
+        timepoints : :obj:`pd.MultiIndex` or :obj:`dict` [:obj:`str`, :obj:`list` [:obj:`float`]]
+            Time-points to estimate, per individual.
+        individual_parameters : :class:`~leaspy.io.IndividualParameters`
+            Individual parameters for each subject.
+        to_dataframe : :obj:`bool`, optional
+            Force DataFrame output (``True``) or dict output (``False``).
+            Defaults to ``True`` when *timepoints* is a :class:`pd.MultiIndex`,
+            ``False`` otherwise.
+
+        Returns
+        -------
+        :obj:`pd.DataFrame` or :obj:`dict`
+            When a DataFrame: columns are ``self.features + self.event_features``.
+            When a dict: values are arrays shaped
+            ``(n_timepoints, n_features + nb_events)``.
+        """
+        # Resolve the dict form of timepoints *before* calling super, so we
+        # have it available for building the DataFrame index afterwards.
+        ix = None
+        timepoints_dict = timepoints
+        if isinstance(timepoints, pd.MultiIndex):
+            if to_dataframe is None:
+                to_dataframe = True
+            ix = timepoints
+            timepoints_dict = {
+                subj_id: tpts.values
+                for subj_id, tpts in timepoints.to_frame()["TIME"].groupby("ID")
+            }
+
+        # Always request a raw dict from the parent so we never hit the
+        # column-count mismatch (self.features vs. n_features + nb_events).
+        raw = super().estimate(timepoints, individual_parameters, to_dataframe=False)
+
+        if not to_dataframe:
+            return raw
+
+        all_features = list(self.features) + self.event_features
+        estimations = pd.concat(
+            {
+                subj_id: pd.DataFrame(
+                    ests,
+                    columns=all_features,
+                    index=timepoints_dict[subj_id],
+                )
+                for subj_id, ests in raw.items()
+            },
+            names=["ID", "TIME"],
+        )
+
+        if ix is not None:
+            empty_df_like_ests = pd.DataFrame(
+                [], index=ix, columns=estimations.columns
+            )
+            estimations = empty_df_like_ests[[]].join(
+                estimations, on=["ID", "TIME"]
+            )
+
+        return estimations
+
     def compute_individual_trajectory(
         self,
         timepoints,

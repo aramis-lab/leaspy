@@ -163,7 +163,7 @@ plt.show()
 
 ## Simulate
 
-This section describes the procedure for simulating new patient data under the Spatiotemporal model structure. The simulation method, relying on a fitted Leaspy model and user-defined parameters, involves the following steps:
+This section describes the procedure for simulating new patient data under the spatio-temporal model structure. The simulation method, relying on a fitted Leaspy model and user-defined parameters, involves the following steps:
 
 **Step 1: Generation of Individual Parameters** <br>
 For each simulated patient, individual parameters ($\tau_i$, $\xi_i$, and the sources) are sampled from normal distributions defined by the model’s mean and standard deviation:<br>
@@ -203,7 +203,7 @@ To run a simulation, the following variables are required:
         'time_follow_up_std': 0.5, 
         'distance_visit_mean': 2 / 12, 
         'distance_visit_std': 0.75 / 12, 
-        'distance_visit_min': 1/365 
+        'min_spacing_between_visits': 1/365
     } 
 
 >>> simulated_data = model.simulate(  
@@ -232,14 +232,40 @@ ID TIME
 
 ### Output
 
-The output is a Data object with ID, TIME and simulated values of each outcome. 
+The output is a `Result` object whose `data` attribute contains the patient ID, visit time, and simulated value of each outcome. The sampled individual parameters are available in its `individual_parameters` attribute.
+
+(joint-simulation)=
+### Simulating from a joint model
+
+A fitted [joint model](joint-model) must be simulated with `algorithm="joint_simulate"`. In addition to longitudinal observations, this algorithm samples an event time from the model's conditional survival probability (one event) or cumulative incidence functions (competing events). Visits after the sampled event are removed. If no event occurs during the planned follow-up, the patient is censored at their last visit.
+
+The resulting joint `Data` object contains `EVENT_TIME` and `EVENT_BOOL` alongside the longitudinal features. `EVENT_BOOL` is `0` for censoring and an integer from `1` to the model's `nb_events` for the event type. Event information is repeated at every retained visit for a patient, as required by the [joint data format](joint-data).
+
+The visit schedule can be supplied explicitly, as described below. For a random schedule, the joint simulation algorithm can instead estimate any missing visit parameters from an existing pandas `DataFrame` or Leaspy `Data` object:
+
+```python
+joint_visits_params = {
+    "visit_type": "random",
+    "data": data_joint,
+}
+
+simulated_joint_data = leaspy_joint.simulate(
+    algorithm="joint_simulate",
+    features=leaspy_joint.features,
+    visit_parameters=joint_visits_params,
+)
+```
+
+Explicitly supplied values take precedence over estimates from `data`. Without `data`, a random schedule requires `patient_number`, `first_visit_mean`, `first_visit_std`, `time_follow_up_mean`, `time_follow_up_std`, `distance_visit_mean`, and `distance_visit_std`.
 
 ### Setting options
 
-There are three options to simulate the visit times in Leaspy, which can be specified in visit_param dictionary: 
+There are two options to simulate the visit times in Leaspy, specified by `visit_type` in the `visit_parameters` dictionary:
+
 - `random`: Visit times and intervals are sampled from normal distributions.
-- `regular`: Visits occur at regular intervals, defined by regular_visit. 
 - `dataframe`: Custom visit times are provided directly via a DataFrame.
+
+To obtain regularly spaced visits, use the `random` option with `distance_visit_std` set to `0`.
 
 Refer to the docstring for further details.
 

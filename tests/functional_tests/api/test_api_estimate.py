@@ -1,5 +1,7 @@
 from typing import Dict, Iterable, List
 
+import pandas as pd
+
 from leaspy.io.outputs.individual_parameters import IndividualParameters
 from tests import LeaspyTestCase
 
@@ -91,3 +93,70 @@ class LeaspyEstimateTest(LeaspyEstimateTestMixin):
             "idx2": [[0.0973, 1.0], [0.9999, 0.4957]],
         }
         self.batch_checks(individual_parameters, timepoints, models, expected_ests)
+
+    def test_estimate_joint_univariate_to_dataframe(self):
+        """estimate() with to_dataframe=True returns a DataFrame whose columns are
+        model.features + model.event_features and whose values match the dict output."""
+        import numpy as np
+
+        individual_parameters = self.get_hardcoded_individual_params(
+            "ip_univariate_save.json"
+        )
+        timepoints = {"idx1": [71, 74, 81], "idx2": [72, 77.5]}
+        model = self.get_hardcoded_model("joint")
+
+        df = model.estimate(timepoints, individual_parameters, to_dataframe=True)
+        raw = model.estimate(timepoints, individual_parameters, to_dataframe=False)
+
+        # DataFrame structure
+        self.assertIsInstance(df, pd.DataFrame)
+        expected_columns = list(model.features) + model.event_features
+        self.assertEqual(list(df.columns), expected_columns)
+        self.assertEqual(list(df.index.names), ["ID", "TIME"])
+
+        # Values must match the dict-based output
+        for subj_id, tpts in timepoints.items():
+            for t_idx, t in enumerate(tpts):
+                row = df.loc[(subj_id, t)]
+                np.testing.assert_allclose(
+                    row.values, raw[subj_id][t_idx], rtol=1e-5
+                )
+
+    def test_estimate_joint_univariate_multiindex(self):
+        """estimate() with a pd.MultiIndex input auto-enables to_dataframe=True and
+        returns a correctly indexed DataFrame with longitudinal + event columns."""
+        import numpy as np
+
+        individual_parameters = self.get_hardcoded_individual_params(
+            "ip_univariate_save.json"
+        )
+        timepoints_dict = {"idx1": [71, 74, 81], "idx2": [72, 77.5]}
+        ix = pd.MultiIndex.from_tuples(
+            [(sid, t) for sid, tpts in timepoints_dict.items() for t in tpts],
+            names=["ID", "TIME"],
+        )
+        model = self.get_hardcoded_model("joint")
+
+        df = model.estimate(ix, individual_parameters)
+
+        self.assertIsInstance(df, pd.DataFrame)
+        expected_columns = list(model.features) + model.event_features
+        self.assertEqual(list(df.columns), expected_columns)
+        # Index must be the original MultiIndex (same order)
+        self.assertTrue(df.index.equals(ix))
+
+    def test_estimate_joint_multivariate_to_dataframe(self):
+        """estimate() on a multivariate joint model returns a DataFrame with
+        n_longitudinal_features + nb_events columns."""
+        individual_parameters = self.get_hardcoded_individual_params("ip_save.json")
+        timepoints = {"idx1": [71, 74], "idx2": [72]}
+        model = self.get_hardcoded_model("joint_diagonal")
+
+        df = model.estimate(timepoints, individual_parameters, to_dataframe=True)
+
+        self.assertIsInstance(df, pd.DataFrame)
+        expected_columns = list(model.features) + model.event_features
+        self.assertEqual(list(df.columns), expected_columns)
+        # Shape: total timepoints × (n_features + nb_events)
+        total_tpts = sum(len(tpts) for tpts in timepoints.values())
+        self.assertEqual(df.shape, (total_tpts, len(model.features) + model.nb_events))
