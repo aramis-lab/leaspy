@@ -64,7 +64,14 @@ bibtex_bibfiles = ["references.bib"]
 
 # -- mermaid configuration ---------------------------------------------------
 # Configure mermaid diagram rendering
-mermaid_params = ['--theme', 'default', '--width', '1200', '--backgroundColor', 'transparent']
+mermaid_params = [
+    "--theme",
+    "default",
+    "--width",
+    "1200",
+    "--backgroundColor",
+    "transparent",
+]
 mermaid_sequence_config = False
 mermaid_verbose = False
 
@@ -162,8 +169,8 @@ suppress_warnings = [
 # The name of the Pygments (syntax highlighting) style to use.
 # PyData supports separate styles for light and dark mode.
 highlight_language = "python3"
-pygments_style = "friendly"        # light mode
-pygments_dark_style = "monokai"    # dark mode
+pygments_style = "friendly"  # light mode
+pygments_dark_style = "monokai"  # dark mode
 
 # -- Options for HTML output -------------------------------------------------
 

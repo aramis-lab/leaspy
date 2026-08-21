@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 import torch
 
@@ -16,9 +18,7 @@ from leaspy.variables.specs import (
 )
 
 from .obs_models import FullGaussianObservationModel
-from .riemanian_manifold import RiemanianManifoldModel
-
-from typing import Optional
+from .riemannian_manifold import RiemannianManifoldModel
 
 __all__ = [
     "LinearInitializationMixin",
@@ -100,8 +100,9 @@ class LinearInitializationMixin:
         return rounded_parameters
 
 
-class LinearModel(LinearInitializationMixin, RiemanianManifoldModel):
+class LinearModel(LinearInitializationMixin, RiemannianManifoldModel):
     """Manifold model for multiple variables of interest (linear formulation)."""
+
     type = "linear"
 
     def __init__(self, name: Optional[str] = None, **kwargs):

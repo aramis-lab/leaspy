@@ -1,4 +1,6 @@
 from ._functions import (
+    Affine,
+    AffineMatrix,
     Exp,
     Identity,
     MatMul,
@@ -26,4 +28,6 @@ __all__ = [
     "Std",
     "Sum",
     "SumDim",
+    "Affine",
+    "AffineMatrix",
 ]

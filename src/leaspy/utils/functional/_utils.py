@@ -214,3 +214,45 @@ def _sum_args(*args: TensorOrWeightedTensor, **start_kw) -> TensorOrWeightedTens
         # If args is empty, sum returns a float 0 that needs to be converted to a tensor
         return torch.tensor(summation)
     return summation
+
+
+def _affine(
+    t0: torch.Tensor,
+    delta: torch.Tensor,
+    covariates: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute patient-specific intercept: t0 + c @ delta
+
+    Parameters
+    ----------
+    t0 : torch.Tensor, shape (1,)
+        Population-level intercept
+    delta : torch.Tensor, shape (N_c,)
+        Covariate effect vector
+    covariates : torch.Tensor, shape (N, N_c)
+        Covariate matrix, one row per patient
+
+    Returns
+    -------
+    torch.Tensor, shape (N, 1)
+        Patient-specific intercept
+    """
+    if isinstance(covariates, WeightedTensor):
+        covariates = covariates.value
+    covariates = covariates.float()
+    delta_flat = delta.reshape(-1)
+    result = covariates @ delta_flat
+    return t0 + result.unsqueeze(-1)
+
+
+def _affine_matrix(
+    base: torch.Tensor,  # (K,)
+    delta: torch.Tensor,  # (K, N_c)
+    covariates: torch.Tensor,  # (N, N_c)
+) -> torch.Tensor:
+    # covariates @ delta.T : (N, N_c) @ (N_c, K) -> (N, K)
+    if isinstance(covariates, WeightedTensor):
+        covariates = covariates.value
+    covariates = covariates.float()
+    return base + covariates @ delta.T  # (N, K)

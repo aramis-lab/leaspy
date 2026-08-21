@@ -29,7 +29,7 @@ def compute_individual_parameter_std_from_sufficient_statistics(
         The name of the individual parameter for which to compute the std.
     dim : :obj:`int`
         The dimension along which to compute the mean and variance
-        
+
     Returns
     -------
     :class:`torch.Tensor`

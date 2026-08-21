@@ -1,5 +1,3 @@
-from typing import Optional
-
 import torch
 
 from leaspy.io.data.dataset import Dataset
@@ -21,15 +19,15 @@ from leaspy.variables.specs import (
 
 from .base import InitializationMethod
 from .obs_models import FullGaussianObservationModel
-from .riemannian_manifold import RiemannianManifoldModel
+from .riemannian_manifold_Schiratti import RiemannianManifoldModelSchiratti
 
 __all__ = [
-    "LogisticInitializationMixin",
-    "LogisticModel",
+    "LogisticInitializationMixinSchiratti",
+    "LogisticModelSchiratti",
 ]
 
 
-class LogisticInitializationMixin:
+class LogisticInitializationMixinSchiratti:
     def _compute_initial_values_for_model_parameters(
         self,
         dataset: Dataset,
@@ -92,7 +90,7 @@ class LogisticInitializationMixin:
         parameters = {
             "log_g_mean": torch.log(1.0 / values - 1.0),
             "log_v0_mean": get_log_velocities(slopes, self.features),
-            "tau_mean": t0,
+            "t0_mean": t0,
             "tau_std": self.tau_std,
             "xi_std": self.xi_std,
         }
@@ -109,13 +107,13 @@ class LogisticInitializationMixin:
         return rounded_parameters
 
 
-class LogisticModel(LogisticInitializationMixin, RiemannianManifoldModel):
+class LogisticModelSchiratti(
+    LogisticInitializationMixinSchiratti, RiemannianManifoldModelSchiratti
+):
     """Manifold model for multiple variables of interest (logistic formulation)."""
 
-    type = "logistic"
-
-    def __init__(self, name: Optional[str] = None, **kwargs):
-        super().__init__(name or self.type, **kwargs)
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
 
     def get_variables_specs(self) -> NamedVariables:
         """

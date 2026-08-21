@@ -94,7 +94,7 @@ class IndividualData:
         self.event_time = np.array(event_time)
         self.event_bool = np.array(event_bool)
 
-    def add_covariates(self, covariates: list[list[int]]) -> None:
+    def add_covariates(self, covariates: list[list[float]]) -> None:
         """
         Include covariates
 

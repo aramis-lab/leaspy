@@ -120,14 +120,11 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     "Please ensure that values are provided for each visit."
                 )
 
+        # Numeric dtype and absence of infinite values are already enforced
+        # upstream (on the raw dataframe) by `_clean_numeric_data`; here we just
+        # settle on a single dtype (covariates may be int- or float-typed).
         for covariate in self.covariate_names:
-            if not np.array_equal(
-                df_covariate[covariate], df_covariate[covariate].astype(int)
-            ):
-                raise LeaspyDataInputError(
-                    f"Covariate '{covariate}' must contain only integer values."
-                )
-            df_covariate[covariate] = df_covariate[covariate].astype(int)
+            df_covariate[covariate] = df_covariate[covariate].astype(float)
 
         # Assert one unique covariate per patient and group to drop duplicates
         if (
@@ -143,6 +140,28 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
         if len(df_covariate) == 0:
             raise LeaspyDataInputError("Dataframe should have at least 1 covariate")
 
+        # The model's prior on covariate effects (delta_*) and the MCMC proposal
+        # scales are calibrated for covariates on a roughly standardized scale
+        # (mean 0, std 1). Covariates far from that scale are still accepted, but
+        # may lead to poorly calibrated priors and slower/unstable MCMC mixing.
+        for covariate in self.covariate_names:
+            if set(df_covariate[covariate].unique()) <= {0, 1}:
+                # 0/1-coded binary covariates are already on a scale suited to
+                # the model's priors: going from 0 to 1 represents the
+                # covariate's full range of variation, just like +/- 1 std does
+                # for a standardized continuous covariate. A 2-level covariate
+                # coded on another scale (e.g. {10, 20}) doesn't get this pass.
+                continue
+            mean = df_covariate[covariate].mean()
+            std = df_covariate[covariate].std()
+            if std > 0 and (abs(mean) > 0.5 or not (0.5 <= std <= 2)):
+                warnings.warn(
+                    f"Covariate '{covariate}' has mean={mean:.3g} and std={std:.3g}, which is not on a standardized scale."
+                    "Leaspy's priors on covariate effects assume a roughly unit scale; consider standardizing this covariate,"
+                    "e.g. (x - mean) / std, before fitting for more stable and interpretable results."
+                )
+
+        # Identifiability conditions
         # Assert at least 2 different values per covariate
         for covariate in self.covariate_names:
             if (n_value := df_covariate[covariate].nunique(dropna=False)) < 2:
@@ -150,6 +169,27 @@ class CovariateDataframeDataReader(AbstractDataframeDataReader):
                     f"The covariate '{covariate}' has only {n_value} unique value."
                     "Each covariate must have at least two distinct values across patients"
                 )
+
+        # Assert that [intercept, covariates] is full rank: the model has a free
+        # intercept per feature (e.g. `t0`, `log_g`, `log_v0`), so the covariates
+        # must remain linearly independent from a constant column too.
+        names = self.covariate_names
+        C = df_covariate[names].to_numpy(dtype=float)
+        design = np.column_stack([np.ones(len(df_covariate)), C])
+        _, S, Vt = np.linalg.svd(design)
+        tol = S.max() * max(design.shape) * np.finfo(float).eps
+        rank = int(np.sum(S > tol))
+        if rank < design.shape[1]:
+            null_vec = Vt[-1, :]
+            involved = [
+                names[i - 1] for i in range(1, len(null_vec)) if abs(null_vec[i]) > 1e-8
+            ]
+            raise LeaspyDataInputError(
+                "Linear dependence detected among the covariates (including the model's intercept).\n"
+                f"The following covariates are involved in a linear dependence relation: {involved}.\n"
+                "Note that additional linear dependence relations may exist among other covariates.\n"
+                "Please ensure that the covariates, together with an intercept, are linearly independent\n"
+            )
 
         return df_covariate
 

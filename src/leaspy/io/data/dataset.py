@@ -107,7 +107,7 @@ class Dataset:
 
         # Covariate information
         self.covariate_names: Optional[list[str]] = data.covariate_names
-        self.covariates: Optional[torch.IntTensor] = None
+        self.covariates: Optional[torch.FloatTensor] = None
 
         # internally used by ordinal models only (cache)
         self._one_hot_encoding: Optional[dict[bool, torch.LongTensor]] = None
@@ -213,7 +213,7 @@ class Dataset:
             The data from which to construct the covariates tensor.
         """
         self.covariates = torch.tensor(
-            np.array([_.covariates for _ in data]), dtype=torch.int
+            np.array([_.covariates for _ in data]), dtype=torch.float32
         )
 
     def _compute_L2_norm(self):
@@ -260,7 +260,7 @@ class Dataset:
             return self.event_time[idx_patient], self.event_bool[idx_patient]
         raise ValueError("Dataset has no event. Please verify your data.")
 
-    def get_covariates_patient(self, idx_patient: int) -> torch.IntTensor:
+    def get_covariates_patient(self, idx_patient: int) -> torch.FloatTensor:
         """
         Get covariates for patient number ``idx_patient``
 

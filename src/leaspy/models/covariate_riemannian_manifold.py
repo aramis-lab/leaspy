@@ -3,8 +3,8 @@ from typing import Iterable, Optional
 
 import torch
 
-from leaspy.utils.functional import Exp, OrthoBasis, Sqr
-from leaspy.variables.distributions import Normal
+from leaspy.utils.functional import AffineMatrix, Exp, OrthoBasis, Prod, Sqr
+from leaspy.variables.distributions import Bernoulli, MultivariateNormal, Normal
 from leaspy.variables.specs import (
     Hyperparameter,
     LinkedVariable,
@@ -16,7 +16,7 @@ from leaspy.variables.specs import (
 )
 from leaspy.variables.state import State
 
-from .time_reparametrized import TimeReparametrizedModel
+from .covariate_time_reparametrized import CovariateTimeReparametrizedModel
 
 # TODO refact? implement a single function
 # compute_individual_tensorized(..., with_jacobian: bool) -> returning either
@@ -27,13 +27,11 @@ from .time_reparametrized import TimeReparametrizedModel
 
 
 __all__ = [
-    "RiemanianManifoldModel",
-    "LinearInitializationMixin",
-    "LinearModel",
+    "CovariateRiemannianManifoldModel",
 ]
 
 
-class RiemanianManifoldModel(TimeReparametrizedModel):
+class CovariateRiemannianManifoldModel(CovariateTimeReparametrizedModel):
     """Manifold model for multiple variables of interest (logistic or linear formulation).
 
     Parameters
@@ -58,12 +56,17 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
     ):
         super().__init__(name, **kwargs)
         default_variables_to_track = [
+            "delta_t0",
+            "delta_g",
+            "delta_v0",
+            "gamma_t0",
+            "gamma_g",
+            "gamma_v0",
+            "t0",
             "g",
             "v0",
             "noise_std",
-            "tau_mean",
             "tau_std",
-            "xi_mean",
             "xi_std",
             "nll_attach",
             "nll_regul_log_g",
@@ -110,6 +113,28 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
         # self.update_MCMC_toolbox({'v0_collinear'}, realizations)
 
     @classmethod
+    def _center_tau_realizations(cls, state: State) -> None:
+        """
+        Center the ``tau`` realizations in place.
+
+        Parameters
+        ----------
+        state : :class:`.State`
+            The dictionary-like object representing current model state, which
+            contains keys such as``"tau"`` and ``"t0"``.
+
+        Notes
+        -----
+        This transformation preserves the orthonormal basis since the new ``t0`` remains
+        collinear to the previous one. It is a purely internal operation meant to reduce
+        redundancy in the parameter space (i.e., improve identifiability and stabilize
+        inference).
+        """
+        mean_tau = torch.mean(state["tau"])
+        state["tau"] = state["tau"] - mean_tau
+        state["t0"] = state["t0"] + mean_tau
+
+    @classmethod
     def compute_sufficient_statistics(cls, state: State) -> SuffStatsRW:
         """
         Compute the model's :term:`sufficient statistics`.
@@ -127,6 +152,7 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
         # <!> modify 'xi' and 'log_v0' realizations in-place
         # TODO: what theoretical guarantees for this custom operation?
         cls._center_xi_realizations(state)
+        cls._center_tau_realizations(state)
 
         return super().compute_sufficient_statistics(state)
 
@@ -150,18 +176,36 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
                 shape=(self.dimension,),
             ),
             log_v0_std=Hyperparameter(0.01),
+            delta_v0_mean=ModelParameter.for_pop_mean_condi(
+                "delta_v0", "gamma_v0", shape=(self.dimension, self.nb_cov)
+            ),
+            delta_v0_sigma=Hyperparameter(torch.eye(self.nb_cov) * 1),
+            pi_v0=Hyperparameter(0.2 * torch.ones(self.dimension, self.nb_cov)),
             xi_mean=Hyperparameter(0.0),
             # LATENT VARS
             log_v0=PopulationLatentVariable(
                 Normal("log_v0_mean", "log_v0_std"),
             ),
+            gamma_v0=PopulationLatentVariable(Bernoulli("pi_v0")),
+            delta_v0_cond_mean=LinkedVariable(Prod("gamma_v0", "delta_v0_mean")),
+            delta_v0=PopulationLatentVariable(
+                MultivariateNormal("delta_v0_mean", "delta_v0_sigma"),
+                sampling_kws={"scale": 0.01},
+                nll_prior=MultivariateNormal("delta_v0_cond_mean", "delta_v0_sigma"),
+            ),
             # DERIVED VARS
             v0=LinkedVariable(
                 Exp("log_v0"),
             ),
+            delta_v0_masked=LinkedVariable(Prod("gamma_v0", "delta_v0")),
+            log_v0_patient=LinkedVariable(
+                AffineMatrix("log_v0", "delta_v0_masked", "covariates")
+            ),
+            v0_patient=LinkedVariable(Exp("log_v0_patient")),
             metric=LinkedVariable(
                 self.metric
             ),  # for linear model: metric & metric_sqr are fixed = 1.
+            metric_patient=LinkedVariable(self.metric_patient),
         )
         if self.source_dimension >= 1:
             d.update(
@@ -183,8 +227,20 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
     def metric(*, g: torch.Tensor) -> torch.Tensor:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def metric_patient(*, g_patient: torch.Tensor) -> torch.Tensor:
+        pass
+
     @classmethod
-    def model_no_sources(cls, *, rt: torch.Tensor, metric, v0, g) -> torch.Tensor:
+    def model_no_sources(
+        cls,
+        *,
+        rt: torch.Tensor,
+        metric_patient: torch.Tensor,
+        v0_patient: torch.Tensor,
+        g_patient: torch.Tensor,
+    ) -> torch.Tensor:
         """
         Return the model output when sources(spatial components) are not present.
 
@@ -211,9 +267,9 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
         """
         return cls.model_with_sources(
             rt=rt,
-            metric=metric,
-            v0=v0,
-            g=g,
+            metric_patient=metric_patient,
+            v0_patient=v0_patient,
+            g_patient=g_patient,
             space_shifts=torch.zeros((1, 1)),
         )
 
@@ -224,8 +280,8 @@ class RiemanianManifoldModel(TimeReparametrizedModel):
         *,
         rt: torch.Tensor,
         space_shifts: torch.Tensor,
-        metric,
-        v0,
-        g,
+        metric_patient: torch.Tensor,
+        v0_patient: torch.Tensor,
+        g_patient: torch.Tensor,
     ) -> torch.Tensor:
         pass
