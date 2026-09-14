@@ -469,6 +469,15 @@ class JointSimulationAlgorithm(SimulationAlgorithm):
 
         # --- Step 7: attach event data ---
         df_events = pd.DataFrame(event_records).set_index("ID")
+        if rounding_precision is not None:
+            # EVENT_TIME is a scheduled visit time for both observed events and
+            # censoring.  Keep it at the same precision as TIME; otherwise an
+            # event visit that rounds upward can become greater than its
+            # unrounded EVENT_TIME and be removed by the final consistency
+            # filter, potentially dropping the individual altogether.
+            df_events.loc[:, "EVENT_TIME"] = df_events["EVENT_TIME"].round(
+                rounding_precision
+            )
         df_sim = df_sim.join(df_events, on="ID")
 
         # --- Step 8: drop visits whose rounded TIME exceeds EVENT_TIME ---
