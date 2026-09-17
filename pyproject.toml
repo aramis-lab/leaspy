@@ -76,6 +76,7 @@ pydata-sphinx-theme = "^0.16.1"
 sphinx-tabs = "*"
 sphinx_design = "*"
 sphinx-copybutton = "*"
+pybtex = ">=0.25"
 # Security fixes - prevent downgrades
 urllib3 = ">=2.6.3"
 requests = ">=2.32.5"
