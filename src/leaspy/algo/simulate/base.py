@@ -73,7 +73,12 @@ class BaseSimulationAlgorithm(IterativeAlgorithm[ModelType, ReturnType]):
             min_spacing_between_visits=min_spacing,
         )
 
-        simulated_data = Data.from_dataframe(df_sim)
+        if model.__class__.__name__ == "JointModel":
+            simulated_data = Data.from_dataframe(
+                df_sim, data_type="joint", factory_kws={"nb_events": model.nb_events}
+            )
+        else:
+            simulated_data = Data.from_dataframe(df_sim)
         result_obj = Result(
             data=simulated_data,
             individual_parameters=individual_parameters_from_model_parameters,

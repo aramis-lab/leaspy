@@ -28,6 +28,7 @@ class DatasetName(str, Enum):
     PARKINSON = "parkinson"
     PARKINSON_PUTAMEN = "parkinson-putamen"
     PARKINSON_PUTAMEN_TRAIN_TEST = "parkinson-putamen-train_and_test"
+    SIMULATED_DATA_FOR_JOINT = "simulated_data_for_joint"
 
 
 def get_dataset_path(name: Union[str, DatasetName]) -> Path:
@@ -137,7 +138,11 @@ def load_dataset(dataset_name: Union[str, DatasetName]) -> pd.DataFrame:
 
     * Columns: One column correspond to one feature (or score).
     """
-    df = pd.read_csv(get_dataset_path(dataset_name), dtype={"ID": str})
+    path = get_dataset_path(dataset_name)
+    with open(path, "r") as f:
+        first_line = f.readline()
+    sep = ";" if ";" in first_line else ","
+    df = pd.read_csv(path, dtype={"ID": str}, sep=sep)
     if "SPLIT" in df.columns:
         df.set_index(["ID", "TIME", "SPLIT"], inplace=True)
     else:

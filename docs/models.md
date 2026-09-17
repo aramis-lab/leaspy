@@ -235,7 +235,7 @@ S_{i,l}(t) = \exp\left( -\left( \frac{e^{\xi_i (t - \tau_i)}}{\nu_l} \right)^{\r
 \end{cases}
 $$
 
-In practice in leaspy, to use the joint model, you need to precise "joint" in Leaspy object creation, then you can use it to fit, personnalize, estimate and simulate.
+In practice, create a `JointModel` to fit, personalize, and estimate joint trajectories. To generate synthetic longitudinal and time-to-event data, use the dedicated [`joint_simulate` algorithm](joint-simulation), which also handles censoring and competing events.
 
 ```python
 leaspy_joint = JointModel(nb_events=2, source_dimension=3)
