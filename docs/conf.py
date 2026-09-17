@@ -95,6 +95,8 @@ sphinx_gallery_conf = {
     "notebook_images": "https://leaspy.readthedocs.io/en/stable/_images/",
     "plot_gallery": True,
     "within_subsection_order": FileNameSortKey,
+    # TODO: remove plot_05_covariate once the covariate model is merged into this branch
+    "ignore_pattern": r"__init__\.py|plot_05_covariate\.py",
 }
 
 # this is needed for some reason...
