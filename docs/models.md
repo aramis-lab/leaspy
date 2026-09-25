@@ -423,3 +423,131 @@ leaspy_covariate.fit(data_covariate, "mcmc_saem", n_iter=100000)
 ```
 
 Each estimated mask $\gamma_x$ can be inspected after fitting to determine which covariates were found to have a non-negligible effect on which population parameter (onset $t_0$; feature position $g_k$; feature speed $v_{0,k}$), and the corresponding $\delta_x$ gives the size and direction of that effect.
+
+(ordinal-model)=
+
+## Ordinal Model
+
+### Definition
+
+The **ordinal model** is designed for longitudinal outcomes measured on an ordered discrete scale, such as clinical ratings, disease stages, or questionnaire items {cite}`poulet_multivariate_2023`. Although these outcomes are encoded as integers, the difference between two consecutive levels does not necessarily represent a constant change in severity.
+
+Instead of treating ordinal scores as continuous values, the model estimates the probability that a patient has reached a given level or a higher one. In Leaspy, it extends the multivariate spatio-temporal logistic model by introducing temporal delays between consecutive ordinal transitions.
+
+(ordinal-data)=
+
+### Data
+
+An ordinal model is relevant when you have:
+
+- **Longitudinal repeated measurements** of one or more ordinal outcomes,
+
+- **Ordered discrete levels**, such as 0, 1, 2, 3, and 4,
+
+- **Monotonic progression**, where higher levels generally represent more advanced disease states.
+
+The dataframe must contain:
+
+- `ID`: Patient identifier,
+
+- `TIME`: Time of measurement,
+
+- One or more ordinal outcomes (e.g. `ITEM_1`, `ITEM_2`, ...).
+
+Ordinal values must be encoded as consecutive non-negative integers, starting at 0 and ordered according to increasing clinical severity (e.g., 0, 1, 2, 3). Different outcomes may have different maximum levels, and missing values may be represented by `NaN`.
+
+```python
+dataset = dataframe.set_index(["ID", "TIME"]).sort_index()
+
+print(dataset.head())
+
+                     ITEM_1  ITEM_2  ITEM_3
+ID       TIME
+132-S2-0 81.661          0       1       0
+         82.136          1       1       0
+         82.682          1       2       0
+         83.139          2       2       1
+         83.691          2       3       1
+
+data_ordinal = Data.from_dataframe(dataset)
+```
+
+### Mathematical background
+
+For subject $i$, visit $j$, and feature $k$, the observed score is
+
+$$
+Y_{i,j,k}\in\{0,\ldots,H_k\},
+$$
+
+where $H_k$ is the maximum possible score for feature $k$. For each threshold $h=1,\ldots,H_k$, the model defines the cumulative probability
+
+$$
+\mathbb{P}(Y_{i,j,k}\geq h)
+=
+\left[
+1+g_k\exp\left(
+-\frac{(1+g_k)^2}{g_k}
+\left[v_{0,k}\psi_{i,k}^{h}(t_{i,j})+w_{i,k}\right]
+\right)
+\right]^{-1},
+$$
+
+with the threshold-specific latent disease age
+
+$$
+\psi_{i,k}^{h}(t_{i,j})
+=
+e^{\xi_i}(t_{i,j}-\tau_i)+t_0
+-\sum_{r=1}^{h}\delta_k^r.
+$$
+
+Here, $\tau_i$ and $\xi_i$ describe individual temporal variability, $w_{i,k}$ is the individual spatial shift, and $g_k$ and $v_{0,k}$ define the population logistic trajectory for feature $k$.
+
+The first ordinal delay is fixed to zero:
+
+$$
+\delta_k^1=0,
+\qquad
+\delta_k^r>0 \quad \text{for } r=2,\ldots,H_k.
+$$
+
+For $r\geq2$, $\delta_k^r$ represents the temporal spacing between the transitions into levels $r-1$ and $r$. It should not be interpreted as an absolute transition age.
+
+The probability of observing a specific level is obtained from consecutive cumulative probabilities:
+
+$$
+\begin{cases}
+\mathbb{P}(Y_{i,j,k}=0)
+=1-\mathbb{P}(Y_{i,j,k}\geq1), \\
+\mathbb{P}(Y_{i,j,k}=h)
+=\mathbb{P}(Y_{i,j,k}\geq h)-\mathbb{P}(Y_{i,j,k}\geq h+1),
+& 1\leq h<H_k, \\
+\mathbb{P}(Y_{i,j,k}=H_k)
+=\mathbb{P}(Y_{i,j,k}\geq H_k).
+\end{cases}
+$$
+
+(ordinal-model-usage)=
+
+### Model usage
+
+```python
+from leaspy.models import OrdinalModel
+
+leaspy_ordinal = OrdinalModel(source_dimension=2)
+
+leaspy_ordinal.fit(
+    data_ordinal,
+    "mcmc_saem",
+    n_iter=1000,
+)
+```
+The source dimension is generally chosen to be approximately the square root of the number of ordinal items:
+
+$$
+N_s \approx \sqrt{K},
+$$
+
+where $K$ is the number of items. For example, two sources may be used for four items, and three sources for ten items.
+After personalization, the estimated individual parameters can be used to compute cumulative ordinal trajectories and category probabilities.

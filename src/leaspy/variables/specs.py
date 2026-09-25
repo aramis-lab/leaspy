@@ -622,6 +622,19 @@ class LatentVariableInitType(str, Enum):
     PRIOR_MEAN = "mean"
     PRIOR_SAMPLES = "samples"
 
+def _apply_regularity_mask(
+    x: WeightedTensor,
+    *,
+    mask: torch.Tensor,
+) -> WeightedTensor:
+    """Exclude masked values from a regularization term."""
+    mask = mask.to(device=x.value.device)
+
+    if x.weight is not None:
+        mask = x.weight * mask
+
+    return WeightedTensor(x.value, mask)
+
 
 @dataclass(frozen=True)
 class LatentVariable(IndepVariable):
@@ -634,6 +647,8 @@ class LatentVariable(IndepVariable):
         The symbolic prior distribution for the latent variable (e.g. `Normal('xi_mean', 'xi_std')`).
     sampling_kws : :obj:`dict`, optional
         Optional keyword arguments to customize the sampling process (e.g. number of samples, random seed).
+    regularity_mask : :class:`torch.Tensor`, optional
+        Boolean mask selecting values that contribute to regularization.
     is_settable : :obj:`bool`
         Indicates that this variable can be explicitly set in the model (default: True).
     """
@@ -642,6 +657,7 @@ class LatentVariable(IndepVariable):
     # or should be fixed & explicit here?
     prior: SymbolicDistribution
     sampling_kws: Optional[KwargsType] = None
+    regularity_mask: Optional[torch.Tensor] = None
 
     is_settable: ClassVar = True
 
@@ -785,31 +801,32 @@ class PopulationLatentVariable(LatentVariable):
         Parameters
         ----------
         variable_name : :class:`~leaspy.variables.specs.VariableName`
-            The name of the variable for which to retrieve regularity.
+            The name of the variable for which regularity is computed.
 
         Returns
         -------
-        :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`] :
-            The dictionary holding the :class:`~leaspy.variables.specs.LinkedVariable` for the regularity.
+        dict
+            Dictionary containing the regularization linked variable.
         """
-        # d = super().get_regularity_variables(value_name)
-        d = {}
-        d.update(
-            {
-                f"nll_regul_{variable_name}": LinkedVariable(
-                    # SumDim(f"nll_regul_{value_name}_full")
-                    self.prior.get_func_regularization(variable_name).then(sum_dim)
-                ),
-                # TODO: jacobian as well...
-            }
-        )
-        return d
+        regularity_func = self.prior.get_func_regularization(variable_name)
+
+        if self.regularity_mask is not None:
+            regularity_func = regularity_func.then(
+                _apply_regularity_mask,
+                mask=self.regularity_mask,
+            )
+
+        return {
+            f"nll_regul_{variable_name}": LinkedVariable(
+                regularity_func.then(sum_dim)
+            )
+        }
 
 
 class IndividualLatentVariable(LatentVariable):
     """
     Individual latent variable.
-    
+
     Attributes
     ----------
     fixed_shape : `ClassVar`[:obj:`bool`]

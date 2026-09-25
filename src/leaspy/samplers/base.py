@@ -261,14 +261,12 @@ class AbstractPopulationSampler(AbstractSampler):
                 "Dimension of population variable should be 1 or 2"
             )
 
-        # TODO / WIP
         self.mask = mask
         if self.mask is not None:
-            raise NotImplementedError(
-                "WIP: Masked samplers are not supported yet with new variable interface / new weighted tensors "
-                "--> cf. comments in LatentVariable & StatelessDistributionFamily"
-            )
-            if not isinstance(self.mask, torch.Tensor) or self.mask.shape != self.shape:
+            if not isinstance(self.mask, torch.Tensor):
+                raise LeaspyModelInputError("Mask for sampler should be a torch.Tensor.")
+
+            if self.mask.shape != self.shape:
                 raise LeaspyModelInputError(
                     f"Mask for sampler should be of shape {self.shape} but is of shape {self.mask.shape}"
                 )

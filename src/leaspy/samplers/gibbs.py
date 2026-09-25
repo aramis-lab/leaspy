@@ -277,9 +277,14 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
         """
         scale = super().validate_scale(scale)
         if scale.ndim > len(self.shape_adapted_std):
-            # we take the mean of grouped dimension in this case
+            # Dimensions grouped by the sampler
             scale_squeezed_dims = tuple(range(len(self.shape_adapted_std), scale.ndim))
-            scale = scale.mean(dim=scale_squeezed_dims)
+            if self.mask is None:
+                scale = scale.mean(dim=scale_squeezed_dims)
+            else:
+                valid_scale = scale.masked_fill(~self.mask,0.0,)
+                valid_count = self.mask.sum(dim=scale_squeezed_dims)
+                scale = valid_scale.sum(dim=scale_squeezed_dims) / valid_count
         return scale
 
     def sample(
@@ -308,17 +313,24 @@ class AbstractPopulationGibbsSampler(GibbsSamplerMixin, AbstractPopulationSample
 
         def compute_attachment_regularity():
             # Mask for regularity is handled directly by `WeightedTensor` logic
-            return state["nll_attach"], state[f"nll_regul_{self.name}"]
+            if self.mask is None:
+                regularity = state[f"nll_regul_{self.name}"]
+
+            else:
+                value = state[self.name][self.mask]
+                mean = state[f"{self.name}_mean"][self.mask]
+                std = state[f"{self.name}_std"]
+
+                regularity = (-torch.distributions.Normal(mean,std,).log_prob(value).sum())
+
+            return state["nll_attach"], regularity
 
         for idx in self._get_shuffled_iterator_indices():
             previous_attachment, previous_regularity = compute_attachment_regularity()
             # with state.auto_fork():  # not needed since state already have auto_fork on
-            state.put(
-                self.name,
-                self._proposed_change_idx(idx),
-                indices=idx,
-                accumulate=True,  # out-of-place addition
-            )
+            proposed_change = self._proposed_change_idx(idx)
+
+            state.put(self.name,proposed_change,indices=idx,accumulate=True,)
 
             # Update (and caching) of derived model attributes (orthonormal basis, ...) is done in state
             new_attachment, new_regularity = compute_attachment_regularity()

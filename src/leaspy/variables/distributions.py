@@ -32,7 +32,9 @@ __all__ = [
     "Bernoulli",
     "WeibullRightCensored",
     "WeibullRightCensoredWithSources",
-    # "CategoricalFamily",
+    "OrdinalFamily",
+    "Ordinal",
+    # "CategoricalFamily", # Here may mean “ordinal family“
     "MixtureNormalFamily",
     "MultivariateNormalFamily"
 ]
@@ -399,6 +401,20 @@ class BernoulliFamily(StatelessDistributionFamilyFromTorchDistribution):
 
     parameters: ClassVar = ("loc",)
     dist_factory: ClassVar = torch.distributions.Bernoulli
+
+
+class OrdinalFamily(StatelessDistributionFamilyFromTorchDistribution):
+    """Ordinal family (stateless)."""
+
+    parameters: ClassVar = ("probs",)
+    dist_factory: ClassVar = MultinomialDistribution.from_sf
+
+    @classmethod
+    def _nll(cls, x: WeightedTensor, *params: torch.Tensor) -> WeightedTensor:
+        return WeightedTensor(
+            -cls.dist_factory(*params).log_prob(x.value),
+            x.weight[..., 0],
+        )
 
 
 class NormalFamily(StatelessDistributionFamilyFromTorchDistribution):
@@ -1855,6 +1871,7 @@ class SymbolicDistribution:
 
 Normal = SymbolicDistribution.bound_to(NormalFamily)
 # Categorical = SymbolicDistribution.bound_to(CategoricalFamily)
+Ordinal = SymbolicDistribution.bound_to(OrdinalFamily)
 MixtureNormal = SymbolicDistribution.bound_to(MixtureNormalFamily)
 MultivariateNormal = SymbolicDistribution.bound_to(MultivariateNormalFamily)
 Bernoulli = SymbolicDistribution.bound_to(BernoulliFamily)
