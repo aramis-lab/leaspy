@@ -3,10 +3,12 @@ from typing import Optional, Union
 
 from .base import BaseModel
 from .constant import ConstantModel
+from .covariate_logistic import CovariateLogisticModel
 from .joint import JointModel
 from .linear import LinearModel
 from .lme import LMEModel
 from .logistic import LogisticModel
+from .logistic_Schiratti import LogisticModelSchiratti
 from .mixture import LogisticMultivariateMixtureModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
 
@@ -21,6 +23,8 @@ class ModelName(str, Enum):
 
     JOINT = "joint"
     LOGISTIC = "logistic"
+    LOGISITC_SCHIRATTI = "logistic_schiratti"
+    COVARIATE = "covariate"
     LINEAR = "linear"
     SHARED_SPEED_LOGISTIC = "shared_speed_logistic"
     LME = "lme"
@@ -71,6 +75,10 @@ def model_factory(
         return JointModel(instance_name, **kwargs)
     if name == ModelName.LOGISTIC:
         return LogisticModel(instance_name, **kwargs)
+    if name == ModelName.LOGISITC_SCHIRATTI:
+        return LogisticModelSchiratti(instance_name, **kwargs)
+    if name == ModelName.COVARIATE:
+        return CovariateLogisticModel(instance_name, **kwargs)
     if name == ModelName.LINEAR:
         return LinearModel(instance_name, **kwargs)
     if name == ModelName.SHARED_SPEED_LOGISTIC:

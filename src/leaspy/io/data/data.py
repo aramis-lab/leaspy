@@ -498,7 +498,7 @@ class Data(Iterable):
         event_time: Optional[list[list[float]]] = None,
         event_bool: Optional[list[list[int]]] = None,
         covariate_names: Optional[list[str]] = None,
-        covariates: Optional[list[list[int]]] = None,
+        covariates: Optional[list[list[float]]] = None,
     ) -> Data:
         """
         Construct `Data` from a collection of individual data points

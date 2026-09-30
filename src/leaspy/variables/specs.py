@@ -21,17 +21,17 @@ import torch
 
 from leaspy.exceptions import LeaspyModelInputError
 from leaspy.models.utilities import (
-    compute_ind_param_std_from_suff_stats,
     compute_ind_param_mean_from_suff_stats_mixture,
     compute_ind_param_std_from_suff_stats_mixture,
     compute_ind_param_std_from_suff_stats_mixture_burn_in,
+    compute_pop_mean_cond_from_suff_stats,
     compute_probs_from_state,
 )
 from leaspy.utils.functional import (
     Identity,
     Mean,
-    Prod,
     NamedInputFunction,
+    Prod,
     Sqr,
     Std,
     Sum,
@@ -47,7 +47,9 @@ from leaspy.utils.weighted_tensor import (
 )
 
 from .distributions import SymbolicDistribution
-from .utilities import compute_individual_parameter_std_from_sufficient_statistics
+from .utilities import (
+    compute_individual_parameter_std_from_sufficient_statistics,
+)
 
 __all__ = [
     "VariableName",
@@ -199,7 +201,7 @@ class Hyperparameter(IndepVariable):
 @dataclass(frozen=True, init=False)
 class Collect:
     """
-    A convenient class to produce a function to collect sufficient stats that are existing 
+    A convenient class to produce a function to collect sufficient stats that are existing
     or dedicated variables (to be automatically created).
 
     Parameters
@@ -210,6 +212,7 @@ class Collect:
         Custom or derived variables that will be included in the collection process.
 
     """
+
     existing_variables: tuple[VariableName, ...] = ()
     dedicated_variables: Optional[TMapping[VariableName, LinkedVariable]] = None
 
@@ -253,9 +256,9 @@ class Collect:
 @dataclass(frozen=True)
 class ModelParameter(IndepVariable):
     """
-    Variable for model parameters with a maximization rule. This variable shouldn't 
+    Variable for model parameters with a maximization rule. This variable shouldn't
     be sampled and it shouldn't be data, a hyperparameter or a linked variable.
-    
+
     Parameters
     ----------
     shape : :obj:`tuple` of :obj:`int`
@@ -264,7 +267,7 @@ class ModelParameter(IndepVariable):
         A callable object that collects sufficient statistics required to compute the update.
     update_rule : :obj:`.typing.Callable` [..., :class:`~leaspy.variables.specs.VariableValue`]
         The symbolic update rule for this parameter, used during both burn-in and standard
-        learning phase unless overridden by `update_rule_burn_in`. 
+        learning phase unless overridden by `update_rule_burn_in`.
     update_rule_burn_in : :obj:`.typing.Callable` [..., :class:`~leaspy.variables.specs.VariableValue`] or None, optional
         An optional alternative update rule specifically used during the burn-in phase.
         If provided, it overrides `update_rule` during that phase.
@@ -280,11 +283,12 @@ class ModelParameter(IndepVariable):
     is_settable : :obj:`bool` (class attribute)
         Flags this variable as being settable externally (True by design).
     """
+
     shape: tuple[int, ...]
     suff_stats: Collect  # Callable[[VariablesValuesRO], SuffStatsRW]
     """
     The symbolic update functions will take variadic `suff_stats` values,
-    in order to re-use NamedInputFunction logic: e.g. update_rule=Std('xi')
+    in order to reuse NamedInputFunction logic: e.g. update_rule=Std('xi')
 
     <!> ISSUE: for `tau_std` and `xi_std` we also need `state` values in addition to
     `suff_stats` values (only after burn-in) since we can NOT use the variadic form
@@ -393,9 +397,9 @@ class ModelParameter(IndepVariable):
         cls, population_variable_name: VariableName, shape: tuple[int, ...]
     ):
         """
-        Smart automatic definition of `ModelParameter` when it is the mean 
+        Smart automatic definition of `ModelParameter` when it is the mean
         of Gaussian prior of a population latent variable.
-        
+
         Parameters
         ----------
         population_variable_name : :class:`~leaspy.variables.specs.VariableName`
@@ -407,21 +411,61 @@ class ModelParameter(IndepVariable):
         -------
         :class:`~leaspy.variables.specs.ModelParameter`
             A new instance of `ModelParameter` configured as a prior mean.
-        """        
+        """
         return cls(
             shape,
             suff_stats=Collect(population_variable_name),
             update_rule=Identity(population_variable_name),
         )
-    
+
+    @classmethod
+    def for_pop_mean_condi(
+        cls,
+        population_variable_name: VariableName,
+        mask_variable_name: VariableName,
+        shape: tuple[int, ...],
+    ):
+        """
+        Smart automatic definition of `ModelParameter` when it is the mean
+        of a Gaussian prior conditional on a binary mask:
+        p(delta | gamma) = N(gamma ⊙ delta_mean, Sigma).
+
+        The update rule is: delta_mean_c = S(gamma_c * delta_c) / (S(gamma_c) + eps).
+
+        Parameters
+        ----------
+        population_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the population latent variable (e.g. "delta_t0").
+        mask_variable_name : :class:`~leaspy.variables.specs.VariableName`
+            Name of the binary mask variable (e.g. "gamma_t0").
+        shape : :obj:`tuple` of :obj:`int`
+            Shape of the model parameter.
+        """
+        gamma_delta_name = f"{mask_variable_name}_{population_variable_name}"
+        return cls(
+            shape,
+            suff_stats=Collect(
+                mask_variable_name,
+                **{
+                    gamma_delta_name: LinkedVariable(
+                        Prod(mask_variable_name, population_variable_name)
+                    )
+                },
+            ),
+            update_rule=NamedInputFunction(
+                compute_pop_mean_cond_from_suff_stats,
+                parameters=(gamma_delta_name, mask_variable_name),
+            ),
+        )
+
     @classmethod
     def for_ind_mean(
         cls, individual_variable_name: VariableName, shape: tuple[int, ...]
     ):
         """
-        Smart automatic definition of `ModelParameter` when it is the mean 
+        Smart automatic definition of `ModelParameter` when it is the mean
         of Gaussian prior of an individual latent variable.
-        
+
         Parameters
         ----------
         individual_variable_name : :class:`~leaspy.variables.specs.VariableName`
@@ -442,8 +486,11 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_ind_mean_mixture(cls,
-                             ind_var_name: VariableName ,shape: Tuple[int, ...],):
+    def for_ind_mean_mixture(
+        cls,
+        ind_var_name: VariableName,
+        shape: Tuple[int, ...],
+    ):
         """
         Smart automatic definition of `ModelParameter` when it is the mean of a mixture of Gaussians
         prior of an individual latent variable.
@@ -463,8 +510,8 @@ class ModelParameter(IndepVariable):
         """
         update_rule_mixture = NamedInputFunction(
             compute_ind_param_mean_from_suff_stats_mixture,
-            parameters = ("state",),
-            kws=dict(ip_name = ind_var_name)
+            parameters=("state",),
+            kws=dict(ip_name=ind_var_name),
         )
 
         return cls(
@@ -473,11 +520,10 @@ class ModelParameter(IndepVariable):
             update_rule=update_rule_mixture,
         )
 
-   
     @classmethod
     def for_ind_std(cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw):
         """
-        Smart automatic definition of `ModelParameter` when it is the std-dev 
+        Smart automatic definition of `ModelParameter` when it is the std-dev
         of Gaussian prior of an individual latent variable.
 
         Parameters
@@ -510,18 +556,16 @@ class ModelParameter(IndepVariable):
             shape,
             suff_stats=Collect(
                 ind_var_name,
-                **{
-                    ind_var_sqr_name: LinkedVariable(
-                        Sqr(ind_var_name)
-                    )
-                },
+                **{ind_var_sqr_name: LinkedVariable(Sqr(ind_var_name))},
             ),
             update_rule_burn_in=Std(ind_var_name, dim=LVL_IND),
             update_rule=update_rule_normal,
         )
 
     @classmethod
-    def for_ind_std_mixture(cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw):
+    def for_ind_std_mixture(
+        cls, ind_var_name: VariableName, shape: Tuple[int, ...], **tol_kw
+    ):
         """
         Smart automatic definition of `ModelParameter` when it is the std-dev of Gaussian
         prior of an individual latent variable.
@@ -544,10 +588,10 @@ class ModelParameter(IndepVariable):
             parameters=("state", ind_var_name, ind_var_sqr_name),
             kws=dict(ip_name=ind_var_name, dim=LVL_IND, **tol_kw),
         )
-        update_rule_mixture_burn_in =  NamedInputFunction(
+        update_rule_mixture_burn_in = NamedInputFunction(
             compute_ind_param_std_from_suff_stats_mixture_burn_in,
-            parameters = ("state",),
-            kws=dict(ip_name = ind_var_name)
+            parameters=("state",),
+            kws=dict(ip_name=ind_var_name),
         )
         return cls(
             shape,
@@ -559,7 +603,10 @@ class ModelParameter(IndepVariable):
         )
 
     @classmethod
-    def for_probs(cls, shape: Tuple[int, ...],):
+    def for_probs(
+        cls,
+        shape: Tuple[int, ...],
+    ):
         """
         Smart automatic definition of `ModelParameter` when it is the probabilities of a Gaussian mixture.
 
@@ -576,20 +623,21 @@ class ModelParameter(IndepVariable):
 
         update_rule_probs = NamedInputFunction(
             compute_probs_from_state,
-            parameters = ("state",),
+            parameters=("state",),
         )
 
         return cls(
             shape,
-            suff_stats= Collect(),
-            update_rule= update_rule_probs,
+            suff_stats=Collect(),
+            update_rule=update_rule_probs,
         )
-    
+
+
 @dataclass(frozen=True)
 class DataVariable(IndepVariable):
     """
     Variables for input data, that may be reset.
-    
+
     Attributes
     ----------
     fixed_shape : :obj:`bool`
@@ -642,6 +690,7 @@ class LatentVariable(IndepVariable):
     # or should be fixed & explicit here?
     prior: SymbolicDistribution
     sampling_kws: Optional[KwargsType] = None
+    nll_prior: Optional[SymbolicDistribution] = None
 
     is_settable: ClassVar = True
 
@@ -650,7 +699,7 @@ class LatentVariable(IndepVariable):
     ) -> tuple[int, ...]:
         """
         Get shape of prior distribution (i.e. without any expansion for `IndividualLatentVariable`).
-        
+
         Parameters
         ----------
         named_vars : :obj:`Mapping` [:class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.VariableInterface`]
@@ -675,20 +724,20 @@ class LatentVariable(IndepVariable):
                 f"Shapes of some prior distribution parameters are not fixed: {bad_params}"
             )
         params_shapes = {n: named_vars[n].shape for n in self.prior.parameters_names}
-        res = self.prior.shape(**params_shapes) # before it returned only this
+        res = self.prior.shape(**params_shapes)  # before it returned only this
         # some changes needed to handle the parameters in mixture,
         # it sampled with shape n_clusters for the individual latent parameters if we leave it as before
         # the correct sample.size is like in the classic model,
         # the latent individual variables do not have an extra dimension
-        if 'Mixture' in str(self.prior):
+        if "Mixture" in str(self.prior):
             name = str([self.prior.parameters_names[0]])
-            if 'sources' in name:
+            if "sources" in name:
                 shape_to_modif = self.prior.shape(**params_shapes)
-                res = torch.Size(shape_to_modif [:1])
-            if 'tau' in name:
+                res = torch.Size(shape_to_modif[:1])
+            if "tau" in name:
                 shape_to_modif = torch.Size([1])
                 res = shape_to_modif
-            if 'xi' in name:
+            if "xi" in name:
                 shape_to_modif = torch.Size([1])
                 res = shape_to_modif
         return res
@@ -701,7 +750,7 @@ class LatentVariable(IndepVariable):
     ) -> NamedInputFunction[torch.Tensor]:
         """
         Return a function that may be used for initialization.
-        
+
         Parameters
         ----------
         method : :obj:`str` or :class:`~leaspy.variables.specs.LatentVariableInitType`
@@ -745,7 +794,7 @@ class LatentVariable(IndepVariable):
 class PopulationLatentVariable(LatentVariable):
     """
     Population latent variable.
-    
+
     Attributes
     ----------
     fixed_shape : `ClassVar`[:obj:`bool`]
@@ -782,6 +831,11 @@ class PopulationLatentVariable(LatentVariable):
         """
         Return the negative log likelihood regularity for the provided variable name.
 
+        If ``nll_prior`` was provided at construction time, it is used for the NLL
+        computation instead of ``prior``. This allows using a conditional prior
+        (e.g. depending on another latent variable) for MCMC without affecting
+        initialization, which always uses ``prior``.
+
         Parameters
         ----------
         variable_name : :class:`~leaspy.variables.specs.VariableName`
@@ -792,24 +846,18 @@ class PopulationLatentVariable(LatentVariable):
         :obj:`dict` [ :class:`~leaspy.variables.specs.VariableName`, :class:`~leaspy.variables.specs.LinkedVariable`] :
             The dictionary holding the :class:`~leaspy.variables.specs.LinkedVariable` for the regularity.
         """
-        # d = super().get_regularity_variables(value_name)
-        d = {}
-        d.update(
-            {
-                f"nll_regul_{variable_name}": LinkedVariable(
-                    # SumDim(f"nll_regul_{value_name}_full")
-                    self.prior.get_func_regularization(variable_name).then(sum_dim)
-                ),
-                # TODO: jacobian as well...
-            }
-        )
-        return d
+        nll_dist = self.nll_prior if self.nll_prior is not None else self.prior
+        return {
+            f"nll_regul_{variable_name}": LinkedVariable(
+                nll_dist.get_func_regularization(variable_name).then(sum_dim)
+            ),
+        }
 
 
 class IndividualLatentVariable(LatentVariable):
     """
     Individual latent variable.
-    
+
     Attributes
     ----------
     fixed_shape : `ClassVar`[:obj:`bool`]
@@ -860,13 +908,19 @@ class IndividualLatentVariable(LatentVariable):
         """
         # d = super().get_regularity_variables(value_name)
         d = {}
-        if 'Mixture' in str(self.prior): #specification for the mixture model : we don't want to sum all dimensions, we need one regularity per cluster
-            if variable_name == 'sources' :
+        if (
+            "Mixture" in str(self.prior)
+        ):  # specification for the mixture model : we don't want to sum all dimensions, we need one regularity per cluster
+            if variable_name == "sources":
                 d.update(
                     {
                         f"nll_regul_{variable_name}_ind": LinkedVariable(
                             self.prior.get_func_regularization(variable_name).then(
-                                sum_dim, but_dim=(LVL_IND, 2) # sum per source but omit the cluster dimension as well
+                                sum_dim,
+                                but_dim=(
+                                    LVL_IND,
+                                    2,
+                                ),  # sum per source but omit the cluster dimension as well
                             )
                         ),
                         f"nll_regul_{variable_name}": LinkedVariable(
@@ -874,12 +928,12 @@ class IndividualLatentVariable(LatentVariable):
                         ),
                     }
                 )
-            else :
+            else:
                 d.update(
                     {
                         f"nll_regul_{variable_name}_ind": LinkedVariable(
                             self.prior.get_func_regularization(variable_name)
-                        ), # keep it per cluster dont sum all dimensions
+                        ),  # keep it per cluster dont sum all dimensions
                         f"nll_regul_{variable_name}": LinkedVariable(
                             SumDim(f"nll_regul_{variable_name}_ind")
                         ),
@@ -906,9 +960,9 @@ class IndividualLatentVariable(LatentVariable):
 @dataclass(frozen=True)
 class LinkedVariable(VariableInterface):
     """
-    Variable which is a deterministic expression of other variables 
+    Variable which is a deterministic expression of other variables
     (we directly use variables names instead of mappings: kws <-> vars).
-    
+
     Parameters
     ----------
     f : :obj:`Callable`[..., :class:`~leaspy.variables.specs.VariableValue`]

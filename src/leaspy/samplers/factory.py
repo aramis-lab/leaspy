@@ -9,6 +9,7 @@ from .base import (
     AbstractSampler,
 )
 from .gibbs import (
+    BernoulliDiscreteSampler,
     IndividualGibbsSampler,
     PopulationFastGibbsSampler,
     PopulationGibbsSampler,
@@ -30,6 +31,7 @@ POPULATION_SAMPLERS = {
     "gibbs": PopulationGibbsSampler,
     "fastgibbs": PopulationFastGibbsSampler,
     "metropolis-hastings": PopulationMetropolisHastingsSampler,
+    "bernoulli-discrete": BernoulliDiscreteSampler,
 }
 
 

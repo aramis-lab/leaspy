@@ -5,6 +5,7 @@ from .factory import (
     sampler_factory,
 )
 from .gibbs import (
+    BernoulliDiscreteSampler,
     IndividualGibbsSampler,
     PopulationFastGibbsSampler,
     PopulationGibbsSampler,
@@ -15,6 +16,7 @@ __all__ = [
     "AbstractSampler",
     "AbstractIndividualSampler",
     "AbstractPopulationSampler",
+    "BernoulliDiscreteSampler",
     "IndividualGibbsSampler",
     "PopulationGibbsSampler",
     "PopulationFastGibbsSampler",

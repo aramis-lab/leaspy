@@ -18,6 +18,7 @@ __all__ = [
     "PopulationGibbsSampler",
     "PopulationFastGibbsSampler",
     "PopulationMetropolisHastingsSampler",
+    "BernoulliDiscreteSampler",
     "IndividualGibbsSampler",
 ]
 
@@ -578,6 +579,102 @@ class PopulationMetropolisHastingsSampler(AbstractPopulationGibbsSampler):
         return ()
 
 
+class BernoulliDiscreteSampler(AbstractPopulationSampler):
+    """Exact discrete Gibbs sampler for population variables with a Bernoulli prior.
+
+    For each coordinate of the variable, the conditional posterior is an exact Bernoulli
+    (only two possible values: 0 or 1). We evaluate the total NLL at both values and
+    sample directly from the posterior — no Metropolis-Hastings rejection needed.
+
+    Parameters
+    ----------
+    name : str
+        Name of the Bernoulli random variable.
+    shape : tuple of int
+        Shape of the variable.
+    random_order_dimension : bool, default True
+        Whether to randomize the order of coordinates during the sampling loop.
+    **base_sampler_kws
+        Passed to :class:`~leaspy.samplers.AbstractPopulationSampler`. The ``scale``
+        key is silently ignored (it has no meaning for a discrete sampler).
+    """
+
+    def __init__(
+        self,
+        name: str,
+        shape: tuple,
+        *,
+        random_order_dimension: bool = True,
+        **base_sampler_kws,
+    ):
+        base_sampler_kws.pop("scale", None)
+        super().__init__(name, shape, **base_sampler_kws)
+        self._random_order_dimension = random_order_dimension
+
+    @property
+    def shape_acceptation(self) -> tuple[int, ...]:
+        return self.shape
+
+    def __str__(self) -> str:
+        mean_sampled = self.acceptation_history.mean()
+        return (
+            f"{self.name} (Bernoulli discrete): mean p(1) = {mean_sampled.item():.2f}"
+        )
+
+    def sample(self, state: State, *, temperature_inv: float) -> None:
+        """Sample each coordinate of gamma exactly from its conditional Bernoulli posterior.
+
+        Parameters
+        ----------
+        state : State
+            Current model state. Modified in-place.
+        temperature_inv : float
+            Inverse temperature for tempered MCMC-SAEM.
+        """
+        sampled_array = torch.zeros(self.shape)
+
+        indices = list(ndindex(self.shape))
+        if self._random_order_dimension:
+            shuffle(indices)
+
+        for idx in indices:
+            # Current value at this coordinate (scalar tensor)
+            current_val = state[self.name]
+            if hasattr(current_val, "value"):
+                current_val = current_val.value
+            current_scalar = current_val[idx].clone()
+
+            # --- Evaluate total NLL when gamma[idx] = 0 ---
+            state.put(self.name, -current_scalar, indices=idx, accumulate=True)
+            nll_attach_0 = state["nll_attach"]
+            nll_regul_0 = state[f"nll_regul_{self.name}"]
+            state.revert()
+
+            # --- Evaluate total NLL when gamma[idx] = 1 ---
+            state.put(self.name, 1.0 - current_scalar, indices=idx, accumulate=True)
+            nll_attach_1 = state["nll_attach"]
+            nll_regul_1 = state[f"nll_regul_{self.name}"]
+            state.revert()
+
+            # --- Compute posterior p(gamma[idx] = 1 | rest) ---
+            # p(gamma=1|rest) = sigmoid(nll_total_0 - nll_total_1)
+            # where nll_total_k = temperature_inv * nll_attach_k + nll_regul_k
+            nll_total_0 = temperature_inv * nll_attach_0 + nll_regul_0
+            nll_total_1 = temperature_inv * nll_attach_1 + nll_regul_1
+            p_1 = torch.sigmoid(nll_total_0 - nll_total_1)
+
+            # --- Sample the new value ---
+            new_val = torch.bernoulli(p_1)
+            sampled_array[idx] = new_val
+
+            # Apply the change to the state if the value flipped
+            change = new_val - current_scalar
+            if change.abs().item() > 0.5:
+                state.put(self.name, change, indices=idx, accumulate=True)
+
+        self._update_acceptation_rate(sampled_array)
+
+
 class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
     """
     Gibbs sampler for individual variables.
@@ -731,12 +828,14 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
             )
 
         previous_attachment, previous_regularity = compute_attachment_regularity()
-        if state["nll_regul_ind_sum_ind"].ndim > 1 :
+        if state["nll_regul_ind_sum_ind"].ndim > 1:
             nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
             nll_cluster = -nll_regul_ind_sum_ind
-            probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+            probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
 
-        if previous_regularity.ndim == 2 : #it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
+        if (
+            previous_regularity.ndim == 2
+        ):  # it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
             previous_regularity = (probs_ind * previous_regularity).sum(dim=1)
 
         # with state.auto_fork():
@@ -753,9 +852,11 @@ class IndividualGibbsSampler(GibbsSamplerMixin, AbstractIndividualSampler):
         if state["nll_regul_ind_sum_ind"].ndim > 1:
             nll_regul_ind_sum_ind = state["nll_regul_ind_sum_ind"].value
             nll_cluster = -nll_regul_ind_sum_ind
-            probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.))
+            probs_ind = torch.nn.Softmax(dim=1)(torch.clamp(nll_cluster, -100.0))
 
-        if new_regularity.ndim == 2:  # it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
+        if (
+            new_regularity.ndim == 2
+        ):  # it means that we have clusters and for the individual parameters we calculate a regularity term per cluster
             new_regularity = (probs_ind * new_regularity).sum(dim=1)
         alpha = torch.exp(
             -1

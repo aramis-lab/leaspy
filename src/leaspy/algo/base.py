@@ -52,6 +52,7 @@ class AlgorithmName(str, Enum):
     PERSONALIZE_CONSTANT = "constant_prediction"
     PERSONALIZE_LME = "lme_personalize"
     SIMULATE = "simulate"
+    SIMULATE_COVARIATE = "simulate_covariate"
 
 
 class BaseAlgorithm(ABC, Generic[ModelType, ReturnType]):
@@ -377,6 +378,8 @@ def get_algorithm_type(name: Union[str, AlgorithmName]) -> AlgorithmType:
         return AlgorithmType.FIT
     if name == AlgorithmName.SIMULATE:
         return AlgorithmType.SIMULATE
+    if name == AlgorithmName.SIMULATE_COVARIATE:
+        return AlgorithmType.SIMULATE
     if name in (
         AlgorithmName.PERSONALIZE_SCIPY_MINIMIZE,
         AlgorithmName.PERSONALIZE_MEAN_POSTERIOR,
@@ -432,6 +435,10 @@ def get_algorithm_class(name: Union[str, AlgorithmName]) -> Type[BaseAlgorithm]:
         from .simulate import SimulationAlgorithm
 
         return SimulationAlgorithm
+    if name == AlgorithmName.SIMULATE_COVARIATE:
+        from .simulate import SimulationCovariateAlgorithm
+
+        return SimulationCovariateAlgorithm
 
 
 def algorithm_factory(settings: AlgorithmSettings) -> BaseAlgorithm:
