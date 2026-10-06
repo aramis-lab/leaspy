@@ -214,6 +214,10 @@ class MixtureModel(
                 )
         
         super().__init__(self.type, **kwargs)
+        self._configure_variables_to_track()
+
+    def _configure_variables_to_track(self):
+        self.track_variables(["probs"])
 
     def get_variables_specs(self) -> NamedVariables:
         """
