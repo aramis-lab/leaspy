@@ -14,7 +14,6 @@ from leaspy.variables.distributions import MixtureNormal
 from leaspy.variables.specs import (
     Hyperparameter,
     IndividualLatentVariable,
-    LinkedVariable,
     ModelParameter,
     NamedVariables,
     SuffStatsRW,
@@ -133,15 +132,15 @@ class MixtureInitializationMixin:
         if self.source_dimension >= 1:
             parameters["betas_mean"] = betas
             parameters["sources_mean"] = self.sources_mean
-            rounded_parameters = {
-                str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
-            }
-            obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
-            if isinstance(obs_model, FullGaussianObservationModel):
-                rounded_parameters["noise_std"] = self.noise_std.expand(
-                    obs_model.extra_vars["noise_std"].shape
-                )
-            return rounded_parameters
+        rounded_parameters = {
+            str(p): torch_round(v.to(torch.float32)) for p, v in parameters.items()
+        }
+        obs_model = next(iter(self.obs_models))  # WIP: multiple obs models...
+        if isinstance(obs_model, FullGaussianObservationModel):
+            rounded_parameters["noise_std"] = self.noise_std.expand(
+                obs_model.extra_vars["noise_std"].shape
+            )
+        return rounded_parameters
 
 
 class MixtureModel(
@@ -218,6 +217,8 @@ class MixtureModel(
 
     def _configure_variables_to_track(self):
         self.track_variables(["probs"])
+        if self.source_dimension:
+            self.track_variables(["sources_mean"])
 
     def get_variables_specs(self) -> NamedVariables:
         """
@@ -269,8 +270,6 @@ class MixtureModel(
                 sources=IndividualLatentVariable(MixtureNormal("sources_mean", "sources_std", "probs"),
                                                         sampling_kws={"scale": 10}),
             )
-        else:
-            d["model"] = LinkedVariable(self.model_no_sources)
         return d
 
     def _validate_compatibility_of_dataset(
@@ -423,8 +422,9 @@ class MixtureModel(
         SuffStatsRW :
             The computed sufficient statistics.
         """
-        cls._center_sources_realizations(state)
-    
+        if "sources" in state:
+            cls._center_sources_realizations(state)
+
         return super().compute_sufficient_statistics(state)
 
     def get_individual_probabilities(self, ip_dataframe: pd.DataFrame):
