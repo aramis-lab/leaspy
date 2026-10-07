@@ -7,7 +7,7 @@ from .joint import JointModel
 from .linear import LinearModel
 from .lme import LMEModel
 from .logistic import LogisticModel
-from .mixture import LogisticMultivariateMixtureModel
+from .mixture import MixtureModel
 from .shared_speed_logistic import SharedSpeedLogisticModel
 
 __all__ = [
@@ -25,7 +25,8 @@ class ModelName(str, Enum):
     SHARED_SPEED_LOGISTIC = "shared_speed_logistic"
     LME = "lme"
     CONSTANT = "constant"
-    MIXTURE_LOGISTIC = "mixture_logistic"
+    MIXTURE = "mixture"
+    MIXTURE_LOGISTIC = "mixture_logistic"  # backward-compatible alias of MIXTURE
 
 
 def model_factory(
@@ -44,7 +45,7 @@ def model_factory(
             - ``"shared_speed_logistic"``
             - ``"lme"``
             - ``"constant"``
-            - ``"mixture_logistic"``
+            - ``"mixture"``
 
     instance_name : :obj:`str`, optional
         A custom name for the model instance. If not provided, the model's name
@@ -79,5 +80,5 @@ def model_factory(
         return LMEModel(instance_name, **kwargs)
     if name == ModelName.CONSTANT:
         return ConstantModel(instance_name, **kwargs)
-    if name == ModelName.MIXTURE_LOGISTIC:
-        return LogisticMultivariateMixtureModel(instance_name, **kwargs)
+    if name in (ModelName.MIXTURE, ModelName.MIXTURE_LOGISTIC):
+        return MixtureModel(instance_name, **kwargs)

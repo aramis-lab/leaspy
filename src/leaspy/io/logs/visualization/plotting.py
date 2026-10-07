@@ -17,7 +17,7 @@ from leaspy.exceptions import (
 )
 
 from ...outputs import IndividualParameters
-from leaspy.models import LogisticMultivariateMixtureModel
+from leaspy.models import MixtureModel
 
 
 __all__ = ["Plotting"]
@@ -544,7 +544,7 @@ class Plotting:
             )
             t = torch.tensor(timepoints, dtype=torch.float32).unsqueeze(0)
             
-            if isinstance(model, LogisticMultivariateMixtureModel):
+            if isinstance(model, MixtureModel):
                 # for the mixture model make sure we remove the probabilities and the cluster labels from the dictionary
                 valid_keys = set(model.individual_variables_names)
                 ind_ip = {

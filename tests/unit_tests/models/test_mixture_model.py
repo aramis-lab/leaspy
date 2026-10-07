@@ -1,6 +1,6 @@
 import torch
 
-from leaspy.models import LogisticMultivariateMixtureModel
+from leaspy.models import MixtureModel
 from tests import LeaspyTestCase
 
 
@@ -10,7 +10,7 @@ class TestMultivariateModel(LeaspyTestCase):
         Test the method load_parameters.
         """
         model_ref = self.get_hardcoded_model("mixture")
-        model = LogisticMultivariateMixtureModel("test_model", obs_models="gaussian-diagonal", dimension=4, source_dimension=2, n_clusters=2)
+        model = MixtureModel("test_model", obs_models="gaussian-diagonal", dimension=4, source_dimension=2, n_clusters=2)
         model.source_dimension = 2
         model.dimension = 4
         model.load_parameters(model_ref.parameters)

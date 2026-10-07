@@ -390,7 +390,7 @@ _DISPLAY_REGISTRY: dict[str, _ModelDisplayMeta] = {
         param_axes=_BASE_PARAM_AXES,
         derived_param_axes=_BASE_DERIVED_PARAM_AXES,
     ),
-    "TimeReparametrizedMixtureModel": _ModelDisplayMeta(
+    "MixtureModel": _ModelDisplayMeta(
         individual_prior_params=(
             "tau_std", "xi_std", "sources_std", "tau_mean", "xi_mean", "sources_mean",
         ),

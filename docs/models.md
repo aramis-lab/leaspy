@@ -281,9 +281,9 @@ $$
 To use the mixture model in Leaspy you need to choose the number of cluster you wish to estimate beforehand.
 
 ```python
-from leaspy.models import LogisticMultivariateMixtureModel
+from leaspy.models import MixtureModel
 
-leaspy_mixture = LogisticMultivariateMixtureModel(source_dimension=1, n_clusters=2, dimension=3)
+leaspy_mixture = MixtureModel(source_dimension=1, n_clusters=2, dimension=3)
 leaspy_mixture.fit(data_logistic,  "mcmc_saem", n_iter=1000)
 ```
 

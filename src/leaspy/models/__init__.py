@@ -12,7 +12,7 @@ from .shared_speed_logistic import SharedSpeedLogisticModel
 from .stateful import StatefulModel
 from .stateless import StatelessModel
 from .time_reparametrized import TimeReparametrizedModel
-from .mixture import LogisticMultivariateMixtureModel
+from .mixture import MixtureModel
 
 __all__ = [
     "ModelInterface",
@@ -31,5 +31,20 @@ __all__ = [
     "LinearModel",
     "SharedSpeedLogisticModel",
     "JointModel",
-    "LogisticMultivariateMixtureModel",
+    "MixtureModel",
 ]
+
+
+def __getattr__(name: str):
+    # `LogisticMultivariateMixtureModel` was the name of `MixtureModel` up to leaspy 2.1
+    if name == "LogisticMultivariateMixtureModel":
+        import warnings
+
+        warnings.warn(
+            "`LogisticMultivariateMixtureModel` is deprecated and will be removed in a "
+            "future release, use `MixtureModel` instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return MixtureModel
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

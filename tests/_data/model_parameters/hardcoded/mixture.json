@@ -1,6 +1,6 @@
 {
   "leaspy_version": "2.0.0-dev",
-  "name": "mixture_logistic",
+  "name": "mixture",
   "features": ["Y0", "Y1", "Y2", "Y3"],
   "dimension": 4,
   "hyperparameters": {

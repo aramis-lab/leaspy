@@ -28,7 +28,7 @@ all_data = all_data.set_index(["ID", "TIME"])
 all_data.head()
 # %%
 # We load the Mixture Model from the leaspy library and transform the dataset in a leaspy-compatible form with the built-in functions.
-from leaspy.models import LogisticMultivariateMixtureModel
+from leaspy.models import MixtureModel
 
 leaspy_data = Data.from_dataframe(all_data)
 
@@ -36,8 +36,7 @@ leaspy_data = Data.from_dataframe(all_data)
 # Then we fit a model with 3 clusters and 2 sources. Note that we have an extra argument `n_clusters` than the
 # standard model that has to be specified in order for the mixture model to run.
 
-model = LogisticMultivariateMixtureModel(
-    name="multi",
+model = MixtureModel(
     source_dimension=2,
     dimension=6,
     n_clusters=3,

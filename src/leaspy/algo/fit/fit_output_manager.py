@@ -13,7 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
 
 from leaspy.io.data import Dataset
-from leaspy.models import McmcSaemCompatibleModel, LogisticMultivariateMixtureModel
+from leaspy.models import McmcSaemCompatibleModel, MixtureModel
 
 from .base import FitAlgorithm
 
@@ -185,7 +185,7 @@ class FitOutputManager:
             to_skip.add("survival_shifts")
             params_with_sources.append("zeta")
             params_with_events += ["nu", "rho"]
-        if isinstance(model, LogisticMultivariateMixtureModel):
+        if isinstance(model, MixtureModel):
             to_skip = {"betas", "sources", "space_shifts", "xi", "tau", "mixing_matrix","sources_mean", "nll_regul_pop_sum"}
             params_with_feature_labels = ["g", "v0", "noise_std"]
             params_with_cluster_labels = ["probs", "tau_mean", "tau_std", "xi_mean", "xi_std"]
@@ -197,7 +197,7 @@ class FitOutputManager:
         # To plot related parameters close to each other, we sort the list
         files_to_plot.sort()
         
-        if isinstance(model, LogisticMultivariateMixtureModel):
+        if isinstance(model, MixtureModel):
             custom_order = ["g", "nll_regul_log_g", "v0", "nll_regul_log_v0", 
                             "noise_std",  "nll_attach",
                             "probs", "tau_mean", "tau_std", "xi_mean", "xi_std", 
